@@ -10,7 +10,7 @@ Painel de automação para organizar ofertas de afiliados por categoria, gerar m
 - Filas, agendamentos, grupos e métricas de leads
 - Ponte segura para integração com n8n
 - Rotina horária para liberar publicações agendadas
-- Estrutura para Mercado Livre, Shopee e WhatsApp
+- Estrutura para Amazon Associados, Shopee Afiliados, Mercado Livre e WhatsApp
 
 ## Fluxo planejado
 
@@ -24,4 +24,4 @@ Não salve senhas, Client Secrets ou tokens neste repositório. Configure `N8N_W
 
 ## Pendências externas
 
-As integrações reais dependem das credenciais e permissões oficiais das contas do Mercado Livre, Shopee, n8n e do serviço escolhido para WhatsApp.
+As integrações reais dependem das credenciais e permissões oficiais das contas da Amazon, Shopee, Mercado Livre, n8n e do serviço escolhido para WhatsApp.
