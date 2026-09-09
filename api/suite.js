@@ -13,6 +13,7 @@ async function account(member){
   const base=slugify(member.display_name||member.handle||'operacao'),slug=base+'-'+memberId.slice(-6).toLowerCase();
   found=(await db.query('INSERT INTO accounts(id,owner_member_id,name,slug) VALUES($1,$2,$3,$4) RETURNING *',[id(),memberId,text(member.display_name||'Minha operação',100),slug])).rows[0];
   await db.query('INSERT INTO storefront_settings(account_id) VALUES($1) ON CONFLICT DO NOTHING',[found.id]);
+  await db.query('INSERT INTO account_settings(account_id) VALUES($1) ON CONFLICT DO NOTHING',[found.id]);
   for(const store of ['AMAZON','SHOPEE','MERCADO_LIVRE'])await db.query('INSERT INTO marketplace_rules(id,account_id,marketplace) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[id(),found.id,store]);
   return found;
 }
@@ -24,7 +25,7 @@ async function snapshot(a){
     db.query('SELECT * FROM storefront_settings WHERE account_id=$1',[a.id]),
     db.query('SELECT network,status,external_id AS "externalId" FROM social_connections WHERE account_id=$1 ORDER BY network',[a.id]),
     db.query('SELECT plan,status,current_period_end AS "currentPeriodEnd" FROM subscriptions WHERE account_id=$1 ORDER BY created_at DESC LIMIT 1',[a.id]),
-    db.query("SELECT count(DISTINCT phone_hash)::int AS unique_leads,count(*) FILTER(WHERE event_type='JOIN')::int AS joins,count(*) FILTER(WHERE event_type='LEAVE')::int AS leaves FROM lead_events WHERE occurred_at>now()-interval '30 days'")
+    db.query("SELECT count(DISTINCT phone_hash)::int AS unique_leads,count(*) FILTER(WHERE event_type='JOIN')::int AS joins,count(*) FILTER(WHERE event_type='LEAVE')::int AS leaves FROM lead_events WHERE account_id=$1 AND occurred_at>now()-interval '30 days'",[a.id])
   ]);
   return {account:{id:a.id,name:a.name,slug:a.slug,plan:a.plan,status:a.status,trialEndsAt:a.trial_ends_at},marketplaces:q[0].rows,connections:q[1].rows,storefront:q[2].rows[0]||{},social:q[3].rows,subscription:q[4].rows[0]||null,leads:q[5].rows[0]};
 }
