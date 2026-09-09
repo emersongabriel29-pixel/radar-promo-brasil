@@ -1,4 +1,4 @@
-export const access = 'admin';
+export const access = 'member';
 
 export default async function(req,res){
 res.setHeader('Content-Type','text/html; charset=utf-8');
