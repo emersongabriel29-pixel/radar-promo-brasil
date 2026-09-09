@@ -1,0 +1,23 @@
+[[api]]
+name = "mercadolivre"
+auth = "oauth2"
+base_url = "https://api.mercadolibre.com"
+authorize_url = "https://auth.mercadolivre.com.br/authorization"
+token_url = "https://api.mercadolibre.com/oauth/token"
+scopes = []
+encoding = "form"
+description = "Consultar produtos do Mercado Livre e manter a autorização do Radar Promo Brasil."
+required = true
+
+[ai]
+required = true
+description = "Categorizar produtos e criar mensagens de promoções sem inventar preço, estoque ou frete."
+
+[[secret]]
+name = "N8N_WEBHOOK_SECRET"
+required = true
+description = "Segredo compartilhado para assinar as requisições entre o n8n e o Radar Promo Brasil."
+
+[[cron]]
+path = "/api/jobs/hourly"
+schedule = "0 * * * *"
