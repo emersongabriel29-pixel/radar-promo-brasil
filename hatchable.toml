@@ -6,7 +6,7 @@ authorize_url = "https://auth.mercadolivre.com.br/authorization"
 token_url = "https://api.mercadolibre.com/oauth/token"
 scopes = []
 encoding = "form"
-description = "Consultar produtos do Mercado Livre e manter a autorização do Radar Promo Brasil."
+description = "Organizar promoções e links oficiais de afiliado da Amazon, Shopee e Mercado Livre."
 required = true
 
 [ai]
