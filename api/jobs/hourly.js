@@ -4,7 +4,7 @@ export const access = 'scheduler';
 export const methods = ['POST'];
 
 export default async function(req, res) {
-  const due = await db.query("SELECT id FROM publications WHERE status='SCHEDULED' AND scheduled_at <= now() ORDER BY scheduled_at LIMIT 50");
+  const due = await db.query("SELECT p.id FROM publications p LEFT JOIN promo_groups g ON g.id=p.group_id WHERE p.status='SCHEDULED' AND p.scheduled_at <= now() AND (NOT EXISTS(SELECT 1 FROM queues q WHERE q.account_id=p.account_id AND q.status='ACTIVE') OR EXISTS(SELECT 1 FROM queues q WHERE q.account_id=p.account_id AND q.status='ACTIVE' AND (q.category_id IS NULL OR q.category_id=g.category_id) AND localtime BETWEEN q.start_time::time AND q.end_time::time)) ORDER BY p.priority DESC,p.scheduled_at LIMIT 50");
   for (const row of due.rows) {
     await db.query("UPDATE publications SET status='READY' WHERE id=$1 AND status='SCHEDULED'", [row.id]);
   }
