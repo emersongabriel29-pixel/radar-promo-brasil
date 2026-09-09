@@ -31,3 +31,15 @@ Não salve senhas, Client Secrets ou tokens neste repositório. Configure `N8N_W
 As integrações reais dependem das credenciais e permissões oficiais das contas da Amazon, Shopee, Mercado Livre, n8n e do serviço escolhido para WhatsApp.
 
 O sistema mantém conectores externos como pendentes até que as credenciais sejam inseridas no cofre seguro e um teste real seja concluído. Ele não garante comissão, entrega de mensagens ou ausência de restrições nas plataformas.
+
+## Segurança e contas
+
+- Todas as entidades operacionais são vinculadas à conta autenticada.
+- Alterações e exclusões validam o proprietário do registro.
+- Oferta, grupo e publicação precisam pertencer à mesma conta.
+- A ponte n8n usa uma chave derivada e assinada diferente para cada conta.
+- Intervalos reduzem volume, mas não garantem ausência de restrições.
+
+## Testes
+
+Execute `npm test`. O GitHub Actions valida automaticamente regras determinísticas de oferta, HTTPS, categorias, preços e fingerprints.
