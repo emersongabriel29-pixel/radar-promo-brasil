@@ -18,7 +18,7 @@ export default async function(req,res){
     if(original.protocol!=='https:')return res.status(400).json({error:'Use um link HTTPS.'});
     const marketplace=identify(original.hostname.toLowerCase());
     if(!marketplace)return res.status(400).json({error:'Link não reconhecido. Use Amazon, Shopee ou Mercado Livre.'});
-    const a=(await db.query('SELECT id FROM accounts WHERE owner_member_id=$1',[req.member.id])).rows[0];
+    const a=(await db.query('SELECT id FROM accounts WHERE owner_member_id=$1',[String(req.member.id)])).rows[0];
     if(!a)return res.status(412).json({error:'Abra as configurações da conta primeiro.'});
     const rule=(await db.query('SELECT * FROM marketplace_rules WHERE account_id=$1 AND marketplace=$2',[a.id,marketplace])).rows[0];
     if(!rule||rule.status!=='ACTIVE')return res.status(412).json({error:'Configure e valide a integração oficial desta loja antes de converter.',marketplace});
