@@ -7,10 +7,11 @@ const text=(v,n=500)=>String(v??'').trim().slice(0,n);
 const slugify=v=>text(v,80).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'operacao';
 
 async function account(member){
-  let found=(await db.query('SELECT * FROM accounts WHERE owner_member_id=$1',[member.id])).rows[0];
+  const memberId=String(member.id);
+  let found=(await db.query('SELECT * FROM accounts WHERE owner_member_id=$1',[memberId])).rows[0];
   if(found)return found;
-  const base=slugify(member.display_name||member.handle||'operacao'),slug=base+'-'+member.id.slice(-6).toLowerCase();
-  found=(await db.query('INSERT INTO accounts(id,owner_member_id,name,slug) VALUES($1,$2,$3,$4) RETURNING *',[id(),member.id,text(member.display_name||'Minha operação',100),slug])).rows[0];
+  const base=slugify(member.display_name||member.handle||'operacao'),slug=base+'-'+memberId.slice(-6).toLowerCase();
+  found=(await db.query('INSERT INTO accounts(id,owner_member_id,name,slug) VALUES($1,$2,$3,$4) RETURNING *',[id(),memberId,text(member.display_name||'Minha operação',100),slug])).rows[0];
   await db.query('INSERT INTO storefront_settings(account_id) VALUES($1) ON CONFLICT DO NOTHING',[found.id]);
   for(const store of ['AMAZON','SHOPEE','MERCADO_LIVRE'])await db.query('INSERT INTO marketplace_rules(id,account_id,marketplace) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[id(),found.id,store]);
   return found;
