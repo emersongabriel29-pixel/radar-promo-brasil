@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS promo_groups (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  category_id TEXT REFERENCES categories(id) ON DELETE SET NULL,
+  invite_url TEXT NOT NULL DEFAULT '',
+  members INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'ACTIVE',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)
