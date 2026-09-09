@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS categories (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  icon TEXT NOT NULL DEFAULT '🏷️',
+  color TEXT NOT NULL DEFAULT '#6d5dfc',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)
