@@ -43,8 +43,8 @@ async function ingest(body,eventId){
 
 async function pull(body,eventId){
   const max=Math.max(1,Math.min(20,Number(body.limit)||10));
-  const r=await db.query("SELECT p.id,p.message,p.image_url AS \"imageUrl\",p.attempts,o.title,o.affiliate_url AS \"affiliateUrl\",o.current_price AS \"currentPrice\",g.name AS \"groupName\",g.external_id AS \"groupExternalId\" FROM publications p JOIN offers o ON o.id=p.offer_id JOIN promo_groups g ON g.id=p.group_id WHERE p.status IN ('READY','RETRY') AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now()) AND g.status='ACTIVE' AND g.external_id IS NOT NULL AND p.image_url IS NOT NULL ORDER BY p.created_at LIMIT $1",[max]);
-  for(const item of r.rows)await db.query("UPDATE publications SET status='DISPATCHING',attempts=attempts+1,last_attempt_at=now() WHERE id=$1 AND status IN ('READY','RETRY')",[item.id]);
+  const r=await db.query("SELECT p.id,p.message,p.image_url AS \"imageUrl\",p.attempts,p.mention_all AS \"mentionAll\",o.title,o.affiliate_url AS \"affiliateUrl\",o.current_price AS \"currentPrice\",g.name AS \"groupName\",g.external_id AS \"groupExternalId\",c.id AS \"connectionId\",c.provider AS \"connectionProvider\",c.external_id AS \"connectionExternalId\" FROM publications p JOIN offers o ON o.id=p.offer_id JOIN promo_groups g ON g.id=p.group_id LEFT JOIN LATERAL (SELECT w.* FROM whatsapp_connections w WHERE w.account_id=p.account_id AND w.status='ACTIVE' ORDER BY w.failure_count,w.priority,w.last_seen_at DESC NULLS LAST LIMIT 1) c ON true WHERE p.status IN ('READY','RETRY') AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now()) AND g.status='ACTIVE' AND g.external_id IS NOT NULL AND p.image_url IS NOT NULL ORDER BY p.priority DESC,p.created_at DESC LIMIT $1",[max]);
+  for(const item of r.rows)await db.query("UPDATE publications SET status='DISPATCHING',attempts=attempts+1,last_attempt_at=now(),connection_id=$2 WHERE id=$1 AND status IN ('READY','RETRY')",[item.id,item.connectionId||null]);
   await db.query('UPDATE webhook_events SET status=$1,item_count=$2,processed_at=now() WHERE id=$3',['PROCESSED',r.rows.length,eventId]);
   return {items:r.rows};
 }
@@ -52,8 +52,13 @@ async function pull(body,eventId){
 async function result(body,eventId){
   const id=String(body.publicationId||''),ok=body.status==='PUBLISHED';
   if(!id)throw new Error('publicationId obrigatório');
-  if(ok)await db.query("UPDATE publications SET status='PUBLISHED',published_at=now(),error_message=NULL WHERE id=$1",[id]);
-  else await db.query("UPDATE publications SET status=CASE WHEN attempts<3 THEN 'RETRY' ELSE 'FAILED' END,error_message=$2,next_attempt_at=now()+interval '15 minutes' WHERE id=$1",[id,String(body.error||'Falha informada pelo n8n').slice(0,500)]);
+  if(ok){
+    await db.query("UPDATE publications SET status='PUBLISHED',published_at=now(),error_message=NULL WHERE id=$1",[id]);
+    await db.query("UPDATE whatsapp_connections SET failure_count=0,last_seen_at=now() WHERE id=(SELECT connection_id FROM publications WHERE id=$1)",[id]);
+  }else{
+    await db.query("UPDATE whatsapp_connections SET failure_count=failure_count+1,status=CASE WHEN failure_count+1>=3 THEN 'DEGRADED' ELSE status END WHERE id=(SELECT connection_id FROM publications WHERE id=$1)",[id]);
+    await db.query("UPDATE publications SET status=CASE WHEN attempts<3 THEN 'RETRY' ELSE 'FAILED' END,error_message=$2,next_attempt_at=now()+interval '15 minutes',connection_id=NULL WHERE id=$1",[id,String(body.error||'Falha informada pelo n8n').slice(0,500)]);
+  }
   await db.query('UPDATE webhook_events SET status=$1,item_count=1,processed_at=now() WHERE id=$2',['PROCESSED',eventId]);
   return {updated:true};
 }
