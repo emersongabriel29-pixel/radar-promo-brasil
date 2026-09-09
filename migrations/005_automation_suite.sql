@@ -1,0 +1,73 @@
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS product_url TEXT;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS coupon_url TEXT;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS discount_percent INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS detected_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
+ALTER TABLE promo_groups ADD COLUMN IF NOT EXISTS external_id TEXT;
+ALTER TABLE promo_groups ADD COLUMN IF NOT EXISTS capacity INTEGER NOT NULL DEFAULT 1024;
+ALTER TABLE promo_groups ADD COLUMN IF NOT EXISTS joined_24h INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE promo_groups ADD COLUMN IF NOT EXISTS left_24h INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS message TEXT NOT NULL DEFAULT '';
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS mode TEXT NOT NULL DEFAULT 'ON_DEMAND';
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS attempts INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS error_message TEXT;
+
+CREATE TABLE IF NOT EXISTS monitors (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  source_type TEXT NOT NULL DEFAULT 'WHATSAPP_GROUP',
+  source_url TEXT NOT NULL DEFAULT '',
+  category_id TEXT,
+  mode TEXT NOT NULL DEFAULT 'SMART',
+  status TEXT NOT NULL DEFAULT 'PAUSED',
+  captured_count INTEGER NOT NULL DEFAULT 0,
+  last_run_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS queues (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  category_id TEXT,
+  start_time TEXT NOT NULL DEFAULT '08:00',
+  end_time TEXT NOT NULL DEFAULT '22:00',
+  interval_minutes INTEGER NOT NULL DEFAULT 10,
+  status TEXT NOT NULL DEFAULT 'ACTIVE',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS schedules (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  message TEXT NOT NULL,
+  group_id TEXT,
+  recurrence TEXT NOT NULL DEFAULT 'DAILY',
+  send_time TEXT NOT NULL DEFAULT '09:00',
+  status TEXT NOT NULL DEFAULT 'ACTIVE',
+  last_run_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS lead_events (
+  id BIGSERIAL PRIMARY KEY,
+  group_id TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  phone_hash TEXT,
+  ddd TEXT,
+  occurred_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_lead_events_group_time ON lead_events(group_id, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_publications_schedule ON publications(status, scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_monitors_status ON monitors(status);
+
+CREATE TABLE IF NOT EXISTS activity_log (
+  id BIGSERIAL PRIMARY KEY,
+  event_type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  details TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'INFO',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
