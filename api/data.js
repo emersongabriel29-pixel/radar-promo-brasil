@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db,scheduler } from 'hatchable';
 import { fingerprint as makeFingerprint } from 'lib/automation.js';
 
 export const access='member';
@@ -38,7 +38,7 @@ async function all(a){
   await starter(a.id);
   const q=await Promise.all([
     db.query('SELECT id,name,icon,color,created_at AS "createdAt" FROM categories WHERE account_id=$1 ORDER BY name',[a.id]),
-    db.query('SELECT id,name,category_id AS "categoryId",invite_url AS "inviteUrl",members,status,external_id AS "externalId",capacity,joined_24h AS "joined24h",left_24h AS "left24h",marketplace_subids AS "marketplaceSubids",created_at AS "createdAt" FROM promo_groups WHERE account_id=$1 ORDER BY name',[a.id]),
+    db.query('SELECT id,name,platform,category_id AS "categoryId",invite_url AS "inviteUrl",members,status,external_id AS "externalId",capacity,joined_24h AS "joined24h",left_24h AS "left24h",marketplace_subids AS "marketplaceSubids",created_at AS "createdAt" FROM promo_groups WHERE account_id=$1 ORDER BY platform,name',[a.id]),
     db.query('SELECT id,title,source,original_price AS "originalPrice",current_price AS "currentPrice",category_id AS "categoryId",affiliate_url AS "affiliateUrl",image_url AS "imageUrl",product_url AS "productUrl",coupon_url AS "couponUrl",discount_percent AS "discountPercent",score,status,message,fingerprint,validation_status AS "validationStatus",imported_by AS "importedBy",storefront_visible AS "storefrontVisible",detected_at AS "detectedAt",created_at AS "createdAt" FROM offers WHERE account_id=$1 ORDER BY created_at DESC LIMIT 250',[a.id]),
     db.query('SELECT id,offer_id AS "offerId",group_id AS "groupId",status,scheduled_at AS "scheduledAt",published_at AS "publishedAt",clicks,message,image_url AS "imageUrl",mode,attempts,error_message AS "errorMessage",priority,mention_all AS "mentionAll",connection_id AS "connectionId",created_at AS "createdAt" FROM publications WHERE account_id=$1 ORDER BY priority DESC,created_at DESC LIMIT 250',[a.id]),
     db.query('SELECT id,name,source_type AS "sourceType",source_url AS "sourceUrl",category_id AS "categoryId",mode,status,captured_count AS "capturedCount",last_run_at AS "lastRunAt",created_at AS "createdAt" FROM monitors WHERE account_id=$1 ORDER BY created_at DESC',[a.id]),
@@ -67,7 +67,8 @@ export default async function(req,res){
     }else if(req.method==='POST'&&entity==='group'){
       const categoryId=txt(b.categoryId,80)||null;if(!(await categoryOk(categoryId,a.id)))return res.status(400).json({error:'Categoria inválida.'});
       const invite=txt(b.inviteUrl,600);if(invite&&!url(invite))return res.status(400).json({error:'Use um link HTTPS válido.'});
-      await db.query('INSERT INTO promo_groups(id,account_id,name,category_id,invite_url,members,capacity,external_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[uid(),a.id,txt(b.name,100),categoryId,invite,Math.max(0,Number(b.members)||0),Math.max(1,Number(b.capacity)||1024),txt(b.externalId,200)||null]);
+      const platform=txt(b.platform,20)||'WHATSAPP';if(!['WHATSAPP','TELEGRAM'].includes(platform))return res.status(400).json({error:'Plataforma de grupo inválida.'});
+      await db.query('INSERT INTO promo_groups(id,account_id,name,platform,category_id,invite_url,members,capacity,external_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',[uid(),a.id,txt(b.name,100),platform,categoryId,invite,Math.max(0,Number(b.members)||0),Math.max(1,Number(b.capacity)||1024),txt(b.externalId,200)||null]);
     }else if(req.method==='POST'&&entity==='offer'){
       const categoryId=txt(b.categoryId,80)||null;if(!(await categoryOk(categoryId,a.id)))return res.status(400).json({error:'Categoria inválida.'});
       const title=txt(b.title,220),affiliate=txt(b.affiliateUrl,1200),image=txt(b.imageUrl,1200),product=txt(b.productUrl,1200),coupon=txt(b.couponUrl,1200),current=cents(b.currentPrice),original=b.originalPrice?cents(b.originalPrice):null;
@@ -76,9 +77,10 @@ export default async function(req,res){
       const created=await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,discount_percent,score,status,message,fingerprint,validation_status,imported_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'PENDING',$14,$15,'APPROVED','MANUAL') ON CONFLICT DO NOTHING RETURNING id",[uid(),a.id,title,source,original,current,categoryId,affiliate,image,product||null,coupon||null,percent(current,original),score(title,current,original),txt(b.message,3000)||promo(title,current,original,affiliate,coupon),fp]);
       if(!created.rows.length)return res.status(409).json({error:'Esta oferta já está cadastrada.'});
     }else if(req.method==='POST'&&entity==='publication'){
-      const offerId=txt(b.offerId,80),groupId=txt(b.groupId,80),found=(await db.query('SELECT message,image_url FROM offers WHERE id=$1 AND account_id=$2',[offerId,a.id])).rows[0];
-      if(!found||!(await belongs('promo_groups',groupId,a.id)))return res.status(400).json({error:'Oferta ou grupo não pertence à sua conta.'});
+      const offerId=txt(b.offerId,80),groupId=txt(b.groupId,80),found=(await db.query('SELECT message,image_url FROM offers WHERE id=$1 AND account_id=$2',[offerId,a.id])).rows[0],group=(await db.query('SELECT id,platform FROM promo_groups WHERE id=$1 AND account_id=$2',[groupId,a.id])).rows[0];
+      if(!found||!group)return res.status(400).json({error:'Oferta ou grupo não pertence à sua conta.'});
       await db.query('INSERT INTO publications(id,account_id,offer_id,group_id,status,scheduled_at,message,image_url,mode,priority,mention_all) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',[uid(),a.id,offerId,groupId,b.scheduledAt?'SCHEDULED':'READY',b.scheduledAt||null,txt(b.message,3000)||found.message,found.image_url,txt(b.mode,30)||'ON_DEMAND',b.priority==='FLASH'?100:0,b.mentionAll==='true']);
+      if(group.platform==='TELEGRAM'&&!b.scheduledAt)await scheduler.now('/api/jobs/telegram');
     }else if(req.method==='POST'&&entity==='monitor'){
       const categoryId=txt(b.categoryId,80)||null;if(!(await categoryOk(categoryId,a.id)))return res.status(400).json({error:'Categoria inválida.'});
       await db.query('INSERT INTO monitors(id,account_id,name,source_type,source_url,category_id,mode,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[uid(),a.id,txt(b.name,120),txt(b.sourceType,40)||'WHATSAPP_GROUP',txt(b.sourceUrl,1000),categoryId,txt(b.mode,30)||'SMART','PAUSED']);
