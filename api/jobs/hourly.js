@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db,scheduler } from 'hatchable';
 
 export const access = 'scheduler';
 export const methods = ['POST'];
@@ -8,6 +8,7 @@ export default async function(req, res) {
   for (const row of due.rows) {
     await db.query("UPDATE publications SET status='READY' WHERE id=$1 AND status='SCHEDULED'", [row.id]);
   }
+  if(due.rows.length)await scheduler.now('/api/jobs/telegram');
   const recovered=await db.query("UPDATE publications SET status=CASE WHEN attempts<3 THEN 'RETRY' ELSE 'FAILED' END,error_message='Tempo de envio excedido',next_attempt_at=now()+interval '15 minutes' WHERE status='DISPATCHING' AND last_attempt_at<now()-interval '20 minutes' RETURNING id,account_id");
   const waiting=await db.query("UPDATE publications p SET status='WAITING_CONNECTION',error_message='Informe o ID oficial do grupo para envio automático' FROM promo_groups g WHERE p.group_id=g.id AND p.account_id=g.account_id AND p.status IN ('READY','RETRY') AND g.external_id IS NULL RETURNING p.id,p.account_id");
   const accounts=[...new Set([...due.rows,...recovered.rows,...waiting.rows].map(x=>x.account_id).filter(Boolean))];
