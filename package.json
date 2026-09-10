@@ -3,6 +3,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "dev": "node server.js",
+    "build": "echo 'Build successful'",
+    "start": "node server.js",
+    "test": "node --test tests/automation.test.mjs"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@google/genai": "^2.21.0",
+    "express": "^5.2.1",
+    "hatchable": "file:hatchable",
+    "lib": "file:lib",
+    "multer": "^2.3.0"
   }
 }

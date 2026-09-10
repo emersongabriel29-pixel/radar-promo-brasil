@@ -1,0 +1,8 @@
+{
+  "name": "Radar Promo Brasil",
+  "description": "Central inteligente de automação de promoções para afiliados",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

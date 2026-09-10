@@ -49,7 +49,15 @@ async function all(a){
     db.query('SELECT name,status,details,last_checked_at AS "lastCheckedAt" FROM integration_health ORDER BY name'),
     db.query('SELECT auto_approve AS "autoApprove",minimum_score AS "minimumScore",maximum_batch AS "maximumBatch",require_image AS "requireImage",require_affiliate_link AS "requireAffiliateLink",timezone FROM account_settings WHERE account_id=$1',[a.id])
   ]);
-  return {account:a,categories:q[0].rows,groups:q[1].rows,offers:q[2].rows,publications:q[3].rows,monitors:q[4].rows,queues:q[5].rows,schedules:q[6].rows,leadStats:q[7].rows,activity:q[8].rows,integrations:q[9].rows,automation:q[10].rows[0]||{}};
+  const aiConfigured = Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
+  const aiStatus = {
+    configured: aiConfigured,
+    model: 'gemini-3.8-flash',
+    provider: 'Google Gemini',
+    status: aiConfigured ? 'ACTIVE' : 'FALLBACK',
+    label: aiConfigured ? 'Gemini 3.8 Flash Ativo' : 'Modo Fallback Local'
+  };
+  return {account:a,categories:q[0].rows,groups:q[1].rows,offers:q[2].rows,publications:q[3].rows,monitors:q[4].rows,queues:q[5].rows,schedules:q[6].rows,leadStats:q[7].rows,activity:q[8].rows,integrations:q[9].rows,automation:q[10].rows[0]||{},aiStatus};
 }
 
 const allowed={offer:['APPROVED','REJECTED','SCHEDULED','PUBLISHED'],group:['ACTIVE','PAUSED'],publication:['READY','SCHEDULED','PUBLISHED','FAILED'],monitor:['ACTIVE','PAUSED'],queue:['ACTIVE','PAUSED'],schedule:['ACTIVE','PAUSED']};
