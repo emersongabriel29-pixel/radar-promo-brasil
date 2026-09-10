@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateOffer,categoryHint,discount,fingerprint,message } from '../lib/automation.js';
+import { validBotToken,buildTelegramCaption } from '../lib/telegram-core.js';
 
 const valid={title:'Air Fryer 4L',source:'Mercado Livre',currentPrice:299.9,originalPrice:399.9,imageUrl:'https://cdn.example.com/item.jpg',affiliateUrl:'https://mercadolivre.com.br/item',productUrl:'https://mercadolivre.com.br/item'};
 
@@ -34,4 +35,16 @@ test('calcula desconto e preserva somente dados fornecidos',()=>{
 test('fingerprint é estável e muda entre origens',async()=>{
   assert.equal(await fingerprint(valid),await fingerprint({...valid}));
   assert.notEqual(await fingerprint(valid),await fingerprint({...valid,source:'Amazon'}));
+});
+
+test('valida formato do token do Telegram sem armazená-lo em claro',()=>{
+  assert.equal(validBotToken('123456789:AAExample_bot_token_1234567890'),true);
+  assert.equal(validBotToken('token-incompleto'),false);
+});
+
+test('legenda do Telegram sempre preserva o link e respeita 1024 caracteres',()=>{
+  const link='https://example.com/afiliado';
+  const caption=buildTelegramCaption('Oferta '.repeat(300),link);
+  assert.ok(caption.length<=1024);
+  assert.match(caption,/https:\/\/example\.com\/afiliado$/);
 });
