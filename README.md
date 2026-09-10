@@ -1,6 +1,6 @@
 # Radar Promo Brasil
 
-Painel de automação para organizar ofertas de afiliados por categoria, gerar mensagens promocionais e preparar o envio de imagem, texto e link para grupos administrados no WhatsApp.
+Painel de automação para organizar ofertas de afiliados por categoria, gerar mensagens promocionais e enviar imagem, texto e link para grupos e canais administrados no WhatsApp e Telegram.
 
 ## Estado atual
 
@@ -15,16 +15,19 @@ Painel de automação para organizar ofertas de afiliados por categoria, gerar m
 - Regras de SubID, múltiplas conexões e fallback
 - Fura-fila, horários, intervalos, Link Preview e solicitação de menção
 - Gestão de leads, vitrine pública e páginas comerciais/legais
+- Telegram oficial com até três bots, teste de destino e fallback
+- Envio automático com imagem, legenda, botão e link rastreável
+- Relatórios de cliques, vendas, comissões, conversão e desempenho por canal
 
 ## Fluxo planejado
 
-`Oferta -> validação -> categoria -> link de afiliado -> mensagem -> fila -> n8n -> WhatsApp`
+`Oferta -> validação -> categoria -> link de afiliado -> mensagem -> fila -> WhatsApp e/ou Telegram`
 
 Cada publicação deve enviar a imagem do produto, a mensagem formatada e o link oficial de afiliado.
 
 ## Segurança
 
-Não salve senhas, Client Secrets ou tokens neste repositório. Configure `N8N_WEBHOOK_SECRET` e as credenciais das plataformas somente no ambiente seguro de hospedagem.
+Não salve senhas, Client Secrets ou tokens neste repositório. Configure `N8N_WEBHOOK_SECRET`, `TELEGRAM_BOT_TOKEN_1` e os tokens opcionais de fallback somente no ambiente seguro de hospedagem.
 
 ## Pendências externas
 
