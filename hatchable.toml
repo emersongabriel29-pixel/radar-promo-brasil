@@ -18,6 +18,25 @@ name = "N8N_WEBHOOK_SECRET"
 required = true
 description = "Segredo compartilhado para assinar as requisições entre o n8n e o Radar Promo Brasil."
 
+[[secret]]
+name = "TELEGRAM_BOT_TOKEN_1"
+required = false
+description = "Token do bot principal criado no @BotFather."
+
+[[secret]]
+name = "TELEGRAM_BOT_TOKEN_2"
+required = false
+description = "Token opcional do segundo bot para fallback."
+
+[[secret]]
+name = "TELEGRAM_BOT_TOKEN_3"
+required = false
+description = "Token opcional do terceiro bot para fallback."
+
 [[cron]]
 path = "/api/jobs/hourly"
+schedule = "0 * * * *"
+
+[[cron]]
+path = "/api/jobs/telegram"
 schedule = "0 * * * *"
