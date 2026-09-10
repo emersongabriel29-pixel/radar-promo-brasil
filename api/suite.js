@@ -55,5 +55,5 @@ export default async function(req,res){
       if(!changed.rows.length)return res.status(404).json({error:'Conexão não encontrada.'});
     }else return res.status(400).json({error:'Ação inválida.'});
     return res.json({ok:true,...await snapshot(a)});
-  }catch(e){return res.status(500).json({error:e?.message||'Falha na configuração.'})}
+  }catch(e){const message=e?.message||'Falha na configuração.';return res.status(message.includes('Configure o token')?412:500).json({error:message})}
 }
