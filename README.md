@@ -18,6 +18,12 @@ Painel de automação para organizar ofertas de afiliados por categoria, gerar m
 - Telegram oficial com até três bots, teste de destino e fallback
 - Envio automático com imagem, legenda, botão e link rastreável
 - Relatórios de cliques, vendas, comissões, conversão e desempenho por canal
+- Estúdio multimodelo para Gemini, OpenAI e Claude, com fallback automático para o Gemini ativo
+- Textos promocionais, cupons, anúncios, legendas, carrosséis e roteiros de vídeo com fatos validados
+- Artes geradas por IA em formatos de feed, stories, Reels, Facebook e YouTube
+- Catálogo de conectores para Shein, AliExpress, Magalu, Casas Bahia, Hotmart, KaBuM, Americanas, Natura e Avon
+- Central de tráfego com campanhas, UTMs, cupons e preparação de Facebook, Instagram, Gmail e Outlook
+- Controles de LGPD, retenção, solicitações de titulares e trilha de eventos de segurança
 
 ## Fluxo planejado
 
@@ -31,7 +37,7 @@ Não salve senhas, Client Secrets ou tokens neste repositório. Configure `N8N_W
 
 ## Pendências externas
 
-As integrações reais dependem das credenciais e permissões oficiais das contas da Amazon, Shopee, Mercado Livre, n8n e do serviço escolhido para WhatsApp.
+As integrações reais dependem das credenciais e permissões oficiais das contas da Amazon, Shopee, Mercado Livre, n8n, WhatsApp, Meta e demais marketplaces. O Gemini para textos foi testado no ambiente publicado. OpenAI e Claude exigem as respectivas chaves; geração de imagens também está sujeita à cota do provedor. A renderização de vídeos ainda exige um provedor externo aprovado, como Runway ou Veo; o sistema atualmente gera o roteiro.
 
 O sistema mantém conectores externos como pendentes até que as credenciais sejam inseridas no cofre seguro e um teste real seja concluído. Ele não garante comissão, entrega de mensagens ou ausência de restrições nas plataformas.
 
