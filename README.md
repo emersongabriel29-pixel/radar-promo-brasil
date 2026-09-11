@@ -20,7 +20,8 @@ Painel de automação para organizar ofertas de afiliados por categoria, gerar m
 - Relatórios de cliques, vendas, comissões, conversão e desempenho por canal
 - Estúdio multimodelo para Gemini, OpenAI e Claude, com fallback automático para o Gemini ativo
 - Textos promocionais, cupons, anúncios, legendas, carrosséis e roteiros de vídeo com fatos validados
-- Artes geradas por IA em formatos de feed, stories, Reels, Facebook e YouTube
+- Artes geradas por IA em formatos de feed, stories, Reels, Facebook e YouTube, com fallback automático para Runway e cartão promocional seguro
+- Renderização assíncrona de vídeos pelo Runway, com consulta de estado, retentativas e armazenamento protegido
 - Catálogo de conectores para Shein, AliExpress, Magalu, Casas Bahia, Hotmart, KaBuM, Americanas, Natura e Avon
 - Central de tráfego com campanhas, UTMs, cupons e preparação de Facebook, Instagram, Gmail e Outlook
 - Controles de LGPD, retenção, solicitações de titulares e trilha de eventos de segurança
@@ -35,11 +36,13 @@ Cada publicação deve enviar a imagem do produto, a mensagem formatada e o link
 
 Não salve senhas, Client Secrets ou tokens neste repositório. Configure `N8N_WEBHOOK_SECRET`, `TELEGRAM_BOT_TOKEN_1` e os tokens opcionais de fallback somente no ambiente seguro de hospedagem.
 
-## Pendências externas
+## Dependências externas
 
-As integrações reais dependem das credenciais e permissões oficiais das contas da Amazon, Shopee, Mercado Livre, n8n, WhatsApp, Meta e demais marketplaces. O Gemini para textos foi testado no ambiente publicado. OpenAI e Claude exigem as respectivas chaves; geração de imagens também está sujeita à cota do provedor. A renderização de vídeos ainda exige um provedor externo aprovado, como Runway ou Veo; o sistema atualmente gera o roteiro.
+O Gemini para textos foi testado no ambiente publicado. Imagens não param mais o fluxo quando o provedor principal devolve `429`: o sistema tenta o Runway e, se ele ainda não estiver conectado, cria uma peça promocional segura por renderização própria. Vídeos possuem uma fila real do Runway; roteiro e tarefa são separados, o estado é acompanhado automaticamente e o arquivo concluído é copiado para o armazenamento protegido da conta.
 
-O sistema mantém conectores externos como pendentes até que as credenciais sejam inseridas no cofre seguro e um teste real seja concluído. Ele não garante comissão, entrega de mensagens ou ausência de restrições nas plataformas.
+Entrega transacional para endereços Gmail, Outlook e outros provedores usa a infraestrutura autenticada da hospedagem. Enviar como um endereço ou domínio próprio exige a autorização do titular. Facebook, Instagram e marketplaces também exigem OAuth, chave ou aprovação oficial porque nenhum aplicativo pode publicar legitimamente em uma conta de terceiro sem essa autorização.
+
+O sistema mantém conectores externos como pendentes até que a autorização seja inserida no cofre seguro e um teste real seja concluído. Ele não garante comissão, entrega de mensagens ou ausência de restrições nas plataformas.
 
 ## Segurança e contas
 
@@ -51,4 +54,4 @@ O sistema mantém conectores externos como pendentes até que as credenciais sej
 
 ## Testes
 
-Execute `npm test`. O GitHub Actions valida automaticamente regras determinísticas de oferta, HTTPS, categorias, preços e fingerprints.
+Execute `npm test`. O GitHub Actions valida automaticamente regras determinísticas de oferta, HTTPS, categorias, preços, fingerprints, mídia, limites e URLs externas.
