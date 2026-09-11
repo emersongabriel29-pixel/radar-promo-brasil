@@ -33,6 +33,12 @@ name = "TELEGRAM_BOT_TOKEN_3"
 required = false
 description = "Token opcional do terceiro bot para fallback."
 
+[[config]]
+name = "public_app_url"
+required = false
+default = "https://radar-promo-brasil.hatchable.site"
+description = "Endereço público usado nos links enviados pelo Telegram."
+
 [[cron]]
 path = "/api/jobs/hourly"
 schedule = "0 * * * *"
