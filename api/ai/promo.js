@@ -64,7 +64,7 @@ export default async function(req, res) {
   try {
     const result = await ai.generateText({
       purpose: 'affiliate-promo-copy',
-      model: 'gemini-3.8-flash',
+      model: result.model || 'gemini-3.8-flash',
       maxTokens: 100,
       system: systemInstruction,
       prompt: `Loja: ${store}\nProduto: ${title}\nPreço: ${priceStr}${discountPercent ? `\nDesconto: ${discountPercent}%` : ''}`
