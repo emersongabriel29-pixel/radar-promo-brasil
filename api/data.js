@@ -5,6 +5,7 @@ export const access='member';
 export const methods=['GET','POST','PUT','DELETE'];
 
 const uid=()=>crypto.randomUUID(),txt=(v,n=500)=>String(v??'').trim().slice(0,n),cents=v=>Math.round(Number(v||0)*100);
+const STORES=['AMAZON','SHOPEE','MERCADO_LIVRE','SHEIN','ALIEXPRESS','MAGALU','CASAS_BAHIA','HOTMART','KABUM','AMERICANAS','NATURA','AVON'];
 const url=v=>{try{return new URL(v).protocol==='https:'}catch{return false}};
 const cash=v=>(Number(v||0)/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const percent=(c,o)=>o>c?Math.round((o-c)*100/o):0;
@@ -20,7 +21,7 @@ async function getAccount(member){
   a=(await db.query('INSERT INTO accounts(id,owner_member_id,name,slug) VALUES($1,$2,$3,$4) RETURNING id,name,slug,plan,status',[uid(),memberId,txt(member.display_name||'Minha operação',100),slug])).rows[0];
   await db.query('INSERT INTO storefront_settings(account_id) VALUES($1) ON CONFLICT DO NOTHING',[a.id]);
   await db.query('INSERT INTO account_settings(account_id) VALUES($1) ON CONFLICT DO NOTHING',[a.id]);
-  for(const store of ['AMAZON','SHOPEE','MERCADO_LIVRE'])await db.query('INSERT INTO marketplace_rules(id,account_id,marketplace) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[uid(),a.id,store]);
+  for(const store of STORES)await db.query('INSERT INTO marketplace_rules(id,account_id,marketplace) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[uid(),a.id,store]);
   return a;
 }
 
@@ -39,7 +40,7 @@ async function all(a){
   const q=await Promise.all([
     db.query('SELECT id,name,icon,color,created_at AS "createdAt" FROM categories WHERE account_id=$1 ORDER BY name',[a.id]),
     db.query('SELECT id,name,platform,category_id AS "categoryId",invite_url AS "inviteUrl",members,status,external_id AS "externalId",capacity,joined_24h AS "joined24h",left_24h AS "left24h",marketplace_subids AS "marketplaceSubids",created_at AS "createdAt" FROM promo_groups WHERE account_id=$1 ORDER BY platform,name',[a.id]),
-    db.query('SELECT id,title,source,original_price AS "originalPrice",current_price AS "currentPrice",category_id AS "categoryId",affiliate_url AS "affiliateUrl",image_url AS "imageUrl",product_url AS "productUrl",coupon_url AS "couponUrl",discount_percent AS "discountPercent",score,status,message,fingerprint,validation_status AS "validationStatus",imported_by AS "importedBy",storefront_visible AS "storefrontVisible",detected_at AS "detectedAt",created_at AS "createdAt" FROM offers WHERE account_id=$1 ORDER BY created_at DESC LIMIT 250',[a.id]),
+    db.query('SELECT id,title,source,original_price AS "originalPrice",current_price AS "currentPrice",category_id AS "categoryId",affiliate_url AS "affiliateUrl",image_url AS "imageUrl",product_url AS "productUrl",coupon_url AS "couponUrl",coupon_code AS "couponCode",discount_percent AS "discountPercent",score,status,message,fingerprint,validation_status AS "validationStatus",imported_by AS "importedBy",storefront_visible AS "storefrontVisible",detected_at AS "detectedAt",created_at AS "createdAt" FROM offers WHERE account_id=$1 ORDER BY created_at DESC LIMIT 250',[a.id]),
     db.query('SELECT id,offer_id AS "offerId",group_id AS "groupId",status,scheduled_at AS "scheduledAt",published_at AS "publishedAt",clicks,message,image_url AS "imageUrl",mode,attempts,error_message AS "errorMessage",priority,mention_all AS "mentionAll",connection_id AS "connectionId",created_at AS "createdAt" FROM publications WHERE account_id=$1 ORDER BY priority DESC,created_at DESC LIMIT 250',[a.id]),
     db.query('SELECT id,name,source_type AS "sourceType",source_url AS "sourceUrl",category_id AS "categoryId",mode,status,captured_count AS "capturedCount",last_run_at AS "lastRunAt",created_at AS "createdAt" FROM monitors WHERE account_id=$1 ORDER BY created_at DESC',[a.id]),
     db.query('SELECT id,name,category_id AS "categoryId",start_time AS "startTime",end_time AS "endTime",interval_minutes AS "intervalMinutes",priority_mode AS "priorityMode",mention_all AS "mentionAll",link_preview AS "linkPreview",status,created_at AS "createdAt" FROM queues WHERE account_id=$1 ORDER BY created_at DESC',[a.id]),
@@ -49,15 +50,7 @@ async function all(a){
     db.query('SELECT name,status,details,last_checked_at AS "lastCheckedAt" FROM integration_health ORDER BY name'),
     db.query('SELECT auto_approve AS "autoApprove",minimum_score AS "minimumScore",maximum_batch AS "maximumBatch",require_image AS "requireImage",require_affiliate_link AS "requireAffiliateLink",timezone FROM account_settings WHERE account_id=$1',[a.id])
   ]);
-  const aiConfigured = Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
-  const aiStatus = {
-    configured: aiConfigured,
-    model: 'gemini-3.8-flash',
-    provider: 'Google Gemini',
-    status: aiConfigured ? 'ACTIVE' : 'FALLBACK',
-    label: aiConfigured ? 'Gemini 3.8 Flash Ativo' : 'Modo Fallback Local'
-  };
-  return {account:a,categories:q[0].rows,groups:q[1].rows,offers:q[2].rows,publications:q[3].rows,monitors:q[4].rows,queues:q[5].rows,schedules:q[6].rows,leadStats:q[7].rows,activity:q[8].rows,integrations:q[9].rows,automation:q[10].rows[0]||{},aiStatus};
+  return {account:a,categories:q[0].rows,groups:q[1].rows,offers:q[2].rows,publications:q[3].rows,monitors:q[4].rows,queues:q[5].rows,schedules:q[6].rows,leadStats:q[7].rows,activity:q[8].rows,integrations:q[9].rows,automation:q[10].rows[0]||{}};
 }
 
 const allowed={offer:['APPROVED','REJECTED','SCHEDULED','PUBLISHED'],group:['ACTIVE','PAUSED'],publication:['READY','SCHEDULED','PUBLISHED','FAILED'],monitor:['ACTIVE','PAUSED'],queue:['ACTIVE','PAUSED'],schedule:['ACTIVE','PAUSED']};
@@ -79,10 +72,10 @@ export default async function(req,res){
       await db.query('INSERT INTO promo_groups(id,account_id,name,platform,category_id,invite_url,members,capacity,external_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',[uid(),a.id,txt(b.name,100),platform,categoryId,invite,Math.max(0,Number(b.members)||0),Math.max(1,Number(b.capacity)||1024),txt(b.externalId,200)||null]);
     }else if(req.method==='POST'&&entity==='offer'){
       const categoryId=txt(b.categoryId,80)||null;if(!(await categoryOk(categoryId,a.id)))return res.status(400).json({error:'Categoria inválida.'});
-      const title=txt(b.title,220),affiliate=txt(b.affiliateUrl,1200),image=txt(b.imageUrl,1200),product=txt(b.productUrl,1200),coupon=txt(b.couponUrl,1200),current=cents(b.currentPrice),original=b.originalPrice?cents(b.originalPrice):null;
+      const title=txt(b.title,220),affiliate=txt(b.affiliateUrl,1200),image=txt(b.imageUrl,1200),product=txt(b.productUrl,1200),coupon=txt(b.couponUrl,1200),couponCode=txt(b.couponCode,100),current=cents(b.currentPrice),original=b.originalPrice?cents(b.originalPrice):null;
       if(!title||current<=0||!url(affiliate)||!url(image))return res.status(400).json({error:'Preencha produto, preço, link de afiliado e imagem.'});
       const source=txt(b.source,50)||'Outro',fp=await makeFingerprint({title,source,productUrl:product||affiliate,affiliateUrl:affiliate});
-      const created=await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,discount_percent,score,status,message,fingerprint,validation_status,imported_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'PENDING',$14,$15,'APPROVED','MANUAL') ON CONFLICT DO NOTHING RETURNING id",[uid(),a.id,title,source,original,current,categoryId,affiliate,image,product||null,coupon||null,percent(current,original),score(title,current,original),txt(b.message,3000)||promo(title,current,original,affiliate,coupon),fp]);
+      const created=await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'PENDING',$15,$16,'APPROVED','MANUAL') ON CONFLICT DO NOTHING RETURNING id",[uid(),a.id,title,source,original,current,categoryId,affiliate,image,product||null,coupon||null,couponCode||null,percent(current,original),score(title,current,original),txt(b.message,3000)||promo(title,current,original,affiliate,couponCode||coupon),fp]);
       if(!created.rows.length)return res.status(409).json({error:'Esta oferta já está cadastrada.'});
     }else if(req.method==='POST'&&entity==='publication'){
       const offerId=txt(b.offerId,80),groupId=txt(b.groupId,80),found=(await db.query('SELECT message,image_url FROM offers WHERE id=$1 AND account_id=$2',[offerId,a.id])).rows[0],group=(await db.query('SELECT id,platform FROM promo_groups WHERE id=$1 AND account_id=$2',[groupId,a.id])).rows[0];
