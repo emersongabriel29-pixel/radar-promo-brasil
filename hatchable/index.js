@@ -11,7 +11,9 @@ export async function getDb() {
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
-    const instance = new PGlite();
+    const dataDir = path.resolve(process.cwd(), process.env.PGLITE_DATA_DIR || 'data/radar-promo');
+    fs.mkdirSync(dataDir, { recursive: true });
+    const instance = new PGlite(dataDir);
     const migrationsDir = path.resolve(process.cwd(), 'migrations');
     if (fs.existsSync(migrationsDir)) {
       const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
@@ -46,8 +48,29 @@ export const config = {
 
 export const scheduler = {
   async now(endpoint) {
-    const port = 3000;
+    const port = Number(process.env.PORT || 3000);
     fetch(`http://127.0.0.1:${port}${endpoint}`, { method: 'POST' }).catch(() => {});
+  }
+};
+
+export const email = {
+  async send({ to, subject, text = '', html = '' }) {
+    const apiKey = process.env.RESEND_API_KEY;
+    const from = process.env.EMAIL_FROM;
+    if (!apiKey || !from) {
+      throw new Error('Standalone email requires RESEND_API_KEY and EMAIL_FROM');
+    }
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${apiKey}`,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ from, to: [to], subject, text, html })
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error('Email provider request failed');
+    return { message_id: body.id || '' };
   }
 };
 
@@ -101,10 +124,19 @@ export const storage = {
 };
 
 export const webhooks = {
-  verifyHmac({ raw, signature, secret, algorithm = 'sha256', encoding = 'hex' }) {
+  verifyHmac({ raw, signature, secret, algorithm = 'sha256', encoding = 'hex', timestamp, tolerance = 300 }) {
     try {
+      if (timestamp !== undefined && timestamp !== null && timestamp !== '') {
+        const parsed = Number(timestamp);
+        if (!Number.isFinite(parsed)) return false;
+        const tsMs = parsed > 1e12 ? parsed : parsed * 1000;
+        if (Math.abs(Date.now() - tsMs) > Math.max(1, Number(tolerance) || 300) * 1000) return false;
+      }
       const hmac = crypto.createHmac(algorithm, secret).update(raw).digest(encoding);
-      return crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(signature));
+      const expected = Buffer.from(hmac);
+      const received = Buffer.from(String(signature || ''));
+      if (expected.length !== received.length) return false;
+      return crypto.timingSafeEqual(expected, received);
     } catch {
       return false;
     }
