@@ -1,4 +1,4 @@
-import { ai } from 'hatchable';
+import { ai,db } from 'hatchable';
 import { categoryHint } from 'lib/automation.js';
 
 export const access = 'member';
@@ -46,6 +46,7 @@ export default async function(req, res) {
 
     const cta = String(result.text || '').replace(/[\r\n]+/g, ' ').trim().slice(0, 180);
     const safe = cta && !/https?:/i.test(cta) ? cta : 'Aproveite enquanto a oferta estiver disponível.';
+    await db.query("INSERT INTO integration_health(name,status,details,last_checked_at) VALUES('ai','ACTIVE','Gemini respondeu com sucesso',now()) ON CONFLICT(name) DO UPDATE SET status='ACTIVE',details='Gemini respondeu com sucesso',last_checked_at=now()");
     return res.json({
       message: compose(safe),
       category: categoryHint(title),
