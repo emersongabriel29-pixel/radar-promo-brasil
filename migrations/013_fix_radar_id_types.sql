@@ -1,7 +1,7 @@
--- Radar Intelligence correction: existing SaaS IDs are TEXT, not UUID.
--- 012 can fail before adding the offer columns because its new tables used UUID IDs.
-DROP TABLE IF EXISTS offer_price_history;
-DROP TABLE IF EXISTS autopilot_rules;
+-- Radar Intelligence compatibility migration.
+-- This migration must be safe to execute repeatedly because the standalone
+-- Hatchable runner currently replays every SQL file on startup.
+-- Never drop Radar tables here: price history and autopilot rules are user data.
 
 ALTER TABLE offers ADD COLUMN IF NOT EXISTS price_first_seen BIGINT;
 ALTER TABLE offers ADD COLUMN IF NOT EXISTS price_lowest BIGINT;
