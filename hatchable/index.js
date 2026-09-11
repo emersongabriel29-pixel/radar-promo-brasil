@@ -59,7 +59,7 @@ export const ai = {
     }
     const { GoogleGenAI } = await import('@google/genai');
     const aiClient = new GoogleGenAI({ apiKey });
-    const candidateModels = [model, 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-flash-latest'];
+    const candidateModels = [...new Set([model, 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-flash-latest'])];
 
     let lastError = null;
     for (const candidate of candidateModels) {
@@ -83,10 +83,7 @@ export const ai = {
         }
       } catch (err) {
         lastError = err;
-        const isSpike = err?.status === 503 || err?.status === 429 || String(err?.message || '').includes('high demand');
-        if (!isSpike) {
-          throw err;
-        }
+        console.warn(`[hatchable ai] Model ${candidate} unavailable; trying fallback model.`);
       }
     }
     throw lastError || new Error('Falha ao gerar texto com IA');
