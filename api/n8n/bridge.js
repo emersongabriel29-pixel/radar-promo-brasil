@@ -41,7 +41,7 @@ async function ingest(body,eventId,accountId){
     if(!r.rows.length){duplicates++;continue}inserted++;
     if(settings.auto_approve&&score>=settings.minimum_score&&category){
       const groups=await db.query("SELECT id,platform FROM promo_groups WHERE account_id=$1 AND status='ACTIVE' AND (category_id=$2 OR category_id IS NULL)",[accountId,category.id]);
-      for(const g of groups){
+      for(const g of groups.rows){
         await db.query("INSERT INTO publications(id,account_id,offer_id,group_id,status,message,image_url,mode,idempotency_key) VALUES($1,$2,$3,$4,'READY',$5,$6,'SMART',$7) ON CONFLICT DO NOTHING",[crypto.randomUUID(),accountId,id,g.id,message(v),v.imageUrl,fp+':'+g.id]);
         if(g.platform==='TELEGRAM')telegramQueued=true;
       }
