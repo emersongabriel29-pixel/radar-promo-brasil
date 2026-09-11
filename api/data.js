@@ -1,5 +1,6 @@
 import { db,scheduler } from 'hatchable';
 import { fingerprint as makeFingerprint } from 'lib/automation.js';
+import { formatPromo } from 'lib/promo-message.js';
 
 export const access='member';
 export const methods=['GET','POST','PUT','DELETE'];
@@ -10,7 +11,6 @@ const url=v=>{try{return new URL(v).protocol==='https:'}catch{return false}};
 const cash=v=>(Number(v||0)/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const percent=(c,o)=>o>c?Math.round((o-c)*100/o):0;
 const score=(t,c,o)=>Math.max(35,Math.min(98,45+percent(c,o)+(/iphone|samsung|air fryer|fralda|notebook|tv|playstation|perfume/i.test(t)?18:8)));
-const promo=(t,c,o,l,cp='')=>['🔥 OFERTA ENCONTRADA!','', '🛍️ '+t,o>c?'💰 De '+cash(o)+' por '+cash(c):'💰 Por '+cash(c),cp?'🎟️ Cupom disponível: '+cp:'','','🛒 Confira: '+l,'⚠️ Preço e estoque podem mudar.'].filter(Boolean).join('\n');
 const slugify=v=>txt(v,80).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'operacao';
 
 async function getAccount(member){
@@ -27,9 +27,9 @@ async function getAccount(member){
 
 async function starter(accountId){
   if((await db.query('SELECT id FROM categories WHERE account_id=$1 LIMIT 1',[accountId])).rows.length)return;
-  const defs=[['Ofertas gerais','🔥','#ff6a2a'],['Tecnologia','📱','#1967d2'],['Casa e cozinha','🏠','#0a8f66'],['Bebês e crianças','🧸','#d84f88'],['Moda e beleza','✨','#7c3aed'],['Pet','🐾','#c77a00']],ids={};
+  const defs=[['Ofertas gerais','🔥','#ff6a2a'],['Tecnologia','📱','#1967d2'],['Casa e cozinha','🏠','#0a8f66'],['Bebês e crianças','🧸','#d84f88'],['Moda e beleza','✨','#7c3aed'],['Pet','🐾','#c77a00'],['Produtos importados','🌍','#2563eb']],ids={};
   for(const c of defs){const id=uid();ids[c[0]]=id;await db.query('INSERT INTO categories(id,account_id,name,icon,color) VALUES($1,$2,$3,$4,$5)',[id,accountId,...c])}
-  for(const g of [['Achadinhos do Dia','Ofertas gerais'],['Tecnologia e Games','Tecnologia'],['Casa e Eletrodomésticos','Casa e cozinha'],['Ofertas para Bebês','Bebês e crianças']])await db.query('INSERT INTO promo_groups(id,account_id,name,category_id) VALUES($1,$2,$3,$4)',[uid(),accountId,g[0],ids[g[1]]]);
+  for(const g of [['Achadinhos do Dia','Ofertas gerais'],['Tecnologia e Games','Tecnologia'],['Casa e Eletrodomésticos','Casa e cozinha'],['Ofertas para Bebês','Bebês e crianças'],['Produtos Importados','Produtos importados']])await db.query('INSERT INTO promo_groups(id,account_id,name,category_id) VALUES($1,$2,$3,$4)',[uid(),accountId,g[0],ids[g[1]]]);
 }
 
 async function belongs(table,id,accountId){return Boolean((await db.query('SELECT id FROM '+table+' WHERE id=$1 AND account_id=$2',[id,accountId])).rows.length)}
@@ -75,7 +75,9 @@ export default async function(req,res){
       const title=txt(b.title,220),affiliate=txt(b.affiliateUrl,1200),image=txt(b.imageUrl,1200),product=txt(b.productUrl,1200),coupon=txt(b.couponUrl,1200),couponCode=txt(b.couponCode,100),current=cents(b.currentPrice),original=b.originalPrice?cents(b.originalPrice):null;
       if(!title||current<=0||!url(affiliate)||!url(image))return res.status(400).json({error:'Preencha produto, preço, link de afiliado e imagem.'});
       const source=txt(b.source,50)||'Outro',fp=await makeFingerprint({title,source,productUrl:product||affiliate,affiliateUrl:affiliate});
-      const created=await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'PENDING',$15,$16,'APPROVED','MANUAL') ON CONFLICT DO NOTHING RETURNING id",[uid(),a.id,title,source,original,current,categoryId,affiliate,image,product||null,coupon||null,couponCode||null,percent(current,original),score(title,current,original),txt(b.message,3000)||promo(title,current,original,affiliate,couponCode||coupon),fp]);
+      const categoryName=categoryId?(await db.query('SELECT name FROM categories WHERE id=$1 AND account_id=$2',[categoryId,a.id])).rows[0]?.name:'';
+      const automatic=formatPromo({title,source,category:categoryName,currentPrice:current,originalPrice:original,affiliateUrl:affiliate,couponUrl:coupon,couponCode,template:txt(b.messageTemplate,30)}).message;
+      const created=await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'PENDING',$15,$16,'APPROVED','MANUAL') ON CONFLICT DO NOTHING RETURNING id",[uid(),a.id,title,source,original,current,categoryId,affiliate,image,product||null,coupon||null,couponCode||null,percent(current,original),score(title,current,original),txt(b.message,3000)||automatic,fp]);
       if(!created.rows.length)return res.status(409).json({error:'Esta oferta já está cadastrada.'});
     }else if(req.method==='POST'&&entity==='publication'){
       const offerId=txt(b.offerId,80),groupId=txt(b.groupId,80),found=(await db.query('SELECT message,image_url FROM offers WHERE id=$1 AND account_id=$2',[offerId,a.id])).rows[0],group=(await db.query('SELECT id,platform FROM promo_groups WHERE id=$1 AND account_id=$2',[groupId,a.id])).rows[0];
