@@ -4,9 +4,9 @@
   "type": "module",
   "scripts": {
     "dev": "node server.js",
-    "build": "echo 'Build successful'",
+    "build": "node --check server.js && node --check hatchable/index.js && node --check api/email/test.js && node --check api/n8n/bridge.js && node --check api/jobs/telegram.js && node --check api/upload.js",
     "start": "node server.js",
-    "test": "node --test tests/automation.test.mjs"
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",
