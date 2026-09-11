@@ -9,6 +9,18 @@ encoding = "form"
 description = "Organizar promoções e links oficiais de afiliado da Amazon, Shopee e Mercado Livre."
 required = true
 
+[[api]]
+name = "runway"
+auth = "api_key"
+base_url = "https://api.dev.runwayml.com"
+key_header = "Authorization"
+key_prefix = "Bearer "
+description = "Geração real de imagens e vídeos publicitários com fila, acompanhamento e armazenamento seguro."
+required = false
+
+[api.headers]
+X-Runway-Version = "2024-11-06"
+
 [ai]
 required = true
 description = "Categorizar produtos e criar mensagens de promoções sem inventar preço, estoque ou frete."
