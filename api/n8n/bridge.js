@@ -41,7 +41,10 @@ async function ingest(body,eventId,accountId){
     if(!r.rows.length){duplicates++;continue}inserted++;
     if(settings.auto_approve&&score>=settings.minimum_score&&category){
       const groups=await db.query("SELECT id,platform FROM promo_groups WHERE account_id=$1 AND status='ACTIVE' AND (category_id=$2 OR category_id IS NULL)",[accountId,category.id]);
-      for(const g of groups.rows){await db.query("INSERT INTO publications(id,account_id,offer_id,group_id,status,message,image_url,mode,idempotency_key) VALUES($1,$2,$3,$4,'READY',$5,$6,'SMART',$7) ON CONFLICT DO NOTHING",[crypto.randomUUID(),accountId,id,g.id,message(v),v.imageUrl,fp+':'+g.id]);if(g.platform==='TELEGRAM')telegramQueued=true;}
+      for(const g of groups){
+        await db.query("INSERT INTO publications(id,account_id,offer_id,group_id,status,message,image_url,mode,idempotency_key) VALUES($1,$2,$3,$4,'READY',$5,$6,'SMART',$7) ON CONFLICT DO NOTHING",[crypto.randomUUID(),accountId,id,g.id,message(v),v.imageUrl,fp+':'+g.id]);
+        if(g.platform==='TELEGRAM')telegramQueued=true;
+      }
     }
   }
   await db.query('UPDATE webhook_events SET status=$1,item_count=$2,processed_at=now() WHERE id=$3',['PROCESSED',inserted,eventId]);
@@ -53,7 +56,7 @@ async function ingest(body,eventId,accountId){
 async function pull(body,eventId,accountId){
   const max=Math.max(1,Math.min(20,Number(body.limit)||10));
   const r=await db.query("SELECT p.id,p.message,p.image_url AS \"imageUrl\",p.attempts,p.mention_all AS \"mentionAll\",o.title,o.affiliate_url AS \"affiliateUrl\",o.current_price AS \"currentPrice\",g.name AS \"groupName\",g.external_id AS \"groupExternalId\",c.id AS \"connectionId\",c.provider AS \"connectionProvider\",c.external_id AS \"connectionExternalId\" FROM publications p JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id LEFT JOIN LATERAL (SELECT w.* FROM whatsapp_connections w WHERE w.account_id=p.account_id AND w.status='ACTIVE' ORDER BY w.failure_count,w.priority,w.last_seen_at DESC NULLS LAST LIMIT 1) c ON true WHERE p.account_id=$1 AND p.status IN ('READY','RETRY') AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now()) AND g.status='ACTIVE' AND g.platform='WHATSAPP' AND g.external_id IS NOT NULL AND p.image_url IS NOT NULL ORDER BY p.priority DESC,p.created_at DESC LIMIT $2",[accountId,max]);
-  for(const item of r.rows)await db.query("UPDATE publications SET status='DISPATCHING',attempts=attempts+1,last_attempt_at=now(),connection_id=$2 WHERE id=$1 AND status IN ('READY','RETRY')",[item.id,item.connectionId||null]);
+  for(const item of r.rows)await db.query("UPDATE publications SET status='DISPATCHING',attempts=attempts+1,last_attempt_at=now(),connection_id=$2 WHERE id=$1 AND account_id=$3 AND status IN ('READY','RETRY')",[item.id,item.connectionId||null,accountId]);
   await db.query('UPDATE webhook_events SET status=$1,item_count=$2,processed_at=now() WHERE id=$3',['PROCESSED',r.rows.length,eventId]);
   return {items:r.rows};
 }
@@ -110,5 +113,5 @@ export default async function(req,res){
     const eventId=await remember(eventKey,action,accountId);if(!eventId)return res.json({ok:true,duplicateEvent:true});
     let data;if(action==='ingest')data=await ingest(body,eventId,accountId);else if(action==='pull')data=await pull(body,eventId,accountId);else if(action==='result')data=await result(body,eventId,accountId);else if(action==='lead')data=await lead(body,eventId,accountId);else if(action==='sale')data=await sale(body,eventId,accountId);else return res.status(400).json({error:'Ação desconhecida.'});
     return res.json({ok:true,...data});
-  }catch(e){return res.status(500).json({error:e?.message||'Falha na ponte n8n.'});}
+  }catch(e){const correlationId=crypto.randomUUID();console.error('n8n/bridge',correlationId,e);return res.status(500).json({error:'Falha interna na ponte n8n.',correlationId});}
 }
