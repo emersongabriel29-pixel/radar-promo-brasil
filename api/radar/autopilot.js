@@ -1,10 +1,19 @@
+import crypto from 'node:crypto';
 import { db } from '../../hatchable/index.js';
 import { calculateRadarScore, classifyRadarScore } from '../../lib/radar.js';
 
 export const access = 'member';
 
+async function getAccountId(member) {
+  const memberId = String(member?.id || '').trim();
+  if (!memberId) return '';
+  const result = await db.query('SELECT id FROM accounts WHERE owner_member_id = $1 LIMIT 1', [memberId]);
+  return String(result.rows?.[0]?.id || '');
+}
+
 export default async function handler(req, res) {
-  const accountId = String(req.user?.accountId || req.user?.account_id || req.user?.id || '').trim();
+  if (!req.member) return res.status(401).json({ error: 'Não autorizado.' });
+  const accountId = await getAccountId(req.member);
   if (!accountId) return res.status(401).json({ error: 'Conta não identificada' });
 
   if (req.method === 'GET') {
@@ -18,11 +27,7 @@ export default async function handler(req, res) {
 
   if (action === 'EVALUATE') {
     const rules = (await db.query(`SELECT * FROM autopilot_rules WHERE account_id = $1 AND status = 'ACTIVE'`, [accountId])).rows || [];
-    const offers = (await db.query(`
-      SELECT o.*, COALESCE(o.price_lowest, 0) AS lowest_price, COALESCE(o.price_average, 0) AS average_price
-      FROM offers o WHERE o.account_id = $1 AND COALESCE(o.status, 'READY') IN ('READY','APPROVED')
-      ORDER BY COALESCE(o.radar_score,35) DESC LIMIT 100`, [accountId])).rows || [];
-
+    const offers = (await db.query(`SELECT o.*, COALESCE(o.price_lowest, 0) AS lowest_price, COALESCE(o.price_average, 0) AS average_price FROM offers o WHERE o.account_id = $1 AND COALESCE(o.status, 'READY') IN ('READY','APPROVED','PENDING') ORDER BY COALESCE(o.radar_score,35) DESC, o.created_at DESC LIMIT 100`, [accountId])).rows || [];
     const matches = [];
     for (const offer of offers) {
       const radar = calculateRadarScore({ currentPrice: offer.current_price, originalPrice: offer.original_price, lowestPrice: offer.lowest_price, averagePrice: offer.average_price, historyCount: offer.price_history_count, title: offer.title, coupon: Boolean(offer.coupon_url), categoryMatch: true });
