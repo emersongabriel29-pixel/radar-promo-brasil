@@ -1,6 +1,5 @@
 import { db,config,webhooks,scheduler } from 'hatchable';
 import { validateOffer,categoryHint,offerScore,message,fingerprint,discount } from 'lib/automation.js';
-import { calculateRadarScore } from 'lib/radar.js';
 
 export const access='public';
 export const methods=['POST'];
@@ -28,19 +27,6 @@ async function remember(eventKey,action,accountId){
   return r.rows[0]?.id||null;
 }
 
-async function recordPriceAndRadar(accountId,offerId,currentPrice,originalPrice,title,couponUrl){
-  try{
-    await db.query('INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price) VALUES($1,$2,$3,$4,$5)',[crypto.randomUUID(),accountId,offerId,currentPrice,originalPrice]);
-    const stats=(await db.query('SELECT MIN(price) lowest,MAX(price) highest,ROUND(AVG(price)) average,COUNT(*)::int count FROM offer_price_history WHERE account_id=$1 AND offer_id=$2',[accountId,offerId])).rows[0]||{};
-    const radar=calculateRadarScore({currentPrice,originalPrice,lowestPrice:Number(stats.lowest||0),averagePrice:Number(stats.average||0),historyCount:Number(stats.count||0),title,coupon:Boolean(couponUrl),categoryMatch:true});
-    await db.query('UPDATE offers SET price_first_seen=COALESCE(price_first_seen,$1),price_lowest=$2,price_highest=$3,price_average=$4,price_history_count=$5,radar_score=$6,radar_reasons=$7,radar_updated_at=now() WHERE id=$8 AND account_id=$9',[currentPrice,Number(stats.lowest||currentPrice),Number(stats.highest||currentPrice),Number(stats.average||currentPrice),Number(stats.count||1),radar.score,radar.reasons.join(' | '),offerId,accountId]);
-    return radar;
-  }catch(error){
-    console.warn('radar price history skipped',error?.message||error);
-    return {score:35,reasons:['histórico indisponível']};
-  }
-}
-
 async function ingest(body,eventId,accountId){
   const items=Array.isArray(body.offers)?body.offers.slice(0,50):[];
   const cats=(await db.query('SELECT id,name FROM categories WHERE account_id=$1',[accountId])).rows;
@@ -49,18 +35,13 @@ async function ingest(body,eventId,accountId){
   for(const raw of items){
     const checked=validateOffer(raw);
     if(!checked.ok){rejected.push({title:String(raw?.title||'').slice(0,80),errors:checked.errors});continue}
-    const v=checked.value,fp=await fingerprint(v),hint=categoryHint(v.title),category=cats.find(c=>c.name.toLowerCase()===hint.toLowerCase())||cats.find(c=>c.name.toLowerCase().includes('gerais'));
+    const v=checked.value,fp=await fingerprint(v),hint=categoryHint(v.title,v.source),category=cats.find(c=>c.name.toLowerCase()===hint.toLowerCase())||cats.find(c=>c.name.toLowerCase().includes('gerais'));
     const score=offerScore(v),id=crypto.randomUUID();
     const r=await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,discount_percent,score,status,message,fingerprint,validation_status,imported_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'APPROVED','N8N') ON CONFLICT DO NOTHING RETURNING id",[id,accountId,v.title,v.source,v.originalPrice,v.currentPrice,category?.id||null,v.affiliateUrl,v.imageUrl,v.productUrl,v.couponUrl||null,discount(v.currentPrice,v.originalPrice),score,settings.auto_approve&&score>=settings.minimum_score?'APPROVED':'PENDING',message(v),fp]);
-    if(!r.rows.length){duplicates++;continue}
-    inserted++;
-    const radar=await recordPriceAndRadar(accountId,id,v.currentPrice,v.originalPrice,v.title,v.couponUrl);
-    if(settings.auto_approve&&radar.score>=settings.minimum_score&&category){
+    if(!r.rows.length){duplicates++;continue}inserted++;
+    if(settings.auto_approve&&score>=settings.minimum_score&&category){
       const groups=await db.query("SELECT id,platform FROM promo_groups WHERE account_id=$1 AND status='ACTIVE' AND (category_id=$2 OR category_id IS NULL)",[accountId,category.id]);
-      for(const g of groups.rows){
-        await db.query("INSERT INTO publications(id,account_id,offer_id,group_id,status,message,image_url,mode,idempotency_key,priority) VALUES($1,$2,$3,$4,'READY',$5,$6,'SMART',$7,$8) ON CONFLICT DO NOTHING",[crypto.randomUUID(),accountId,id,g.id,message(v),v.imageUrl,fp+':'+g.id,Math.max(0,Math.min(100,radar.score))]);
-        if(g.platform==='TELEGRAM')telegramQueued=true;
-      }
+      for(const g of groups.rows){await db.query("INSERT INTO publications(id,account_id,offer_id,group_id,status,message,image_url,mode,idempotency_key) VALUES($1,$2,$3,$4,'READY',$5,$6,'SMART',$7) ON CONFLICT DO NOTHING",[crypto.randomUUID(),accountId,id,g.id,message(v),v.imageUrl,fp+':'+g.id]);if(g.platform==='TELEGRAM')telegramQueued=true;}
     }
   }
   await db.query('UPDATE webhook_events SET status=$1,item_count=$2,processed_at=now() WHERE id=$3',['PROCESSED',inserted,eventId]);
@@ -72,7 +53,7 @@ async function ingest(body,eventId,accountId){
 async function pull(body,eventId,accountId){
   const max=Math.max(1,Math.min(20,Number(body.limit)||10));
   const r=await db.query("SELECT p.id,p.message,p.image_url AS \"imageUrl\",p.attempts,p.mention_all AS \"mentionAll\",o.title,o.affiliate_url AS \"affiliateUrl\",o.current_price AS \"currentPrice\",g.name AS \"groupName\",g.external_id AS \"groupExternalId\",c.id AS \"connectionId\",c.provider AS \"connectionProvider\",c.external_id AS \"connectionExternalId\" FROM publications p JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id LEFT JOIN LATERAL (SELECT w.* FROM whatsapp_connections w WHERE w.account_id=p.account_id AND w.status='ACTIVE' ORDER BY w.failure_count,w.priority,w.last_seen_at DESC NULLS LAST LIMIT 1) c ON true WHERE p.account_id=$1 AND p.status IN ('READY','RETRY') AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now()) AND g.status='ACTIVE' AND g.platform='WHATSAPP' AND g.external_id IS NOT NULL AND p.image_url IS NOT NULL ORDER BY p.priority DESC,p.created_at DESC LIMIT $2",[accountId,max]);
-  for(const item of r.rows)await db.query("UPDATE publications SET status='DISPATCHING',attempts=attempts+1,last_attempt_at=now(),connection_id=$2 WHERE id=$1 AND account_id=$3 AND status IN ('READY','RETRY')",[item.id,item.connectionId||null,accountId]);
+  for(const item of r.rows)await db.query("UPDATE publications SET status='DISPATCHING',attempts=attempts+1,last_attempt_at=now(),connection_id=$2 WHERE id=$1 AND status IN ('READY','RETRY')",[item.id,item.connectionId||null]);
   await db.query('UPDATE webhook_events SET status=$1,item_count=$2,processed_at=now() WHERE id=$3',['PROCESSED',r.rows.length,eventId]);
   return {items:r.rows};
 }
@@ -129,5 +110,5 @@ export default async function(req,res){
     const eventId=await remember(eventKey,action,accountId);if(!eventId)return res.json({ok:true,duplicateEvent:true});
     let data;if(action==='ingest')data=await ingest(body,eventId,accountId);else if(action==='pull')data=await pull(body,eventId,accountId);else if(action==='result')data=await result(body,eventId,accountId);else if(action==='lead')data=await lead(body,eventId,accountId);else if(action==='sale')data=await sale(body,eventId,accountId);else return res.status(400).json({error:'Ação desconhecida.'});
     return res.json({ok:true,...data});
-  }catch(e){const correlationId=crypto.randomUUID();console.error('n8n/bridge',correlationId,e);return res.status(500).json({error:'Falha interna na ponte n8n.',correlationId});}
+  }catch(e){return res.status(500).json({error:e?.message||'Falha na ponte n8n.'});}
 }
