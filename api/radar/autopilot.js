@@ -58,10 +58,23 @@ async function publishMatches(accountId, requestedOfferId = '') {
 
   for (const item of selected) {
     const rule = item.matchedRules.sort((a, b) => Number(b.min_score || 0) - Number(a.min_score || 0))[0];
-    const daily = (await db.query(`SELECT COUNT(*)::int AS count FROM publications WHERE account_id=$1 AND created_at>=date_trunc('day',now()) AND offer_id=$2`, [accountId, item.offer.id])).rows[0]?.count || 0;
+    const daily = Number((await db.query(`SELECT COUNT(*)::int AS count FROM publications WHERE account_id=$1 AND created_at>=date_trunc('day',now()) AND offer_id=$2`, [accountId, item.offer.id])).rows[0]?.count || 0);
     if (daily > 0) {
       results.push({ offer_id: item.offer.id, status: 'SKIPPED', reason: 'Oferta já possui publicação hoje' });
       continue;
+    }
+
+    const cooldown = Math.max(0, Number(rule?.cooldown_minutes || 0));
+    if (cooldown > 0) {
+      const recent = (await db.query(`SELECT created_at FROM publications WHERE account_id=$1 AND offer_id=$2 ORDER BY created_at DESC LIMIT 1`, [accountId, item.offer.id])).rows[0];
+      if (recent?.created_at) {
+        const lastMs = new Date(recent.created_at).getTime();
+        const elapsed = (Date.now() - lastMs) / 60000;
+        if (Number.isFinite(elapsed) && elapsed < cooldown) {
+          results.push({ offer_id: item.offer.id, status: 'COOLDOWN', reason: `Aguardando ${Math.ceil(cooldown - elapsed)} min antes de publicar novamente` });
+          continue;
+        }
+      }
     }
 
     const groups = (await db.query(`SELECT id,name,platform,category_id,external_id FROM promo_groups WHERE account_id=$1 AND status='ACTIVE' AND (category_id=$2 OR category_id IS NULL) ORDER BY CASE WHEN category_id=$2 THEN 0 ELSE 1 END,name`, [accountId, item.offer.category_id])).rows || [];
