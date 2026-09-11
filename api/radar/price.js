@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { db } from '../../hatchable/index.js';
+import { db } from 'hatchable';
 
 export const access = 'member';
 
