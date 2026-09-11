@@ -6,6 +6,7 @@ export const methods=['GET','POST','PUT'];
 const id=()=>crypto.randomUUID();
 const text=(v,n=500)=>String(v??'').trim().slice(0,n);
 const slugify=v=>text(v,80).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'operacao';
+const STORES=['AMAZON','SHOPEE','MERCADO_LIVRE','SHEIN','ALIEXPRESS','MAGALU','CASAS_BAHIA','HOTMART','KABUM','AMERICANAS','NATURA','AVON'];
 
 async function account(member){
   const memberId=String(member.id);
@@ -15,7 +16,7 @@ async function account(member){
   found=(await db.query('INSERT INTO accounts(id,owner_member_id,name,slug) VALUES($1,$2,$3,$4) RETURNING *',[id(),memberId,text(member.display_name||'Minha operação',100),slug])).rows[0];
   await db.query('INSERT INTO storefront_settings(account_id) VALUES($1) ON CONFLICT DO NOTHING',[found.id]);
   await db.query('INSERT INTO account_settings(account_id) VALUES($1) ON CONFLICT DO NOTHING',[found.id]);
-  for(const store of ['AMAZON','SHOPEE','MERCADO_LIVRE'])await db.query('INSERT INTO marketplace_rules(id,account_id,marketplace) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[id(),found.id,store]);
+  for(const store of STORES)await db.query('INSERT INTO marketplace_rules(id,account_id,marketplace) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[id(),found.id,store]);
   return found;
 }
 
@@ -43,7 +44,7 @@ export default async function(req,res){
       const slot=Math.max(1,Math.min(3,Number(b.secretSlot)||1)),token=await configuredBotToken(slot),bot=await inspectBot(token),priority=Math.max(1,Math.min(9999,Number(b.priority)||100));
       await db.query("INSERT INTO telegram_connections(id,account_id,name,bot_id,bot_username,secret_slot,priority,status,last_seen_at) VALUES($1,$2,$3,$4,$5,$6,$7,'ACTIVE',now()) ON CONFLICT(account_id,secret_slot) DO UPDATE SET name=EXCLUDED.name,bot_id=EXCLUDED.bot_id,bot_username=EXCLUDED.bot_username,priority=EXCLUDED.priority,status='ACTIVE',failure_count=0,last_seen_at=now(),updated_at=now()",[id(),a.id,text(b.name,100)||('@'+(bot.username||bot.id)),String(bot.id),text(bot.username,100),slot,priority]);
     }else if(req.method==='PUT'&&b.entity==='marketplace'){
-      if(!['AMAZON','SHOPEE','MERCADO_LIVRE'].includes(b.marketplace))return res.status(400).json({error:'Loja inválida.'});
+      if(!STORES.includes(b.marketplace))return res.status(400).json({error:'Loja inválida.'});
       await db.query('UPDATE marketplace_rules SET affiliate_tag=$1,subid_template=$2,conversion_endpoint=$3,status=$4,updated_at=now() WHERE account_id=$5 AND marketplace=$6',[text(b.affiliateTag,200),text(b.subidTemplate,200)||'{group}',text(b.conversionEndpoint,1000),text(b.status,20)||'PENDING',a.id,b.marketplace]);
     }else if(req.method==='PUT'&&b.entity==='storefront'){
       await db.query('UPDATE storefront_settings SET title=$1,description=$2,primary_color=$3,published=$4,updated_at=now() WHERE account_id=$5',[text(b.title,120),text(b.description,500),text(b.primaryColor,10)||'#ff6a2a',Boolean(b.published),a.id]);
