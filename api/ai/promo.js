@@ -64,7 +64,7 @@ export default async function(req, res) {
   try {
     const result = await ai.generateText({
       purpose: 'affiliate-promo-copy',
-      model: result.model || 'gemini-3.8-flash',
+      model: 'gemini-3.8-flash',
       maxTokens: 100,
       system: systemInstruction,
       prompt: `Loja: ${store}\nProduto: ${title}\nPreço: ${priceStr}${discountPercent ? `\nDesconto: ${discountPercent}%` : ''}`
@@ -83,7 +83,7 @@ export default async function(req, res) {
       message: compose(safe),
       category: categoryHint(title),
       aiUsed: true,
-      model: 'gemini-3.8-flash',
+      model: result.model || 'gemini-3.8-flash',
       validated: true
     });
   } catch (e) {
