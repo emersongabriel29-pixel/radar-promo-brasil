@@ -24,6 +24,7 @@ Painel de automação para organizar ofertas de afiliados por categoria, gerar m
 - Renderização assíncrona de vídeos pelo Runway, com consulta de estado, retentativas e armazenamento protegido
 - Catálogo de conectores para Shein, AliExpress, Magalu, Casas Bahia, Hotmart, KaBuM, Americanas, Natura e Avon
 - Central de tráfego com campanhas, UTMs, cupons e preparação de Facebook, Instagram, Gmail e Outlook
+- Agente Radar Social especializado em perfis, calendários, Feed, Stories, Reels, design, testes A/B, Meta Ads e auditoria de crescimento
 - Controles de LGPD, retenção, solicitações de titulares e trilha de eventos de segurança
 
 ## Fluxo planejado
