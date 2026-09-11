@@ -19,14 +19,17 @@ async function snapshot(a){
     db.query('SELECT id,kind,channel,provider_model AS "model",content,asset_url AS "assetUrl",status,created_at AS "createdAt" FROM content_assets WHERE account_id=$1 ORDER BY created_at DESC LIMIT 40',[a]),
     db.query('SELECT retention_days AS "retentionDays",marketing_consent_required AS "marketingConsentRequired",data_export_enabled AS "dataExportEnabled",incident_email AS "incidentEmail",updated_at AS "updatedAt" FROM account_security_settings WHERE account_id=$1',[a]),
     db.query('SELECT id,request_type AS "requestType",requester_email AS "requesterEmail",notes,status,created_at AS "createdAt",resolved_at AS "resolvedAt" FROM privacy_requests WHERE account_id=$1 ORDER BY created_at DESC LIMIT 50',[a]),
-    db.query('SELECT id,event_type AS "eventType",severity,details,created_at AS "createdAt" FROM security_events WHERE account_id=$1 ORDER BY created_at DESC LIMIT 30',[a])
+    db.query('SELECT id,event_type AS "eventType",severity,details,created_at AS "createdAt" FROM security_events WHERE account_id=$1 ORDER BY created_at DESC LIMIT 30',[a]),
+    db.query('SELECT id,kind,title,ratio,duration_seconds AS "durationSeconds",provider,status,output_url AS "outputUrl",last_error AS "lastError",created_at AS "createdAt",updated_at AS "updatedAt" FROM media_generation_jobs WHERE account_id=$1 ORDER BY created_at DESC LIMIT 30',[a])
   ]);
-  return {coupons:q[0].rows,campaigns:q[1].rows,connections:q[2].rows,assets:q[3].rows,security:q[4].rows[0]||{},privacyRequests:q[5].rows,securityEvents:q[6].rows,checks:[
+  return {coupons:q[0].rows,campaigns:q[1].rows,connections:q[2].rows,assets:q[3].rows,security:q[4].rows[0]||{},privacyRequests:q[5].rows,securityEvents:q[6].rows,mediaJobs:q[7].rows,checks:[
     {name:'Isolamento por conta',status:'ACTIVE',detail:'Consultas e gravações usam account_id.'},
     {name:'Segredos e tokens',status:'ACTIVE',detail:'Credenciais ficam fora do navegador e do banco de conteúdo.'},
     {name:'Webhooks n8n',status:'ACTIVE',detail:'HMAC, janela temporal e idempotência.'},
     {name:'Validação de conteúdo IA',status:'ACTIVE',detail:'Preço, cupom e link são inseridos pelo sistema, não inventados pelo modelo.'},
-    {name:'OAuth Meta e e-mail',status:q[2].rows.some(x=>x.status==='ACTIVE')?'PARTIAL':'PENDING',detail:'Exige credenciais, consentimento e revisão do provedor.'},
+    {name:'Entrega por e-mail',status:'ACTIVE',detail:'Envio transacional para Gmail, Outlook e outros provedores pela infraestrutura autenticada.'},
+    {name:'Remetente próprio e Meta',status:q[2].rows.some(x=>x.status==='ACTIVE')?'PARTIAL':'PENDING',detail:'Remetente próprio e publicação social exigem autorização OAuth/domínio do titular.'},
+    {name:'Mídia com fallback',status:'ACTIVE',detail:'Imagem usa provedor principal, Runway e cartão promocional seguro; vídeo usa fila assíncrona do Runway.'},
     {name:'Teste de invasão externo',status:'PENDING',detail:'Recomendado antes de tráfego real; não é certificação automática.'}
   ]};
 }
