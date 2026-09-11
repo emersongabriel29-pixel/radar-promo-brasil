@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'node:path';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import { getDb } from 'hatchable';
 
 // Import all API handlers
@@ -34,8 +35,9 @@ import privacidadePage from './pages/privacidade.js';
 import termosPage from './pages/termos.js';
 
 const app = express();
-const PORT = 3000;
-const HOST = '0.0.0.0';
+const PORT = Number(process.env.PORT || 3000);
+const HOST = process.env.HOST || '0.0.0.0';
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Body parsers with rawBody retention for webhooks
 app.use(express.json({
@@ -52,13 +54,36 @@ const upload = multer({
   limits: { fileSize: 8 * 1024 * 1024 }
 });
 
-// Member session context
+// Standalone identity. Local development keeps a predictable test user, while
+// production requires an explicit bearer secret and user id. The hosted
+// Hatchable runtime does not use this server and keeps its own identity layer.
 app.use((req, res, next) => {
+  if (!isProduction) {
+    req.member = {
+      id: process.env.STANDALONE_DEV_USER_ID || 'admin_user',
+      email: process.env.STANDALONE_DEV_EMAIL || 'admin@radar-promo.local',
+      display_name: process.env.STANDALONE_DEV_USER_NAME || 'Radar Admin',
+      handle: process.env.STANDALONE_DEV_USER_HANDLE || 'admin'
+    };
+    return next();
+  }
+
+  const secret = process.env.STANDALONE_AUTH_SECRET;
+  const userId = process.env.STANDALONE_USER_ID;
+  if (!secret || !userId) {
+    return res.status(503).json({ error: 'Autenticação standalone não configurada.' });
+  }
+
+  const auth = String(req.headers.authorization || '');
+  if (auth !== `Bearer ${secret}`) {
+    return res.status(401).json({ error: 'Não autorizado.' });
+  }
+
   req.member = {
-    id: 'admin_user',
-    email: 'admin@radar-promo.com.br',
-    display_name: 'Radar Admin',
-    handle: 'admin'
+    id: userId,
+    email: process.env.STANDALONE_USER_EMAIL || '',
+    display_name: process.env.STANDALONE_USER_NAME || 'Radar Admin',
+    handle: process.env.STANDALONE_USER_HANDLE || 'admin'
   };
   next();
 });
@@ -79,9 +104,10 @@ function route(handler, allowedMethods) {
     try {
       await handler(req, res);
     } catch (err) {
-      console.error(`Error on ${req.method} ${req.path}:`, err);
+      const correlationId = crypto.randomUUID();
+      console.error(`[server] ${correlationId} ${req.method} ${req.path}:`, err);
       if (!res.headersSent) {
-        res.status(500).json({ error: err.message || 'Erro interno no servidor.' });
+        res.status(500).json({ error: 'Erro interno no servidor.', correlationId });
       }
     }
   };
@@ -130,12 +156,12 @@ app.get('/termos', route(termosPage, ['GET']));
 
 // Start server after ensuring database is ready
 async function main() {
-  try {
-    await getDb();
-    console.log('[db] Embedded database initialized and migrations applied.');
-  } catch (err) {
-    console.error('[db] Error initializing database:', err);
+  if (isProduction && (!process.env.STANDALONE_AUTH_SECRET || !process.env.STANDALONE_USER_ID)) {
+    throw new Error('Produção standalone exige STANDALONE_AUTH_SECRET e STANDALONE_USER_ID.');
   }
+
+  await getDb();
+  console.log('[db] Embedded database initialized and migrations applied.');
 
   app.listen(PORT, HOST, () => {
     console.log(`[server] Radar Promo Brasil running at http://${HOST}:${PORT}`);
