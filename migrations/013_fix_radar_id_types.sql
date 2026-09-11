@@ -1,7 +1,16 @@
 -- Radar Intelligence correction: existing SaaS IDs are TEXT, not UUID.
--- 012 may have created these fresh tables before failing on incompatible types.
+-- 012 can fail before adding the offer columns because its new tables used UUID IDs.
 DROP TABLE IF EXISTS offer_price_history;
 DROP TABLE IF EXISTS autopilot_rules;
+
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS price_first_seen BIGINT;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS price_lowest BIGINT;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS price_highest BIGINT;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS price_average BIGINT;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS price_history_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS radar_score INTEGER NOT NULL DEFAULT 35;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS radar_reasons TEXT;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS radar_updated_at TIMESTAMPTZ;
 
 CREATE TABLE IF NOT EXISTS offer_price_history (
   id TEXT PRIMARY KEY,
@@ -30,5 +39,4 @@ CREATE TABLE IF NOT EXISTS autopilot_rules (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_autopilot_rules_account_status ON autopilot_rules(account_id, status);
-
 CREATE INDEX IF NOT EXISTS idx_offers_radar ON offers(account_id, radar_score DESC, status, created_at DESC);
