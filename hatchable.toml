@@ -45,6 +45,21 @@ name = "TELEGRAM_BOT_TOKEN_3"
 required = false
 description = "Token opcional do terceiro bot para fallback."
 
+[[secret]]
+name = "META_PAGE_ACCESS_TOKEN"
+required = false
+description = "Token oficial da Página Meta, mantido somente no servidor."
+
+[[secret]]
+name = "META_FACEBOOK_PAGE_ID"
+required = false
+description = "ID oficial da Página do Facebook autorizada."
+
+[[secret]]
+name = "META_INSTAGRAM_ACCOUNT_ID"
+required = false
+description = "ID da conta profissional do Instagram vinculada à Página."
+
 [[config]]
 name = "public_app_url"
 required = false
@@ -58,3 +73,11 @@ schedule = "0 * * * *"
 [[cron]]
 path = "/api/jobs/telegram"
 schedule = "0 * * * *"
+
+[[cron]]
+path = "/api/jobs/autopilot"
+schedule = "5 * * * *"
+
+[[cron]]
+path = "/api/jobs/social"
+schedule = "10 * * * *"
