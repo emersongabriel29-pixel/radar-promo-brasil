@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { config,db } from 'hatchable';
 import { configuredBotToken,sendTelegramOffer } from 'lib/telegram.js';
 
 export const access='scheduler';
@@ -9,7 +9,9 @@ async function failPublication(item,error){
 }
 
 export default async function(req,res){
-  const origin='https://radar-promo-brasil.hatchable.site';
+  const configuredOrigin=await config.get('public_app_url').catch(()=>'' );
+  const origin=String(configuredOrigin||process.env.PUBLIC_APP_URL||'').replace(/\/$/,'');
+  if(!origin)return res.status(503).json({error:'URL pública não configurada para links de rastreamento.'});
   const rows=(await db.query("SELECT p.id,p.account_id AS \"accountId\",p.message,p.image_url AS \"imageUrl\",p.attempts,o.affiliate_url AS \"affiliateUrl\",g.external_id AS \"groupExternalId\",g.name AS \"groupName\" FROM publications p JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id WHERE p.status IN ('READY','RETRY') AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now()) AND g.status='ACTIVE' AND g.platform='TELEGRAM' AND g.external_id IS NOT NULL AND p.image_url IS NOT NULL ORDER BY p.priority DESC,p.created_at LIMIT 20")).rows;
   let published=0,failed=0;
   for(const item of rows){
