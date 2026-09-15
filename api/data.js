@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { db,scheduler } from 'hatchable';
 import { fingerprint as makeFingerprint } from 'lib/automation.js';
 import { formatPromo } from 'lib/promo-message.js';
