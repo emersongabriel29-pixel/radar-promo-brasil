@@ -42,7 +42,7 @@ export const db = {
 
 export const config = {
   async get(key) {
-    return process.env[key] || '';
+    return process.env[key] || process.env[String(key).toUpperCase()] || '';
   }
 };
 
@@ -133,7 +133,14 @@ export const ai = {
 export const storage = {
   async put(destPath, buffer, contentType) {
     const uploadsDir = path.resolve(process.cwd(), 'public', 'uploads');
-    const fullPath = path.join(uploadsDir, destPath);
+    const relativePath = String(destPath || '').replaceAll('\\\\', '/');
+    if (!relativePath || relativePath.includes('\\0') || path.posix.isAbsolute(relativePath)) {
+      throw new Error('Invalid storage path');
+    }
+    const fullPath = path.resolve(uploadsDir, relativePath);
+    if (fullPath !== uploadsDir && !fullPath.startsWith(uploadsDir + path.sep)) {
+      throw new Error('Invalid storage path');
+    }
     fs.mkdirSync(path.dirname(fullPath), { recursive: true });
     fs.writeFileSync(fullPath, buffer);
     return `/uploads/${destPath}`;
