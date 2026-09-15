@@ -133,8 +133,8 @@ export const ai = {
 export const storage = {
   async put(destPath, buffer, contentType) {
     const uploadsDir = path.resolve(process.cwd(), 'public', 'uploads');
-    const relativePath = String(destPath || '').replaceAll('\\\\', '/');
-    if (!relativePath || relativePath.includes('\\0') || path.posix.isAbsolute(relativePath)) {
+    const relativePath = String(destPath || '').replaceAll('\\', '/');
+    if (!relativePath || relativePath.includes('\0') || path.posix.isAbsolute(relativePath)) {
       throw new Error('Invalid storage path');
     }
     const fullPath = path.resolve(uploadsDir, relativePath);
