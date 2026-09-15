@@ -22,7 +22,7 @@ export async function getDb() {
         try {
           await instance.exec(sql);
         } catch (err) {
-          console.warn(`[hatchable db] Migration warning on ${file}:`, err.message);
+          throw new Error(`Migration ${file} failed: ${err.message}`, { cause: err });
         }
       }
     }
