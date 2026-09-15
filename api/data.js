@@ -6,7 +6,7 @@ import { formatPromo } from 'lib/promo-message.js';
 export const access='member';
 export const methods=['GET','POST','PUT','DELETE'];
 
-const uid=()=>crypto.randomUUID(),txt=(v,n=500)=>String(v??'').trim().slice(0,n),cents=v=>Math.round(Number(v||0)*100);
+const uid=()=>crypto.randomUUID(),txt=(v,n=500)=>String(v??'').trim().slice(0,n),cents=v=>Math.round(Number(v||0)*100),bool=v=>v===true||v==='true'||v===1||v==='1';
 const STORES=['AMAZON','SHOPEE','MERCADO_LIVRE','SHEIN','ALIEXPRESS','MAGALU','CASAS_BAHIA','HOTMART','KABUM','AMERICANAS','NATURA','AVON'];
 const url=v=>{try{return new URL(v).protocol==='https:'}catch{return false}};
 const cash=v=>(Number(v||0)/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -83,7 +83,7 @@ export default async function(req,res){
     }else if(req.method==='POST'&&entity==='publication'){
       const offerId=txt(b.offerId,80),groupId=txt(b.groupId,80),found=(await db.query('SELECT message,image_url FROM offers WHERE id=$1 AND account_id=$2',[offerId,a.id])).rows[0],group=(await db.query('SELECT id,platform FROM promo_groups WHERE id=$1 AND account_id=$2',[groupId,a.id])).rows[0];
       if(!found||!group)return res.status(400).json({error:'Oferta ou grupo não pertence à sua conta.'});
-      await db.query('INSERT INTO publications(id,account_id,offer_id,group_id,status,scheduled_at,message,image_url,mode,priority,mention_all) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',[uid(),a.id,offerId,groupId,b.scheduledAt?'SCHEDULED':'READY',b.scheduledAt||null,txt(b.message,3000)||found.message,found.image_url,txt(b.mode,30)||'ON_DEMAND',b.priority==='FLASH'?100:0,b.mentionAll==='true']);
+      await db.query('INSERT INTO publications(id,account_id,offer_id,group_id,status,scheduled_at,message,image_url,mode,priority,mention_all) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',[uid(),a.id,offerId,groupId,b.scheduledAt?'SCHEDULED':'READY',b.scheduledAt||null,txt(b.message,3000)||found.message,found.image_url,txt(b.mode,30)||'ON_DEMAND',b.priority==='FLASH'?100:0,bool(b.mentionAll)]);
       if(group.platform==='TELEGRAM'&&!b.scheduledAt)await scheduler.now('/api/jobs/telegram');
     }else if(req.method==='POST'&&entity==='monitor'){
       const categoryId=txt(b.categoryId,80)||null;if(!(await categoryOk(categoryId,a.id)))return res.status(400).json({error:'Categoria inválida.'});
