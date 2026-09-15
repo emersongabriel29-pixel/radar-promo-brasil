@@ -83,7 +83,7 @@ async function publishMatches(accountId, requestedOfferId = '') {
       continue;
     }
 
-    const maxDaily = Math.max(1, Number(rule?.max_publications_per_day || 20));
+    const maxDaily = Math.max(1, Number(rule?.max_publications_per_day || 5));
     const todayCount = Number((await db.query(`SELECT COUNT(*)::int AS count FROM publications WHERE account_id=$1 AND created_at>=date_trunc('day',now())`, [accountId])).rows[0]?.count || 0);
     if (todayCount >= maxDaily) {
       results.push({ offer_id: item.offer.id, status: 'LIMIT', reason: `Limite diário de ${maxDaily} publicações atingido` });
@@ -142,6 +142,6 @@ export default async function handler(req, res) {
   const name = String(body.name || '').trim();
   if (!name) return res.status(400).json({ error: 'Nome da regra é obrigatório' });
   const id = crypto.randomUUID();
-  await db.query(`INSERT INTO autopilot_rules (id, account_id, name, category_id, min_score, min_discount, max_price, max_publications_per_day, cooldown_minutes, require_price_history, status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, [id, accountId, name, body.category_id || null, Number(body.min_score ?? 80), Number(body.min_discount ?? 10), body.max_price ? Number(body.max_price) : null, Number(body.max_publications_per_day ?? 20), Number(body.cooldown_minutes ?? 60), Boolean(body.require_price_history), body.status === 'ACTIVE' ? 'ACTIVE' : 'PAUSED']);
+  await db.query(`INSERT INTO autopilot_rules (id, account_id, name, category_id, min_score, min_discount, max_price, max_publications_per_day, cooldown_minutes, require_price_history, status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, [id, accountId, name, body.category_id || null, Number(body.min_score ?? 85), Number(body.min_discount ?? 15), body.max_price ? Number(body.max_price) : null, Number(body.max_publications_per_day ?? 5), Number(body.cooldown_minutes ?? 120), Boolean(body.require_price_history), body.status === 'ACTIVE' ? 'ACTIVE' : 'PAUSED']);
   return res.status(201).json({ id, message: 'Regra criada' });
 }
