@@ -53,6 +53,16 @@ function route(handler, allowedMethods) { return async (req, res) => { if (allow
 app.all('/api/data', route(dataHandler, dataMethods)); app.all('/api/suite', route(suiteHandler, suiteMethods)); app.all('/api/reports', route(reportsHandler, reportsMethods)); app.all('/api/ai/promo', route(promoHandler, promoMethods)); app.all('/api/ai/studio', route(studioHandler, studioMethods)); app.all('/api/ai/image', route(imageHandler, imageMethods)); app.all('/api/growth', route(growthHandler, growthMethods)); app.all('/api/email/test', route(emailTestHandler, emailTestMethods)); app.all('/api/automation/simulate', route(simulateHandler, simulateMethods)); app.all('/api/jobs/hourly', route(hourlyHandler, hourlyMethods)); app.all('/api/jobs/telegram', route(telegramJobHandler, telegramJobMethods)); app.all('/api/links/convert', route(convertHandler, convertMethods)); app.all('/api/mercadolivre/callback', route(mlCallbackHandler, mlCallbackMethods)); app.all('/api/mercadolivre/products', route(mlProductsHandler, mlProductsMethods)); app.all('/api/n8n/bridge', route(n8nBridgeHandler, n8nBridgeMethods)); app.all('/api/n8n/pairing', route(n8nPairingHandler, n8nPairingMethods)); app.all('/api/public/storefront', route(storefrontHandler, storefrontMethods)); app.all('/api/telegram/test', route(telegramTestHandler, telegramTestMethods));
 app.all('/api/radar/opportunities', route(radarOpportunitiesHandler, ['GET'])); app.all('/api/radar/autopilot', route(radarAutopilotHandler, ['GET', 'POST'])); app.all('/api/radar/price', route(radarPriceHandler, ['GET', 'POST'])); app.get('/api/r/:id', route(redirectHandler, redirectMethods));
 app.post('/api/upload', upload.any(), async (req, res, next) => { if (req.files && Array.isArray(req.files)) for (const f of req.files) if (!f.contentType) f.contentType = f.mimetype; try { await uploadHandler(req, res); } catch (err) { next(err); } });
+app.use((err, req, res, next) => {
+  const correlationId = crypto.randomUUID();
+  console.error(`[server] ${correlationId} ${req.method} ${req.path}:`, err);
+  if (res.headersSent) return next(err);
+  const status = Number.isInteger(err?.statusCode) ? err.statusCode : Number.isInteger(err?.status) ? err.status : 500;
+  return res.status(status >= 400 && status < 600 ? status : 500).json({
+    error: status === 500 ? 'Erro interno no servidor.' : (err?.message || 'Falha na requisição.'),
+    correlationId
+  });
+});
 app.get('/', route(indexPage, ['GET'])); app.get('/inicio', route(inicioPage, ['GET'])); app.get('/vitrine', route(vitrinePage, ['GET'])); app.get('/privacidade', route(privacidadePage, ['GET'])); app.get('/termos', route(termosPage, ['GET']));
 async function main() { if (isProduction && (!process.env.STANDALONE_AUTH_SECRET || !process.env.STANDALONE_USER_ID)) throw new Error('Produção standalone exige STANDALONE_AUTH_SECRET e STANDALONE_USER_ID.'); await getDb(); console.log('[db] Embedded database initialized and migrations applied.'); app.listen(PORT, HOST, () => console.log(`[server] Radar Promo Brasil running at http://${HOST}:${PORT}`)); }
 main().catch(err => { console.error('[server] Fatal initialization error:', err); process.exit(1); });
