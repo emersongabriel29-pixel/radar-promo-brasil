@@ -51,9 +51,11 @@ const scheduledTimers = new Set();
 export const scheduler = {
   async now(endpoint, { payload = {} } = {}) {
     const port = Number(process.env.PORT || 3000);
+    const headers = { 'content-type': 'application/json' };
+    if (process.env.STANDALONE_AUTH_SECRET) headers.authorization = `Bearer ${process.env.STANDALONE_AUTH_SECRET}`;
     return fetch(`http://127.0.0.1:${port}${endpoint}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers,
       body: JSON.stringify(payload)
     });
   },
