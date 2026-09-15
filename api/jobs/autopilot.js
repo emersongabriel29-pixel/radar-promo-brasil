@@ -39,7 +39,7 @@ export default async function(req,res){
       const rule=rules.find(r=>radar.score>=Number(r.min_score||0)&&discount>=Number(r.min_discount||0)&&(!r.max_price||Number(offer.current_price)<=Number(r.max_price))&&(!r.require_price_history||Number(offer.price_history_count||0)>=3)&&(!r.category_id||String(r.category_id)===String(offer.category_id)));
       if(!rule)continue;
       const today=Number((await db.query("SELECT COUNT(*)::int AS count FROM publications WHERE account_id=$1 AND created_at>=date_trunc('day',now())",[accountId])).rows[0]?.count||0);
-      if(today>=Math.max(1,Number(rule.max_publications_per_day||20)))break;
+      if(today>=Math.max(1,Number(rule.max_publications_per_day||5)))break;
       const groups=(await db.query("SELECT id,platform FROM (SELECT id,platform,category_id,row_number() OVER(PARTITION BY platform ORDER BY CASE WHEN category_id=$2 THEN 0 ELSE 1 END,id) AS position FROM promo_groups WHERE account_id=$1 AND status='ACTIVE' AND platform IN ('WHATSAPP','TELEGRAM') AND external_id IS NOT NULL AND (category_id=$2 OR category_id IS NULL)) destinations WHERE position=1",[accountId,offer.category_id])).rows;
       for(const group of groups){
         const key='radar:'+offer.id+':'+group.id+':'+new Date().toISOString().slice(0,10);
