@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { api,db,scheduler } from 'hatchable';
 import { clean,isRateLimit,isSetupRequired,mediaRatio,safePublicUrl } from 'lib/media.js';
 
