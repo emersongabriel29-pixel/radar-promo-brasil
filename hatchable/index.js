@@ -22,7 +22,7 @@ export async function getDb() {
         try {
           await instance.exec(sql);
         } catch (err) {
-          console.warn(`[hatchable db] Migration warning on ${file}:`, err.message);
+          throw new Error(`Migration ${file} failed: ${err.message}`, { cause: err });
         }
       }
     }
@@ -42,14 +42,33 @@ export const db = {
 
 export const config = {
   async get(key) {
-    return process.env[key] || '';
+    return process.env[key] || process.env[String(key).toUpperCase()] || '';
   }
 };
 
+const scheduledTimers = new Set();
+
 export const scheduler = {
-  async now(endpoint) {
+  async now(endpoint, { payload = {} } = {}) {
     const port = Number(process.env.PORT || 3000);
-    fetch(`http://127.0.0.1:${port}${endpoint}`, { method: 'POST' }).catch(() => {});
+    const headers = { 'content-type': 'application/json' };
+    if (process.env.STANDALONE_AUTH_SECRET) headers.authorization = `Bearer ${process.env.STANDALONE_AUTH_SECRET}`;
+    return fetch(`http://127.0.0.1:${port}${endpoint}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload)
+    });
+  },
+  async at(when, endpoint, options = {}) {
+    const target = new Date(when).getTime();
+    if (!Number.isFinite(target)) throw new Error('Invalid scheduler date');
+    const delay = Math.max(0, target - Date.now());
+    const timer = setTimeout(() => {
+      scheduledTimers.delete(timer);
+      this.now(endpoint, options).catch(() => {});
+    }, delay);
+    scheduledTimers.add(timer);
+    return { scheduled: true, delay };
   }
 };
 
@@ -116,7 +135,14 @@ export const ai = {
 export const storage = {
   async put(destPath, buffer, contentType) {
     const uploadsDir = path.resolve(process.cwd(), 'public', 'uploads');
-    const fullPath = path.join(uploadsDir, destPath);
+    const relativePath = String(destPath || '').replaceAll('\\', '/');
+    if (!relativePath || relativePath.includes('\0') || path.posix.isAbsolute(relativePath)) {
+      throw new Error('Invalid storage path');
+    }
+    const fullPath = path.resolve(uploadsDir, relativePath);
+    if (fullPath !== uploadsDir && !fullPath.startsWith(uploadsDir + path.sep)) {
+      throw new Error('Invalid storage path');
+    }
     fs.mkdirSync(path.dirname(fullPath), { recursive: true });
     fs.writeFileSync(fullPath, buffer);
     return `/uploads/${destPath}`;

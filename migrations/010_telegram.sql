@@ -1,5 +1,7 @@
 ALTER TABLE promo_groups ADD COLUMN IF NOT EXISTS platform TEXT NOT NULL DEFAULT 'WHATSAPP';
-ALTER TABLE promo_groups ADD CONSTRAINT chk_groups_platform CHECK(platform IN ('WHATSAPP','TELEGRAM')) NOT VALID;
+DO $migration$ BEGIN
+  ALTER TABLE promo_groups ADD CONSTRAINT chk_groups_platform CHECK(platform IN ('WHATSAPP','TELEGRAM')) NOT VALID;
+EXCEPTION WHEN duplicate_object THEN NULL; END $migration$;
 
 CREATE TABLE IF NOT EXISTS telegram_connections (
   id TEXT PRIMARY KEY,

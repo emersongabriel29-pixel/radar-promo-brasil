@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { storage } from "hatchable";
 export const access = "member";
 export const methods = ["POST"];
