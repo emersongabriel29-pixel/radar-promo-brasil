@@ -53,6 +53,10 @@ O sistema mantém conectores externos como pendentes até que a autorização se
 - A ponte n8n usa uma chave derivada e assinada diferente para cada conta.
 - Intervalos reduzem volume, mas não garantem ausência de restrições.
 
+## Diagnóstico de prontidão
+
+A rota autenticada `/api/readiness` mostra o que já está operacional e quais integrações ainda exigem configuração, sem expor tokens ou segredos. Ela separa o núcleo interno do produto das dependências externas.
+
 ## Testes
 
 Execute `npm test`. O GitHub Actions valida automaticamente regras determinísticas de oferta, HTTPS, categorias, preços, fingerprints, mídia, limites e URLs externas.
