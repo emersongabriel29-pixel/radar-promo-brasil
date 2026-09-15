@@ -39,7 +39,7 @@ const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const isProduction = process.env.NODE_ENV === 'production';
-app.use((req,res,next)=>{ applySecurityHeaders(res,{production:isProduction}); next(); });
+app.use((req,res,next)=>{ applySecurityHeaders(res,{production:isProduction,api:req.path.startsWith('/api')}); next(); });
 app.use(createRateLimiter({windowMs:60_000,max:180}));
 app.use(express.json({ limit: '10mb', verify: (req, res, buf) => { req.rawBody = buf.toString('utf8'); } }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
