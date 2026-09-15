@@ -62,8 +62,10 @@ test('rate limit bloqueia excesso e informa retry', () => {
 
 test('cabeçalhos de segurança são aplicados', () => {
   const response={headers:{},setHeader(k,v){this.headers[k]=v}};
-  applySecurityHeaders(response,{production:true});
+  applySecurityHeaders(response,{production:true,api:true});
   assert.equal(response.headers['X-Content-Type-Options'],'nosniff');
   assert.equal(response.headers['X-Frame-Options'],'SAMEORIGIN');
   assert.match(response.headers['Strict-Transport-Security'],/max-age=31536000/);
+  assert.match(response.headers['Content-Security-Policy'],/default-src 'self'/);
+  assert.equal(response.headers['Cache-Control'],'no-store');
 });
