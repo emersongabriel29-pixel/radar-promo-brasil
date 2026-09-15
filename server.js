@@ -42,6 +42,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
 app.use((req, res, next) => {
   if (!isProduction) { req.member = { id: process.env.STANDALONE_DEV_USER_ID || 'admin_user', email: process.env.STANDALONE_DEV_EMAIL || 'admin@radar-promo.local', display_name: process.env.STANDALONE_DEV_USER_NAME || 'Radar Admin', handle: process.env.STANDALONE_DEV_USER_HANDLE || 'admin' }; return next(); }
+  if (req.path === '/api/n8n/bridge') return next();
   const secret = process.env.STANDALONE_AUTH_SECRET, userId = process.env.STANDALONE_USER_ID;
   if (!secret || !userId) return res.status(503).json({ error: 'Autenticação standalone não configurada.' });
   if (String(req.headers.authorization || '') !== `Bearer ${secret}`) return res.status(401).json({ error: 'Não autorizado.' });
