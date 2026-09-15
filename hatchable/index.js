@@ -46,10 +46,27 @@ export const config = {
   }
 };
 
+const scheduledTimers = new Set();
+
 export const scheduler = {
-  async now(endpoint) {
+  async now(endpoint, { payload = {} } = {}) {
     const port = Number(process.env.PORT || 3000);
-    fetch(`http://127.0.0.1:${port}${endpoint}`, { method: 'POST' }).catch(() => {});
+    return fetch(`http://127.0.0.1:${port}${endpoint}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  },
+  async at(when, endpoint, options = {}) {
+    const target = new Date(when).getTime();
+    if (!Number.isFinite(target)) throw new Error('Invalid scheduler date');
+    const delay = Math.max(0, target - Date.now());
+    const timer = setTimeout(() => {
+      scheduledTimers.delete(timer);
+      this.now(endpoint, options).catch(() => {});
+    }, delay);
+    scheduledTimers.add(timer);
+    return { scheduled: true, delay };
   }
 };
 
