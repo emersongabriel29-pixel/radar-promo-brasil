@@ -86,18 +86,18 @@ CREATE INDEX IF NOT EXISTS idx_schedules_account_status ON schedules(account_id,
 CREATE INDEX IF NOT EXISTS idx_leads_account_time ON lead_events(account_id,occurred_at DESC);
 CREATE INDEX IF NOT EXISTS idx_activity_account_time ON activity_log(account_id,created_at DESC);
 
-DO $ BEGIN
+DO $migration$ BEGIN
   ALTER TABLE offers ADD CONSTRAINT chk_offers_current_price CHECK(current_price > 0) NOT VALID;
-EXCEPTION WHEN duplicate_object THEN NULL; END $;
-DO $ BEGIN
+EXCEPTION WHEN duplicate_object THEN NULL; END $migration$;
+DO $migration$ BEGIN
   ALTER TABLE offers ADD CONSTRAINT chk_offers_original_price CHECK(original_price IS NULL OR original_price >= 0) NOT VALID;
-EXCEPTION WHEN duplicate_object THEN NULL; END $;
-DO $ BEGIN
+EXCEPTION WHEN duplicate_object THEN NULL; END $migration$;
+DO $migration$ BEGIN
   ALTER TABLE offers ADD CONSTRAINT chk_offers_discount CHECK(discount_percent BETWEEN 0 AND 100) NOT VALID;
-EXCEPTION WHEN duplicate_object THEN NULL; END $;
-DO $ BEGIN
+EXCEPTION WHEN duplicate_object THEN NULL; END $migration$;
+DO $migration$ BEGIN
   ALTER TABLE queues ADD CONSTRAINT chk_queues_interval CHECK(interval_minutes BETWEEN 1 AND 30) NOT VALID;
-EXCEPTION WHEN duplicate_object THEN NULL; END $;
-DO $ BEGIN
+EXCEPTION WHEN duplicate_object THEN NULL; END $migration$;
+DO $migration$ BEGIN
   ALTER TABLE publications ADD CONSTRAINT chk_publications_priority CHECK(priority BETWEEN 0 AND 100) NOT VALID;
-EXCEPTION WHEN duplicate_object THEN NULL; END $;
+EXCEPTION WHEN duplicate_object THEN NULL; END $migration$;
