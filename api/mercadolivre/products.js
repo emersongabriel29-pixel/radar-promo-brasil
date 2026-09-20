@@ -1,22 +1,4 @@
-import { api } from "hatchable";
-
-export const access = "admin";
-export const methods = ["GET"];
-
-export default async function(req,res){
-  if (!req.member) return res.status(401).json({error:"Não autorizado."});
-  const q=String(req.query.q||"").trim().slice(0,120);
-  if(!q)return res.status(400).json({error:"Informe o produto que deseja buscar."});
-  try{
-    const response=await api.mercadolivre.get("/sites/MLB/search",{query:{q,limit:20}});
-    if(response.status<200||response.status>=300)return res.status(response.status).json({error:"O Mercado Livre não concluiu a consulta.",details:response.body});
-    const results=(response.body?.results||[]).map(item=>({
-      id:item.id,title:item.title,price:item.price,availableQuantity:item.available_quantity,
-      imageUrl:item.thumbnail?.replace("http://","https://")||"",productUrl:item.permalink||"",condition:item.condition||""
-    }));
-    return res.json({results});
-  }catch(e){
-    if(e?.code==="SetupRequired"||String(e?.message||"").includes("not connected")||String(e?.message||"").includes("412"))return res.status(412).json({error:"Conecte o Mercado Livre em Settings → APIs no Hatchable.",api:"mercadolivre"});
-    return res.status(500).json({error:e?.message||"Falha ao consultar o Mercado Livre."});
-  }
-}
+import { db } from 'hatchable';
+import { meliGet } from 'lib/direct-connectors.js';
+export const access='admin'; export const methods=['GET'];
+export default async function(req,res){const q=String(req.query.q||'').trim().slice(0,120);if(!q)return res.status(400).json({error:'Informe o produto que deseja buscar.'});const a=(await db.query('SELECT id FROM accounts WHERE owner_member_id=$1',[String(req.member.id)])).rows[0];if(!a)return res.status(412).json({error:'Conta não encontrada.'});try{const r=await meliGet(a.id,'/sites/MLB/search',{q,limit:20});if(r.status<200||r.status>=300)return res.status(502).json({error:'O Mercado Livre não concluiu a consulta.'});return res.json({results:(r.body?.results||[]).map(x=>({id:x.id,title:x.title,price:x.price,availableQuantity:x.available_quantity,imageUrl:x.thumbnail?.replace('http://','https://')||'',productUrl:x.permalink||'',condition:x.condition||''}))})}catch(e){if(e.code==='MELI_NOT_CONNECTED')return res.status(412).json({error:'Conecte o Mercado Livre pelo botão de conexão direta.',connectPath:'/api/mercadolivre/connect'});return res.status(502).json({error:'Falha ao consultar o Mercado Livre.'})}}
