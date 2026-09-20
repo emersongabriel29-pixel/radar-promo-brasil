@@ -29,7 +29,7 @@ async function starter(accountId){
   if((await db.query('SELECT id FROM categories WHERE account_id=$1 LIMIT 1',[accountId])).rows.length)return;
   const defs=[['Ofertas gerais','🔥','#ff6a2a'],['Tecnologia','📱','#1967d2'],['Casa e cozinha','🏠','#0a8f66'],['Bebês e crianças','🧸','#d84f88'],['Moda e beleza','✨','#7c3aed'],['Pet','🐾','#c77a00'],['Produtos importados','🌍','#2563eb']],ids={};
   for(const c of defs){const id=uid();ids[c[0]]=id;await db.query('INSERT INTO categories(id,account_id,name,icon,color) VALUES($1,$2,$3,$4,$5)',[id,accountId,...c])}
-  for(const g of [['Achadinhos do Dia','Ofertas gerais'],['Tecnologia e Games','Tecnologia'],['Casa e Eletrodomésticos','Casa e cozinha'],['Ofertas para Bebês','Bebês e crianças'],['Produtos Importados','Produtos importados']])await db.query('INSERT INTO promo_groups(id,account_id,name,category_id) VALUES($1,$2,$3,$4)',[uid(),accountId,g[0],ids[g[1]]]);
+  for(const g of [['Achadinhos do Dia','Ofertas gerais'],['Tecnologia e Games','Tecnologia'],['Casa e Eletrodomésticos','Casa e cozinha'],['Ofertas para Bebês','Bebês e crianças'],['Produtos Importados','Produtos importados']])await db.query("INSERT INTO promo_groups(id,account_id,name,category_id,status) VALUES($1,$2,$3,$4,'PAUSED')",[uid(),accountId,g[0],ids[g[1]]]);
 }
 
 async function belongs(table,id,accountId){return Boolean((await db.query('SELECT id FROM '+table+' WHERE id=$1 AND account_id=$2',[id,accountId])).rows.length)}
@@ -69,7 +69,8 @@ export default async function(req,res){
       const categoryId=txt(b.categoryId,80)||null;if(!(await categoryOk(categoryId,a.id)))return res.status(400).json({error:'Categoria inválida.'});
       const invite=txt(b.inviteUrl,600);if(invite&&!url(invite))return res.status(400).json({error:'Use um link HTTPS válido.'});
       const platform=txt(b.platform,20)||'WHATSAPP';if(!['WHATSAPP','TELEGRAM'].includes(platform))return res.status(400).json({error:'Plataforma de grupo inválida.'});
-      await db.query('INSERT INTO promo_groups(id,account_id,name,platform,category_id,invite_url,members,capacity,external_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',[uid(),a.id,txt(b.name,100),platform,categoryId,invite,Math.max(0,Number(b.members)||0),Math.max(1,Number(b.capacity)||1024),txt(b.externalId,200)||null]);
+      const externalId=txt(b.externalId,200)||null;
+      await db.query('INSERT INTO promo_groups(id,account_id,name,platform,category_id,invite_url,members,capacity,external_id,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[uid(),a.id,txt(b.name,100),platform,categoryId,invite,Math.max(0,Number(b.members)||0),Math.max(1,Number(b.capacity)||1024),externalId,externalId?'ACTIVE':'PAUSED']);
     }else if(req.method==='POST'&&entity==='offer'){
       const categoryId=txt(b.categoryId,80)||null;if(!(await categoryOk(categoryId,a.id)))return res.status(400).json({error:'Categoria inválida.'});
       const title=txt(b.title,220),affiliate=txt(b.affiliateUrl,1200),image=txt(b.imageUrl,1200),product=txt(b.productUrl,1200),coupon=txt(b.couponUrl,1200),couponCode=txt(b.couponCode,100),current=cents(b.currentPrice),original=b.originalPrice?cents(b.originalPrice):null;
@@ -80,8 +81,9 @@ export default async function(req,res){
       const created=await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'PENDING',$15,$16,'APPROVED','MANUAL') ON CONFLICT DO NOTHING RETURNING id",[uid(),a.id,title,source,original,current,categoryId,affiliate,image,product||null,coupon||null,couponCode||null,percent(current,original),score(title,current,original),txt(b.message,3000)||automatic,fp]);
       if(!created.rows.length)return res.status(409).json({error:'Esta oferta já está cadastrada.'});
     }else if(req.method==='POST'&&entity==='publication'){
-      const offerId=txt(b.offerId,80),groupId=txt(b.groupId,80),found=(await db.query('SELECT message,image_url FROM offers WHERE id=$1 AND account_id=$2',[offerId,a.id])).rows[0],group=(await db.query('SELECT id,platform FROM promo_groups WHERE id=$1 AND account_id=$2',[groupId,a.id])).rows[0];
+      const offerId=txt(b.offerId,80),groupId=txt(b.groupId,80),found=(await db.query('SELECT message,image_url FROM offers WHERE id=$1 AND account_id=$2',[offerId,a.id])).rows[0],group=(await db.query('SELECT id,platform,external_id,status FROM promo_groups WHERE id=$1 AND account_id=$2',[groupId,a.id])).rows[0];
       if(!found||!group)return res.status(400).json({error:'Oferta ou grupo não pertence à sua conta.'});
+      if(group.status!=='ACTIVE'||!String(group.external_id||'').trim())return res.status(412).json({error:'Ative um destino com ID oficial antes de preparar o envio.'});
       await db.query('INSERT INTO publications(id,account_id,offer_id,group_id,status,scheduled_at,message,image_url,mode,priority,mention_all) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',[uid(),a.id,offerId,groupId,b.scheduledAt?'SCHEDULED':'READY',b.scheduledAt||null,txt(b.message,3000)||found.message,found.image_url,txt(b.mode,30)||'ON_DEMAND',b.priority==='FLASH'?100:0,b.mentionAll==='true']);
       if(group.platform==='TELEGRAM'&&!b.scheduledAt)await scheduler.now('/api/jobs/telegram');
     }else if(req.method==='POST'&&entity==='monitor'){
@@ -92,10 +94,23 @@ export default async function(req,res){
       await db.query('INSERT INTO queues(id,account_id,name,category_id,start_time,end_time,interval_minutes,priority_mode,mention_all,link_preview,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',[uid(),a.id,txt(b.name,120),categoryId,txt(b.startTime,5)||'08:00',txt(b.endTime,5)||'22:00',Math.max(1,Math.min(30,Number(b.intervalMinutes)||10)),txt(b.priorityMode,30)||'NEWEST_FIRST',b.mentionAll==='true',b.linkPreview!=='false','ACTIVE']);
     }else if(req.method==='POST'&&entity==='schedule'){
       const groupId=txt(b.groupId,80)||null;if(groupId&&!(await belongs('promo_groups',groupId,a.id)))return res.status(400).json({error:'Grupo inválido.'});
-      await db.query('INSERT INTO schedules(id,account_id,name,message,group_id,recurrence,send_time,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[uid(),a.id,txt(b.name,120),txt(b.message,2500),groupId,txt(b.recurrence,30)||'DAILY',txt(b.sendTime,5)||'09:00','ACTIVE']);
+      await db.query('INSERT INTO schedules(id,account_id,name,message,group_id,recurrence,send_time,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[uid(),a.id,txt(b.name,120),txt(b.message,2500),groupId,txt(b.recurrence,30)||'DAILY',txt(b.sendTime,5)||'09:00','PAUSED']);
+    }else if(req.method==='PUT'&&entity==='groupConfig'){
+      const item=txt(b.id,100),categoryId=txt(b.categoryId,80)||null,platform=txt(b.platform,20)||'WHATSAPP',externalId=txt(b.externalId,200)||null,invite=txt(b.inviteUrl,600);
+      if(!(await categoryOk(categoryId,a.id)))return res.status(400).json({error:'Categoria inválida.'});
+      if(!['WHATSAPP','TELEGRAM'].includes(platform))return res.status(400).json({error:'Plataforma de grupo inválida.'});
+      if(invite&&!url(invite))return res.status(400).json({error:'Use um link HTTPS válido.'});
+      const changed=await db.query("UPDATE promo_groups SET name=$1,platform=$2,category_id=$3,invite_url=$4,members=$5,capacity=$6,external_id=$7,status=CASE WHEN $7 IS NULL THEN 'PAUSED' ELSE status END WHERE id=$8 AND account_id=$9 RETURNING id",[txt(b.name,100),platform,categoryId,invite,Math.max(0,Number(b.members)||0),Math.max(1,Number(b.capacity)||1024),externalId,item,a.id]);
+      if(!changed.rows.length)return res.status(404).json({error:'Destino não encontrado.'});
     }else if(req.method==='PUT'){
       const item=txt(b.id,100),status=txt(b.status,20),table={offer:'offers',group:'promo_groups',publication:'publications',monitor:'monitors',queue:'queues',schedule:'schedules'}[entity];
       if(!table||!allowed[entity]?.includes(status))return res.status(400).json({error:'Status ou ação inválida.'});
+      if(entity==='monitor'&&status==='ACTIVE')return res.status(412).json({error:'A captura automática exige um conector oficial da origem. O cadastro pode ser mantido pausado.'});
+      if(entity==='group'&&status==='ACTIVE'){
+        const destination=(await db.query('SELECT external_id FROM promo_groups WHERE id=$1 AND account_id=$2',[item,a.id])).rows[0];
+        if(!destination)return res.status(404).json({error:'Destino não encontrado.'});
+        if(!String(destination.external_id||'').trim())return res.status(412).json({error:'Informe o ID oficial antes de ativar este destino.'});
+      }
       const changed=await db.query('UPDATE '+table+' SET status=$1 WHERE id=$2 AND account_id=$3 RETURNING id',[status,item,a.id]);
       if(!changed.rows.length)return res.status(404).json({error:'Registro não encontrado.'});
       if(entity==='publication'&&status==='PUBLISHED')await db.query('UPDATE publications SET published_at=now() WHERE id=$1 AND account_id=$2',[item,a.id]);
