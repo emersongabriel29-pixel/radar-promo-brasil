@@ -1,29 +1,32 @@
 [[api]]
 name = "mercadolivre"
-auth = "oauth2"
+auth = "none"
 base_url = "https://api.mercadolibre.com"
-authorize_url = "https://auth.mercadolivre.com.br/authorization"
-token_url = "https://api.mercadolibre.com/oauth/token"
-scopes = []
-encoding = "form"
-description = "Organizar promoções e links oficiais de afiliado da Amazon, Shopee e Mercado Livre."
-required = true
-
-[[api]]
-name = "runway"
-auth = "api_key"
-base_url = "https://api.dev.runwayml.com"
-key_header = "Authorization"
-key_prefix = "Bearer "
-description = "Geração real de imagens e vídeos publicitários com fila, acompanhamento e armazenamento seguro."
-required = false
-
-[api.headers]
-X-Runway-Version = "2024-11-06"
+description = "Mercado Livre via conector direto do Radar Promo Brasil."
 
 [ai]
 required = true
 description = "Categorizar produtos e criar mensagens de promoções sem inventar preço, estoque ou frete."
+
+[[secret]]
+name = "MELI_APP_ID"
+required = true
+description = "ID da aplicação do Mercado Livre."
+
+[[secret]]
+name = "MELI_CLIENT_SECRET"
+required = true
+description = "Segredo da aplicação do Mercado Livre."
+
+[[secret]]
+name = "CONNECTOR_ENCRYPTION_KEY"
+required = true
+description = "Chave com pelo menos 32 caracteres para proteger tokens OAuth no banco."
+
+[[secret]]
+name = "RUNWAY_API_KEY"
+required = false
+description = "Chave da API do Runway usada pelo conector direto."
 
 [[secret]]
 name = "N8N_WEBHOOK_SECRET"
@@ -65,6 +68,12 @@ name = "public_app_url"
 required = false
 default = "https://radar-promo-brasil.hatchable.site"
 description = "Endereço público usado nos links enviados pelo Telegram."
+
+[[config]]
+name = "meli_redirect_uri"
+required = false
+default = "https://radar-promo-brasil.hatchable.site/api/mercadolivre/callback"
+description = "Callback OAuth direto do Mercado Livre."
 
 [[cron]]
 path = "/api/jobs/hourly"
