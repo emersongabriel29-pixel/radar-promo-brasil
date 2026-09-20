@@ -1,4 +1,5 @@
-import { api,db,scheduler,storage } from 'hatchable';
+import { db,scheduler,storage } from 'hatchable';
+import { runwayCall } from 'lib/direct-connectors.js';
 import { clean,isRateLimit,isSetupRequired,safePublicUrl } from 'lib/media.js';
 
 export const access='scheduler';
@@ -20,7 +21,7 @@ export default async function(req,res){
   const id=clean(req.body?.jobId,100),job=(await db.query("SELECT * FROM media_generation_jobs WHERE id=$1 AND status='PROCESSING'",[id])).rows[0];
   if(!job)return res.json({ok:true,skipped:true});
   try{
-    const response=await api.runway.get('/v1/tasks/'+encodeURIComponent(job.external_task_id));
+    const response=await runwayCall('GET','/v1/tasks/'+encodeURIComponent(job.external_task_id));
     if(response.status===429){await retry(job,180,'Runway 429');return res.status(202).json({ok:true,retry:true})}
     if(response.status<200||response.status>=300)throw new Error('Runway task HTTP '+response.status);
     const task=response.body||{},status=String(task.status||'').toUpperCase();
