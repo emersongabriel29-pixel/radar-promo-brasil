@@ -1,4 +1,5 @@
-import { ai,api,browser,db,scheduler,storage } from 'hatchable';
+import { ai,browser,db,scheduler,storage } from 'hatchable';
+import { runwayCall } from 'lib/direct-connectors.js';
 import { clean,isRateLimit,isSetupRequired,mediaRatio } from 'lib/media.js';
 
 export const access='member';
@@ -28,7 +29,7 @@ async function brandedFallback({accountId,title,prompt,style,ratio,channel,error
 
 async function startRunway({accountId,title,prompt,style,ratio,reason}){
   const runwayRatio=ratio==='9:16'?'1080:1920':ratio==='16:9'||ratio==='21:9'?'1920:1080':'1024:1024';
-  const response=await api.runway.post('/v1/text_to_image',{body:{model:'gen4_image',ratio:runwayRatio,promptText:prompt}});
+  const response=await runwayCall('POST','/v1/text_to_image',{model:'gen4_image',ratio:runwayRatio,promptText:prompt});
   if(response.status<200||response.status>=300||!response.body?.id)throw Object.assign(new Error('Runway recusou a geração: '+response.status),{status:response.status});
   const id=uid();
   await db.query("INSERT INTO media_generation_jobs(id,account_id,kind,title,prompt,style,ratio,provider,external_task_id,status,last_error) VALUES($1,$2,'IMAGE',$3,$4,$5,$6,'RUNWAY',$7,'PROCESSING',$8)",[id,accountId,title,prompt,style,ratio,String(response.body.id),clean(reason,500)]);
