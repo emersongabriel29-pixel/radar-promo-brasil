@@ -1,4 +1,5 @@
-import { api,db,scheduler } from 'hatchable';
+import { db,scheduler } from 'hatchable';
+import { runwayCall } from 'lib/direct-connectors.js';
 import { clean,isRateLimit,isSetupRequired,mediaRatio,safePublicUrl } from 'lib/media.js';
 
 export const access='member';
@@ -22,7 +23,7 @@ export default async function(req,res){
   if(!title||!prompt)return res.status(400).json({error:'Informe o título e a descrição visual do vídeo.'});
   try{
     const body={model:'gen4.5',promptText:prompt,ratio,duration};if(imageUrl)body.promptImage=imageUrl;
-    const response=await api.runway.post('/v1/image_to_video',{body});
+    const response=await runwayCall('POST','/v1/image_to_video',body);
     if(response.status<200||response.status>=300||!response.body?.id){
       if(response.status===429)throw Object.assign(new Error('Limite temporário do provedor de vídeo.'),{status:429});
       throw new Error('O provedor de vídeo recusou a tarefa.');
