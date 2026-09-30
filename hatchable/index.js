@@ -92,6 +92,7 @@ export const email = {
 
 export const ai = {
   async generateText({ model = 'gemini', maxTokens = 120, system, prompt, signal }) {
+    if(!String(model).startsWith('gemini'))throw Object.assign(new Error('Requested standalone text provider not configured'),{code:'SETUP_REQUIRED'});
     const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (!apiKey) {
       throw Object.assign(new Error('GEMINI_API_KEY is not configured'), { code: 'SETUP_REQUIRED' });

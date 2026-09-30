@@ -59,6 +59,8 @@ O ambiente de teste usa banco em memória e não envia promoções, e-mails ou m
 - SDK publicado: `scheduler.now`, `scheduler.at` e formato de retorno de `db.transaction` confirmados em execução de leitura.
 - Baseline publicado: quatro crons ativos; 168 execuções por cron nos sete dias observados, sem 5xx registrado. Ausência de erro não prova envio ou comissão.
 
+A CI do GitHub também executou todos os checks com sucesso no commit `ebe877d1eabb18c5064bc139b2b8f82e99a6b944` (run 36790998249). A comparação com a versão 60 preservou melhorias que existiam apenas na hospedagem: catálogo ampliado de lojas, teste de promoção com foto no Telegram, marketplaces pendentes após edição e relatório sem falso status de conformidade quando não há dados. Snapshot dos 30 arquivos substituídos em `docs/rollback/hatchable-v60.json`.
+
 Evidências posteriores à implantação são registradas no final deste documento e em `RELEASE.md`.
 
 ## Recursos que ainda exigem configuração/homologação

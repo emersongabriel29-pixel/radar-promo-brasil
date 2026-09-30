@@ -45,7 +45,7 @@ test('criação concorrente mantém uma conta e sete categorias sem recriar excl
 });
 test('valores inválidos e URLs internas são rejeitados antes do banco',async()=>{
  assert.equal(moneyCents('R$ 1.299,90'),129990);assert.ok(Number.isNaN(moneyCents('abc')));assert.ok(Number.isNaN(moneyCents('1e100')));
- for(const url of ['https://127.0.0.1/a','https://user:pass@example.com','http://example.com','https://service.internal'])assert.equal(httpsUrl(url),'');
+ for(const url of ['https://127.0.0.1/a','https://user:pass@example.com','http://example.com','https://service.internal','https://localhost.','https://service.internal.'])assert.equal(httpsUrl(url),'');
  assert.equal(mediaUrl('/uploads/products/user/test.png'),'/uploads/products/user/test.png');assert.equal(mediaUrl('/uploads/products/../media/test.png'),'');
  const response=await invoke(dataHandler,{entity:'offer',title:'Teste',currentPrice:'abc',affiliateUrl:'https://example.com',imageUrl:'https://example.com/a.png'});assert.equal(response.status,400);
 });

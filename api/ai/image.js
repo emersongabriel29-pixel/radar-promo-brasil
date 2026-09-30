@@ -21,7 +21,7 @@ async function brandedFallback({accountId,title,prompt,style,ratio,channel,error
     const url='/api/ai/media/file/'+id;
     await db.query("UPDATE media_generation_jobs SET status='FALLBACK_COMPLETED',storage_key=$1,output_url=$2,render_token='',updated_at=now() WHERE id=$3",[key,url,id]);
     const assetId=await saveAsset(accountId,channel,'branded-card-fallback',url);
-    return {ok:true,id:assetId,jobId:id,url,mimeType:'image/png',ratio,model:'branded-card-fallback',fallback:true,notice:'O provedor generativo estava ocupado; o sistema criou automaticamente uma arte promocional segura para não interromper seu trabalho.'};
+    return {ok:true,id:assetId,jobId:id,url,mimeType:'image/png',ratio,model:'branded-card-fallback',fallback:true,notice:'O sistema criou um cartão promocional. O provedor de imagem exige configuração ou está temporariamente indisponível.'};
   }catch(renderError){
     await db.query("UPDATE media_generation_jobs SET status='FAILED',last_error=$1,render_token='',updated_at=now() WHERE id=$2",[clean(renderError?.message,500),id]);
     throw renderError;
