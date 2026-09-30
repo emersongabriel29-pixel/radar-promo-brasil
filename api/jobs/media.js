@@ -1,6 +1,6 @@
 import { db,scheduler,storage } from 'hatchable';
 import { runwayCall } from 'lib/direct-connectors.js';
-import { clean,isRateLimit,isSetupRequired,safePublicUrl } from 'lib/media.js';
+import { clean,isRateLimit,isSetupRequired,safePublicUrl,downloadMedia } from 'lib/media.js';
 
 export const access='scheduler';
 export const methods=['POST'];
@@ -34,9 +34,8 @@ export default async function(req,res){
     }
     const source=safePublicUrl(Array.isArray(task.output)?task.output[0]:task.output);
     if(!source)throw new Error('O provedor concluiu sem URL de saída.');
-    const downloaded=await fetch(source,{signal:AbortSignal.timeout(60000)});if(!downloaded.ok)throw new Error('Falha ao armazenar a mídia concluída.');
-    const type=downloaded.headers.get('content-type')||(job.kind==='VIDEO'?'video/mp4':'image/png'),ext=job.kind==='VIDEO'?'mp4':type.includes('jpeg')?'jpg':type.includes('webp')?'webp':'png',key='media/'+job.account_id+'/'+job.id+'.'+ext;
-    await storage.put(key,new Uint8Array(await downloaded.arrayBuffer()),type);const url='/api/ai/media/file/'+job.id;
+    const downloaded=await downloadMedia(source),type=downloaded.type,ext=job.kind==='VIDEO'?'mp4':type.includes('jpeg')?'jpg':type.includes('webp')?'webp':'png',key='media/'+job.account_id+'/'+job.id+'.'+ext;
+    await storage.put(key,downloaded.data,type);const url='/api/ai/media/file/'+job.id;
     await db.query("UPDATE media_generation_jobs SET status='COMPLETED',storage_key=$1,output_url=$2,last_error='',updated_at=now() WHERE id=$3",[key,url,job.id]);
     await db.query('INSERT INTO content_assets(id,account_id,kind,channel,provider_model,asset_url,status) VALUES($1,$2,$3,$4,$5,$6,$7)',[uid(),job.account_id,job.kind,job.kind==='VIDEO'?'REELS':'INSTAGRAM','runway-gen4.5',url,'DRAFT']);
     return res.json({ok:true,status:'COMPLETED',url});

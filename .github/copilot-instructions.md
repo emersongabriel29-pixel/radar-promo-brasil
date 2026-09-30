@@ -1,0 +1,1 @@
+Antes de editar a interface do Radar Promo Brasil, leia `.codex/skills/ui-ux-pro-max/SKILL.md` e `design-system/radar-promo-brasil/MASTER.md`. Use a pesquisa local da skill, preserve a marca azul e as sete áreas de navegação, e verifique teclado, contraste, telas móveis e movimento reduzido. As instruções de segurança, dados e testes do projeto estão em `AGENTS.md`.
