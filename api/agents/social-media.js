@@ -1,4 +1,5 @@
 import { ai, db } from 'hatchable';
+import {safeCreative} from 'lib/creative.js';
 
 export const access='member';
 export const methods=['GET','POST'];
@@ -34,7 +35,7 @@ export default async function(req,res){
   try{
     const result=await ai.generateText({purpose:'social-media-specialist',model:'gemini',userId:String(req.member.id),maxTokens:5000,system:'Você é Radar Social, estrategista sênior de Instagram, Facebook, design de performance e tráfego pago para afiliados. Seja específico, ético e orientado a conversão. Não invente preço, desconto, cupom, estoque, frete, avaliações ou resultados. Não diga que publicou ou ativou campanhas. Respeite LGPD, políticas da Meta e transparência de link afiliado.',prompt,signal:AbortSignal.timeout(60000)});
     if(result.finishReason==='length')throw new Error('length');
-    content=clean(result.text,10000);model=clean(result.model,80)||'gemini';
+    content=safeCreative(result.text,10000);if(!content)throw new Error('Unsupported factual claims');model=clean(result.model,80)||'gemini';
   }catch(e){content=fallback(task,topic,goal,channel);notice='O plano foi concluído pelo modo automático seguro.'}
   if(facts)content+='\n\nDADOS CONFIRMADOS\n'+facts+'\nAviso: link de afiliado; condições podem mudar.';
   const saved=(await db.query('INSERT INTO content_assets(id,account_id,kind,channel,provider_model,content,status) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id,created_at AS "createdAt"',[uid(),a.id,'SOCIAL_AGENT',channel,model,content,'DRAFT'])).rows[0];

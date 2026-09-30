@@ -8,3 +8,9 @@ data/
 coverage/
 dist/
 .next/
+playwright-report/
+test-results/
+public/uploads/
+.codex/skills/**/__pycache__/
+!.codex/skills/ui-ux-pro-max/data/
+!.codex/skills/ui-ux-pro-max/data/**

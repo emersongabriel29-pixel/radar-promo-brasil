@@ -1,62 +1,94 @@
 import express from 'express';
 import multer from 'multer';
-import path from 'node:path';
 import fs from 'node:fs';
+import path from 'node:path';
 import crypto from 'node:crypto';
-import { getDb } from 'hatchable';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { getDb, startScheduler, stopScheduler } from './hatchable/index.js';
 import { applySecurityHeaders, createRateLimiter } from './lib/security.js';
-import dataHandler, { methods as dataMethods } from './api/data.js';
-import suiteHandler, { methods as suiteMethods } from './api/suite.js';
-import reportsHandler, { methods as reportsMethods } from './api/reports.js';
-import readinessHandler, { methods as readinessMethods } from './api/readiness.js';
-import promoHandler, { methods as promoMethods } from './api/ai/promo.js';
-import studioHandler, { methods as studioMethods } from './api/ai/studio.js';
-import imageHandler, { methods as imageMethods } from './api/ai/image.js';
-import growthHandler, { methods as growthMethods } from './api/growth.js';
-import emailTestHandler, { methods as emailTestMethods } from './api/email/test.js';
-import simulateHandler, { methods as simulateMethods } from './api/automation/simulate.js';
-import hourlyHandler, { methods as hourlyMethods } from './api/jobs/hourly.js';
-import telegramJobHandler, { methods as telegramJobMethods } from './api/jobs/telegram.js';
-import convertHandler, { methods as convertMethods } from './api/links/convert.js';
-import mlCallbackHandler, { methods as mlCallbackMethods } from './api/mercadolivre/callback.js';
-import mlProductsHandler, { methods as mlProductsMethods } from './api/mercadolivre/products.js';
-import n8nBridgeHandler, { methods as n8nBridgeMethods } from './api/n8n/bridge.js';
-import n8nPairingHandler, { methods as n8nPairingMethods } from './api/n8n/pairing.js';
-import storefrontHandler, { methods as storefrontMethods } from './api/public/storefront.js';
-import redirectHandler, { methods as redirectMethods } from './api/r/[id].js';
-import telegramTestHandler, { methods as telegramTestMethods } from './api/telegram/test.js';
-import uploadHandler, { methods as uploadMethods } from './api/upload.js';
-import radarOpportunitiesHandler from './api/radar/opportunities.js';
-import radarAutopilotHandler from './api/radar/autopilot.js';
-import radarPriceHandler from './api/radar/price.js';
-import indexPage from './pages/index.js';
-import inicioPage from './pages/inicio.js';
-import vitrinePage from './pages/vitrine.js';
-import privacidadePage from './pages/privacidade.js';
-import termosPage from './pages/termos.js';
+import { authenticate, login, logout, loginPage, validateAuthConfiguration, constantEqual } from './server/standalone-auth.js';
 
-const app = express();
-const PORT = Number(process.env.PORT || 3000);
-const HOST = process.env.HOST || '0.0.0.0';
+const root = path.dirname(fileURLToPath(import.meta.url));
 const isProduction = process.env.NODE_ENV === 'production';
-app.use((req,res,next)=>{ applySecurityHeaders(res,{production:isProduction,api:req.path.startsWith('/api')}); next(); });
-app.use(createRateLimiter({windowMs:60_000,max:180}));
-app.use(express.json({ limit: '10mb', verify: (req, res, buf) => { req.rawBody = buf.toString('utf8'); } }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
-app.use((req, res, next) => {
-  if (!isProduction) { req.member = { id: process.env.STANDALONE_DEV_USER_ID || 'admin_user', email: process.env.STANDALONE_DEV_EMAIL || 'admin@radar-promo.local', display_name: process.env.STANDALONE_DEV_USER_NAME || 'Radar Admin', handle: process.env.STANDALONE_DEV_USER_HANDLE || 'admin' }; return next(); }
-  const secret = process.env.STANDALONE_AUTH_SECRET, userId = process.env.STANDALONE_USER_ID;
-  if (!secret || !userId) return res.status(503).json({ error: 'Autenticação standalone não configurada.' });
-  if (String(req.headers.authorization || '') !== `Bearer ${secret}`) return res.status(401).json({ error: 'Não autorizado.' });
-  req.member = { id: userId, email: process.env.STANDALONE_USER_EMAIL || '', display_name: process.env.STANDALONE_USER_NAME || 'Radar Admin', handle: process.env.STANDALONE_USER_HANDLE || 'admin' }; next();
-});
-const publicDir = path.resolve(process.cwd(), 'public'), uploadsDir = path.resolve(publicDir, 'uploads');
-fs.mkdirSync(uploadsDir, { recursive: true }); app.use(express.static(publicDir)); app.use('/uploads', express.static(uploadsDir));
-function route(handler, allowedMethods) { return async (req, res) => { if (allowedMethods && !allowedMethods.includes(req.method)) return res.status(405).json({ error: 'Método não permitido.' }); try { await handler(req, res); } catch (err) { const correlationId = crypto.randomUUID(); console.error(`[server] ${correlationId} ${req.method} ${req.path}:`, err); if (!res.headersSent) res.status(500).json({ error: 'Erro interno no servidor.', correlationId }); } }; }
-app.all('/api/data', route(dataHandler, dataMethods)); app.all('/api/suite', route(suiteHandler, suiteMethods)); app.all('/api/reports', route(reportsHandler, reportsMethods)); app.all('/api/readiness', route(readinessHandler, readinessMethods)); app.all('/api/ai/promo', route(promoHandler, promoMethods)); app.all('/api/ai/studio', route(studioHandler, studioMethods)); app.all('/api/ai/image', route(imageHandler, imageMethods)); app.all('/api/growth', route(growthHandler, growthMethods)); app.all('/api/email/test', route(emailTestHandler, emailTestMethods)); app.all('/api/automation/simulate', route(simulateHandler, simulateMethods)); app.all('/api/jobs/hourly', route(hourlyHandler, hourlyMethods)); app.all('/api/jobs/telegram', route(telegramJobHandler, telegramJobMethods)); app.all('/api/links/convert', route(convertHandler, convertMethods)); app.all('/api/mercadolivre/callback', route(mlCallbackHandler, mlCallbackMethods)); app.all('/api/mercadolivre/products', route(mlProductsHandler, mlProductsMethods)); app.all('/api/n8n/bridge', route(n8nBridgeHandler, n8nBridgeMethods)); app.all('/api/n8n/pairing', route(n8nPairingHandler, n8nPairingMethods)); app.all('/api/public/storefront', route(storefrontHandler, storefrontMethods)); app.all('/api/telegram/test', route(telegramTestHandler, telegramTestMethods));
-app.all('/api/radar/opportunities', route(radarOpportunitiesHandler, ['GET'])); app.all('/api/radar/autopilot', route(radarAutopilotHandler, ['GET', 'POST'])); app.all('/api/radar/price', route(radarPriceHandler, ['GET', 'POST'])); app.get('/api/r/:id', route(redirectHandler, redirectMethods));
-app.post('/api/upload', upload.any(), async (req, res, next) => { if (req.files && Array.isArray(req.files)) for (const f of req.files) if (!f.contentType) f.contentType = f.mimetype; try { await uploadHandler(req, res); } catch (err) { next(err); } });
-app.get('/', route(indexPage, ['GET'])); app.get('/inicio', route(inicioPage, ['GET'])); app.get('/vitrine', route(vitrinePage, ['GET'])); app.get('/privacidade', route(privacidadePage, ['GET'])); app.get('/termos', route(termosPage, ['GET']));
-async function main() { if (isProduction && (!process.env.STANDALONE_AUTH_SECRET || !process.env.STANDALONE_USER_ID)) throw new Error('Produção standalone exige STANDALONE_AUTH_SECRET e STANDALONE_USER_ID.'); await getDb(); console.log('[db] Embedded database initialized and migrations applied.'); app.listen(PORT, HOST, () => console.log(`[server] Radar Promo Brasil running at http://${HOST}:${PORT}`)); }
-main().catch(err => { console.error('[server] Fatal initialization error:', err); process.exit(1); });
+const schedulerToken = crypto.randomBytes(32).toString('hex');
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024, files: 1, fields: 2, parts: 3 } });
+
+function sources(directory) {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    const full = path.join(directory, entry.name);
+    return entry.isDirectory() ? sources(full) : entry.name.endsWith('.js') ? [full] : [];
+  });
+}
+
+export async function createApp() {
+  validateAuthConfiguration(isProduction);
+  const app = express();
+  app.disable('x-powered-by');
+  if (process.env.TRUST_PROXY_HOPS) app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS));
+  app.use((req, res, next) => { applySecurityHeaders(res, { production: isProduction, api: req.path.startsWith('/api') }); next(); });
+  app.use(createRateLimiter({ windowMs: 60000, max: 180 }));
+  app.use(express.json({ limit: '256kb', verify: (req, res, buffer) => { req.rawBody = buffer.toString('utf8'); } }));
+  app.use(authenticate({ production: isProduction }));
+  app.get('/login', loginPage);
+  app.post('/api/account/login', createRateLimiter({ windowMs: 15 * 60000, max: 10 }), login);
+  app.post('/api/account/logout', logout);
+  app.get('/api/account/session', (req, res) => res.json({ authenticated: Boolean(req.member), member: req.member ? { id: req.member.id, displayName: req.member.display_name } : null }));
+  app.get('/healthz', async (req, res) => {
+    try { await (await getDb()).query('SELECT 1'); res.json({ ok: true }); }
+    catch { res.status(503).json({ ok: false }); }
+  });
+  const publicDirectory = path.join(root, 'public');
+  app.use('/uploads', (req, res, next) => {
+    if (!req.path.startsWith('/products/') || req.path.endsWith('.metadata.json')) return res.status(404).end();
+    next();
+  });
+  app.use(express.static(publicDirectory, { index: false, dotfiles: 'deny' }));
+  for (const directory of ['api', 'pages']) {
+    for (const source of sources(path.join(root, directory))) {
+      const module = await import(pathToFileURL(source));
+      if (typeof module.default !== 'function' || !['public', 'member', 'admin', 'scheduler'].includes(module.access)) throw new Error(`Rota sem contrato de acesso: ${source}`);
+      const relative = path.relative(path.join(root, directory), source).replace(/\\/g, '/').replace(/\.js$/, '').replace(/\[([^\]]+)\]/g, ':$1');
+      const route = directory === 'api' ? '/api/' + relative : relative === 'index' ? '/' : '/' + relative;
+      const methods = module.methods || (directory === 'pages' ? ['GET'] : ['GET', 'POST']);
+      const gate = (req, res, next) => {
+        if (module.access === 'scheduler') {
+          if (!constantEqual(req.headers['x-radar-scheduler'], schedulerToken)) return res.status(404).json({ error: 'Rota não encontrada.' });
+        } else if (module.access !== 'public' && !req.member) {
+          if (directory === 'pages') return res.redirect('/login');
+          return res.status(401).json({ error: 'Entre para continuar.' });
+        } else if (module.access === 'admin' && req.member?.role !== 'admin') return res.status(403).json({ error: 'Acesso restrito.' });
+        if (!methods.includes(req.method)) return res.set('Allow', methods.join(', ')).status(405).json({ error: 'Método não permitido.' });
+        next();
+      };
+      const handler = async (req, res, next) => { try { await module.default(req, res); } catch (error) { next(error); } };
+      if (route === '/api/upload') app.all(route, gate, upload.single('file'), (req, res, next) => { req.files = req.file ? [{ ...req.file, contentType: req.file.mimetype }] : []; next(); }, handler);
+      else app.all(route, gate, handler);
+    }
+  }
+  app.use((req, res) => res.status(404).json({ error: 'Rota não encontrada.' }));
+  app.use((error, req, res, next) => {
+    if (res.headersSent) return next(error);
+    if (error instanceof multer.MulterError || error.type === 'entity.too.large' || error.type === 'entity.parse.failed') return res.status(error.type === 'entity.too.large' ? 413 : 400).json({ error: 'Arquivo ou corpo da requisição inválido ou acima do limite.' });
+    const correlationId = crypto.randomUUID();
+    console.error('[server]', correlationId, req.method, req.path, error.code || error.name);
+    res.status(500).json({ error: 'Erro interno no servidor.', correlationId });
+  });
+  return app;
+}
+
+async function main() {
+  const app = await createApp();
+  await getDb();
+  const port = Number(process.env.PORT || 3000);
+  const server = app.listen(port, process.env.HOST || '0.0.0.0', () => {
+    console.log(`[server] Radar Promo Brasil listening on port ${port}`);
+    if (process.env.STANDALONE_SCHEDULER_ENABLED !== 'false') startScheduler({ port, token: schedulerToken });
+  });
+  for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => {
+    stopScheduler();
+    server.close(async () => { await (await getDb()).close(); process.exit(0); });
+    setTimeout(() => process.exit(1), 15000).unref();
+  });
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main().catch(error => { console.error('[server] Startup failed:', error.message, error.cause?.code || ''); process.exit(1); });

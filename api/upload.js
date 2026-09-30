@@ -15,6 +15,7 @@ export default async function(req,res){
   if(f.buffer.length>8*1024*1024)return res.status(400).json({error:"A imagem deve ter até 8 MB."});
   if(!matches(f.buffer,f.contentType))return res.status(400).json({error:"O conteúdo do arquivo não corresponde a uma imagem válida."});
   const ext=f.contentType==="image/png"?"png":f.contentType==="image/webp"?"webp":"jpg";
-  const url=await storage.put("products/"+String(req.member.id)+"/"+crypto.randomUUID()+"."+ext,f.buffer,f.contentType);
-  return res.json({url});
+  const key="products/"+String(req.member.id)+"/"+crypto.randomUUID()+"."+ext;
+  const url=await storage.put(key,f.buffer,f.contentType);
+  return res.json({url,key});
 }

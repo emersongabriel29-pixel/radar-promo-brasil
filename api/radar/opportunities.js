@@ -2,6 +2,7 @@ import { db } from 'hatchable';
 import { calculateRadarScore, classifyRadarScore } from '../../lib/radar.js';
 
 export const access = 'member';
+export const methods = ['GET'];
 
 async function getAccountId(member) {
   const memberId = String(member?.id || '').trim();
@@ -16,8 +17,8 @@ export default async function handler(req, res) {
   const accountId = await getAccountId(req.member);
   if (!accountId) return res.status(401).json({ error: 'Conta não identificada' });
 
-  const limit = Math.min(50, Math.max(1, Number(req.query?.limit || 20)));
-  const minScore = Math.min(100, Math.max(0, Number(req.query?.minScore || 0)));
+  const limit = Math.min(50, Math.max(1, Math.floor(Number(req.query?.limit)||20)));
+  const minScore = Math.min(100, Math.max(0, Number(req.query?.minScore)||0));
   const category = String(req.query?.category || '').trim();
   const params = [accountId, minScore];
   let categorySql = '';

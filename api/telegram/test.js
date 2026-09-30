@@ -11,7 +11,7 @@ export default async function(req,res){
     if(!group?.externalId)return res.status(400).json({error:'Informe o ID do grupo ou canal do Telegram.'});
     const connection=(await db.query("SELECT id,secret_slot AS \"secretSlot\" FROM telegram_connections WHERE account_id=$1 AND status='ACTIVE' ORDER BY failure_count,priority LIMIT 1",[a.id])).rows[0];
     if(!connection)return res.status(412).json({error:'Conecte e ative um bot do Telegram primeiro.'});
-    const token=await configuredBotToken(connection.secretSlot);
+    const token=await configuredBotToken(connection.secretSlot,a.id);
     const payload=mode==='PROMOTION'?{chat_id:group.externalId,parse_mode:'HTML',disable_web_page_preview:true,text:'🧪 <b>PROMOÇÃO DE TESTE</b>\n\n🔥 Oferta demonstrativa do Radar Promo Brasil\n🛍️ Produto: exemplo de validação\n💰 Preço: R$ 99,90\n🎟️ Cupom: TESTE10\n\n✅ Texto, preço, cupom e botão enviados corretamente.\n⚠️ Esta publicação é apenas um teste e não representa uma oferta real.',reply_markup:{inline_keyboard:[[{text:'Abrir Radar Promo Brasil',url:'https://radar-promo-brasil.hatchable.site'}]]}}:{chat_id:group.externalId,text:'✅ Radar Promo Brasil conectado a este destino.'};
     await telegramCall(token,'sendMessage',payload);
     await db.query('UPDATE telegram_connections SET last_seen_at=now(),failure_count=0 WHERE id=$1 AND account_id=$2',[connection.id,a.id]);

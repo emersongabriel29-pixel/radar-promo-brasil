@@ -1,11 +1,11 @@
-import { ai,browser,db,scheduler,storage } from 'hatchable';
+import { ai,browser,config,db,scheduler,storage } from 'hatchable';
 import { runwayCall } from 'lib/direct-connectors.js';
 import { clean,isRateLimit,isSetupRequired,mediaRatio } from 'lib/media.js';
 
 export const access='member';
 export const methods=['POST'];
 const uid=()=>crypto.randomUUID();
-const site='https://radar-promo-brasil.hatchable.site';
+
 
 async function saveAsset(accountId,channel,model,url){
   return (await db.query("INSERT INTO content_assets(id,account_id,kind,channel,provider_model,asset_url,status) VALUES($1,$2,'IMAGE',$3,$4,$5,'DRAFT') RETURNING id",[uid(),accountId,channel,model,url])).rows[0].id;
@@ -15,6 +15,7 @@ async function brandedFallback({accountId,title,prompt,style,ratio,channel,error
   const id=uid(),token=uid(),sizes={'1:1':[1200,1200],'3:4':[1200,1600],'4:3':[1600,1200],'9:16':[1080,1920],'16:9':[1920,1080],'21:9':[2100,900]},size=sizes[ratio]||sizes['1:1'];
   await db.query("INSERT INTO media_generation_jobs(id,account_id,kind,title,prompt,style,ratio,provider,status,last_error,render_token) VALUES($1,$2,'IMAGE',$3,$4,$5,$6,'BRANDED_CARD','PENDING',$7,$8)",[id,accountId,title,prompt,style,ratio,clean(error,500),token]);
   try{
+    const site=String(await config.get('public_app_url')||'https://radar-promo-brasil.hatchable.site');
     const png=await browser.screenshot(site+'/api/ai/card/'+id+'?token='+encodeURIComponent(token),{width:size[0],height:size[1],fullPage:false});
     const key='media/'+accountId+'/'+id+'.png';await storage.put(key,png,'image/png');
     const url='/api/ai/media/file/'+id;

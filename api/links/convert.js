@@ -22,9 +22,10 @@ export default async function(req,res){
     if(!a)return res.status(412).json({error:'Abra as configurações da conta primeiro.'});
     const rule=(await db.query('SELECT * FROM marketplace_rules WHERE account_id=$1 AND marketplace=$2',[a.id,marketplace])).rows[0];
     if(!rule||rule.status!=='ACTIVE')return res.status(412).json({error:'Configure e valide a integração oficial desta loja antes de converter.',marketplace});
+    if(!String(rule.affiliate_tag||'').trim())return res.status(412).json({error:'Informe a identificação oficial do afiliado.'});
+    if(marketplace==='SHOPEE')return res.status(412).json({error:'A Shopee exige um link gerado pela sua plataforma oficial de afiliados. Importe esse link; adicionar sub_id não comprova a conversão.',marketplace});
     const group=safe(req.body?.group||'geral').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,60),subid=rule.subid_template.replace('{group}',group);
     if(marketplace==='AMAZON')original.searchParams.set('tag',rule.affiliate_tag);
-    else if(marketplace==='SHOPEE')original.searchParams.set('sub_id',subid);
     else original.searchParams.set('matt_tool',rule.affiliate_tag||subid);
     return res.json({ok:true,marketplace,affiliateUrl:original.toString(),subid,warning:'O crédito da comissão depende da validação oficial da loja.'});
   }catch{return res.status(400).json({error:'Link inválido.'})}

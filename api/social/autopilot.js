@@ -1,5 +1,6 @@
 import { db, scheduler } from 'hatchable';
 import { prepareSocialPosts,dispatchSocialPosts,verifyMeta,socialSnapshot } from 'lib/social-autopilot.js';
+import { timeValue } from 'lib/validation.js';
 
 export const access='member';
 export const methods=['GET','POST','PUT','DELETE'];
@@ -12,10 +13,11 @@ export default async function(req,res){
   try{
     if(req.method==='GET')return res.json({ok:true,...await socialSnapshot(a.id)});
     const b=req.body||{},action=clean(b.action,40).toUpperCase();
-    if(req.method==='POST'&&action==='GENERATE')return res.json({ok:true,...await prepareSocialPosts(a.id,{limit:b.limit||4,offerId:clean(b.offerId,100)}),...await socialSnapshot(a.id)});
+    if(req.method==='POST'&&action==='GENERATE')return res.json({ok:true,...await prepareSocialPosts(a.id,{limit:b.limit||4,offerId:clean(b.offerId,100),manual:true}),...await socialSnapshot(a.id)});
     if(req.method==='POST'&&action==='RUN'){const result=await dispatchSocialPosts(a.id,10);return res.json({ok:true,...result,...await socialSnapshot(a.id)})}
     if(req.method==='POST'&&action==='TEST_META')return res.json({...await verifyMeta(a.id),...await socialSnapshot(a.id)});
     if(req.method==='PUT'&&action==='SETTINGS'){
+      if(!timeValue(b.startTime||'08:00')||!timeValue(b.endTime||'22:00'))return res.status(400).json({error:'Horários inválidos.'});
       const channels=(Array.isArray(b.channels)?b.channels:[]).filter(x=>['INSTAGRAM','FACEBOOK'].includes(x));if(!channels.length)return res.status(400).json({error:'Escolha pelo menos uma rede.'});
       await db.query("INSERT INTO social_autopilot_settings(account_id) VALUES($1) ON CONFLICT DO NOTHING",[a.id]);
       await db.query('UPDATE social_autopilot_settings SET status=$2,auto_generate=$3,require_approval=$4,channels=$5,min_score=$6,max_posts_per_day=$7,interval_minutes=$8,start_time=$9,end_time=$10,updated_at=now() WHERE account_id=$1',[a.id,b.status==='ACTIVE'?'ACTIVE':'PAUSED',b.autoGenerate!==false,b.requireApproval!==false,JSON.stringify(channels),Math.max(0,Math.min(100,Number(b.minScore)||70)),Math.max(1,Math.min(50,Number(b.maxPostsPerDay)||6)),Math.max(15,Math.min(1440,Number(b.intervalMinutes)||60)),clean(b.startTime,5)||'08:00',clean(b.endTime,5)||'22:00']);
@@ -31,4 +33,3 @@ export default async function(req,res){
     return res.status(400).json({error:'Ação inválida.'});
   }catch(e){console.error('social/autopilot',e);return res.status(500).json({error:'Não foi possível concluir o piloto automático social.'})}
 }
-
