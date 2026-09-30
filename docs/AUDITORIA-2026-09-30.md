@@ -1,6 +1,6 @@
 # Auditoria — Radar Promo Brasil
 
-Data: 30/09/2026 (UTC). Repositório: `emersongabriel29-pixel/radar-promo-brasil`. Base auditada: `4cb9c13a1c5616f3e0566f9eefc61a61c1ffbd4a`. Projeto Hatchable: `proj_1Xj94QxQmCam`, versão inicial 60, visibilidade privada.
+Data: 30/09/2026 (UTC). Repositório: `emersongabriel29-pixel/radar-promo-brasil`. Base auditada: `4cb9c13a1c5616f3e0566f9eefc61a61c1ffbd4a`. Projeto Hatchable: `proj_1Xj94QxQmCam`, versão inicial 60. Painel protegido por acesso de membro; a visibilidade geral é distinta do controle das rotas.
 
 ## Parecer
 
@@ -59,7 +59,7 @@ O ambiente de teste usa banco em memória e não envia promoções, e-mails ou m
 - SDK publicado: `scheduler.now`, `scheduler.at` e formato de retorno de `db.transaction` confirmados em execução de leitura.
 - Baseline publicado: quatro crons ativos; 168 execuções por cron nos sete dias observados, sem 5xx registrado. Ausência de erro não prova envio ou comissão.
 
-A CI do GitHub também executou todos os checks com sucesso no commit `ebe877d1eabb18c5064bc139b2b8f82e99a6b944` (run 36790998249). A comparação com a versão 60 preservou melhorias que existiam apenas na hospedagem: catálogo ampliado de lojas, teste de promoção com foto no Telegram, marketplaces pendentes após edição e relatório sem falso status de conformidade quando não há dados. Snapshot dos 30 arquivos substituídos em `docs/rollback/hatchable-v60.json`.
+A CI do GitHub também executou todos os checks com sucesso no commit `ebd36e1562928ed5683f5848255e9bdeeb032595` ([run 36791544984](https://github.com/emersongabriel29-pixel/radar-promo-brasil/actions/runs/36791544984), PR, e run 36791540569, push). A comparação com a versão 60 preservou melhorias que existiam apenas na hospedagem: catálogo ampliado de lojas, teste de promoção com foto no Telegram, marketplaces pendentes após edição e relatório sem falso status de conformidade quando não há dados. Snapshot dos 30 arquivos substituídos em `docs/rollback/hatchable-v60.json`.
 
 Evidências posteriores à implantação são registradas no final deste documento e em `RELEASE.md`.
 
@@ -79,7 +79,7 @@ Evidências posteriores à implantação são registradas no final deste documen
 | Privacidade | Preferências e solicitações são registradas | Processo de retenção/exportação/exclusão, identidade do solicitante e responsabilidades definidos e exercitados |
 | Planos/assinaturas | Estrutura de cadastro, sem checkout/cobrança completa | Provedor de pagamento, webhook, reconciliação e restrição por assinatura implementados se o objetivo for SaaS comercial |
 | Backup e recuperação | Migração com rollback testada; restauração da hospedagem não demonstrada | Backup externo e restore em ambiente isolado com RPO/RTO acordados |
-| Acesso público | Projeto privado; vitrine/link públicos sujeitos à parede de login | Titular ajusta visibilidade no console quando necessário, mantendo painel/rotas privadas protegidos |
+| Acesso público | Após o release, plataforma informa visibilidade pública; `/vitrine` responde 200, painel e APIs privadas exigem autenticação | Publicar a vitrine da conta e conferir conteúdo/links reais; preservar os controles de acesso do painel |
 | Capacidade | Sem teste de carga de fornecedores/produção | Teste com volume esperado e limites/custos reais monitorados |
 
 ## Riscos residuais delimitados
@@ -89,3 +89,18 @@ URLs de entrada rejeitam HTTP, credenciais embutidas, IPs literais e hosts priva
 Entrega com receipt só prova aceitação pelo provedor; não comprova leitura, venda ou comissão. Respostas incertas precisam de reconciliação no destino. Os controles de mensagens não são um parecer sobre todas as políticas ou obrigações legais.
 
 O relatório identifica integralmente o escopo revisado e o que foi exercitado. Itens dependentes de contas, autorização, infraestrutura ou funcionalidades ausentes não foram marcados como concluídos por inferência.
+
+## Verificação depois da implantação
+
+Release **61**, status **live**, sem draft, em [radar-promo-brasil.hatchable.site](https://radar-promo-brasil.hatchable.site). Migração 018 aplicada pela plataforma. Os 41 arquivos enviados correspondem ao manifesto do deployment após a normalização de espaços das extremidades realizada no armazenamento da plataforma; as migrações anteriores foram preservadas.
+
+- Conta proprietária: `/api/data`, `/api/suite`, `/api/readiness`, `/api/reports`, `/api/radar/opportunities`, `/api/radar/autopilot`, `/api/social/autopilot`, `/api/growth` e `/api/compliance/messaging` retornaram 200 com os campos esperados.
+- Acesso anônimo: HTTP direto a `/` e `/api/data` retornou 401. Na execução por tier, `/api/data`, `/api/suite` e `/api/ai/studio` retornaram 401; job Telegram retornou 404. Membro sem acesso admin recebeu 403 na consulta do Mercado Livre.
+- Validação negativa: preço inválido e ação inválida no estúdio retornaram 400 antes de qualquer envio/chamada de IA.
+- HTTP público: `/radar.js` e `/radar.css` retornaram 200 com os tipos de conteúdo corretos; `/vitrine` retornou 200. A plataforma informou visibilidade pública, com painel privado por controle de rota.
+- Banco: sete FKs adicionais presentes; defaults de novas regras 85/15/5/120; duas contas preservadas, zero ofertas/publicações como no snapshot inicial, dois starters inicializados e um vínculo de credencial conservador criado.
+- Quatro tarefas agendadas continuam ativas. Consulta de logs de erro nos 15 minutos observados retornou zero registros. Não se antecipou cron nem se enviou mensagem real no smoke test.
+- O warning de tabela `st` no deploy é falso positivo: `st` é uma CTE em `api/reports.js`, e a rota foi executada com sucesso antes e depois do deploy.
+- Readiness da conta proprietária: `SETUP_REQUIRED`, `productionReady=false`, configuração interna 25% e operacional 15%. Esses percentuais medem configuração da conta e evidência recente de entrega, não qualidade/cobertura do código. A medição anterior era mais permissiva e não deve ser usada como aprovação comercial.
+
+A auditoria e as correções de código estão entregues e publicadas. A operação integral continua condicionada aos itens da matriz de homologação acima; não foi emitida certificação de 100% de produção.
