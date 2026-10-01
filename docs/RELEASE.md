@@ -16,7 +16,7 @@ Schema migra para frente. Rollback de código utiliza a versão anterior com o s
 
 ## Homologação externa
 
-Use destino e dados de teste autorizados pelo titular. Validar imagem, preço/cupom reais, link oficial, receipt e retry/UNKNOWN por canal habilitado. Validar comissão no relatório oficial. Configurar contato de incidentes e rotinas de backup/restore. Funcionalidades opcionais sem provedor devem continuar pendentes.
+Use destino e dados de teste autorizados pelo titular. Validar imagem, preço/cupom reais, link oficial, receipt e retry/UNKNOWN por canal habilitado. Validar comissão no relatório oficial. Configurar contato de incidentes. Backup privado e verificador de restauração estão documentados em OPERACAO-2026-10-01.md; até cinco WhatsApps e o executor de revezamento em WHATSAPP-REVEZAMENTO.md. Funcionalidades sem provedor devem continuar pendentes.
 
 Os bloqueios e os recursos ainda sem executor estão discriminados na auditoria. O painel exige membro autenticado. No release 61 a plataforma informou visibilidade pública; `/vitrine` é acessível anonimamente, enquanto `/` e as APIs privadas retornam 401 sem autenticação. A vitrine de cada conta depende da sua configuração de publicação.
 

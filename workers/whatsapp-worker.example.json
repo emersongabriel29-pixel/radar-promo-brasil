@@ -1,0 +1,11 @@
+{
+  "connections": [
+    {
+      "externalId": "instancia-1",
+      "type": "EVOLUTION",
+      "url": "https://seu-conector.example.com",
+      "tokenEnv": "WHATSAPP_PROVIDER_TOKEN_1",
+      "groups": ["ID_DO_GRUPO@g.us"]
+    }
+  ]
+}

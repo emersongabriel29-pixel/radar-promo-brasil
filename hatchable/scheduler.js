@@ -8,8 +8,11 @@ export const scheduler = {
   async at(when, route, options = {}) {
     if (!/^\/api\/jobs\/[a-z-]+$/.test(route) || !Number.isFinite(new Date(when).getTime())) throw new Error('Agendamento inválido.');
     const id = crypto.randomUUID();
-    await db.query("INSERT INTO standalone_scheduled_jobs(id,route,payload,run_at,event_key) VALUES($1,$2,$3,$4,$5) ON CONFLICT(event_key) DO NOTHING", [id, route, JSON.stringify(options.payload || {}), new Date(when).toISOString(), options.eventKey || id]);
-    return { id };
+    const result=await db.query("INSERT INTO standalone_scheduled_jobs(id,route,payload,run_at,event_key) VALUES($1,$2,$3,$4,$5) ON CONFLICT(event_key) DO UPDATE SET payload=EXCLUDED.payload,run_at=EXCLUDED.run_at,status='PENDING',attempts=0,updated_at=now() WHERE $6::boolean RETURNING id", [id, route, JSON.stringify(options.payload || {}), new Date(when).toISOString(), options.eventKey || (options.name?route+':'+options.name:id),Boolean(options.name)]);
+    return { id:result.rows[0]?.id||id };
+  },
+  async cancel(id){
+    await db.query("UPDATE standalone_scheduled_jobs SET status='CANCELLED',updated_at=now() WHERE id=$1 AND status='PENDING'",[String(id)]);
   }
 };
 

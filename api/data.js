@@ -4,6 +4,8 @@ import { moneyCents,timeValue,colorValue,booleanValue,httpsUrl,mediaUrl } from '
 import { fingerprint as makeFingerprint } from 'lib/automation.js';
 import { formatPromo } from 'lib/promo-message.js';
 import { hydrateImages } from 'lib/offer-images.js';
+import {setScheduleStatus,validDay} from 'lib/recurrences.js';
+import {canActivateMonitor} from 'lib/monitoring.js';
 
 export const access='member';
 export const methods=['GET','POST','PUT','DELETE'];
@@ -25,10 +27,10 @@ async function all(a){
     db.query('SELECT id,name,icon,color,created_at AS "createdAt" FROM categories WHERE account_id=$1 ORDER BY name',[a.id]),
     db.query('SELECT id,name,platform,category_id AS "categoryId",invite_url AS "inviteUrl",members,status,external_id AS "externalId",capacity,joined_24h AS "joined24h",left_24h AS "left24h",marketplace_subids AS "marketplaceSubids",created_at AS "createdAt" FROM promo_groups WHERE account_id=$1 ORDER BY platform,name',[a.id]),
     db.query('SELECT id,title,source,original_price AS "originalPrice",current_price AS "currentPrice",category_id AS "categoryId",affiliate_url AS "affiliateUrl",image_url AS "imageUrl",image_storage_key AS "imageStorageKey",product_url AS "productUrl",coupon_url AS "couponUrl",coupon_code AS "couponCode",discount_percent AS "discountPercent",score,status,message,fingerprint,validation_status AS "validationStatus",imported_by AS "importedBy",storefront_visible AS "storefrontVisible",detected_at AS "detectedAt",created_at AS "createdAt" FROM offers WHERE account_id=$1 ORDER BY created_at DESC LIMIT 250',[a.id]),
-    db.query('SELECT id,offer_id AS "offerId",group_id AS "groupId",status,scheduled_at AS "scheduledAt",published_at AS "publishedAt",clicks,message,image_url AS "imageUrl",image_storage_key AS "imageStorageKey",mode,attempts,error_message AS "errorMessage",priority,mention_all AS "mentionAll",connection_id AS "connectionId",created_at AS "createdAt" FROM publications WHERE account_id=$1 ORDER BY priority DESC,created_at DESC LIMIT 250',[a.id]),
-    db.query('SELECT id,name,source_type AS "sourceType",source_url AS "sourceUrl",category_id AS "categoryId",mode,status,captured_count AS "capturedCount",last_run_at AS "lastRunAt",created_at AS "createdAt" FROM monitors WHERE account_id=$1 ORDER BY created_at DESC',[a.id]),
+    db.query('SELECT id,offer_id AS "offerId",group_id AS "groupId",content_type AS "contentType",schedule_id AS "scheduleId",status,scheduled_at AS "scheduledAt",published_at AS "publishedAt",clicks,message,image_url AS "imageUrl",image_storage_key AS "imageStorageKey",mode,attempts,error_message AS "errorMessage",priority,mention_all AS "mentionAll",connection_id AS "connectionId",created_at AS "createdAt" FROM publications WHERE account_id=$1 ORDER BY priority DESC,created_at DESC LIMIT 250',[a.id]),
+    db.query('SELECT id,name,source_type AS "sourceType",source_url AS "sourceUrl",source_authorized AS "sourceAuthorized",affiliate_url AS "affiliateUrl",last_error AS "lastError",category_id AS "categoryId",mode,status,captured_count AS "capturedCount",last_run_at AS "lastRunAt",created_at AS "createdAt" FROM monitors WHERE account_id=$1 AND status<>\'ARCHIVED\' ORDER BY created_at DESC',[a.id]),
     db.query('SELECT id,name,category_id AS "categoryId",start_time AS "startTime",end_time AS "endTime",interval_minutes AS "intervalMinutes",priority_mode AS "priorityMode",mention_all AS "mentionAll",link_preview AS "linkPreview",status,created_at AS "createdAt" FROM queues WHERE account_id=$1 ORDER BY created_at DESC',[a.id]),
-    db.query('SELECT id,name,message,group_id AS "groupId",recurrence,send_time AS "sendTime",status,last_run_at AS "lastRunAt",created_at AS "createdAt" FROM schedules WHERE account_id=$1 ORDER BY created_at DESC',[a.id]),
+    db.query("SELECT id,name,message,group_id AS \"groupId\",recurrence,send_time AS \"sendTime\",weekday,once_date AS \"onceDate\",next_run_at AS \"nextRunAt\",last_error AS \"lastError\",status,last_run_at AS \"lastRunAt\",created_at AS \"createdAt\" FROM schedules WHERE account_id=$1 AND status<>'ARCHIVED' ORDER BY created_at DESC",[a.id]),
     db.query("SELECT group_id AS \"groupId\",count(*) FILTER(WHERE event_type='JOIN')::int AS joined,count(*) FILTER(WHERE event_type='LEAVE')::int AS left,count(DISTINCT phone_hash)::int AS unique_leads FROM lead_events WHERE account_id=$1 AND occurred_at>now()-interval '30 days' GROUP BY group_id",[a.id]),
     db.query('SELECT id,event_type AS "eventType",title,details,status,created_at AS "createdAt" FROM activity_log WHERE account_id=$1 ORDER BY created_at DESC LIMIT 20',[a.id]),
     db.query('SELECT name,status,details,last_checked_at AS "lastCheckedAt" FROM account_integration_health WHERE account_id=$1 ORDER BY name',[a.id]),
@@ -78,17 +80,19 @@ export default async function(req,res){
       await db.query('INSERT INTO publications(id,account_id,offer_id,group_id,status,scheduled_at,message,image_url,mode,priority,mention_all,image_storage_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',[uid(),a.id,offerId,groupId,b.scheduledAt?'SCHEDULED':'READY',b.scheduledAt||null,txt(b.message,3000)||found.message,found.image_url,txt(b.mode,30)||'ON_DEMAND',b.priority==='FLASH'?100:0,b.mentionAll==='true',found.image_storage_key]);
       if(group.platform==='TELEGRAM'&&!b.scheduledAt)await scheduler.now('/api/jobs/telegram');
     }else if(req.method==='POST'&&entity==='monitor'){
+      if(b.affiliateUrl&&!httpsUrl(b.affiliateUrl))return res.status(400).json({error:'Link oficial de afiliado inválido.'});
       if(!txt(b.name,120)||!url(b.sourceUrl)||!['WHATSAPP_GROUP','TELEGRAM_CHANNEL','WEBSITE','MARKETPLACE','FEED'].includes(b.sourceType||'WHATSAPP_GROUP')||!['SMART','ALL','CLONE'].includes(b.mode||'SMART'))return res.status(400).json({error:'Informe nome, origem HTTPS e modo válidos.'});
       const categoryId=txt(b.categoryId,80)||null;if(!(await categoryOk(categoryId,a.id)))return res.status(400).json({error:'Categoria inválida.'});
-      await db.query('INSERT INTO monitors(id,account_id,name,source_type,source_url,category_id,mode,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[uid(),a.id,txt(b.name,120),txt(b.sourceType,40)||'WHATSAPP_GROUP',txt(b.sourceUrl,1000),categoryId,txt(b.mode,30)||'SMART','PAUSED']);
+      await db.query('INSERT INTO monitors(id,account_id,name,source_type,source_url,category_id,mode,status,source_authorized,affiliate_url) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[uid(),a.id,txt(b.name,120),txt(b.sourceType,40)||'WHATSAPP_GROUP',txt(b.sourceUrl,1000),categoryId,txt(b.mode,30)||'SMART','PAUSED',booleanValue(b.sourceAuthorized),httpsUrl(b.affiliateUrl)||'']);
     }else if(req.method==='POST'&&entity==='queue'){
       if(!txt(b.name,120)||!timeValue(b.startTime||'08:00')||!timeValue(b.endTime||'22:00')||!['NEWEST_FIRST','BEST_SCORE','BIGGEST_DISCOUNT','FIFO'].includes(b.priorityMode||'NEWEST_FIRST'))return res.status(400).json({error:'Informe nome, horários e prioridade válidos.'});
       const categoryId=txt(b.categoryId,80)||null;if(!(await categoryOk(categoryId,a.id)))return res.status(400).json({error:'Categoria inválida.'});
       await db.query('INSERT INTO queues(id,account_id,name,category_id,start_time,end_time,interval_minutes,priority_mode,mention_all,link_preview,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',[uid(),a.id,txt(b.name,120),categoryId,txt(b.startTime,5)||'08:00',txt(b.endTime,5)||'22:00',Math.max(1,Math.min(30,Number(b.intervalMinutes)||10)),txt(b.priorityMode,30)||'NEWEST_FIRST',b.mentionAll==='true',b.linkPreview!=='false','ACTIVE']);
     }else if(req.method==='POST'&&entity==='schedule'){
-      if(!txt(b.name,120)||!txt(b.message,2500)||!timeValue(b.sendTime||'09:00')||!['DAILY','WEEKLY','WEEKDAYS','ONCE'].includes(b.recurrence||'DAILY'))return res.status(400).json({error:'Informe nome, mensagem, horário e recorrência válidos.'});
-      const groupId=txt(b.groupId,80)||null;if(groupId&&!(await belongs('promo_groups',groupId,a.id)))return res.status(400).json({error:'Grupo inválido.'});
-      await db.query('INSERT INTO schedules(id,account_id,name,message,group_id,recurrence,send_time,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[uid(),a.id,txt(b.name,120),txt(b.message,2500),groupId,txt(b.recurrence,30)||'DAILY',txt(b.sendTime,5)||'09:00','PAUSED']);
+      const recurrence=b.recurrence||'DAILY',weekday=Number(b.weekday??1),onceDate=txt(b.onceDate,10)||null;
+      if(!txt(b.name,120)||!txt(b.message,2500)||!timeValue(b.sendTime||'09:00')||!['DAILY','WEEKLY','WEEKDAYS','ONCE'].includes(recurrence)||!Number.isInteger(weekday)||weekday<0||weekday>6||recurrence==='ONCE'&&!validDay(onceDate))return res.status(400).json({error:'Informe nome, mensagem, horário, dia e recorrência válidos.'});
+      const groupId=txt(b.groupId,80)||null;if(!groupId||!(await belongs('promo_groups',groupId,a.id)))return res.status(400).json({error:'Grupo inválido.'});
+      await db.query('INSERT INTO schedules(id,account_id,name,message,group_id,recurrence,send_time,status,weekday,once_date) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[uid(),a.id,txt(b.name,120),txt(b.message,2500),groupId,recurrence,txt(b.sendTime,5)||'09:00','PAUSED',weekday,onceDate]);
     }else if(req.method==='PUT'&&entity==='groupConfig'){
       const item=txt(b.id,100),categoryId=txt(b.categoryId,80)||null,platform=txt(b.platform,20)||'WHATSAPP',externalId=txt(b.externalId,200)||null,invite=txt(b.inviteUrl,600);
       if(!(await categoryOk(categoryId,a.id)))return res.status(400).json({error:'Categoria inválida.'});
@@ -99,7 +103,7 @@ export default async function(req,res){
     }else if(req.method==='PUT'){
       const item=txt(b.id,100),status=txt(b.status,20),table={offer:'offers',group:'promo_groups',publication:'publications',monitor:'monitors',queue:'queues',schedule:'schedules'}[entity];
       if(!table||!allowed[entity]?.includes(status))return res.status(400).json({error:'Status ou ação inválida.'});
-      if(entity==='schedule'&&status==='ACTIVE')return res.status(412).json({error:'Mensagens recorrentes exigem um executor configurado. Mantenha o cadastro pausado até a validação.'});
+      if(entity==='schedule'){const changed=await setScheduleStatus(a.id,item,status);return res.json({ok:true,...changed});}
       if(entity==='publication'){
         if(status==='PUBLISHED')return res.status(412).json({error:'A entrega precisa ser confirmada pelo conector oficial.'});
         const current=(await db.query('SELECT status FROM publications WHERE id=$1 AND account_id=$2',[item,a.id])).rows[0];
@@ -107,7 +111,7 @@ export default async function(req,res){
         if(['PUBLISHED','DISPATCHING'].includes(current.status))return res.status(409).json({error:'Esta publicação já foi enviada ou está em envio.'});
         if(current.status==='WAITING_CONFIRMATION'&&!booleanValue(b.confirmedNotDelivered))return res.status(409).json({error:'Confirme no destino que não houve entrega antes de reenviar.'});
       }
-      if(entity==='monitor'&&status==='ACTIVE')return res.status(412).json({error:'A captura automática exige um conector oficial da origem. O cadastro pode ser mantido pausado.'});
+      if(entity==='monitor'&&status==='ACTIVE')await canActivateMonitor(a.id,item);
       if(entity==='group'&&status==='ACTIVE'){
         const destination=(await db.query('SELECT external_id FROM promo_groups WHERE id=$1 AND account_id=$2',[item,a.id])).rows[0];
         if(!destination)return res.status(404).json({error:'Destino não encontrado.'});
@@ -118,9 +122,11 @@ export default async function(req,res){
     }else if(req.method==='DELETE'){
       const table={category:'categories',group:'promo_groups',offer:'offers',publication:'publications',monitor:'monitors',queue:'queues',schedule:'schedules'}[txt(req.query.entity,30)];
       if(!table)return res.status(400).json({error:'Ação inválida.'});
+      if(table==='schedules'){await setScheduleStatus(a.id,txt(req.query.id,100),'ARCHIVED');return res.json({ok:true});}
+      if(table==='monitors'){const r=await db.query("UPDATE monitors SET status='ARCHIVED' WHERE id=$1 AND account_id=$2 RETURNING id",[txt(req.query.id,100),a.id]);return res.status(r.rows.length?200:404).json(r.rows.length?{ok:true}:{error:'Monitor não encontrado.'});}
       const removed=await db.query('DELETE FROM '+table+' WHERE id=$1 AND account_id=$2 RETURNING id',[txt(req.query.id,100),a.id]);
       if(!removed.rows.length)return res.status(404).json({error:'Registro não encontrado.'});
     }else return res.status(400).json({error:'Ação inválida.'});
     return res.json({ok:true});
-  }catch(e){console.error('api/data',correlationId,e);return res.status(500).json({error:'Não foi possível concluir a operação.',correlationId})}
+  }catch(e){if(!e.status)console.error('api/data',correlationId,e);return res.status(e.status||500).json({error:e.status?e.message:'Não foi possível concluir a operação.',correlationId})}
 }

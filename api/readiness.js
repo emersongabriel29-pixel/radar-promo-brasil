@@ -16,7 +16,7 @@ export default async function(req,res){
     db.query("SELECT count(*)::int AS n FROM queues WHERE account_id=$1 AND status='ACTIVE'",[a]),
     db.query("SELECT count(*)::int AS n FROM marketplace_rules WHERE account_id=$1 AND status='ACTIVE' AND NULLIF(trim(affiliate_tag),'') IS NOT NULL",[a]),
     db.query("SELECT count(*)::int AS n FROM telegram_connections WHERE account_id=$1 AND status='ACTIVE'",[a]),
-    db.query("SELECT count(*)::int AS n FROM whatsapp_connections WHERE account_id=$1 AND status='ACTIVE'",[a]),
+    db.query("SELECT count(*)::int AS n FROM whatsapp_connections WHERE account_id=$1 AND status='ACTIVE' AND phone_number<>'' AND group_messaging_supported AND last_verified_at>now()-interval '24 hours' AND EXISTS(SELECT 1 FROM promo_groups g WHERE g.account_id=$1 AND g.status='ACTIVE' AND g.platform='WHATSAPP' AND verified_groups @> jsonb_build_array(g.external_id))",[a]),
     db.query("SELECT count(*)::int AS n FROM autopilot_rules WHERE account_id=$1 AND status='ACTIVE'",[a]),
     db.query('SELECT published FROM storefront_settings WHERE account_id=$1',[a]),
     db.query('SELECT incident_email AS email FROM account_security_settings WHERE account_id=$1',[a]),
@@ -45,7 +45,7 @@ export default async function(req,res){
     item('ai','IA para conteúdo',aiReady,aiReady?'Provedor testado.':'Faça um teste no Estúdio de IA.','Abra o Estúdio e gere um conteúdo.'),
     item('marketplaces','Afiliados e marketplaces',marketplaces>0,marketplaces+' marketplace(s) configurado(s); o crédito deve ser conferido na plataforma oficial.','Conecte e valide uma conta oficial de afiliado.'),
     item('telegram','Telegram',telegram>0,telegram+' bot(s) ativo(s).','Configure o token e conecte um bot.'),
-    item('whatsapp','WhatsApp/n8n',whatsapp>0,whatsapp+' conexão(ões) ativa(s).','Configure o webhook n8n e ative a conexão.'),
+    item('whatsapp','WhatsApp/n8n',whatsapp>0,whatsapp+' número(s) validado(s) com acesso a destino ativo.','Pareie o conector, valide os números e os grupos e ative o revezamento.'),
     item('storefront','Vitrine pública',storefront,storefront?'Vitrine publicada.':'Vitrine ainda não publicada.','Publique a vitrine em Conta.')
   ];
   const coreReady=core.filter(x=>x.ready).length,externalReady=external.filter(x=>x.ready).length;

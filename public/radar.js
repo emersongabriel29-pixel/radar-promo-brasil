@@ -192,11 +192,11 @@ async function call(method, body, query) {
   await load();
   return b;
 }
-async function suiteCall(method, body) {
-  var r = await fetch("/api/suite", {
+async function suiteCall(method, body, query) {
+  var r = await fetch("/api/suite" + (query || ""), {
       method: method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: body ? JSON.stringify(body) : undefined,
     }),
     b = await r.json();
   if (!r.ok) throw Error(b.error || "Não foi possível concluir");
@@ -500,7 +500,7 @@ function monitoring() {
               (c ? esc(c.name) : "Todas as categorias") +
               " · " +
               m.capturedCount +
-              ' capturas reais</div></div><span class=\"pill ' +
+              ' capturas reais</div>' + (m.lastError ? '<p class="muted" role="status">' + esc(m.lastError) + '</p>' : '') + '</div><span class=\"pill ' +
               (m.status === "ACTIVE" ? "live" : "warn") +
               '\">' +
               LABEL[m.status] +
@@ -509,7 +509,8 @@ function monitoring() {
                 ? "<button class=\"btn secondary\" onclick=\"status('monitor','" +
                   m.id +
                   "','PAUSED')\">Pausar</button>"
-                : '<button class=\"btn secondary\" disabled title=\"Exige conector oficial\">Conector necessário</button>') +
+                : '<button class="btn secondary" onclick="status(\'monitor\',\''+m.id+'\',\'ACTIVE\')">Ativar</button>') +
+              (m.status==='ACTIVE' && ['FEED','MARKETPLACE'].includes(m.sourceType) ? '<button class="btn secondary" onclick="captureMonitor(\''+m.id+'\',this)">Capturar agora</button>' : '') +
               "</div>"
             );
           })
@@ -565,7 +566,7 @@ function queues() {
   return (
     section(
       "Filas e agendamentos",
-      "Defina janelas e intervalos das publicações. Recorrências abaixo são planejamento até o executor próprio ser habilitado.",
+      "Defina janelas e intervalos das publicações. Recorrências seguem o fuso da conta e usam os números ativos no revezamento.",
       "+ Nova fila",
       "openQueue()",
     ) +
@@ -592,7 +593,7 @@ function queues() {
           })
           .join("")
       : empty("Nenhuma fila criada")) +
-    '</div></div><div><div class="sectionhead" style="margin-top:0"><div><h2>Recorrências planejadas</h2><p>Registro de planejamento; envio recorrente automático ainda não habilitado.</p></div><button class=\"btn secondary\" onclick=\"openSchedule()\">+ Registrar</button></div><div class="list">' +
+    '</div></div><div><div class="sectionhead" style="margin-top:0"><div><h2>Mensagens recorrentes</h2><p>Ative após validar o destino e o conector.</p></div><button class=\"btn secondary\" onclick=\"openSchedule()\">+ Nova recorrência</button></div><div class="list">' +
     (D.schedules.length
       ? D.schedules
           .map(function (s) {
@@ -603,9 +604,13 @@ function queues() {
               s.recurrence +
               " às " +
               s.sendTime +
-              '</div></div><span class="pill live">' +
-              LABEL[s.status] +
-              "</span></div>"
+              (s.recurrence === 'WEEKLY' ? ' · '+['domingo','segunda','terça','quarta','quinta','sexta','sábado'][s.weekday] : '') +
+              (s.onceDate ? ' · '+esc(s.onceDate) : '') +
+              (s.nextRunAt ? '<br>Próxima: '+esc(new Date(s.nextRunAt).toLocaleString('pt-BR')) : '') +
+              (s.lastError ? '<br>'+esc(s.lastError) : '') +
+              '</div></div><span class="pill '+(s.status==='ACTIVE'?'live':'warn')+'">' +
+              esc(LABEL[s.status] || s.status) +
+              '</span><button class="btn secondary" onclick="status(\'schedule\',\''+s.id+'\',\''+(s.status==='ACTIVE'?'PAUSED':'ACTIVE')+'\')">'+(s.status==='ACTIVE'?'Pausar':'Ativar')+'</button></div>'
             );
           })
           .join("")
@@ -626,7 +631,7 @@ function publicationRow(p) {
     '<div class="row">' +
     (o ? thumb(o) : "") +
     '<div class="grow"><b>' +
-    esc(o ? o.title : "Oferta removida") +
+    esc(o ? o.title : p.contentType === "MESSAGE" ? "Mensagem recorrente" : "Oferta removida") +
     '</b><div class="muted">' +
     esc(g ? g.name : "Grupo removido") +
     " · " +
@@ -1557,7 +1562,7 @@ function security() {
     ) +
     '<div></div><div class="card"><h3>Política operacional</h3><p class="muted">Retenção: ' +
     esc(s.retentionDays || 365) +
-    " dias<br>Consentimento para marketing: " +
+    " dias · limpeza " + (s.retentionEnabled ? "ativada" : "desativada") + "<br>Consentimento para marketing: " +
     (s.marketingConsentRequired === false ? "opcional" : "obrigatório") +
     "<br>Exportação de dados: " +
     (s.dataExportEnabled === false ? "desativada" : "permitida") +
@@ -1575,12 +1580,13 @@ function security() {
               esc(x.requesterEmail) +
               '</div></div><span class="pill warn">' +
               esc(x.status) +
-              "</span></div>"
+              '</span>' + (x.status==='DONE' ? '' : '<button class="btn secondary" onclick="openPrivacyProcess(\''+x.id+'\')">'+(x.identityVerifiedAt?'Processar':'Verificar identidade')+'</button>') + '</div>'
             );
           })
           .join("")
       : '<p class="muted">Nenhuma solicitação registrada.</p>') +
     "</div></div>" +
+    '<div class="card"><h3>Exportação e backup da conta</h3><p class="muted">Portabilidade sem credenciais. Backup privado inclui registros e uploads; restauração é verificada em banco isolado.</p><div class="actions"><button class="btn secondary" onclick="downloadPrivate(\'/api/privacy\',\'radar-portabilidade.json\')">Exportar meus dados</button><button class="btn" onclick="createBackup(this)">Criar backup</button><button class="btn secondary" onclick="listBackups(this)">Ver backups</button><button class="btn secondary" onclick="previewRetention()">Prévia da limpeza</button></div><div id="backupList" class="list" style="margin-top:12px"></div></div>' +
     section(
       "Eventos de segurança",
       "Trilha de auditoria sem expor tokens ou conteúdo sensível.",
@@ -1656,22 +1662,8 @@ function accountView() {
     '</div><button class="btn" style="margin-top:12px" onclick="openStorefront()">Editar vitrine</button> <a class="btn secondary" target="_blank" href="/vitrine?loja=' +
     encodeURIComponent(a.slug || "") +
     '">Visualizar</a></div><div class="card"><h3>Conexões WhatsApp</h3>' +
-    (con.length
-      ? con
-          .map(function (x) {
-            return (
-              '<div class="integration"><div class="intlogo">WA</div><div class="grow"><b>' +
-              esc(x.name) +
-              '</b><div class="muted">' +
-              esc(x.provider) +
-              " · " +
-              esc(x.status) +
-              "</div></div></div>"
-            );
-          })
-          .join("")
-      : empty("Nenhum WhatsApp cadastrado")) +
-    '<button class="btn secondary" style="margin-top:12px" onclick="openConnection()">+ Adicionar número</button><h3 style="margin-top:24px">Bots do Telegram</h3>' +
+    whatsappConnectionsMarkup() +
+    '<h3 style="margin-top:24px">Bots do Telegram</h3>' +
     (tg.length
       ? tg
           .map(function (x) {
@@ -2171,7 +2163,7 @@ function openSecurity() {
   var s = D.growth.security || {};
   openModal(
     "Política de segurança",
-    "Configure retenção e resposta a incidentes.",
+    "A limpeza remove apenas eventos de contatos e mensagens antigos. Histórico financeiro e auditoria são preservados.",
     field(
       "Retenção em dias",
       "retentionDays",
@@ -2189,12 +2181,13 @@ function openSecurity() {
       select(
         "Consentimento de marketing",
         "marketingConsentRequired",
-        '<option value="true">Obrigatório</option><option value="false">Opcional</option>',
+        '<option value="true" '+(s.marketingConsentRequired!==false?'selected':'')+'>Obrigatório</option><option value="false" '+(s.marketingConsentRequired===false?'selected':'')+'>Opcional</option>',
       ) +
+      select('Limpeza automática dos eventos antigos', 'retentionEnabled', '<option value="false" '+(!s.retentionEnabled?'selected':'')+'>Desativada</option><option value="true" '+(s.retentionEnabled?'selected':'')+'>Ativada</option>') +
       select(
         "Exportação de dados",
         "dataExportEnabled",
-        '<option value="true">Permitida</option><option value="false">Desativada</option>',
+        '<option value="true" '+(s.dataExportEnabled!==false?'selected':'')+'>Permitida</option><option value="false" '+(s.dataExportEnabled===false?'selected':'')+'>Desativada</option>',
       ),
     async function (e) {
       e.preventDefault();
@@ -2202,6 +2195,7 @@ function openSecurity() {
         var x = Object.fromEntries(new FormData(e.target));
         x.marketingConsentRequired = x.marketingConsentRequired === "true";
         x.dataExportEnabled = x.dataExportEnabled === "true";
+        x.retentionEnabled = x.retentionEnabled === 'true';
         await growthCall("PUT", Object.assign({ entity: "security" }, x));
         closeModal();
         show("security");
@@ -2623,50 +2617,32 @@ function openStorefront() {
     },
   );
 }
-function openConnection() {
-  openModal(
-    "Adicionar WhatsApp",
-    "Cadastre a conexão que será acionada pelo n8n.",
-    field(
-      "Nome da conexão",
-      "name",
-      "text",
-      'required placeholder="Número principal"',
-    ) +
-      select(
-        "Provedor",
-        "provider",
-        '<option value="N8N">n8n</option><option value="OFFICIAL_API">API oficial</option>',
-      ) +
-      field(
-        "Identificação externa",
-        "externalId",
-        "text",
-        'placeholder="ID fornecido pelo provedor"',
-      ) +
-      field(
-        "Prioridade de fallback",
-        "priority",
-        "number",
-        'min="1" value="100"',
-      ),
-    async function (e) {
-      e.preventDefault();
-      try {
-        await suiteCall(
-          "POST",
-          Object.assign(
-            { entity: "connection" },
-            Object.fromEntries(new FormData(e.target)),
-          ),
-        );
-        closeModal();
-        toast("Conexão cadastrada em modo pausado");
-      } catch (err) {
-        toast(err.message);
-      }
-    },
-  );
+function whatsappConnectionsMarkup() {
+  var connections = D.suite.connections || [], rotation = D.suite.whatsappRotation || {enabled:true,maxConnections:5};
+  var cards = connections.map(function(x,index) {
+    return '<div class="integration"><div class="intlogo" aria-hidden="true">'+(index+1)+'</div><div class="grow"><b>'+esc(x.name)+'</b><div class="muted">'+esc(x.phoneNumber || 'Informe o número')+' · '+esc(x.status)+'</div><div class="muted">Intervalo '+x.intervalSeconds+'s · '+(x.groupMessagingSupported?'Grupo confirmado pelo conector':'Aguardando validação do conector')+'</div>'+(x.lastDispatchedAt?'<div class="muted">Último envio assumido: '+esc(new Date(x.lastDispatchedAt).toLocaleString('pt-BR'))+'</div>':'')+'<div class="actions" style="margin-top:8px"><button class="btn secondary" onclick="openConnection(\''+x.id+'\')">Editar '+esc(x.name)+'</button><button class="btn secondary" onclick="toggleWhatsapp(\''+x.id+'\',\''+(x.status==='ACTIVE'?'PAUSED':'ACTIVE')+'\')">'+(x.status==='ACTIVE'?'Pausar':'Ativar')+' '+esc(x.name)+'</button><button class="btn secondary" onclick="archiveWhatsapp(\''+x.id+'\')">Remover '+esc(x.name)+'</button></div></div></div>';
+  }).join('');
+  return '<div class="callout"><b>'+connections.length+' de 5 números</b> · '+(rotation.enabled?'Revezamento automático ativo':'Seleção por prioridade')+'<p>Cada publicação é assumida por um único número. Números pausados, desconectados ou em intervalo aguardam sua vez.</p><button class="btn secondary" onclick="toggleWhatsappRotation('+(rotation.enabled?'false':'true')+')">'+(rotation.enabled?'Usar prioridade':'Ativar revezamento')+'</button> <button class="btn secondary" onclick="openWhatsappPairing()">Parear conector</button></div>'+cards+(connections.length<5?'<button class="btn" style="margin-top:12px" onclick="openConnection()">+ Adicionar número ('+connections.length+'/5)</button>':'<p class="muted">Limite de cinco números atingido.</p>');
+}
+async function toggleWhatsapp(id,status) {
+  try {await suiteCall('PUT',{entity:'connection',id:id,status:status});show('account');toast('Estado do número atualizado');}catch(e){toast(e.message);}
+}
+async function archiveWhatsapp(id) {
+  try {await suiteCall('DELETE',null,'?entity=connection&id='+encodeURIComponent(id));show('account');toast('Número removido do revezamento');}catch(e){toast(e.message);}
+}
+async function toggleWhatsappRotation(enabled) {
+  try {await suiteCall('PUT',{entity:'whatsappRotation',enabled:enabled});show('account');toast(enabled?'Revezamento automático ativo':'Seleção por prioridade ativa');}catch(e){toast(e.message);}
+}
+function openConnection(id) {
+  var current=(D.suite.connections||[]).find(function(x){return x.id===id;})||{};
+  if(!id&&(D.suite.connections||[]).length>=5)return toast('Limite de cinco números por conta.');
+  openModal(id?'Editar WhatsApp':'Adicionar WhatsApp','Cadastre até cinco números. O conector confirma o acesso ao número e aos grupos; depois você ativa o envio.',
+    field('Nome da conexão','name','text','required value="'+esc(current.name||'')+'" placeholder="Número principal"')+
+    field('Número do WhatsApp com DDI','phoneNumber','tel','required value="'+esc(current.phoneNumber||'')+'" placeholder="+55 (DD) número" autocomplete="tel"')+
+    select('Provedor','provider',['N8N','EVOLUTION','OFFICIAL_API'].map(function(x){return '<option value="'+x+'" '+(current.provider===x?'selected':'')+'>'+({N8N:'n8n / conector próprio',EVOLUTION:'Evolution API',OFFICIAL_API:'WhatsApp Business (verificar suporte ao grupo)'})[x]+'</option>';}).join(''))+
+    field('Identificação no conector','externalId','text','required value="'+esc(current.externalId||'')+'" placeholder="Nome da instância ou ID fornecido pelo provedor"')+
+    '<div class="formgrid">'+field('Prioridade quando o revezamento estiver desligado','priority','number','min="1" max="9999" value="'+(current.priority||100)+'"')+field('Intervalo mínimo por número (segundos)','intervalSeconds','number','min="30" max="3600" value="'+(current.intervalSeconds||60)+'"')+'</div><div id="connectionError" role="alert" tabindex="-1" hidden></div>',
+    async function(e){e.preventDefault();try{var body=Object.assign({entity:'connection'},Object.fromEntries(new FormData(e.target)));if(id){body.id=id;body.action='EDIT';}await suiteCall(id?'PUT':'POST',body);closeModal();show('account');toast(id?'Conexão atualizada':'Número cadastrado; confirme no conector e ative.');}catch(error){var notice=document.getElementById('connectionError');notice.hidden=false;notice.textContent=error.message;notice.focus();}});
 }
 function openTelegramConnection() {
   openModal(
@@ -2825,7 +2801,10 @@ function openMonitor() {
         "sourceType",
         '<option value="WHATSAPP_GROUP">Grupo do WhatsApp</option><option value="MARKETPLACE">Marketplace</option><option value="FEED">Feed autorizado</option>',
       ) +
-      field("Link ou identificação", "sourceUrl", "text", "required") +
+      field("Origem HTTPS", "sourceUrl", "url", "required") +
+      field('Link oficial de afiliado (anúncio Mercado Livre)', 'affiliateUrl', 'url') +
+      select('Autorização da origem', 'sourceAuthorized', '<option value="false">Não confirmada — manter pausado</option><option value="true">Confirmo que tenho autorização para esta origem</option>') +
+      '<p class="muted">Feed: JSON com lista offers. Marketplace: um anúncio MLB do Mercado Livre. Grupos: eventos enviados pelo conector da conta.</p>' +
       select(
         "Categoria",
         "categoryId",
@@ -2909,15 +2888,17 @@ function openQueue() {
 }
 function openSchedule() {
   openModal(
-    "Planejar recorrência",
-    "Registre a mensagem e o horário; o executor automático ainda não está habilitado.",
+    "Nova recorrência",
+    "Salva pausada. Ao ativar, o executor agenda a mensagem no fuso da conta e respeita os intervalos de envio.",
     field("Nome", "name", "text", "required") +
       select("Grupo", "groupId", groupOpts()) +
       select(
         "Recorrência",
         "recurrence",
-        '<option value="DAILY">Diária</option><option value="WEEKDAYS">Dias úteis</option><option value="WEEKLY">Semanal</option>',
+        '<option value="DAILY">Diária</option><option value="WEEKDAYS">Dias úteis</option><option value="WEEKLY">Semanal</option><option value="ONCE">Uma vez</option>',
       ) +
+      select('Dia da semana (semanal)', 'weekday', '<option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option><option value="0">Domingo</option>') +
+      field('Data (uma vez)', 'onceDate', 'date') +
       field("Horário", "sendTime", "time", 'value="09:00" required') +
       '<div class="field"><label>Mensagem</label><textarea class="input" name="message" rows="5" required></textarea></div>',
     async function (e) {
@@ -2931,7 +2912,7 @@ function openSchedule() {
           ),
         );
         closeModal();
-        toast("Planejamento salvo");
+        toast("Recorrência salva pausada");
       } catch (err) {
         toast(err.message);
       }
@@ -3120,7 +3101,7 @@ async function load(){
 }
 function toast(message){
   var element=document.getElementById('toast');element.textContent=message;element.classList.add('on');
-  var error=document.getElementById('formError');if(error&&document.getElementById('modal').classList.contains('on'))error.textContent=message;
+  var error=document.getElementById('formError');if(error&&document.getElementById('modal').classList.contains('on')){error.textContent=message;error.tabIndex=-1;error.focus();}
   clearTimeout(window.toastTimeout);window.toastTimeout=setTimeout(function(){element.classList.remove('on');},4500);
 }
 function openModal(title,hint,body,submit){
@@ -3141,7 +3122,7 @@ function openModal(title,hint,body,submit){
 function closeModal(){
   var modal=document.getElementById('modal');modal.classList.remove('on');modal.setAttribute('aria-hidden','true');document.querySelector('.app').inert=false;
   if(modalReturnFocus?.isConnected)modalReturnFocus.focus();else document.getElementById('content').focus();
-  modalReturnFocus=null;
+  modalReturnFocus=null;whatsappPairing=null;
 }
 function field(label,name,type,extra){
   var id='field_'+(++fieldSequence);
@@ -3180,3 +3161,38 @@ integrations=function(){
   return panel+originalIntegrations();
 };
 syncDrawer();nav();load();
+
+async function operationRequest(path,body){
+  var r=await fetch(path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
+  var data=await r.json();if(!r.ok)throw Error(data.error || 'Operação indisponível.');return data;
+}
+async function captureMonitor(id,button){
+  button.disabled=true;try{var r=await operationRequest('/api/monitors/run',{monitorId:id});await load();toast(r.failed?'Falha na origem; consulte o monitor.':r.captured+' nova(s) oferta(s) capturada(s).');}catch(e){toast(e.message);}finally{button.disabled=false;}
+}
+function saveDownload(data,name){
+  var link=document.createElement('a'),url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));link.href=url;link.download=name;link.click();setTimeout(function(){URL.revokeObjectURL(url);},1000);
+}
+async function downloadPrivate(path,name){try{saveDownload(await operationRequest(path),name);}catch(e){toast(e.message);}}
+async function listBackups(button){
+  if(button)button.disabled=true;
+  try{var r=await operationRequest('/api/backups'),target=document.getElementById('backupList');if(target)target.innerHTML=r.backups.length?r.backups.map(function(b){return '<div class="row"><div class="grow"><b>'+esc(new Date(b.createdAt).toLocaleString('pt-BR'))+'</b><div class="muted">'+Math.ceil(b.bytes/1024)+' KiB · SHA-256 '+esc(b.sha256.slice(0,12))+'…</div></div><button class="btn secondary" onclick="downloadPrivate(\'/api/backups?id='+b.id+'\',\'radar-backup-'+b.id+'.json\')">Baixar backup</button></div>';}).join(''):empty('Nenhum backup criado.');}catch(e){toast(e.message);}finally{if(button)button.disabled=false;}
+}
+async function createBackup(button){button.disabled=true;try{await operationRequest('/api/backups',{});await listBackups();toast('Backup privado criado e integridade registrada.');}catch(e){toast(e.message);}finally{button.disabled=false;}}
+async function previewRetention(){try{var r=await operationRequest('/api/privacy',{action:'RETENTION_PREVIEW'});toast(r.enabledAccounts?r.removed+' evento(s) antigo(s) elegíveis à limpeza.':'Limpeza automática desativada.');}catch(e){toast(e.message);}}
+function openPrivacyProcess(id){
+  var item=(D.growth.privacyRequests||[]).find(function(x){return x.id===id;});if(!item)return;
+  var verified=Boolean(item.identityVerifiedAt),form=verified?'<p class="muted">Escopo verificado: '+esc(item.subjectScope)+'</p>':select('Escopo do titular','subjectScope','<option value="LEAD">Contato identificado por hash</option><option value="ACCOUNT_OWNER">Titular desta conta</option>')+field('Hash do contato (escopo contato)','subjectHash','text')+field('Evidência da verificação de identidade','evidence','text','minlength="8" required');
+  if(verified&&['DELETION','REVOCATION'].includes(item.requestType))form+=field('Confirme ANONIMIZAR','confirmation','text','required');
+  if(verified&&item.requestType==='CORRECTION')form+=field('DDD corrigido','ddd','text','pattern="[0-9]{2,3}" required');
+  openModal(verified?'Processar solicitação':'Verificar identidade','Confira a identidade e o escopo antes de tratar dados. Serviços externos exigem atendimento próprio.',form,async function(e){e.preventDefault();try{var data=Object.fromEntries(new FormData(e.target)),r=await operationRequest('/api/privacy',Object.assign({id:id,action:verified?'RESOLVE':'VERIFY'},data));if(r.data&&['ACCESS','PORTABILITY'].includes(item.requestType))saveDownload(r.data,'radar-solicitacao-'+id+'.json');await load();closeModal();show('security');toast(verified?'Solicitação processada.':'Identidade registrada. Agora processe a solicitação.');}catch(error){toast(error.message);}});
+}
+
+var whatsappPairing=null;
+async function openWhatsappPairing(){
+  try{
+    var data=await operationRequest('/api/n8n/pairing',{});whatsappPairing=data;
+    openModal('Parear conector','Copie o código para o conector desta conta. Após validar os números e os grupos, ative os números no painel.',field('Conta do conector','workerAccountId','text','readonly value="'+esc(data.accountId)+'"')+field('Código de pareamento','workerPairingCode','password','readonly value="'+esc(data.pairingSecret)+'" autocomplete="off"')+'<button type="button" class="btn secondary" onclick="copyWhatsappPairing()">Copiar código</button>',async function(e){e.preventDefault();closeModal();});
+    document.querySelector('#form button[type=submit]').textContent='Concluído';
+  }catch(e){whatsappPairing=null;toast(e.message);}
+}
+async function copyWhatsappPairing(){try{if(whatsappPairing){await navigator.clipboard.writeText(whatsappPairing.pairingSecret);toast('Código copiado. Guarde apenas no conector desta conta.');}}catch{toast('Não foi possível copiar. Selecione o código no campo.');}}
