@@ -113,7 +113,10 @@ test('migração falha atomicamente, registra execução e recusa alteração po
 });
 
 test('webhook de entrega exige claim e identificador oficial, sem sobrescrever entrega confirmada',async()=>{
- const publication=(await db.query("SELECT id FROM publications WHERE account_id=$1 AND status='READY' LIMIT 1",[a.id])).rows[0];
+ await db.query("INSERT INTO promo_groups(id,account_id,name,platform,external_id,status) VALUES('wa-proof-group',$1,'WhatsApp isolado','WHATSAPP','proof@g.us','ACTIVE')",[a.id]);
+ await offer(a.id,'wa-proof-offer');
+ await db.query("INSERT INTO publications(id,account_id,offer_id,group_id,status) VALUES('wa-proof-publication',$1,'wa-proof-offer','wa-proof-group','READY')",[a.id]);
+ const publication={id:'wa-proof-publication'};
  const payload={accountId:a.id,action:'result',publicationId:publication.id,status:'PUBLISHED',externalMessageId:'isolated-test-receipt'};
  assert.equal((await signedBridge({...payload,eventId:'result-no-claim'})).status,409);
  await db.query("UPDATE publications SET status='DISPATCHING' WHERE id=$1",[publication.id]);

@@ -10,7 +10,10 @@ export default async function(req,res){
   const a=await account(req.member);if(!a)return res.status(412).json({error:'Conta não identificada.'});
   try{
     if(req.method==='GET')return res.json({ok:true,...await complianceReport(a.id,req.query.days)});
-    const input=req.body||{},result=evaluateMessagingWindow(input);
+    let input=req.body||{},result=evaluateMessagingWindow(input);
+    if(input.contactHash&&(await db.query("SELECT id FROM privacy_requests WHERE account_id=$1 AND subject_scope='LEAD' AND subject_hash=$2 AND status='DONE' AND request_type IN ('DELETION','REVOCATION') LIMIT 1",[a.id,String(input.contactHash).slice(0,128)])).rows.length){
+      result={allowed:false,decision:'BLOCKED',reason:'Consentimento revogado ou contato removido.'};input={...input,contactHash:''};
+    }
     await recordComplianceEvent(a.id,input,result);
     return res.status(result.allowed?200:422).json({ok:result.allowed,...result});
   }catch(e){console.error('compliance/messaging',e);return res.status(500).json({error:'Não foi possível gerar o relatório de conformidade.'})}

@@ -7,7 +7,7 @@ export const methods=['POST'];
 
 export default async function(req,res){
   const origin=String(await config.get('public_app_url')||'https://radar-promo-brasil.hatchable.site').replace(/\/$/,'');
-  const rows=(await db.query(`SELECT p.id,p.account_id AS "accountId",p.message,p.image_url AS "imageUrl",COALESCE(p.image_storage_key,o.image_storage_key) AS "imageStorageKey",p.attempts,o.affiliate_url AS "affiliateUrl",g.external_id AS "groupExternalId" FROM publications p JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id WHERE p.status IN ('READY','RETRY') AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now()) AND g.status='ACTIVE' AND g.platform='TELEGRAM' AND NULLIF(trim(g.external_id),'') IS NOT NULL AND p.image_url IS NOT NULL AND ${eligiblePublication} ORDER BY p.priority DESC,p.created_at LIMIT 20`)).rows;
+  const rows=(await db.query(`SELECT p.id,p.content_type AS "contentType",p.account_id AS "accountId",p.message,p.image_url AS "imageUrl",COALESCE(p.image_storage_key,o.image_storage_key) AS "imageStorageKey",p.attempts,o.affiliate_url AS "affiliateUrl",g.external_id AS "groupExternalId" FROM publications p LEFT JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id WHERE p.status IN ('READY','RETRY') AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now()) AND g.status='ACTIVE' AND g.platform='TELEGRAM' AND NULLIF(trim(g.external_id),'') IS NOT NULL AND (p.content_type='MESSAGE' OR p.image_url IS NOT NULL) AND ${eligiblePublication} ORDER BY p.priority DESC,p.created_at LIMIT 20`)).rows;
   let published=0,failed=0,unconfirmed=0,processed=0;
   for(const item of rows){
     if(!(await claimPublication(db,item.id,item.accountId)))continue;
@@ -18,8 +18,8 @@ export default async function(req,res){
       let providerAccepted=false;
       try{
         const token=await configuredBotToken(connection.secretSlot,item.accountId);
-        const trackingUrl=origin+'/api/r/'+encodeURIComponent(item.id),trackedMessage=String(item.message||'').split(item.affiliateUrl).join(trackingUrl);
-        const external=await sendTelegramOffer(token,{...item,imageUrl:new URL(await offerImage(item),origin).toString(),message:trackedMessage,affiliateUrl:trackingUrl});
+        const trackingUrl=origin+'/api/r/'+encodeURIComponent(item.id),trackedMessage=item.affiliateUrl?String(item.message||'').split(item.affiliateUrl).join(trackingUrl):String(item.message||'');
+        const external=await sendTelegramOffer(token,{...item,imageUrl:item.contentType==='MESSAGE'?null:new URL(await offerImage(item),origin).toString(),message:trackedMessage,affiliateUrl:trackingUrl});
         providerAccepted=true;
         await db.transaction([
           {sql:"UPDATE publications SET status='PUBLISHED',published_at=now(),error_message=NULL,telegram_connection_id=$3,external_message_id=$4 WHERE id=$1 AND account_id=$2 AND status='DISPATCHING'",params:[item.id,item.accountId,connection.id,String(external?.message_id||'')]},

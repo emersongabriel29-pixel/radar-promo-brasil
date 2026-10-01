@@ -3,9 +3,10 @@ import { getOrCreateAccount as account } from 'lib/accounts.js';
 import { bindCredential } from 'lib/credential-bindings.js';
 import { colorValue,booleanValue,httpsUrl } from 'lib/validation.js';
 import { configuredBotToken,inspectBot } from 'lib/telegram.js';
+import { createWhatsappConnection,changeWhatsappConnection,editWhatsappConnection,archiveWhatsappConnection } from 'lib/whatsapp-rotation.js';
 
 export const access='member';
-export const methods=['GET','POST','PUT'];
+export const methods=['GET','POST','PUT','DELETE'];
 const id=()=>crypto.randomUUID();
 const text=(v,n=500)=>String(v??'').trim().slice(0,n);
 const slugify=v=>text(v,80).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'operacao';
@@ -14,14 +15,15 @@ const STORES=['AMAZON','SHOPEE','MERCADO_LIVRE','SHEIN','ALIEXPRESS','MAGALU','C
 async function snapshot(a){
   const q=await Promise.all([
     db.query('SELECT marketplace,affiliate_tag AS "affiliateTag",subid_template AS "subidTemplate",conversion_endpoint AS "conversionEndpoint",status FROM marketplace_rules WHERE account_id=$1 ORDER BY marketplace',[a.id]),
-    db.query('SELECT id,name,provider,external_id AS "externalId",priority,status,last_seen_at AS "lastSeenAt",failure_count AS "failureCount" FROM whatsapp_connections WHERE account_id=$1 ORDER BY priority,name',[a.id]),
+    db.query("SELECT id,name,phone_number AS \"phoneNumber\",provider,external_id AS \"externalId\",priority,status,last_seen_at AS \"lastSeenAt\",failure_count AS \"failureCount\",last_dispatched_at AS \"lastDispatchedAt\",last_dispatch_sequence AS \"lastDispatchSequence\",interval_seconds AS \"intervalSeconds\",last_verified_at AS \"lastVerifiedAt\",group_messaging_supported AS \"groupMessagingSupported\" FROM whatsapp_connections WHERE account_id=$1 AND status<>'ARCHIVED' ORDER BY last_dispatch_sequence,priority,created_at,id",[a.id]),
     db.query('SELECT * FROM storefront_settings WHERE account_id=$1',[a.id]),
     db.query('SELECT network,status,external_id AS "externalId" FROM social_connections WHERE account_id=$1 ORDER BY network',[a.id]),
     db.query('SELECT plan,status,current_period_end AS "currentPeriodEnd" FROM subscriptions WHERE account_id=$1 ORDER BY created_at DESC LIMIT 1',[a.id]),
     db.query("SELECT count(DISTINCT phone_hash)::int AS unique_leads,count(*) FILTER(WHERE event_type='JOIN')::int AS joins,count(*) FILTER(WHERE event_type='LEAVE')::int AS leaves FROM lead_events WHERE account_id=$1 AND occurred_at>now()-interval '30 days'",[a.id]),
-    db.query('SELECT id,name,bot_id AS "botId",bot_username AS "botUsername",secret_slot AS "secretSlot",priority,status,last_seen_at AS "lastSeenAt",failure_count AS "failureCount" FROM telegram_connections WHERE account_id=$1 ORDER BY priority,name',[a.id])
+    db.query('SELECT id,name,bot_id AS "botId",bot_username AS "botUsername",secret_slot AS "secretSlot",priority,status,last_seen_at AS "lastSeenAt",failure_count AS "failureCount" FROM telegram_connections WHERE account_id=$1 ORDER BY priority,name',[a.id]),
+    db.query('SELECT whatsapp_rotation_enabled AS enabled,whatsapp_dispatch_sequence AS sequence FROM account_settings WHERE account_id=$1',[a.id])
   ]);
-  return {account:{id:a.id,name:a.name,slug:a.slug,plan:a.plan,status:a.status,trialEndsAt:a.trial_ends_at},marketplaces:q[0].rows,connections:q[1].rows,storefront:q[2].rows[0]||{},social:q[3].rows,subscription:q[4].rows[0]||null,leads:q[5].rows[0],telegramConnections:q[6].rows};
+  return {account:{id:a.id,name:a.name,slug:a.slug,plan:a.plan,status:a.status,trialEndsAt:a.trial_ends_at},marketplaces:q[0].rows,connections:q[1].rows,storefront:q[2].rows[0]||{},social:q[3].rows,subscription:q[4].rows[0]||null,leads:q[5].rows[0],telegramConnections:q[6].rows,whatsappRotation:{maxConnections:5,...q[7].rows[0]}};
 }
 
 export default async function(req,res){
@@ -30,7 +32,13 @@ export default async function(req,res){
     const a=await account(req.member),b=req.body||{};
     if(req.method==='GET')return res.json(await snapshot(a));
     if(req.method==='POST'&&b.entity==='connection'){
-      await db.query('INSERT INTO whatsapp_connections(id,account_id,name,provider,external_id,priority,status) VALUES($1,$2,$3,$4,$5,$6,$7)',[id(),a.id,text(b.name,100),text(b.provider,30)||'N8N',text(b.externalId,200),Math.max(1,Number(b.priority)||100),'PAUSED']);
+      await createWhatsappConnection(a.id,b);
+    }else if(req.method==='PUT'&&b.entity==='connection'){
+      if(b.action==='EDIT')await editWhatsappConnection(a.id,b);else await changeWhatsappConnection(a.id,b);
+    }else if(req.method==='PUT'&&b.entity==='whatsappRotation'){
+      await db.query('UPDATE account_settings SET whatsapp_rotation_enabled=$2,updated_at=now() WHERE account_id=$1',[a.id,booleanValue(b.enabled)]);
+    }else if(req.method==='DELETE'&&req.query.entity==='connection'){
+      await archiveWhatsappConnection(a.id,text(req.query.id,100));
     }else if(req.method==='POST'&&b.entity==='telegramConnection'){
       const slot=Math.max(1,Math.min(3,Number(b.secretSlot)||1));await bindCredential('TELEGRAM',slot,a.id);const token=await configuredBotToken(slot),bot=await inspectBot(token),priority=Math.max(1,Math.min(9999,Number(b.priority)||100));
       await db.query("INSERT INTO telegram_connections(id,account_id,name,bot_id,bot_username,secret_slot,priority,status,last_seen_at) VALUES($1,$2,$3,$4,$5,$6,$7,'ACTIVE',now()) ON CONFLICT(account_id,secret_slot) DO UPDATE SET name=EXCLUDED.name,bot_id=EXCLUDED.bot_id,bot_username=EXCLUDED.bot_username,priority=EXCLUDED.priority,status='ACTIVE',failure_count=0,last_seen_at=now(),updated_at=now()",[id(),a.id,text(b.name,100)||('@'+(bot.username||bot.id)),String(bot.id),text(bot.username,100),slot,priority]);
@@ -49,5 +57,5 @@ export default async function(req,res){
       if(!changed.rows.length)return res.status(404).json({error:'Conexão não encontrada.'});
     }else return res.status(400).json({error:'Ação inválida.'});
     return res.json({ok:true,...await snapshot(a)});
-  }catch(e){const message=e?.message||'Falha na configuração.';return res.status(message.includes('Configure o token')||e?.code==='CREDENTIAL_OWNERSHIP'?412:500).json({error:message})}
+  }catch(e){const message=e?.message||'Falha na configuração.';return res.status(e.status||(message.includes('Configure o token')||e?.code==='CREDENTIAL_OWNERSHIP'?412:500)).json({error:e.status||e.code==='CREDENTIAL_OWNERSHIP'||message.includes('Configure o token')?message:'Não foi possível salvar a configuração.'})}
 }

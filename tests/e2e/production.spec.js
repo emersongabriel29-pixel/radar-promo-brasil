@@ -50,3 +50,37 @@ test('menu e layout em 375, 768, 880, 1024 e 1440; preferência por movimento re
   if(width===375)await page.screenshot({path:'test-results/dashboard-mobile.png',fullPage:true});
  }
 });
+test('cinco WhatsApps, limite, controles de revezamento e fluxos operacionais acessíveis',async({page,request})=>{
+ await ready(page);await page.locator('#nav').getByRole('button',{name:'Configurações',exact:true}).click();
+ await page.getByRole('button',{name:'Conta, vitrine e planos',exact:true}).click();
+ await page.getByRole('button',{name:'Parear conector',exact:true}).click();
+ await expect(page.locator('#toast')).toContainText('Segredo principal do n8n ainda não configurado');
+ for(let i=1;i<=5;i++){
+  await page.getByRole('button',{name:/Adicionar número/}).click();
+  await page.getByLabel('Nome da conexão',{exact:true}).fill('WhatsApp teste '+i);
+  await page.getByLabel('Número do WhatsApp com DDI').fill('+551199999100'+i);
+  await page.getByLabel('Identificação no conector').fill('browser-instance-'+i);
+  if(i===1)await accessibility(page);
+  await page.getByRole('button',{name:'Salvar',exact:true}).click();await expect(page.getByRole('dialog')).not.toBeVisible();
+ }
+ await expect(page.locator('#content')).toContainText('5 de 5 números');
+ await expect(page.getByRole('button',{name:/Adicionar número/})).toHaveCount(0);
+ expect((await request.post('/api/suite',{data:{entity:'connection',name:'Sexto',phoneNumber:'+5511999991006',externalId:'instance-6'}})).status()).toBe(409);
+ await page.getByRole('button',{name:'Usar prioridade',exact:true}).click();await expect(page.locator('#content')).toContainText('Seleção por prioridade');
+ await page.getByRole('button',{name:'Ativar revezamento',exact:true}).click();await expect(page.locator('#content')).toContainText('Revezamento automático ativo');
+ await page.getByRole('button',{name:'Ativar WhatsApp teste 1',exact:true}).click();await expect(page.locator('#toast')).toContainText('conector deve confirmar');
+ await page.getByRole('button',{name:'Editar WhatsApp teste 1',exact:true}).click();await page.getByLabel('Número do WhatsApp com DDI').fill('invalid');
+ await page.getByRole('button',{name:'Salvar',exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible();await expect(page.getByLabel('Número do WhatsApp com DDI')).toHaveValue('invalid');await expect(page.locator('#connectionError')).toBeFocused();await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'Remover WhatsApp teste 5',exact:true}).click();await expect(page.locator('#content')).toContainText('4 de 5 números');
+ await page.setViewportSize({width:375,height:900});await expect(page.locator('#content')).toContainText('4 de 5 números');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);await accessibility(page);
+ await page.screenshot({path:'test-results/whatsapp-rotation-mobile.png',fullPage:true});
+ await page.setViewportSize({width:1440,height:900});await page.locator('#nav').getByRole('button',{name:'Radar',exact:true}).click();await page.getByRole('button',{name:'+ Nova fonte',exact:true}).click();
+ await page.getByLabel('Nome da fonte').fill('Feed autorizado');await page.getByLabel('Tipo',{exact:true}).selectOption('FEED');await page.getByLabel('Origem HTTPS').fill('https://example.com/feed');await page.getByLabel('Autorização da origem').selectOption('true');await accessibility(page);
+ await page.getByRole('button',{name:'Salvar',exact:true}).click();await expect(page.getByRole('dialog')).not.toBeVisible();
+ await page.locator('#nav').getByRole('button',{name:'Publicações',exact:true}).click();await page.getByRole('button',{name:'+ Nova recorrência',exact:true}).click();await expect(page.getByLabel('Data (uma vez)')).toBeVisible();await accessibility(page);await page.keyboard.press('Escape');
+ await page.locator('#nav').getByRole('button',{name:'Configurações',exact:true}).click();await page.getByRole('button',{name:'Segurança e LGPD',exact:true}).click();
+ await page.getByRole('button',{name:'Criar backup',exact:true}).click();await expect(page.getByRole('button',{name:'Baixar backup',exact:true})).toBeVisible();
+ const backup=(await (await request.get('/api/backups')).json()).backups[0];const file=await request.get('/api/backups?id='+backup.id);expect(file.status()).toBe(200);expect((await file.json()).format).toBe('radar-account-backup');expect(file.headers()['cache-control']).toBe('no-store');
+ await accessibility(page);
+});

@@ -1,0 +1,12 @@
+ALTER TABLE account_settings ADD COLUMN IF NOT EXISTS whatsapp_rotation_enabled BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE account_settings ADD COLUMN IF NOT EXISTS whatsapp_dispatch_sequence BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE whatsapp_connections ADD COLUMN IF NOT EXISTS phone_number TEXT NOT NULL DEFAULT '';
+ALTER TABLE whatsapp_connections ADD COLUMN IF NOT EXISTS last_dispatch_sequence BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE whatsapp_connections ADD COLUMN IF NOT EXISTS last_dispatched_at TIMESTAMPTZ;
+ALTER TABLE whatsapp_connections ADD COLUMN IF NOT EXISTS interval_seconds INTEGER NOT NULL DEFAULT 60;
+ALTER TABLE whatsapp_connections ADD COLUMN IF NOT EXISTS last_verified_at TIMESTAMPTZ;
+ALTER TABLE whatsapp_connections ADD COLUMN IF NOT EXISTS group_messaging_supported BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE whatsapp_connections ADD COLUMN IF NOT EXISTS verified_groups JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS dispatch_token TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_whatsapp_phone_per_account ON whatsapp_connections(account_id,phone_number) WHERE phone_number<>'' AND status<>'ARCHIVED';
+CREATE INDEX IF NOT EXISTS idx_whatsapp_rotation ON whatsapp_connections(account_id,status,last_dispatch_sequence,priority);

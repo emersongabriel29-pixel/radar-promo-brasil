@@ -11,6 +11,7 @@ dist/
 playwright-report/
 test-results/
 public/uploads/
+whatsapp-worker.json
 .codex/skills/**/__pycache__/
 !.codex/skills/ui-ux-pro-max/data/
 !.codex/skills/ui-ux-pro-max/data/**

@@ -1,4 +1,5 @@
-import { db } from 'hatchable';
+import { db,config } from 'hatchable';
+import {booleanValue} from 'lib/validation.js';
 
 export const access='member';
 export const methods=['GET','POST','PUT','DELETE'];
@@ -10,6 +11,7 @@ const TYPES=['ACCESS','CORRECTION','DELETION','PORTABILITY','REVOCATION'];
 async function account(m){return (await db.query('SELECT id FROM accounts WHERE owner_member_id=$1',[String(m.id)])).rows[0]}
 function https(v){try{return new URL(v).protocol==='https:'}catch{return false}}
 async function audit(a,type,severity,details){await db.query('INSERT INTO security_events(account_id,event_type,severity,details) VALUES($1,$2,$3,$4)',[a,type,severity,JSON.stringify(details||{})])}
+async function configured(name){try{return Boolean(await config.get(name));}catch{return false;}}
 
 async function snapshot(a){
   const q=await Promise.all([
@@ -17,19 +19,19 @@ async function snapshot(a){
     db.query('SELECT id,name,platform,objective,daily_budget_cents AS "dailyBudget",utm_source AS "utmSource",utm_medium AS "utmMedium",utm_campaign AS "utmCampaign",status,created_at AS "createdAt" FROM growth_campaigns WHERE account_id=$1 ORDER BY created_at DESC LIMIT 100',[a]),
     db.query('SELECT id,network,display_name AS "displayName",status,external_id AS "externalId",capabilities,last_error AS "lastError",updated_at AS "updatedAt" FROM social_connections WHERE account_id=$1 ORDER BY network',[a]),
     db.query('SELECT id,kind,channel,provider_model AS "model",content,asset_url AS "assetUrl",status,created_at AS "createdAt" FROM content_assets WHERE account_id=$1 ORDER BY created_at DESC LIMIT 40',[a]),
-    db.query('SELECT retention_days AS "retentionDays",marketing_consent_required AS "marketingConsentRequired",data_export_enabled AS "dataExportEnabled",incident_email AS "incidentEmail",updated_at AS "updatedAt" FROM account_security_settings WHERE account_id=$1',[a]),
-    db.query('SELECT id,request_type AS "requestType",requester_email AS "requesterEmail",notes,status,created_at AS "createdAt",resolved_at AS "resolvedAt" FROM privacy_requests WHERE account_id=$1 ORDER BY created_at DESC LIMIT 50',[a]),
+    db.query('SELECT retention_days AS "retentionDays",retention_enabled AS "retentionEnabled",marketing_consent_required AS "marketingConsentRequired",data_export_enabled AS "dataExportEnabled",incident_email AS "incidentEmail",updated_at AS "updatedAt" FROM account_security_settings WHERE account_id=$1',[a]),
+    db.query('SELECT id,request_type AS "requestType",requester_email AS "requesterEmail",notes,status,subject_scope AS "subjectScope",identity_verified_at AS "identityVerifiedAt",created_at AS "createdAt",resolved_at AS "resolvedAt" FROM privacy_requests WHERE account_id=$1 ORDER BY created_at DESC LIMIT 50',[a]),
     db.query('SELECT id,event_type AS "eventType",severity,details,created_at AS "createdAt" FROM security_events WHERE account_id=$1 ORDER BY created_at DESC LIMIT 30',[a]),
     db.query('SELECT id,kind,title,ratio,duration_seconds AS "durationSeconds",provider,status,output_url AS "outputUrl",last_error AS "lastError",created_at AS "createdAt",updated_at AS "updatedAt" FROM media_generation_jobs WHERE account_id=$1 ORDER BY created_at DESC LIMIT 30',[a])
   ]);
   return {coupons:q[0].rows,campaigns:q[1].rows,connections:q[2].rows,assets:q[3].rows,security:q[4].rows[0]||{},privacyRequests:q[5].rows,securityEvents:q[6].rows,mediaJobs:q[7].rows,checks:[
     {name:'Isolamento por conta',status:'ACTIVE',detail:'Consultas e gravações usam account_id.'},
     {name:'Segredos e tokens',status:'ACTIVE',detail:'Credenciais ficam fora do navegador e do banco de conteúdo.'},
-    {name:'Webhooks n8n',status:'ACTIVE',detail:'HMAC, janela temporal e idempotência.'},
-    {name:'Validação de conteúdo IA',status:'ACTIVE',detail:'Preço, cupom e link são inseridos pelo sistema, não inventados pelo modelo.'},
-    {name:'Entrega por e-mail',status:'ACTIVE',detail:'Envio transacional para Gmail, Outlook e outros provedores pela infraestrutura autenticada.'},
+    {name:'Webhooks n8n',status:await configured('N8N_WEBHOOK_SECRET')?'CONFIGURED':'PENDING',detail:'HMAC, janela temporal e idempotência implementados. Homologação exige o conector da conta.'},
+    {name:'Validação de conteúdo IA',status:'IMPLEMENTED',detail:'Preço, cupom e link são inseridos pelo sistema; a geração externa exige teste do provedor.'},
+    {name:'Entrega por e-mail',status:'PENDING',detail:'Homologue o remetente e a entrega antes de ativar campanhas.'},
     {name:'Remetente próprio e Meta',status:q[2].rows.some(x=>x.status==='ACTIVE')?'PARTIAL':'PENDING',detail:'Remetente próprio e publicação social exigem autorização OAuth/domínio do titular.'},
-    {name:'Mídia com fallback',status:'ACTIVE',detail:'Imagem usa provedor principal, Runway e cartão promocional seguro; vídeo usa fila assíncrona do Runway.'},
+    {name:'Mídia com fallback',status:'IMPLEMENTED',detail:'Cartão promocional local disponível. Imagem e vídeo externos exigem credenciais e homologação.'},
     {name:'Teste de invasão externo',status:'PENDING',detail:'Recomendado antes de tráfego real; não é certificação automática.'}
   ]};
 }
@@ -54,7 +56,10 @@ export default async function(req,res){
       await db.query("INSERT INTO privacy_requests(id,account_id,request_type,requester_email,notes,status) VALUES($1,$2,$3,$4,$5,'OPEN')",[uid(),a.id,type,email,clean(b.notes,1000)]);await audit(a.id,'PRIVACY_REQUEST','INFO',{type});
     }else if(req.method==='PUT'&&entity==='security'){
       const days=Math.max(30,Math.min(1825,Number(b.retentionDays)||365)),email=clean(b.incidentEmail,240);if(email&&!/^\S+@\S+\.\S+$/.test(email))return res.status(400).json({error:'E-mail de incidentes inválido.'});
-      await db.query('INSERT INTO account_security_settings(account_id,retention_days,marketing_consent_required,data_export_enabled,incident_email) VALUES($1,$2,$3,$4,$5) ON CONFLICT(account_id) DO UPDATE SET retention_days=EXCLUDED.retention_days,marketing_consent_required=EXCLUDED.marketing_consent_required,data_export_enabled=EXCLUDED.data_export_enabled,incident_email=EXCLUDED.incident_email,updated_at=now()',[a.id,days,b.marketingConsentRequired!==false,b.dataExportEnabled!==false,email]);await audit(a.id,'SECURITY_SETTINGS_UPDATED','INFO',{retentionDays:days});
+      await db.transaction([
+        {sql:'SELECT id FROM accounts WHERE id=$1 FOR UPDATE',params:[a.id]},
+        {sql:'INSERT INTO account_security_settings(account_id,retention_days,marketing_consent_required,data_export_enabled,incident_email,retention_enabled) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(account_id) DO UPDATE SET retention_days=EXCLUDED.retention_days,marketing_consent_required=EXCLUDED.marketing_consent_required,data_export_enabled=EXCLUDED.data_export_enabled,incident_email=EXCLUDED.incident_email,retention_enabled=EXCLUDED.retention_enabled,updated_at=now()',params:[a.id,days,booleanValue(b.marketingConsentRequired??true),booleanValue(b.dataExportEnabled??true),email,booleanValue(b.retentionEnabled)]}
+      ]);await audit(a.id,'SECURITY_SETTINGS_UPDATED','INFO',{retentionDays:days,retentionEnabled:booleanValue(b.retentionEnabled,false)});
     }else if(req.method==='DELETE'&&['coupon','campaign','asset'].includes(clean(req.query.entity,30))){
       const table={coupon:'coupons',campaign:'growth_campaigns',asset:'content_assets'}[clean(req.query.entity,30)],removed=await db.query('DELETE FROM '+table+' WHERE id=$1 AND account_id=$2 RETURNING id',[clean(req.query.id,100),a.id]);if(!removed.rows.length)return res.status(404).json({error:'Registro não encontrado.'});
     }else return res.status(400).json({error:'Ação inválida.'});
