@@ -15,8 +15,8 @@ async function accessibility(page){
 test('sete áreas acessíveis, conteúdo preservado, modal por teclado e oferta com upload',async({page,request})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await ready(page);
  await expect(page.locator('#nav button')).toHaveCount(7);
- for(const name of ['Central','Radar','Ofertas','Publicações','Canais','Relatórios','Configurações']){
-  await page.locator('#nav').getByRole('button',{name,exact:true}).click();await expect(page.locator('#title')).toHaveText(name);await accessibility(page);
+ for(const [name,title] of [['Central','Central de operação'],['Radar','Radar de ofertas'],['Ofertas','Ofertas e cupons'],['Publicações','Filas e agendamento'],['Canais','Grupos e canais'],['Relatórios','Relatórios'],['Configurações','Segurança e LGPD']]){
+  await page.locator('#nav').getByRole('button',{name,exact:true}).click();await expect(page.locator('#title')).toHaveText(title);await accessibility(page);
  }
  await page.getByRole('button',{name:'Integrações',exact:true}).click();await expect(page.getByRole('heading',{name:'Prontidão da operação'})).toBeVisible();
  await page.locator('#nav').getByRole('button',{name:'Ofertas',exact:true}).click();
