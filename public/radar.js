@@ -3195,8 +3195,8 @@ function parseActionArgs(source,element){
     var ch=source[i];
     if(escape){token+=ch;escape=false;continue;}
     if(quote){token+=ch;if(ch==='\\\\'){escape=true;}else if(ch===quote){quote='';}continue;}
-    if(ch==='\\''||ch==='"'){quote=ch;token+=ch;continue;}
-    if(ch==='('||ch==='['||ch==='{'){depth++;token+=ch;continue;}
+    if(quote){token+=ch;if(ch==='\\'){escape=true;}else if(ch===quote){quote='';}continue;}
+    if(ch==="'"||ch==='\"'){quote=ch;token+=ch;continue;}
     if(ch===')'||ch===']'||ch==='}'){depth--;token+=ch;continue;}
     if(ch===','&&depth===0){args.push(token.trim());token='';continue;}
     token+=ch;
