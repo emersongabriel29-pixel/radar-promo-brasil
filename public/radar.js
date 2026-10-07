@@ -149,7 +149,7 @@ function groupPage(key) {
         return (
           '<button class="group-tab ' +
           (n === active ? "on" : "") +
-          '" onclick="switchGroup(\'' +
+          '" data-action="switchGroup(\'' +
           key +
           "','" +
           n[0] +
@@ -236,7 +236,7 @@ function section(t, p, button, action) {
     p +
     "</p></div>" +
     (button
-      ? '<button class="btn" onclick="' + action + '">' + button + "</button>"
+      ? '<button class="btn" data-action="' + action + '">' + button + "</button>"
       : "") +
     "</div>"
   );
@@ -282,7 +282,7 @@ function offerRow(o) {
         o.id +
         "','APPROVED')\">Aprovar</button>"
       : "") +
-    '<button class="btn dark" onclick="prepare(\'' +
+    '<button class="btn dark" data-action="prepare(\'' +
     o.id +
     "')\">Preparar envio</button><button class=\"btn danger\" onclick=\"removeItem('offer','" +
     o.id +
@@ -318,7 +318,7 @@ function dashboard() {
       validatedMarketplaces > 0 &&
       activeConnections > 0;
   return (
-    '<section class="hero"><div><div class="eyebrow" style="color:#61e7ba">OPERAÇÃO INTELIGENTE</div><h2>Da oferta encontrada ao grupo certo, sem trabalho repetitivo.</h2><p>Monitore fontes, converta links, use IA para categorizar, organize filas e envie a imagem do produto junto com texto e link.</p><div class="actions"><button type=\"button\" id=\"create-promotion\" class=\"btn\" onclick=\"show(\'quick\')\">Criar promoção</button><button type="button" id="configure-monitor" class="btn secondary" onclick="show(\'monitoring\')">Configurar monitor</button></div></div><div class="pulsebox"><div class="pulse"><span>Motor de automação</span><i class="dot"></i></div><strong>' +
+    '<section class="hero"><div><div class="eyebrow" style="color:#61e7ba">OPERAÇÃO INTELIGENTE</div><h2>Da oferta encontrada ao grupo certo, sem trabalho repetitivo.</h2><p>Monitore fontes, converta links, use IA para categorizar, organize filas e envie a imagem do produto junto com texto e link.</p><div class="actions"><button type=\"button\" id=\"create-promotion\" class=\"btn\" onclick=\"show(\'quick\')\">Criar promoção</button><button type="button" id="configure-monitor" class="btn secondary" data-action="show(\'monitoring\')">Configurar monitor</button></div></div><div class="pulsebox"><div class="pulse"><span>Motor de automação</span><i class="dot"></i></div><strong>' +
     (operationOn ? "24/7 ativo" : "Em configuração") +
     "</strong><small>" +
     active +
@@ -438,7 +438,7 @@ function mode(code, title, text, target) {
     (ready ? "" : "muted") +
     '">' +
     (ready ? "Configurado" : "Configuração necessária") +
-    '</b><button class="btn secondary" onclick="show(\'' +
+    '</b><button class="btn secondary" data-action="show(\'' +
     target +
     "')\">Abrir</button></div></div>"
   );
@@ -509,8 +509,8 @@ function monitoring() {
                 ? "<button class=\"btn secondary\" onclick=\"status('monitor','" +
                   m.id +
                   "','PAUSED')\">Pausar</button>"
-                : '<button class="btn secondary" onclick="status(\'monitor\',\''+m.id+'\',\'ACTIVE\')">Ativar</button>') +
-              (m.status==='ACTIVE' && ['FEED','MARKETPLACE'].includes(m.sourceType) ? '<button class="btn secondary" onclick="captureMonitor(\''+m.id+'\',this)">Capturar agora</button>' : '') +
+                : '<button class="btn secondary" data-action="status(\'monitor\',\''+m.id+'\',\'ACTIVE\')">Ativar</button>') +
+              (m.status==='ACTIVE' && ['FEED','MARKETPLACE'].includes(m.sourceType) ? '<button class="btn secondary" data-action="captureMonitor(\''+m.id+'\',this)">Capturar agora</button>' : '') +
               "</div>"
             );
           })
@@ -533,7 +533,7 @@ function cloneView() {
         );
       })
       .join("") +
-    '</div><div class="callout" style="margin-top:15px">Mensagens com vários produtos ficam para revisão. O sistema não altera preço, cupom ou frete sem confirmação da fonte.</div></div><div class="card"><h3>Regras do clone</h3><p class="muted">✓ Preservar formatação e imagem<br>✓ Substituir links reconhecidos<br>✓ Gerar link de cupom quando disponível<br>✓ Bloquear duplicações<br>✓ Enviar à categoria compatível</p><button class="btn" onclick="openMonitor()">Adicionar origem</button></div></div>'
+    '</div><div class="callout" style="margin-top:15px">Mensagens com vários produtos ficam para revisão. O sistema não altera preço, cupom ou frete sem confirmação da fonte.</div></div><div class="card"><h3>Regras do clone</h3><p class="muted">✓ Preservar formatação e imagem<br>✓ Substituir links reconhecidos<br>✓ Gerar link de cupom quando disponível<br>✓ Bloquear duplicações<br>✓ Enviar à categoria compatível</p><button class="btn" data-action="openMonitor()">Adicionar origem</button></div></div>'
   );
 }
 function quick() {
@@ -544,7 +544,7 @@ function quick() {
       "+ Cadastrar oferta",
       "openOffer()",
     ) +
-    '<div class="grid two"><div class="card"><h3>Conversor oficial</h3><p class="muted">Reconhece as lojas cadastradas. A conversão só é liberada quando o método oficial daquela conta está validado.</p><div class="field"><label>Link do produto</label><input class="input" id="convertUrl" type="url" placeholder="https://..."></div><div class="field" style="margin-top:10px"><label>Identificação do grupo</label><input class="input" id="convertGroup" value="geral"></div><button class="btn" style="margin-top:12px" onclick="convertLink()">Converter link</button><div id="convertResult" class="callout" style="display:none;margin-top:12px"></div></div><div class="card"><div class="steps">' +
+    '<div class="grid two"><div class="card"><h3>Conversor oficial</h3><p class="muted">Reconhece as lojas cadastradas. A conversão só é liberada quando o método oficial daquela conta está validado.</p><div class="field"><label>Link do produto</label><input class="input" id="convertUrl" type="url" placeholder="https://..."></div><div class="field" style="margin-top:10px"><label>Identificação do grupo</label><input class="input" id="convertGroup" value="geral"></div><button class="btn" style="margin-top:12px" data-action="convertLink()">Converter link</button><div id="convertResult" class="callout" style="display:none;margin-top:12px"></div></div><div class="card"><div class="steps">' +
     [
       "Cole o link",
       "Confira o produto",
@@ -610,7 +610,7 @@ function queues() {
               (s.lastError ? '<br>'+esc(s.lastError) : '') +
               '</div></div><span class="pill '+(s.status==='ACTIVE'?'live':'warn')+'">' +
               esc(LABEL[s.status] || s.status) +
-              '</span><button class="btn secondary" onclick="status(\'schedule\',\''+s.id+'\',\''+(s.status==='ACTIVE'?'PAUSED':'ACTIVE')+'\')">'+(s.status==='ACTIVE'?'Pausar':'Ativar')+'</button></div>'
+              '</span><button class="btn secondary" data-action="status(\'schedule\',\''+s.id+'\',\''+(s.status==='ACTIVE'?'PAUSED':'ACTIVE')+'\')">'+(s.status==='ACTIVE'?'Pausar':'Ativar')+'</button></div>'
             );
           })
           .join("")
@@ -856,7 +856,7 @@ function reports() {
     (reportDays === 90 ? "selected" : "") +
     '>90 dias</option><option value="365" ' +
     (reportDays === 365 ? "selected" : "") +
-    '>12 meses</option></select><button class="btn" onclick="openSale()">+ Registrar venda</button></div></div><div class="metrics">' +
+    '>12 meses</option></select><button class="btn" data-action="openSale()">+ Registrar venda</button></div></div><div class="metrics">' +
     metric("Links compartilhados", s.shared || 0, "publicações concluídas") +
     metric("Cliques", s.clicks || 0, "eventos rastreados") +
     metric("Vendas", s.sales || 0, "pedidos não cancelados") +
@@ -994,7 +994,7 @@ function integrations() {
       "Fila real de renderização Runway, consulta de estado e armazenamento protegido.",
       "Disponível",
     ) +
-    '</div><div class="card"><h3>Teste interno do fluxo</h3><p class="muted">Valida produto, preço, imagem e link; classifica a categoria, escolhe grupos e monta a mensagem sem envio externo.</p><button class="btn dark" onclick="runSimulation()">Executar teste seguro</button><div id="simulationResult" class="callout" style="margin-top:12px;display:none"></div><h3 style="margin-top:22px">Estados reais</h3><p class="muted">Testado: executado com sucesso neste projeto.<br>Disponível: código executável no projeto.<br>Preparado: telas e banco prontos, credencial/API pendente.<br>Credencial: depende de autorização do provedor.<br>Parcial: há recurso seguro alternativo, mas não acesso total à conta externa.</p><div class="callout">Nenhuma integração externa é marcada como ativa sem teste real da autorização do titular.</div></div></div>'
+    '</div><div class="card"><h3>Teste interno do fluxo</h3><p class="muted">Valida produto, preço, imagem e link; classifica a categoria, escolhe grupos e monta a mensagem sem envio externo.</p><button class="btn dark" data-action="runSimulation()">Executar teste seguro</button><div id="simulationResult" class="callout" style="margin-top:12px;display:none"></div><h3 style="margin-top:22px">Estados reais</h3><p class="muted">Testado: executado com sucesso neste projeto.<br>Disponível: código executável no projeto.<br>Preparado: telas e banco prontos, credencial/API pendente.<br>Credencial: depende de autorização do provedor.<br>Parcial: há recurso seguro alternativo, mas não acesso total à conta externa.</p><div class="callout">Nenhuma integração externa é marcada como ativa sem teste real da autorização do titular.</div></div></div>'
   );
 }
 function integration(code, name, desc, state) {
@@ -1067,7 +1067,7 @@ function studio() {
       "studioAspect",
       '<option value="1:1">Feed quadrado</option><option value="4:5">Feed vertical</option><option value="9:16">Stories e Reels</option><option value="16:9">Facebook e YouTube</option>',
     ) +
-    '<div class="actions"><button class="btn" onclick="generateStudioText()">Gerar conteúdo</button><button class="btn dark" onclick="generateStudioImage()">Gerar arte</button><button class="btn green" onclick="generateStudioVideo()">Renderizar vídeo</button></div><div id="studioResult" class="callout" style="display:none;margin-top:14px;white-space:pre-wrap"></div></div><div class="card"><h3>Continuidade automática</h3><p class="muted">Imagem tenta o provedor principal, depois o Runway e, se ambos estiverem ocupados, entrega um cartão promocional seguro. Vídeos são enviados a uma fila real de renderização e armazenados na conta.</p><div class="steps" style="grid-template-columns:1fr 1fr">' +
+    '<div class="actions"><button class="btn" data-action="generateStudioText()">Gerar conteúdo</button><button class="btn dark" data-action="generateStudioImage()">Gerar arte</button><button class="btn green" data-action="generateStudioVideo()">Renderizar vídeo</button></div><div id="studioResult" class="callout" style="display:none;margin-top:14px;white-space:pre-wrap"></div></div><div class="card"><h3>Continuidade automática</h3><p class="muted">Imagem tenta o provedor principal, depois o Runway e, se ambos estiverem ocupados, entrega um cartão promocional seguro. Vídeos são enviados a uma fila real de renderização e armazenados na conta.</p><div class="steps" style="grid-template-columns:1fr 1fr">' +
     [
       "Copy validada",
       "Imagem com fallback",
@@ -1170,7 +1170,7 @@ function growth() {
     ) +
     metric("Canais preparados", connections.length, "Meta e e-mail") +
     metric("Conteúdos IA", (g.assets || []).length, "biblioteca recente") +
-    '</div><div class="grid two"><div class="card"><div class="sectionhead" style="margin-top:0"><div><h2>Cupons</h2><p>Código, validade e link oficial.</p></div><button class="btn" onclick="openCoupon()">+ Cupom</button></div>' +
+    '</div><div class="grid two"><div class="card"><div class="sectionhead" style="margin-top:0"><div><h2>Cupons</h2><p>Código, validade e link oficial.</p></div><button class="btn" data-action="openCoupon()">+ Cupom</button></div>' +
     (coupons.length
       ? coupons
           .map(function (x) {
@@ -1209,13 +1209,13 @@ function growth() {
           (x && x.status === "ACTIVE" ? "live" : "warn") +
           '">' +
           esc(x ? x.status : "PREPARADO") +
-          '</span><button class="btn secondary" onclick="openSocial(\'' +
+          '</span><button class="btn secondary" data-action="openSocial(\'' +
           n +
           "')\">Configurar</button></div>"
         );
       })
       .join("") +
-    '<div class="callout">Publicação automática real no Instagram/Facebook exige conta profissional, aplicativo Meta, permissões e aprovação. Gmail/Outlook podem receber testes; envio como sua caixa exige OAuth próprio.</div><button class="btn secondary" style="margin-top:12px" onclick="openEmailTest()">Testar entrega por e-mail</button></div></div>' +
+    '<div class="callout">Publicação automática real no Instagram/Facebook exige conta profissional, aplicativo Meta, permissões e aprovação. Gmail/Outlook podem receber testes; envio como sua caixa exige OAuth próprio.</div><button class="btn secondary" style="margin-top:12px" data-action="openEmailTest()">Testar entrega por e-mail</button></div></div>' +
     section(
       "Campanhas e Ads",
       "Planejamento com UTM; ativação nas plataformas depende das credenciais oficiais.",
@@ -1289,17 +1289,17 @@ function socialAgent() {
         : "") +
       '</div><div class="actions">' +
       (x.status === "DRAFT"
-        ? '<button class="btn green" onclick="approveSocialPost(\'' +
+        ? '<button class="btn green" data-action="approveSocialPost(\'' +
           x.id +
           "')\">Aprovar</button>"
         : "") +
       (["FAILED", "BLOCKED"].includes(x.status)
-        ? '<button class="btn secondary" onclick="retrySocialPost(\'' +
+        ? '<button class="btn secondary" data-action="retrySocialPost(\'' +
           x.id +
           "')\">Tentar novamente</button>"
         : "") +
       (x.status !== "PUBLISHED"
-        ? '<button class="btn danger" onclick="removeSocialPost(\'' +
+        ? '<button class="btn danger" data-action="removeSocialPost(\'' +
           x.id +
           "')\">Excluir</button>"
         : "") +
@@ -1391,7 +1391,7 @@ function socialAgent() {
       "time",
       'value="' + esc(s.endTime || "22:00") + '"',
     ) +
-    '</div><div class="actions"><button class="btn" onclick="saveSocialSettings()">Salvar e ativar</button><button class="btn secondary" onclick="generateSocialQueue()">Gerar mensagens agora</button><button class="btn dark" onclick="runSocialQueue()">Executar fila</button></div><div class="callout" style="margin-top:14px">A IA não inventa preço, desconto, cupom, frete ou urgência. Cada link aponta para o rastreador do Radar e depois redireciona ao link de afiliado cadastrado.</div></div><div class="card"><h3>Conexões oficiais Meta</h3>' +
+    '</div><div class="actions"><button class="btn" data-action="saveSocialSettings()">Salvar e ativar</button><button class="btn secondary" data-action="generateSocialQueue()">Gerar mensagens agora</button><button class="btn dark" data-action="runSocialQueue()">Executar fila</button></div><div class="callout" style="margin-top:14px">A IA não inventa preço, desconto, cupom, frete ou urgência. Cada link aponta para o rastreador do Radar e depois redireciona ao link de afiliado cadastrado.</div></div><div class="card"><h3>Conexões oficiais Meta</h3>' +
     ["INSTAGRAM", "FACEBOOK"]
       .map(function (n) {
         var x = connection(n);
@@ -1411,7 +1411,7 @@ function socialAgent() {
         );
       })
       .join("") +
-    '<button class="btn secondary" onclick="testMetaConnection()">Testar autorização Meta</button><h3 style="margin-top:22px">Agente especialista</h3><div class="formgrid">' +
+    '<button class="btn secondary" data-action="testMetaConnection()">Testar autorização Meta</button><h3 style="margin-top:22px">Agente especialista</h3><div class="formgrid">' +
     select(
       "Tarefa",
       "agentTask",
@@ -1442,7 +1442,7 @@ function socialAgent() {
       "text",
       'value="pessoas que procuram promoções confiáveis no Brasil"',
     ) +
-    '</div><button class="btn" onclick="runSocialAgent()">Executar agente</button><div id="agentResult" class="callout" style="display:none;margin-top:14px;white-space:pre-wrap"></div></div></div>' +
+    '</div><button class="btn" data-action="runSocialAgent()">Executar agente</button><div id="agentResult" class="callout" style="display:none;margin-top:14px;white-space:pre-wrap"></div></div></div>' +
     section(
       "Fila de posts",
       "Cada postagem mostra rede, estado, texto e rastreamento.",
@@ -1580,13 +1580,13 @@ function security() {
               esc(x.requesterEmail) +
               '</div></div><span class="pill warn">' +
               esc(x.status) +
-              '</span>' + (x.status==='DONE' ? '' : '<button class="btn secondary" onclick="openPrivacyProcess(\''+x.id+'\')">'+(x.identityVerifiedAt?'Processar':'Verificar identidade')+'</button>') + '</div>'
+              '</span>' + (x.status==='DONE' ? '' : '<button class="btn secondary" data-action="openPrivacyProcess(\''+x.id+'\')">'+(x.identityVerifiedAt?'Processar':'Verificar identidade')+'</button>') + '</div>'
             );
           })
           .join("")
       : '<p class="muted">Nenhuma solicitação registrada.</p>') +
     "</div></div>" +
-    '<div class="card"><h3>Exportação e backup da conta</h3><p class="muted">Portabilidade sem credenciais. Backup privado inclui registros e uploads; restauração é verificada em banco isolado.</p><div class="actions"><button class="btn secondary" onclick="downloadPrivate(\'/api/privacy\',\'radar-portabilidade.json\')">Exportar meus dados</button><button class="btn" onclick="createBackup(this)">Criar backup</button><button class="btn secondary" onclick="listBackups(this)">Ver backups</button><button class="btn secondary" onclick="previewRetention()">Prévia da limpeza</button></div><div id="backupList" class="list" style="margin-top:12px"></div></div>' +
+    '<div class="card"><h3>Exportação e backup da conta</h3><p class="muted">Portabilidade sem credenciais. Backup privado inclui registros e uploads; restauração é verificada em banco isolado.</p><div class="actions"><button class="btn secondary" data-action="downloadPrivate(\'/api/privacy\',\'radar-portabilidade.json\')">Exportar meus dados</button><button class="btn" data-action="createBackup(this)">Criar backup</button><button class="btn secondary" data-action="listBackups(this)">Ver backups</button><button class="btn secondary" data-action="previewRetention()">Prévia da limpeza</button></div><div id="backupList" class="list" style="margin-top:12px"></div></div>' +
     section(
       "Eventos de segurança",
       "Trilha de auditoria sem expor tokens ou conteúdo sensível.",
@@ -1651,7 +1651,7 @@ function accountView() {
             : "Aguardando identificação oficial") +
           " · " +
           esc(x.status) +
-          '</div></div><button class="btn secondary" onclick="openMarketplace(\'' +
+          '</div></div><button class="btn secondary" data-action="openMarketplace(\'' +
           x.marketplace +
           "')\">Configurar</button></div>"
         );
@@ -1659,7 +1659,7 @@ function accountView() {
       .join("") +
     '<h3 style="margin-top:22px">Vitrine pública</h3><div class="callout">/vitrine?loja=' +
     esc(a.slug || "") +
-    '</div><button class="btn" style="margin-top:12px" onclick="openStorefront()">Editar vitrine</button> <a class="btn secondary" target="_blank" href="/vitrine?loja=' +
+    '</div><button class="btn" style="margin-top:12px" data-action="openStorefront()">Editar vitrine</button> <a class="btn secondary" target="_blank" href="/vitrine?loja=' +
     encodeURIComponent(a.slug || "") +
     '">Visualizar</a></div><div class="card"><h3>Conexões WhatsApp</h3>' +
     whatsappConnectionsMarkup() +
@@ -1676,7 +1676,7 @@ function accountView() {
               esc(x.status) +
               " · prioridade " +
               x.priority +
-              '</div></div><button class="btn secondary" onclick="toggleTelegram(\'' +
+              '</div></div><button class="btn secondary" data-action="toggleTelegram(\'' +
               x.id +
               "','" +
               (x.status === "ACTIVE" ? "PAUSED" : "ACTIVE") +
@@ -1687,7 +1687,7 @@ function accountView() {
           })
           .join("")
       : empty("Nenhum bot conectado")) +
-    '<button class="btn" style="margin-top:12px" onclick="openTelegramConnection()">+ Conectar bot</button></div></div><div class="callout" style="margin-top:14px">O bot do Telegram precisa ser administrador do grupo ou canal. Credenciais nunca aparecem novamente na tela.</div>'
+    '<button class="btn" style="margin-top:12px" data-action="openTelegramConnection()">+ Conectar bot</button></div></div><div class="callout" style="margin-top:14px">O bot do Telegram precisa ser administrador do grupo ou canal. Credenciais nunca aparecem novamente na tela.</div>'
   );
 }
 function render() {
@@ -2288,7 +2288,7 @@ function openOffer() {
         "messageTemplate",
         '<option value="AUTO">Automático pela categoria</option><option value="IMPACT">Impactante</option><option value="COMPLETE">Oferta completa</option><option value="BABY">Bebês e família</option><option value="IMPORTED">Produtos importados</option><option value="CLEAN">Direto e limpo</option>',
       ) +
-      '<div class="field"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><label>Mensagem da promoção</label><div class="actions"><button type="button" class="btn secondary" onclick="previewMessage()">Montar modelo</button><button type="button" class="btn secondary" onclick="generateAI()">Melhorar com IA</button></div></div><textarea class="input" name="message" rows="12" placeholder="Clique em Montar modelo ou Melhorar com IA."></textarea></div>',
+      '<div class="field"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><label>Mensagem da promoção</label><div class="actions"><button type="button" class="btn secondary" data-action="previewMessage()">Montar modelo</button><button type="button" class="btn secondary" data-action="generateAI()">Melhorar com IA</button></div></div><textarea class="input" name="message" rows="12" placeholder="Clique em Montar modelo ou Melhorar com IA."></textarea></div>',
     async function (e) {
       e.preventDefault();
       try {
@@ -2620,9 +2620,9 @@ function openStorefront() {
 function whatsappConnectionsMarkup() {
   var connections = D.suite.connections || [], rotation = D.suite.whatsappRotation || {enabled:true,maxConnections:5};
   var cards = connections.map(function(x,index) {
-    return '<div class="integration"><div class="intlogo" aria-hidden="true">'+(index+1)+'</div><div class="grow"><b>'+esc(x.name)+'</b><div class="muted">'+esc(x.phoneNumber || 'Informe o número')+' · '+esc(x.status)+'</div><div class="muted">Intervalo '+x.intervalSeconds+'s · '+(x.groupMessagingSupported?'Grupo confirmado pelo conector':'Aguardando validação do conector')+'</div>'+(x.lastDispatchedAt?'<div class="muted">Último envio assumido: '+esc(new Date(x.lastDispatchedAt).toLocaleString('pt-BR'))+'</div>':'')+'<div class="actions" style="margin-top:8px"><button class="btn secondary" onclick="openConnection(\''+x.id+'\')">Editar '+esc(x.name)+'</button><button class="btn secondary" onclick="toggleWhatsapp(\''+x.id+'\',\''+(x.status==='ACTIVE'?'PAUSED':'ACTIVE')+'\')">'+(x.status==='ACTIVE'?'Pausar':'Ativar')+' '+esc(x.name)+'</button><button class="btn secondary" onclick="archiveWhatsapp(\''+x.id+'\')">Remover '+esc(x.name)+'</button></div></div></div>';
+    return '<div class="integration"><div class="intlogo" aria-hidden="true">'+(index+1)+'</div><div class="grow"><b>'+esc(x.name)+'</b><div class="muted">'+esc(x.phoneNumber || 'Informe o número')+' · '+esc(x.status)+'</div><div class="muted">Intervalo '+x.intervalSeconds+'s · '+(x.groupMessagingSupported?'Grupo confirmado pelo conector':'Aguardando validação do conector')+'</div>'+(x.lastDispatchedAt?'<div class="muted">Último envio assumido: '+esc(new Date(x.lastDispatchedAt).toLocaleString('pt-BR'))+'</div>':'')+'<div class="actions" style="margin-top:8px"><button class="btn secondary" data-action="openConnection(\''+x.id+'\')">Editar '+esc(x.name)+'</button><button class="btn secondary" data-action="toggleWhatsapp(\''+x.id+'\',\''+(x.status==='ACTIVE'?'PAUSED':'ACTIVE')+'\')">'+(x.status==='ACTIVE'?'Pausar':'Ativar')+' '+esc(x.name)+'</button><button class="btn secondary" data-action="archiveWhatsapp(\''+x.id+'\')">Remover '+esc(x.name)+'</button></div></div></div>';
   }).join('');
-  return '<div class="callout"><b>'+connections.length+' de 5 números</b> · '+(rotation.enabled?'Revezamento automático ativo':'Seleção por prioridade')+'<p>Cada publicação é assumida por um único número. Números pausados, desconectados ou em intervalo aguardam sua vez.</p><button class="btn secondary" onclick="toggleWhatsappRotation('+(rotation.enabled?'false':'true')+')">'+(rotation.enabled?'Usar prioridade':'Ativar revezamento')+'</button> <button class="btn secondary" onclick="openWhatsappPairing()">Parear conector</button></div>'+cards+(connections.length<5?'<button class="btn" style="margin-top:12px" onclick="openConnection()">+ Adicionar número ('+connections.length+'/5)</button>':'<p class="muted">Limite de cinco números atingido.</p>');
+  return '<div class="callout"><b>'+connections.length+' de 5 números</b> · '+(rotation.enabled?'Revezamento automático ativo':'Seleção por prioridade')+'<p>Cada publicação é assumida por um único número. Números pausados, desconectados ou em intervalo aguardam sua vez.</p><button class="btn secondary" data-action="toggleWhatsappRotation('+(rotation.enabled?'false':'true')+')">'+(rotation.enabled?'Usar prioridade':'Ativar revezamento')+'</button> <button class="btn secondary" data-action="openWhatsappPairing()">Parear conector</button></div>'+cards+(connections.length<5?'<button class="btn" style="margin-top:12px" data-action="openConnection()">+ Adicionar número ('+connections.length+'/5)</button>':'<p class="muted">Limite de cinco números atingido.</p>');
 }
 async function toggleWhatsapp(id,status) {
   try {await suiteCall('PUT',{entity:'connection',id:id,status:status});show('account');toast('Estado do número atualizado');}catch(e){toast(e.message);}
@@ -3049,7 +3049,7 @@ var navPaths = {
 };
 function nav(){
   document.getElementById('nav').innerHTML=NAV.map(function(n){
-    return '<button '+(current===n[0]?'aria-current="page" ':'')+'class="'+(current===n[0]?'on':'')+'" onclick="show(\''+n[0]+'\')"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+navPaths[n[0]]+'"/></svg></span>'+n[1]+'</button>';
+    return '<button '+(current===n[0]?'aria-current="page" ':'')+'class="'+(current===n[0]?'on':'')+'" data-action="show(\''+n[0]+'\')"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+navPaths[n[0]]+'"/></svg></span>'+n[1]+'</button>';
   }).join('');
 }
 function syncDrawer(){
@@ -3093,10 +3093,10 @@ async function load(){
     D=Object.assign({},D,data);D.loadFailures=failures;
     var hash=decodeURIComponent(location.hash.slice(1));
     if(hash)show(hash);else render();
-    if(failures.length)document.getElementById('content').insertAdjacentHTML('afterbegin','<div role="alert" class="partial-error">Algumas áreas não puderam ser atualizadas: '+esc(failures.join(', '))+'. <button class="btn secondary" onclick="load()">Tentar novamente</button></div>');
+    if(failures.length)document.getElementById('content').insertAdjacentHTML('afterbegin','<div role="alert" class="partial-error">Algumas áreas não puderam ser atualizadas: '+esc(failures.join(', '))+'. <button class="btn secondary" data-action="load()">Tentar novamente</button></div>');
   }catch(error){
     if(sequence!==loadSequence)return;
-    document.getElementById('content').innerHTML='<div class="empty" role="alert"><b>Não foi possível carregar</b><p>'+esc(error.message)+'</p><button class="btn" onclick="load()">Tentar novamente</button></div>';
+    document.getElementById('content').innerHTML='<div class="empty" role="alert"><b>Não foi possível carregar</b><p>'+esc(error.message)+'</p><button class="btn" data-action="load()">Tentar novamente</button></div>';
   }
 }
 function toast(message){
@@ -3108,7 +3108,7 @@ function openModal(title,hint,body,submit){
   modalReturnFocus=document.activeElement;
   document.getElementById('modalTitle').textContent=title;document.getElementById('modalHint').textContent=hint;
   var form=document.getElementById('form');
-  form.innerHTML='<div class="formerror" id="formError" role="alert"></div>'+body+'<div class="formactions"><button type="button" class="btn secondary" onclick="closeModal()">Cancelar</button><button class="btn" type="submit">Salvar</button></div>';
+  form.innerHTML='<div class="formerror" id="formError" role="alert"></div>'+body+'<div class="formactions"><button type="button" class="btn secondary" data-action="closeModal()">Cancelar</button><button class="btn" type="submit">Salvar</button></div>';
   form.onsubmit=async function(event){
     event.preventDefault();if(form.getAttribute('aria-busy')==='true')return;
     document.getElementById('formError').textContent='';form.setAttribute('aria-busy','true');
@@ -3175,7 +3175,7 @@ function saveDownload(data,name){
 async function downloadPrivate(path,name){try{saveDownload(await operationRequest(path),name);}catch(e){toast(e.message);}}
 async function listBackups(button){
   if(button)button.disabled=true;
-  try{var r=await operationRequest('/api/backups'),target=document.getElementById('backupList');if(target)target.innerHTML=r.backups.length?r.backups.map(function(b){return '<div class="row"><div class="grow"><b>'+esc(new Date(b.createdAt).toLocaleString('pt-BR'))+'</b><div class="muted">'+Math.ceil(b.bytes/1024)+' KiB · SHA-256 '+esc(b.sha256.slice(0,12))+'…</div></div><button class="btn secondary" onclick="downloadPrivate(\'/api/backups?id='+b.id+'\',\'radar-backup-'+b.id+'.json\')">Baixar backup</button></div>';}).join(''):empty('Nenhum backup criado.');}catch(e){toast(e.message);}finally{if(button)button.disabled=false;}
+  try{var r=await operationRequest('/api/backups'),target=document.getElementById('backupList');if(target)target.innerHTML=r.backups.length?r.backups.map(function(b){return '<div class="row"><div class="grow"><b>'+esc(new Date(b.createdAt).toLocaleString('pt-BR'))+'</b><div class="muted">'+Math.ceil(b.bytes/1024)+' KiB · SHA-256 '+esc(b.sha256.slice(0,12))+'…</div></div><button class="btn secondary" data-action="downloadPrivate(\'/api/backups?id='+b.id+'\',\'radar-backup-'+b.id+'.json\')">Baixar backup</button></div>';}).join(''):empty('Nenhum backup criado.');}catch(e){toast(e.message);}finally{if(button)button.disabled=false;}
 }
 async function createBackup(button){button.disabled=true;try{await operationRequest('/api/backups',{});await listBackups();toast('Backup privado criado e integridade registrada.');}catch(e){toast(e.message);}finally{button.disabled=false;}}
 async function previewRetention(){try{var r=await operationRequest('/api/privacy',{action:'RETENTION_PREVIEW'});toast(r.enabledAccounts?r.removed+' evento(s) antigo(s) elegíveis à limpeza.':'Limpeza automática desativada.');}catch(e){toast(e.message);}}
@@ -3187,11 +3187,44 @@ function openPrivacyProcess(id){
   openModal(verified?'Processar solicitação':'Verificar identidade','Confira a identidade e o escopo antes de tratar dados. Serviços externos exigem atendimento próprio.',form,async function(e){e.preventDefault();try{var data=Object.fromEntries(new FormData(e.target)),r=await operationRequest('/api/privacy',Object.assign({id:id,action:verified?'RESOLVE':'VERIFY'},data));if(r.data&&['ACCESS','PORTABILITY'].includes(item.requestType))saveDownload(r.data,'radar-solicitacao-'+id+'.json');await load();closeModal();show('security');toast(verified?'Solicitação processada.':'Identidade registrada. Agora processe a solicitação.');}catch(error){toast(error.message);}});
 }
 
+
+// CSP-safe delegated actions: rendered controls use data-action instead of inline event handlers.
+function parseActionArgs(source,element){
+  var args=[],token='',quote='',escape=false,depth=0;
+  for(var i=0;i<source.length;i++){
+    var ch=source[i];
+    if(escape){token+=ch;escape=false;continue;}
+    if(quote){token+=ch;if(ch==='\\\\'){escape=true;}else if(ch===quote){quote='';}continue;}
+    if(ch==='\\''||ch==='"'){quote=ch;token+=ch;continue;}
+    if(ch==='('||ch==='['||ch==='{'){depth++;token+=ch;continue;}
+    if(ch===')'||ch===']'||ch==='}'){depth--;token+=ch;continue;}
+    if(ch===','&&depth===0){args.push(token.trim());token='';continue;}
+    token+=ch;
+  }
+  if(token.trim()||source.trim())args.push(token.trim());
+  return args.map(function(value){
+    if(value==='this')return element;
+    if(value==='true')return true;if(value==='false')return false;if(value==='null')return null;
+    if(/^[-+]?\\d+(?:\\.\\d+)?$/.test(value))return Number(value);
+    if((value[0]==='\\''&&value[value.length-1]==='\\'')||(value[0]==='"'&&value[value.length-1]==='"')){
+      var body=value.slice(1,-1);return body.replace(/\\\\([\\\\'"nrt])/g,function(_,c){return ({n:'\\n',r:'\\r',t:'\\t'})[c]||c;});
+    }
+    return value;
+  });
+}
+document.addEventListener('click',function(event){
+  var el=event.target.closest('[data-action]');if(!el)return;
+  var source=el.getAttribute('data-action')||'';
+  var match=source.match(/^([A-Za-z_$][\\w$]*)\\((.*)\\)$/s);if(!match)return;
+  var fn=window[match[1]];if(typeof fn!=='function')return;
+  event.preventDefault();fn.apply(window,parseActionArgs(match[2],el));
+});
+
 var whatsappPairing=null;
 async function openWhatsappPairing(){
   try{
     var data=await operationRequest('/api/n8n/pairing',{});whatsappPairing=data;
-    openModal('Parear conector','Copie o código para o conector desta conta. Após validar os números e os grupos, ative os números no painel.',field('Conta do conector','workerAccountId','text','readonly value="'+esc(data.accountId)+'"')+field('Código de pareamento','workerPairingCode','password','readonly value="'+esc(data.pairingSecret)+'" autocomplete="off"')+'<button type="button" class="btn secondary" onclick="copyWhatsappPairing()">Copiar código</button>',async function(e){e.preventDefault();closeModal();});
+    openModal('Parear conector','Copie o código para o conector desta conta. Após validar os números e os grupos, ative os números no painel.',field('Conta do conector','workerAccountId','text','readonly value="'+esc(data.accountId)+'"')+field('Código de pareamento','workerPairingCode','password','readonly value="'+esc(data.pairingSecret)+'" autocomplete="off"')+'<button type="button" class="btn secondary" data-action="copyWhatsappPairing()">Copiar código</button>',async function(e){e.preventDefault();closeModal();});
     document.querySelector('#form button[type=submit]').textContent='Concluído';
   }catch(e){whatsappPairing=null;toast(e.message);}
 }
