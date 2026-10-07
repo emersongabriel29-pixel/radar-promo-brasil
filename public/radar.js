@@ -278,13 +278,13 @@ function offerRow(o) {
     (o.discountPercent ? " · " + o.discountPercent + "% OFF" : "") +
     '</div></div><div class="actions">' +
     (o.status === "PENDING"
-      ? "<button class=\"btn green\" onclick=\"status('offer','" +
+      ? "<button class=\"btn green\" data-action=\"status('offer','" +
         o.id +
         "','APPROVED')\">Aprovar</button>"
       : "") +
     '<button class="btn dark" data-action="prepare(\'' +
     o.id +
-    "')\">Preparar envio</button><button class=\"btn danger\" onclick=\"removeItem('offer','" +
+    "')\">Preparar envio</button><button class=\"btn danger\" data-action=\"removeItem('offer','" +
     o.id +
     "')\">Excluir</button></div></div>"
   );
@@ -318,7 +318,7 @@ function dashboard() {
       validatedMarketplaces > 0 &&
       activeConnections > 0;
   return (
-    '<section class="hero"><div><div class="eyebrow" style="color:#61e7ba">OPERAÇÃO INTELIGENTE</div><h2>Da oferta encontrada ao grupo certo, sem trabalho repetitivo.</h2><p>Monitore fontes, converta links, use IA para categorizar, organize filas e envie a imagem do produto junto com texto e link.</p><div class="actions"><button type=\"button\" id=\"create-promotion\" class=\"btn\" onclick=\"show(\'quick\')\">Criar promoção</button><button type="button" id="configure-monitor" class="btn secondary" data-action="show(\'monitoring\')">Configurar monitor</button></div></div><div class="pulsebox"><div class="pulse"><span>Motor de automação</span><i class="dot"></i></div><strong>' +
+    '<section class="hero"><div><div class="eyebrow" style="color:#61e7ba">OPERAÇÃO INTELIGENTE</div><h2>Da oferta encontrada ao grupo certo, sem trabalho repetitivo.</h2><p>Monitore fontes, converta links, use IA para categorizar, organize filas e envie a imagem do produto junto com texto e link.</p><div class="actions"><button type=\"button\" id=\"create-promotion\" class=\"btn\" data-action=\"show(\'quick\')\">Criar promoção</button><button type="button" id="configure-monitor" class="btn secondary" data-action="show(\'monitoring\')">Configurar monitor</button></div></div><div class="pulsebox"><div class="pulse"><span>Motor de automação</span><i class="dot"></i></div><strong>' +
     (operationOn ? "24/7 ativo" : "Em configuração") +
     "</strong><small>" +
     active +
@@ -506,7 +506,7 @@ function monitoring() {
               LABEL[m.status] +
               "</span>" +
               (m.status === "ACTIVE"
-                ? "<button class=\"btn secondary\" onclick=\"status('monitor','" +
+                ? "<button class=\"btn secondary\" data-action=\"status('monitor','" +
                   m.id +
                   "','PAUSED')\">Pausar</button>"
                 : '<button class="btn secondary" data-action="status(\'monitor\',\''+m.id+'\',\'ACTIVE\')">Ativar</button>') +
@@ -593,7 +593,7 @@ function queues() {
           })
           .join("")
       : empty("Nenhuma fila criada")) +
-    '</div></div><div><div class="sectionhead" style="margin-top:0"><div><h2>Mensagens recorrentes</h2><p>Ative após validar o destino e o conector.</p></div><button class=\"btn secondary\" onclick=\"openSchedule()\">+ Nova recorrência</button></div><div class="list">' +
+    '</div></div><div><div class="sectionhead" style="margin-top:0"><div><h2>Mensagens recorrentes</h2><p>Ative após validar o destino e o conector.</p></div><button class=\"btn secondary\" data-action=\"openSchedule()\">+ Nova recorrência</button></div><div class="list">' +
     (D.schedules.length
       ? D.schedules
           .map(function (s) {
@@ -644,9 +644,9 @@ function publicationRow(p) {
     p.clicks +
     ' cliques</div></div><div class="actions"><button class="btn" ' +
     (p.status === "PUBLISHED" ? "disabled" : "") +
-    " onclick=\"share('" +
+    " data-action=\"share('" +
     p.id +
-    "')\">Compartilhar</button><button class=\"btn danger\" onclick=\"removeItem('publication','" +
+    "')\">Compartilhar</button><button class=\"btn danger\" data-action=\"removeItem('publication','" +
     p.id +
     "')\">Excluir</button></div></div>"
   );
@@ -730,11 +730,11 @@ function groups() {
           (g.status === "ACTIVE" && hasId ? "live" : "warn") +
           '\">' +
           (hasId ? LABEL[g.status] : "Configuração pendente") +
-          '</span></td><td><div class=\"actions\"><button class=\"btn secondary\" onclick=\"openGroup(\'' +
+          '</span></td><td><div class=\"actions\"><button class=\"btn secondary\" data-action=\"openGroup(\'' +
           g.id +
           "')\">Configurar</button>" +
           (hasId
-            ? "<button class=\"btn secondary\" onclick=\"status('group','" +
+            ? "<button class=\"btn secondary\" data-action=\"status('group','" +
               g.id +
               "','" +
               (g.status === "ACTIVE" ? "PAUSED" : "ACTIVE") +
@@ -743,7 +743,7 @@ function groups() {
               "</button>"
             : "") +
           (g.platform === "TELEGRAM" && hasId
-            ? '<button class=\"btn dark\" onclick=\"testTelegram(\'' +
+            ? '<button class=\"btn dark\" data-action=\"testTelegram(\'' +
               g.id +
               "')\">Testar</button>"
             : "") +
