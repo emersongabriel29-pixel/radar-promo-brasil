@@ -66,6 +66,6 @@ test('cabeçalhos de segurança são aplicados', () => {
   assert.equal(response.headers['X-Content-Type-Options'],'nosniff');
   assert.equal(response.headers['X-Frame-Options'],'SAMEORIGIN');
   assert.match(response.headers['Strict-Transport-Security'],/max-age=31536000/);
-  assert.match(response.headers['Content-Security-Policy'],/default-src 'self'/);
+  assert.match(response.headers['Content-Security-Policy'],/default-src 'self'/);\n  assert.match(response.headers['Content-Security-Policy'],/script-src 'self'/);\n  assert.match(response.headers['Content-Security-Policy'],/script-src-attr 'none'/);\n  assert.doesNotMatch(response.headers['Content-Security-Policy'],/script-src[^;]*unsafe-inline/);\n  assert.equal(response.headers['Content-Security-Policy'].includes("connect-src 'self'"),true);\n  assert.match(response.headers['Content-Security-Policy'],/style-src-attr 'unsafe-inline'/);
   assert.equal(response.headers['Cache-Control'],'no-store');
 });
