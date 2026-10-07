@@ -30,7 +30,7 @@ test('sete áreas acessíveis, conteúdo preservado, modal por teclado e oferta 
  await add.click();await page.getByLabel('Imagem do produto').setInputFiles({name:'produto.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jMloAAAAASUVORK5CYII=','base64')});
  await page.getByLabel('Nome do produto').fill('Oferta auditada no navegador');await page.getByLabel('Preço atual',{exact:true}).fill('49.90');await page.getByLabel('Preço anterior',{exact:true}).fill('99.90');await page.getByLabel('Link oficial de afiliado').fill('https://amazon.com.br/dp/AUDIT?tag=audit');await page.getByLabel('Código do cupom').fill('REAL10');
  await page.getByRole('button',{name:'Salvar',exact:true}).click();await expect(page.getByRole('dialog')).not.toBeVisible();await expect(page.locator('#content')).toContainText('Oferta auditada no navegador');await accessibility(page);
- const data=await (await request.get('/api/data')).json();const offer=data.offers.find(o=>o.title==='Oferta auditada no navegador');expect(offer.currentPrice).toBe(4990);expect(offer.imageUrl).toMatch(/^\/uploads\/products\//);expect(offer.couponCode).toBe('REAL10');
+ const data=await (await request.get('/api/data')).json();const offer=data.offers.find(o=>o.title==='Oferta auditada no navegador');expect(offer.currentPrice).toBe(4990);expect(offer.imageUrl).toMatch(/^\/api\/media\/offer\//);expect(offer.couponCode).toBe('REAL10');
  expect((await request.put('/api/data',{data:{entity:'offer',id:offer.id,status:'APPROVED'}})).status()).toBe(200);
  expect((await request.post('/api/radar/price',{data:{offerId:offer.id,price:5990}})).status()).toBe(201);
  expect((await request.post('/api/jobs/telegram',{data:{}})).status()).toBe(404);
