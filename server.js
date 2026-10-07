@@ -38,10 +38,9 @@ export async function createApp() {
     catch { res.status(503).json({ ok: false }); }
   });
   const publicDirectory = path.join(root, 'public');
-  app.use('/uploads', (req, res, next) => {
-    if (!req.path.startsWith('/products/') || req.path.endsWith('.metadata.json')) return res.status(404).end();
-    next();
-  });
+  // Uploads são objetos privados. Nunca os exponha pelo static middleware.
+  // O acesso passa pelas rotas /api/media/*, que aplicam isolamento por conta.
+  app.use('/uploads', (req, res) => res.status(404).end());
   app.use(express.static(publicDirectory, { index: false, dotfiles: 'deny' }));
   for (const directory of ['api', 'pages']) {
     for (const source of sources(path.join(root, directory))) {
