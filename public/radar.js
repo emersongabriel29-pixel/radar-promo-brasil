@@ -3206,7 +3206,7 @@ function parseActionArgs(source,element){
     if(value==='this')return element;
     if(value==='true')return true;if(value==='false')return false;if(value==='null')return null;
     if(/^[-+]?\\d+(?:\\.\\d+)?$/.test(value))return Number(value);
-    if((value[0]==='\\''&&value[value.length-1]==='\\'')||(value[0]==='"'&&value[value.length-1]==='"')){
+    if((value[0]==="'"&&value[value.length-1]==="'")||(value[0]==='\"'&&value[value.length-1]==='\"')){
       var body=value.slice(1,-1);return body.replace(/\\\\([\\\\'"nrt])/g,function(_,c){return ({n:'\\n',r:'\\r',t:'\\t'})[c]||c;});
     }
     return value;
