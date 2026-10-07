@@ -40,7 +40,7 @@ Para o fallback de cartão local, instale Chromium. Opcionalmente configure `PLA
 
 Implante somente `api/`, `lib/`, `pages/`, `public/`, migrações adicionais e o manifesto compatível. O SDK, autenticação, armazenamento e browser são os serviços da plataforma. Não copie o adaptador `hatchable/`, o servidor Express nem o `package.json` standalone para o projeto hospedado. Valide com `dry_run_deploy`, use migrações adicionais e execute smoke tests após a implantação.
 
-A visibilidade atual do projeto é privada. A vitrine e links destinados a visitantes dependem de publicar a visibilidade nas configurações da plataforma, preservando o painel como `member`. Esse ajuste é feito pelo titular no console.
+O repositório atual é público no GitHub; o painel operacional continua privado e as rotas de gestão usam `member`. A vitrine pública só expõe ofertas explicitamente publicadas. Imagens de upload não são servidas por `/uploads`: o painel usa uma rota autenticada e a vitrine usa uma rota pública que verifica conta, publicação e status da oferta.
 
 ## Integrações e limites
 
