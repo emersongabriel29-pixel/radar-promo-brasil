@@ -72,3 +72,4 @@ test('cabeçalhos de segurança são aplicados', () => {
   assert.doesNotMatch(response.headers['Content-Security-Policy'],/script-src[^;]*unsafe-inline/);
   assert.equal(response.headers['Content-Security-Policy'].includes("connect-src 'self'"),true);
   assert.match(response.headers['Content-Security-Policy'],/style-src-attr 'unsafe-inline'/);
+});
