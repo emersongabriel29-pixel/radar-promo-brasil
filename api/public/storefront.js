@@ -11,5 +11,5 @@ export default async function(req,res){
   if(!a)return res.status(404).json({error:'Vitrine indisponível.'});
   const offers=(await db.query("SELECT id,title,source,current_price AS \"currentPrice\",original_price AS \"originalPrice\",image_url AS \"imageUrl\",image_storage_key AS \"imageStorageKey\",affiliate_url AS \"affiliateUrl\",discount_percent AS \"discountPercent\" FROM offers WHERE account_id=$1 AND storefront_visible=true AND status IN ('APPROVED','PUBLISHED') ORDER BY created_at DESC LIMIT 100",[a.id])).rows;
   res.setHeader('Cache-Control','public, max-age=60');
-  return res.json({store:a,offers:await hydrateImages(offers)});
+  return res.json({store:a,offers:await hydrateImages(offers,{publicAccess:true})});
 }

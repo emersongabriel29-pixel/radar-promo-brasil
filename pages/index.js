@@ -36,11 +36,11 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
           <p>Imagem, mensagem e link são validados antes de entrar na fila.</p>
         </div>
       </aside>
-      <div class="shade" id="shade" onclick="menu(false)"></div>
+      <div class="shade" id="shade" data-action="menu(false)"></div>
       <main class="main" id="main">
         <header class="top">
           <div style="display: flex; gap: 10px; align-items: center">
-            <button class="btn secondary menu" aria-controls="side" aria-expanded="false" onclick="menu(true)">
+            <button class="btn secondary menu" aria-controls="side" aria-expanded="false" data-action="menu(true)">
               Menu
             </button>
             <div>
@@ -49,9 +49,9 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
             </div>
           </div>
           <div class="topactions">
-            <button class="btn secondary" onclick="show('integrations')">
+            <button class="btn secondary" data-action="show('integrations')">
               Conexões</button
-            ><button class="btn" onclick="openOffer()">+ Nova oferta</button>
+            ><button class="btn" data-action="openOffer()">+ Nova oferta</button>
           </div>
         </header>
         <div class="content" id="content" tabindex="-1">
@@ -66,7 +66,7 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
             <h2 id="modalTitle"></h2>
             <p id="modalHint"></p>
           </div>
-          <button class="btn secondary" onclick="closeModal()">Fechar</button>
+          <button class="btn secondary" data-action="closeModal()">Fechar</button>
         </div>
         <form class="form" id="form"></form>
       </div>
