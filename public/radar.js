@@ -3215,7 +3215,7 @@ function parseActionArgs(source,element){
 document.addEventListener('click',function(event){
   var el=event.target.closest('[data-action]');if(!el)return;
   var source=el.getAttribute('data-action')||'';
-  var match=source.match(/^([A-Za-z_$][\\w$]*)\\((.*)\\)$/s);if(!match)return;
+  var match=source.match(/^([A-Za-z_$][\w$]*)\((.*)\)$/s);if(!match)return;
   var fn=window[match[1]];if(typeof fn!=='function')return;
   event.preventDefault();fn.apply(window,parseActionArgs(match[2],el));
 });
