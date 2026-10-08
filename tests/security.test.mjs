@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { webhooks } from '../hatchable/index.js';
-import { applySecurityHeaders, createRateLimiter, requestKey } from '../lib/security.js';
+import { applySecurityHeaders, createRateLimiter, parseTrustProxyHops, requestKey } from '../lib/security.js';
 import { loginPage } from '../server/standalone-auth.js';
 
 function sign(raw, secret) {
@@ -140,4 +140,15 @@ test('página de login é compatível com CSP e usa JavaScript externo', () => {
   assert.ok(html.includes('<script src="/login.js" defer></script>'));
   assert.ok(js.includes("addEventListener('submit'"));
   assert.ok(js.includes("fetch('/api/account/login'"));
+});
+
+
+test('configuração do proxy confiável aceita somente quantidade explícita e segura de saltos', () => {
+  assert.equal(parseTrustProxyHops(undefined), null);
+  assert.equal(parseTrustProxyHops(''), null);
+  assert.equal(parseTrustProxyHops('0'), 0);
+  assert.equal(parseTrustProxyHops('2'), 2);
+  for (const invalid of ['-1', '1.5', 'NaN', 'Infinity', '1; loopback', '9007199254740992']) {
+    assert.throws(() => parseTrustProxyHops(invalid), /TRUST_PROXY_HOPS/);
+  }
 });
