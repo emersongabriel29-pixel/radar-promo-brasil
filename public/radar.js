@@ -2794,6 +2794,18 @@ function openGroup(id) {
       }
     },
   );
+  var platformField=document.querySelector('#form [name="platform"]');
+  var destinationField=document.querySelector('#form [name="destinationType"]');
+  var syncDestinationType=function(){
+    var isWhatsapp=platformField&&platformField.value==="WHATSAPP";
+    if(destinationField){
+      destinationField.closest(".field").hidden=!isWhatsapp;
+      destinationField.disabled=!isWhatsapp;
+      if(!isWhatsapp)destinationField.value="GROUP";
+    }
+  };
+  if(platformField)platformField.addEventListener("change",syncDestinationType);
+  syncDestinationType();
 }
 function openMonitor() {
   openModal(
