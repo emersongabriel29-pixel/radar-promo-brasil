@@ -25,7 +25,7 @@ async function all(a){
   await starter(a.id);
   const q=await Promise.all([
     db.query('SELECT id,name,icon,color,created_at AS "createdAt" FROM categories WHERE account_id=$1 ORDER BY name',[a.id]),
-    db.query('SELECT id,name,platform,category_id AS "categoryId",invite_url AS "inviteUrl",members,status,external_id AS "externalId",capacity,joined_24h AS "joined24h",left_24h AS "left24h",marketplace_subids AS "marketplaceSubids",created_at AS "createdAt" FROM promo_groups WHERE account_id=$1 ORDER BY platform,name',[a.id]),
+    db.query('SELECT id,name,platform,whatsapp_destination_type AS "destinationType",category_id AS "categoryId",invite_url AS "inviteUrl",members,status,external_id AS "externalId",capacity,joined_24h AS "joined24h",left_24h AS "left24h",marketplace_subids AS "marketplaceSubids",created_at AS "createdAt" FROM promo_groups WHERE account_id=$1 ORDER BY platform,name',[a.id]),
     db.query('SELECT id,title,source,original_price AS "originalPrice",current_price AS "currentPrice",category_id AS "categoryId",affiliate_url AS "affiliateUrl",image_url AS "imageUrl",image_storage_key AS "imageStorageKey",product_url AS "productUrl",coupon_url AS "couponUrl",coupon_code AS "couponCode",discount_percent AS "discountPercent",score,status,message,fingerprint,validation_status AS "validationStatus",imported_by AS "importedBy",storefront_visible AS "storefrontVisible",detected_at AS "detectedAt",created_at AS "createdAt" FROM offers WHERE account_id=$1 ORDER BY created_at DESC LIMIT 250',[a.id]),
     db.query('SELECT id,offer_id AS "offerId",group_id AS "groupId",content_type AS "contentType",schedule_id AS "scheduleId",status,scheduled_at AS "scheduledAt",published_at AS "publishedAt",clicks,message,image_url AS "imageUrl",image_storage_key AS "imageStorageKey",mode,attempts,error_message AS "errorMessage",priority,mention_all AS "mentionAll",connection_id AS "connectionId",created_at AS "createdAt" FROM publications WHERE account_id=$1 ORDER BY priority DESC,created_at DESC LIMIT 250',[a.id]),
     db.query('SELECT id,name,source_type AS "sourceType",source_url AS "sourceUrl",source_authorized AS "sourceAuthorized",affiliate_url AS "affiliateUrl",last_error AS "lastError",category_id AS "categoryId",mode,status,captured_count AS "capturedCount",last_run_at AS "lastRunAt",created_at AS "createdAt" FROM monitors WHERE account_id=$1 AND status<>\'ARCHIVED\' ORDER BY created_at DESC',[a.id]),
@@ -56,9 +56,12 @@ export default async function(req,res){
       if(!txt(b.name,100))return res.status(400).json({error:'Informe o nome do destino.'});
       const categoryId=txt(b.categoryId,80)||null;if(!(await categoryOk(categoryId,a.id)))return res.status(400).json({error:'Categoria inválida.'});
       const invite=txt(b.inviteUrl,600);if(invite&&!url(invite))return res.status(400).json({error:'Use um link HTTPS válido.'});
-      const platform=txt(b.platform,20)||'WHATSAPP';if(!['WHATSAPP','TELEGRAM'].includes(platform))return res.status(400).json({error:'Plataforma de grupo inválida.'});
+      const platform=txt(b.platform,20)||'WHATSAPP';if(!['WHATSAPP','TELEGRAM'].includes(platform))return res.status(400).json({error:'Plataforma de destino inválida.'});
+      if(!['GROUP','CHANNEL','COMMUNITY'].includes(destinationType))return res.status(400).json({error:'Tipo de destino inválido.'});
+      const destinationType=platform==='WHATSAPP'?(txt(b.destinationType,20)||'GROUP'):'GROUP';
+      if(!['GROUP','CHANNEL','COMMUNITY'].includes(destinationType))return res.status(400).json({error:'Tipo de destino inválido.'});
       const externalId=txt(b.externalId,200)||null;
-      await db.query('INSERT INTO promo_groups(id,account_id,name,platform,category_id,invite_url,members,capacity,external_id,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[uid(),a.id,txt(b.name,100),platform,categoryId,invite,Math.max(0,Number(b.members)||0),Math.max(1,Number(b.capacity)||1024),externalId,externalId?'ACTIVE':'PAUSED']);
+      await db.query('INSERT INTO promo_groups(id,account_id,name,platform,whatsapp_destination_type,category_id,invite_url,members,capacity,external_id,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',[uid(),a.id,txt(b.name,100),platform,destinationType,categoryId,invite,Math.max(0,Number(b.members)||0),Math.max(1,Number(b.capacity)||1024),externalId,'PAUSED']);
     }else if(req.method==='POST'&&entity==='offer'){
       const imageKey=txt(b.imageKey,400)||null;
       if(imageKey&&(!imageKey.startsWith('products/'+String(req.member.id)+'/')||!/^products\/[^/]+\/[a-f\d-]+\.(png|jpg|webp)$/.test(imageKey)))return res.status(400).json({error:'Imagem não pertence à sua conta.'});
@@ -94,11 +97,11 @@ export default async function(req,res){
       const groupId=txt(b.groupId,80)||null;if(!groupId||!(await belongs('promo_groups',groupId,a.id)))return res.status(400).json({error:'Grupo inválido.'});
       await db.query('INSERT INTO schedules(id,account_id,name,message,group_id,recurrence,send_time,status,weekday,once_date) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[uid(),a.id,txt(b.name,120),txt(b.message,2500),groupId,recurrence,txt(b.sendTime,5)||'09:00','PAUSED',weekday,onceDate]);
     }else if(req.method==='PUT'&&entity==='groupConfig'){
-      const item=txt(b.id,100),categoryId=txt(b.categoryId,80)||null,platform=txt(b.platform,20)||'WHATSAPP',externalId=txt(b.externalId,200)||null,invite=txt(b.inviteUrl,600);
+      const item=txt(b.id,100),categoryId=txt(b.categoryId,80)||null,platform=txt(b.platform,20)||'WHATSAPP',externalId=txt(b.externalId,200)||null,invite=txt(b.inviteUrl,600),destinationType=platform==='WHATSAPP'?(txt(b.destinationType,20)||'GROUP'):'GROUP';
       if(!(await categoryOk(categoryId,a.id)))return res.status(400).json({error:'Categoria inválida.'});
       if(!['WHATSAPP','TELEGRAM'].includes(platform))return res.status(400).json({error:'Plataforma de grupo inválida.'});
       if(invite&&!url(invite))return res.status(400).json({error:'Use um link HTTPS válido.'});
-      const changed=await db.query("UPDATE promo_groups SET name=$1,platform=$2,category_id=$3,invite_url=$4,members=$5,capacity=$6,external_id=$7,status=CASE WHEN $7 IS NULL THEN 'PAUSED' ELSE status END WHERE id=$8 AND account_id=$9 RETURNING id",[txt(b.name,100),platform,categoryId,invite,Math.max(0,Number(b.members)||0),Math.max(1,Number(b.capacity)||1024),externalId,item,a.id]);
+      const changed=await db.query("UPDATE promo_groups SET name=$1,platform=$2,whatsapp_destination_type=$3,category_id=$4,invite_url=$5,members=$6,capacity=$7,external_id=$8,status='PAUSED' WHERE id=$9 AND account_id=$10 RETURNING id",[txt(b.name,100),platform,destinationType,categoryId,invite,Math.max(0,Number(b.members)||0),Math.max(1,Number(b.capacity)||1024),externalId,item,a.id]);
       if(!changed.rows.length)return res.status(404).json({error:'Destino não encontrado.'});
     }else if(req.method==='PUT'){
       const item=txt(b.id,100),status=txt(b.status,20),table={offer:'offers',group:'promo_groups',publication:'publications',monitor:'monitors',queue:'queues',schedule:'schedules'}[entity];
