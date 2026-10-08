@@ -1386,3 +1386,10 @@ body{font-family:Manrope,system-ui,sans-serif}.login-layout{min-height:100vh;dis
 .csp-prewrap-scroll-92{white-space:pre-wrap;max-height:92px;overflow:auto}
 .csp-generated-image{max-width:100%;margin-top:10px;border-radius:12px}
 .csp-field-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+
+
+/* CSP migration batch 5: dynamic chart sizing uses SVG geometry attributes. */
+.csp-capacity-bar{display:block;width:100%;height:8px;margin-top:10px;border-radius:99px;background:#e9eef1;overflow:hidden}
+.csp-capacity-fill{fill:var(--orange)}
+.csp-daily-bar{display:block;width:100%;height:120px;overflow:visible}
+.csp-daily-bar-fill{fill:var(--orange)}
