@@ -1359,3 +1359,17 @@ body{font-family:Manrope,system-ui,sans-serif}.login-layout{min-height:100vh;dis
 .eyebrow-highlight{color:#61e7ba}
 .sectionhead-flush{margin-top:0}
 .footer-privacy-button{border:0;background:none;color:#aab8c5}
+
+
+/* CSP migration batch 3: fixed inline presentation styles. */
+.csp-margin-bottom-16px{margin-bottom:16px}
+.csp-margin-top-12px{margin-top:12px}
+.csp-margin-top-8px{margin-top:8px}
+.csp-margin-top-10px{margin-top:10px}
+.csp-margin-top-14px{margin-top:14px}
+.csp-margin-top-24px{margin-top:24px}
+.csp-margin-top-22px{margin-top:22px}
+.csp-color-b72e2e{color:#b72e2e}
+.csp-grid-template-columns-1fr-1fr{grid-template-columns:1fr 1fr}
+.csp-white-space-pre-wrap{white-space:pre-wrap}
+.csp-margin-top-15px{margin-top:15px}
