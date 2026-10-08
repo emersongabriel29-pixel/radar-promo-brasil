@@ -318,7 +318,7 @@ function dashboard() {
       validatedMarketplaces > 0 &&
       activeConnections > 0;
   return (
-    '<section class="hero"><div><div class="eyebrow" style="color:#61e7ba">OPERAÇÃO INTELIGENTE</div><h2>Da oferta encontrada ao grupo certo, sem trabalho repetitivo.</h2><p>Monitore fontes, converta links, use IA para categorizar, organize filas e envie a imagem do produto junto com texto e link.</p><div class="actions"><button type=\"button\" id=\"create-promotion\" class=\"btn\" data-action=\"show(\'quick\')\">Criar promoção</button><button type="button" id="configure-monitor" class="btn secondary" data-action="show(\'monitoring\')">Configurar monitor</button></div></div><div class="pulsebox"><div class="pulse"><span>Motor de automação</span><i class="dot"></i></div><strong>' +
+    '<section class="hero"><div><div class="eyebrow eyebrow-highlight">OPERAÇÃO INTELIGENTE</div><h2>Da oferta encontrada ao grupo certo, sem trabalho repetitivo.</h2><p>Monitore fontes, converta links, use IA para categorizar, organize filas e envie a imagem do produto junto com texto e link.</p><div class="actions"><button type=\"button\" id=\"create-promotion\" class=\"btn\" data-action=\"show(\'quick\')\">Criar promoção</button><button type="button" id="configure-monitor" class="btn secondary" data-action="show(\'monitoring\')">Configurar monitor</button></div></div><div class="pulsebox"><div class="pulse"><span>Motor de automação</span><i class="dot"></i></div><strong>' +
     (operationOn ? "24/7 ativo" : "Em configuração") +
     "</strong><small>" +
     active +
@@ -593,7 +593,7 @@ function queues() {
           })
           .join("")
       : empty("Nenhuma fila criada")) +
-    '</div></div><div><div class="sectionhead" style="margin-top:0"><div><h2>Mensagens recorrentes</h2><p>Ative após validar o destino e o conector.</p></div><button class=\"btn secondary\" data-action=\"openSchedule()\">+ Nova recorrência</button></div><div class="list">' +
+    '</div></div><div><div class="sectionhead sectionhead-flush"><div><h2>Mensagens recorrentes</h2><p>Ative após validar o destino e o conector.</p></div><button class=\"btn secondary\" data-action=\"openSchedule()\">+ Nova recorrência</button></div><div class="list">' +
     (D.schedules.length
       ? D.schedules
           .map(function (s) {
@@ -1170,7 +1170,7 @@ function growth() {
     ) +
     metric("Canais preparados", connections.length, "Meta e e-mail") +
     metric("Conteúdos IA", (g.assets || []).length, "biblioteca recente") +
-    '</div><div class="grid two"><div class="card"><div class="sectionhead" style="margin-top:0"><div><h2>Cupons</h2><p>Código, validade e link oficial.</p></div><button class="btn" data-action="openCoupon()">+ Cupom</button></div>' +
+    '</div><div class="grid two"><div class="card"><div class="sectionhead sectionhead-flush"><div><h2>Cupons</h2><p>Código, validade e link oficial.</p></div><button class="btn" data-action="openCoupon()">+ Cupom</button></div>' +
     (coupons.length
       ? coupons
           .map(function (x) {
