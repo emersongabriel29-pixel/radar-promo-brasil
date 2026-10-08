@@ -82,3 +82,17 @@ test('arte de promoção usa CSS externo compatível com a CSP restritiva', () =
   assert.equal(route.includes('class="${ratioClass}"'),true);
   for(const ratio of ['1-1','3-4','4-3','9-16','16-9','21-9'])assert.equal(css.includes(`body.ratio-${ratio}{`),true);
 });
+
+
+test('página pública respeita a CSP sem estilos, scripts ou handlers inline', () => {
+  const page = fs.readFileSync(new URL('../pages/inicio.js', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../public/inicio.css', import.meta.url), 'utf8');
+  const js = fs.readFileSync(new URL('../public/inicio.js', import.meta.url), 'utf8');
+  assert.equal(page.includes('<style>'), false);
+  assert.equal(page.includes('<script>'), false);
+  assert.equal(/\son[a-z]+\s*=/i.test(page), false);
+  assert.ok(page.includes('href="/inicio.css"'));
+  assert.ok(page.includes('src="/inicio.js"'));
+  assert.ok(css.includes('.cookie.on'));
+  assert.ok(js.includes('data-cookie-choice'));
+});
