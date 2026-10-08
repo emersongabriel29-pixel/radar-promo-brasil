@@ -481,7 +481,7 @@ function monitoring() {
         );
       })
       .join("") +
-    '</div><div class=\"callout\" style=\"margin-top:15px\">Cadastrar uma fonte não autoriza leitura automática do WhatsApp, de redes sociais ou de marketplaces. É necessário um conector oficial e credenciais válidas.</div></div>' +
+    '</div><div class=\"callout\" class=\"csp-margin-top-15px\">Cadastrar uma fonte não autoriza leitura automática do WhatsApp, de redes sociais ou de marketplaces. É necessário um conector oficial e credenciais válidas.</div></div>' +
     section(
       "Fontes cadastradas",
       "Mantenha a origem pausada até validar o conector.",
@@ -712,9 +712,7 @@ function groups() {
         return (
           "<tr><td><b>" +
           esc(g.name) +
-          '</b><div class=\"bar\"><i style=\"width:' +
-          Math.min(100, lot) +
-          '%\"></i></div><small class=\"muted\">' +
+          '</b><svg class=\"csp-capacity-bar\" viewBox=\"0 0 100 8\" preserveAspectRatio=\"none\" role=\"img\" aria-label=\"' + Math.min(100, lot) + '% de capacidade\"><rect class=\"csp-capacity-fill\" x=\"0\" y=\"0\" width=\"' + Math.min(100, lot) + '\" height=\"8\" rx=\"4\"></rect></svg><small class=\"muted\">' +
           esc(g.externalId || "ID de destino pendente") +
           '</small></td><td><span class=\"pill ' +
           (g.platform === "TELEGRAM" ? "live" : "") +
