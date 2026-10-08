@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { webhooks } from '../hatchable/index.js';
 import { applySecurityHeaders, createRateLimiter, requestKey } from '../lib/security.js';
+import { loginPage } from '../server/standalone-auth.js';
 
 function sign(raw, secret) {
   return crypto.createHmac('sha256', secret).update(raw).digest('hex');
@@ -123,4 +124,20 @@ test('CSP não habilita unsafe-inline em scripts ou estilos', () => {
   const csp = response.headers['Content-Security-Policy'];
   assert.doesNotMatch(csp, /script-src[^;]*unsafe-inline/i);
   assert.doesNotMatch(csp, /style-src[^;]*unsafe-inline/i);
+});
+
+
+test('página de login é compatível com CSP e usa JavaScript externo', () => {
+  let html = '';
+  const response = {
+    type() { return this; },
+    send(value) { html = value; return this; },
+    redirect() { throw new Error('Login inesperadamente redirecionado.'); }
+  };
+  loginPage({ member: null }, response);
+  const js = fs.readFileSync(new URL('../public/login.js', import.meta.url), 'utf8');
+  assert.equal(html.includes('<script>'), false);
+  assert.ok(html.includes('<script src="/login.js" defer></script>'));
+  assert.ok(js.includes("addEventListener('submit'"));
+  assert.ok(js.includes("fetch('/api/account/login'"));
 });
