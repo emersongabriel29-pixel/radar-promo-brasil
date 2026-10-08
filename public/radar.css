@@ -1353,3 +1353,9 @@ body{font-family:Manrope,system-ui,sans-serif}.login-layout{min-height:100vh;dis
 /* CSP migration: replace presentation-only inline styles with reusable classes. */
 .top-heading-group{display:flex;gap:10px;align-items:center}
 .modal .modal-sectionhead{margin-top:0}
+
+
+/* CSP migration batch 2: static presentation classes. */
+.eyebrow-highlight{color:#61e7ba}
+.sectionhead-flush{margin-top:0}
+.footer-privacy-button{border:0;background:none;color:#aab8c5}
