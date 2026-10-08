@@ -57,7 +57,6 @@ export default async function(req,res){
       const categoryId=txt(b.categoryId,80)||null;if(!(await categoryOk(categoryId,a.id)))return res.status(400).json({error:'Categoria inválida.'});
       const invite=txt(b.inviteUrl,600);if(invite&&!url(invite))return res.status(400).json({error:'Use um link HTTPS válido.'});
       const platform=txt(b.platform,20)||'WHATSAPP';if(!['WHATSAPP','TELEGRAM'].includes(platform))return res.status(400).json({error:'Plataforma de destino inválida.'});
-      if(!['GROUP','CHANNEL','COMMUNITY'].includes(destinationType))return res.status(400).json({error:'Tipo de destino inválido.'});
       const destinationType=platform==='WHATSAPP'?(txt(b.destinationType,20)||'GROUP'):'GROUP';
       if(!['GROUP','CHANNEL','COMMUNITY'].includes(destinationType))return res.status(400).json({error:'Tipo de destino inválido.'});
       const externalId=txt(b.externalId,200)||null;
@@ -100,6 +99,7 @@ export default async function(req,res){
       const item=txt(b.id,100),categoryId=txt(b.categoryId,80)||null,platform=txt(b.platform,20)||'WHATSAPP',externalId=txt(b.externalId,200)||null,invite=txt(b.inviteUrl,600),destinationType=platform==='WHATSAPP'?(txt(b.destinationType,20)||'GROUP'):'GROUP';
       if(!(await categoryOk(categoryId,a.id)))return res.status(400).json({error:'Categoria inválida.'});
       if(!['WHATSAPP','TELEGRAM'].includes(platform))return res.status(400).json({error:'Plataforma de grupo inválida.'});
+      if(!['GROUP','CHANNEL','COMMUNITY'].includes(destinationType))return res.status(400).json({error:'Tipo de destino inválido.'});
       if(invite&&!url(invite))return res.status(400).json({error:'Use um link HTTPS válido.'});
       const changed=await db.query("UPDATE promo_groups SET name=$1,platform=$2,whatsapp_destination_type=$3,category_id=$4,invite_url=$5,members=$6,capacity=$7,external_id=$8,status='PAUSED' WHERE id=$9 AND account_id=$10 RETURNING id",[txt(b.name,100),platform,destinationType,categoryId,invite,Math.max(0,Number(b.members)||0),Math.max(1,Number(b.capacity)||1024),externalId,item,a.id]);
       if(!changed.rows.length)return res.status(404).json({error:'Destino não encontrado.'});
