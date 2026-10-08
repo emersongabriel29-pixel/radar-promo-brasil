@@ -127,6 +127,13 @@ test('CSP não habilita unsafe-inline em scripts ou estilos', () => {
 });
 
 
+test('painel principal não usa atributos de evento inline bloqueados pela CSP', () => {
+  const radar = fs.readFileSync(new URL('../public/radar.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(radar, /\\s(?:onchange|onclick|oninput|onsubmit)\\s*=\\s*["']/i);
+  assert.ok(radar.includes('data-change="changeReportDays"'));
+  assert.ok(radar.includes("addEventListener('change'"));
+});
+
 test('página de login é compatível com CSP e usa JavaScript externo', () => {
   let html = '';
   const response = {
