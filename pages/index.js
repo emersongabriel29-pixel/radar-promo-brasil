@@ -39,7 +39,7 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
       <div class="shade" id="shade" data-action="menu(false)"></div>
       <main class="main" id="main">
         <header class="top">
-          <div style="display: flex; gap: 10px; align-items: center">
+          <div class="top-heading-group">
             <button class="btn secondary menu" aria-controls="side" aria-expanded="false" data-action="menu(true)">
               Menu
             </button>
@@ -61,7 +61,7 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
     </div>
     <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalHint" aria-hidden="true">
       <div class="dialog">
-        <div class="sectionhead" style="margin-top: 0">
+        <div class="sectionhead modal-sectionhead">
           <div>
             <h2 id="modalTitle"></h2>
             <p id="modalHint"></p>
