@@ -78,10 +78,6 @@ fetch('/api/public/storefront?slug=' + encodeURIComponent(slug), { headers: { Ac
     if (!data.store || !Array.isArray(data.offers)) throw new Error('Resposta da vitrine inválida.');
     title.textContent = String(data.store.title || 'Vitrine de ofertas');
     description.textContent = String(data.store.description || '');
-    const brand = safeUrl(data.store.primaryColor, []);
-    if (typeof data.store.primaryColor === 'string' && /^#[0-9a-f]{6}$/i.test(data.store.primaryColor)) {
-      document.documentElement.style.setProperty('--brand', data.store.primaryColor);
-    }
     if (!data.offers.length) {
       showEmpty('Nenhuma oferta publicada.');
       return;
