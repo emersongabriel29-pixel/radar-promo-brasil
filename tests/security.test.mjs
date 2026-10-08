@@ -77,8 +77,8 @@ test('cabeçalhos de segurança são aplicados', () => {
 test('arte de promoção usa CSS externo compatível com a CSP restritiva', () => {
   const route=fs.readFileSync(new URL('../api/ai/card/[id].js',import.meta.url),'utf8');
   const css=fs.readFileSync(new URL('../public/ai-card.css',import.meta.url),'utf8');
-  assert.doesNotMatch(route,/<style\\b/i);
-  assert.match(route,/href="\\/ai-card\\.css"/);
-  assert.match(route,/class="\\$\\{ratioClass\\}"/);
-  for(const ratio of ['1-1','3-4','4-3','9-16','16-9','21-9'])assert.match(css,new RegExp('body\\.ratio-'+ratio+'\\s*\\{'));
+  assert.doesNotMatch(route,/<style\b/i);
+  assert.match(route,/href="\/ai-card\.css"/);
+  assert.match(route,/class="\$\\{ratioClass\\}"/);
+  for(const ratio of ['1-1','3-4','4-3','9-16','16-9','21-9'])assert.match(css,new RegExp('body\.ratio-'+ratio+'\s*\\{'));
 });
