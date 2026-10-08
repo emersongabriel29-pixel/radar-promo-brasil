@@ -74,10 +74,11 @@ export default async function(req,res){
       if(!created.rows.length)return res.status(409).json({error:'Esta oferta já está cadastrada.'});
       if(imageKey)await db.query('UPDATE offers SET image_storage_key=$1 WHERE id=$2 AND account_id=$3',[imageKey,created.rows[0].id,a.id]);
     }else if(req.method==='POST'&&entity==='publication'){
-      const offerId=txt(b.offerId,80),groupId=txt(b.groupId,80),found=(await db.query('SELECT message,image_url,image_storage_key,status FROM offers WHERE id=$1 AND account_id=$2',[offerId,a.id])).rows[0],group=(await db.query('SELECT id,platform,external_id,status FROM promo_groups WHERE id=$1 AND account_id=$2',[groupId,a.id])).rows[0];
+      const offerId=txt(b.offerId,80),groupId=txt(b.groupId,80),found=(await db.query('SELECT message,image_url,image_storage_key,status FROM offers WHERE id=$1 AND account_id=$2',[offerId,a.id])).rows[0],group=(await db.query('SELECT id,platform,external_id,status,whatsapp_destination_type AS "destinationType" FROM promo_groups WHERE id=$1 AND account_id=$2',[groupId,a.id])).rows[0];
       if(!found||!group)return res.status(400).json({error:'Oferta ou grupo não pertence à sua conta.'});
       if(!['APPROVED','PUBLISHED'].includes(found.status))return res.status(412).json({error:'Aprove a oferta antes de preparar o envio.'});
       if(b.scheduledAt&&!Number.isFinite(Date.parse(b.scheduledAt)))return res.status(400).json({error:'Data de agendamento inválida.'});
+      if(group.platform==='WHATSAPP'&&group.destinationType!=='GROUP')return res.status(412).json({error:'Este conector ainda não tem suporte verificado para canais ou comunidades WhatsApp.'});
       if(group.status!=='ACTIVE'||!String(group.external_id||'').trim())return res.status(412).json({error:'Ative um destino com ID oficial antes de preparar o envio.'});
       await db.query('INSERT INTO publications(id,account_id,offer_id,group_id,status,scheduled_at,message,image_url,mode,priority,mention_all,image_storage_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',[uid(),a.id,offerId,groupId,b.scheduledAt?'SCHEDULED':'READY',b.scheduledAt||null,txt(b.message,3000)||found.message,found.image_url,txt(b.mode,30)||'ON_DEMAND',b.priority==='FLASH'?100:0,b.mentionAll==='true',found.image_storage_key]);
       if(group.platform==='TELEGRAM'&&!b.scheduledAt)await scheduler.now('/api/jobs/telegram');
@@ -116,8 +117,9 @@ export default async function(req,res){
       }
       if(entity==='monitor'&&status==='ACTIVE')await canActivateMonitor(a.id,item);
       if(entity==='group'&&status==='ACTIVE'){
-        const destination=(await db.query('SELECT external_id FROM promo_groups WHERE id=$1 AND account_id=$2',[item,a.id])).rows[0];
+        const destination=(await db.query('SELECT platform,external_id,whatsapp_destination_type AS "destinationType" FROM promo_groups WHERE id=$1 AND account_id=$2',[item,a.id])).rows[0];
         if(!destination)return res.status(404).json({error:'Destino não encontrado.'});
+        if(destination.platform==='WHATSAPP'&&destination.destinationType!=='GROUP')return res.status(412).json({error:'Este conector ainda não tem suporte verificado para canais ou comunidades WhatsApp.'});
         if(!String(destination.external_id||'').trim())return res.status(412).json({error:'Informe o ID oficial antes de ativar este destino.'});
       }
       const changed=await db.query('UPDATE '+table+' SET status=$1 WHERE id=$2 AND account_id=$3 RETURNING id',[status,item,a.id]);
