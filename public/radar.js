@@ -533,7 +533,7 @@ function cloneView() {
         );
       })
       .join("") +
-    '</div><div class="callout" style="margin-top:15px">Mensagens com vários produtos ficam para revisão. O sistema não altera preço, cupom ou frete sem confirmação da fonte.</div></div><div class="card"><h3>Regras do clone</h3><p class="muted">✓ Preservar formatação e imagem<br>✓ Substituir links reconhecidos<br>✓ Gerar link de cupom quando disponível<br>✓ Bloquear duplicações<br>✓ Enviar à categoria compatível</p><button class="btn" data-action="openMonitor()">Adicionar origem</button></div></div>'
+    '</div><div class="callout csp-margin-top-15px" >Mensagens com vários produtos ficam para revisão. O sistema não altera preço, cupom ou frete sem confirmação da fonte.</div></div><div class="card"><h3>Regras do clone</h3><p class="muted">✓ Preservar formatação e imagem<br>✓ Substituir links reconhecidos<br>✓ Gerar link de cupom quando disponível<br>✓ Bloquear duplicações<br>✓ Enviar à categoria compatível</p><button class="btn" data-action="openMonitor()">Adicionar origem</button></div></div>'
   );
 }
 function quick() {
@@ -544,7 +544,7 @@ function quick() {
       "+ Cadastrar oferta",
       "openOffer()",
     ) +
-    '<div class="grid two"><div class="card"><h3>Conversor oficial</h3><p class="muted">Reconhece as lojas cadastradas. A conversão só é liberada quando o método oficial daquela conta está validado.</p><div class="field"><label>Link do produto</label><input class="input" id="convertUrl" type="url" placeholder="https://..."></div><div class="field" style="margin-top:10px"><label>Identificação do grupo</label><input class="input" id="convertGroup" value="geral"></div><button class="btn" style="margin-top:12px" data-action="convertLink()">Converter link</button><div id="convertResult" class="callout" style="display:none;margin-top:12px"></div></div><div class="card"><div class="steps">' +
+    '<div class="grid two"><div class="card"><h3>Conversor oficial</h3><p class="muted">Reconhece as lojas cadastradas. A conversão só é liberada quando o método oficial daquela conta está validado.</p><div class="field"><label>Link do produto</label><input class="input" id="convertUrl" type="url" placeholder="https://..."></div><div class="field csp-margin-top-10px" ><label>Identificação do grupo</label><input class="input" id="convertGroup" value="geral"></div><button class="btn csp-margin-top-12px"  data-action="convertLink()">Converter link</button><div id="convertResult" class="callout" style="display:none;margin-top:12px"></div></div><div class="card"><div class="steps">' +
     [
       "Cole o link",
       "Confira o produto",
@@ -688,7 +688,7 @@ function messageExample(title, text) {
   return (
     '<div class="card"><h3>' +
     title +
-    '</h3><div class="callout" style="white-space:pre-wrap">' +
+    '</h3><div class="callout csp-white-space-pre-wrap" >' +
     esc(text) +
     "</div></div>"
   );
@@ -798,7 +798,7 @@ function leads() {
           Math.max(0, g.capacity - g.members) +
           " vagas</div>" +
           (fill >= 90
-            ? '<div class="callout" style="margin-top:10px">Grupo próximo da lotação.</div>'
+            ? '<div class="callout csp-margin-top-10px" >Grupo próximo da lotação.</div>'
             : "") +
           "</div>"
         );
@@ -994,7 +994,7 @@ function integrations() {
       "Fila real de renderização Runway, consulta de estado e armazenamento protegido.",
       "Disponível",
     ) +
-    '</div><div class="card"><h3>Teste interno do fluxo</h3><p class="muted">Valida produto, preço, imagem e link; classifica a categoria, escolhe grupos e monta a mensagem sem envio externo.</p><button class="btn dark" data-action="runSimulation()">Executar teste seguro</button><div id="simulationResult" class="callout" style="margin-top:12px;display:none"></div><h3 style="margin-top:22px">Estados reais</h3><p class="muted">Testado: executado com sucesso neste projeto.<br>Disponível: código executável no projeto.<br>Preparado: telas e banco prontos, credencial/API pendente.<br>Credencial: depende de autorização do provedor.<br>Parcial: há recurso seguro alternativo, mas não acesso total à conta externa.</p><div class="callout">Nenhuma integração externa é marcada como ativa sem teste real da autorização do titular.</div></div></div>'
+    '</div><div class="card"><h3>Teste interno do fluxo</h3><p class="muted">Valida produto, preço, imagem e link; classifica a categoria, escolhe grupos e monta a mensagem sem envio externo.</p><button class="btn dark" data-action="runSimulation()">Executar teste seguro</button><div id="simulationResult" class="callout" style="margin-top:12px;display:none"></div><h3 class="csp-margin-top-22px" >Estados reais</h3><p class="muted">Testado: executado com sucesso neste projeto.<br>Disponível: código executável no projeto.<br>Preparado: telas e banco prontos, credencial/API pendente.<br>Credencial: depende de autorização do provedor.<br>Parcial: há recurso seguro alternativo, mas não acesso total à conta externa.</p><div class="callout">Nenhuma integração externa é marcada como ativa sem teste real da autorização do titular.</div></div></div>'
   );
 }
 function integration(code, name, desc, state) {
@@ -1067,7 +1067,7 @@ function studio() {
       "studioAspect",
       '<option value="1:1">Feed quadrado</option><option value="4:5">Feed vertical</option><option value="9:16">Stories e Reels</option><option value="16:9">Facebook e YouTube</option>',
     ) +
-    '<div class="actions"><button class="btn" data-action="generateStudioText()">Gerar conteúdo</button><button class="btn dark" data-action="generateStudioImage()">Gerar arte</button><button class="btn green" data-action="generateStudioVideo()">Renderizar vídeo</button></div><div id="studioResult" class="callout" style="display:none;margin-top:14px;white-space:pre-wrap"></div></div><div class="card"><h3>Continuidade automática</h3><p class="muted">Imagem tenta o provedor principal, depois o Runway e, se ambos estiverem ocupados, entrega um cartão promocional seguro. Vídeos são enviados a uma fila real de renderização e armazenados na conta.</p><div class="steps" style="grid-template-columns:1fr 1fr">' +
+    '<div class="actions"><button class="btn" data-action="generateStudioText()">Gerar conteúdo</button><button class="btn dark" data-action="generateStudioImage()">Gerar arte</button><button class="btn green" data-action="generateStudioVideo()">Renderizar vídeo</button></div><div id="studioResult" class="callout" style="display:none;margin-top:14px;white-space:pre-wrap"></div></div><div class="card"><h3>Continuidade automática</h3><p class="muted">Imagem tenta o provedor principal, depois o Runway e, se ambos estiverem ocupados, entrega um cartão promocional seguro. Vídeos são enviados a uma fila real de renderização e armazenados na conta.</p><div class="steps csp-grid-template-columns-1fr-1fr" >' +
     [
       "Copy validada",
       "Imagem com fallback",
@@ -1104,9 +1104,9 @@ function studio() {
               esc(x.provider || "aguardando") +
               "</div>" +
               (x.outputUrl
-                ? '<a class="btn secondary" target="_blank" href="' +
+                ? '<a class="btn secondary csp-margin-top-12px" target="_blank" href="' +
                   esc(x.outputUrl) +
-                  '" style="margin-top:12px">Abrir arquivo</a>'
+                  '" >Abrir arquivo</a>'
                 : "") +
               (x.lastError
                 ? '<div class="muted">' + esc(x.lastError) + "</div>"
@@ -1215,7 +1215,7 @@ function growth() {
         );
       })
       .join("") +
-    '<div class="callout">Publicação automática real no Instagram/Facebook exige conta profissional, aplicativo Meta, permissões e aprovação. Gmail/Outlook podem receber testes; envio como sua caixa exige OAuth próprio.</div><button class="btn secondary" style="margin-top:12px" data-action="openEmailTest()">Testar entrega por e-mail</button></div></div>' +
+    '<div class="callout">Publicação automática real no Instagram/Facebook exige conta profissional, aplicativo Meta, permissões e aprovação. Gmail/Outlook podem receber testes; envio como sua caixa exige OAuth próprio.</div><button class="btn secondary csp-margin-top-12px"  data-action="openEmailTest()">Testar entrega por e-mail</button></div></div>' +
     section(
       "Campanhas e Ads",
       "Planejamento com UTM; ativação nas plataformas depende das credenciais oficiais.",
@@ -1283,7 +1283,7 @@ function socialAgent() {
       esc(x.message) +
       "</div>" +
       (x.lastError
-        ? '<div class="muted" style="color:#b72e2e">' +
+        ? '<div class="muted csp-color-b72e2e" >' +
           esc(x.lastError) +
           "</div>"
         : "") +
@@ -1391,7 +1391,7 @@ function socialAgent() {
       "time",
       'value="' + esc(s.endTime || "22:00") + '"',
     ) +
-    '</div><div class="actions"><button class="btn" data-action="saveSocialSettings()">Salvar e ativar</button><button class="btn secondary" data-action="generateSocialQueue()">Gerar mensagens agora</button><button class="btn dark" data-action="runSocialQueue()">Executar fila</button></div><div class="callout" style="margin-top:14px">A IA não inventa preço, desconto, cupom, frete ou urgência. Cada link aponta para o rastreador do Radar e depois redireciona ao link de afiliado cadastrado.</div></div><div class="card"><h3>Conexões oficiais Meta</h3>' +
+    '</div><div class="actions"><button class="btn" data-action="saveSocialSettings()">Salvar e ativar</button><button class="btn secondary" data-action="generateSocialQueue()">Gerar mensagens agora</button><button class="btn dark" data-action="runSocialQueue()">Executar fila</button></div><div class="callout csp-margin-top-14px" >A IA não inventa preço, desconto, cupom, frete ou urgência. Cada link aponta para o rastreador do Radar e depois redireciona ao link de afiliado cadastrado.</div></div><div class="card"><h3>Conexões oficiais Meta</h3>' +
     ["INSTAGRAM", "FACEBOOK"]
       .map(function (n) {
         var x = connection(n);
@@ -1411,7 +1411,7 @@ function socialAgent() {
         );
       })
       .join("") +
-    '<button class="btn secondary" data-action="testMetaConnection()">Testar autorização Meta</button><h3 style="margin-top:22px">Agente especialista</h3><div class="formgrid">' +
+    '<button class="btn secondary" data-action="testMetaConnection()">Testar autorização Meta</button><h3 class="csp-margin-top-22px" >Agente especialista</h3><div class="formgrid">' +
     select(
       "Tarefa",
       "agentTask",
@@ -1492,7 +1492,7 @@ function compliancePanel() {
         );
       })
       .join("") +
-    '</div><div class="callout" style="margin-top:14px"><b>Importante:</b> mensagens promocionais automáticas individuais são bloqueadas fora da janela de 24 horas, salvo mecanismo oficial compatível e consentimento registrado. ' +
+    '</div><div class="callout csp-margin-top-14px" ><b>Importante:</b> mensagens promocionais automáticas individuais são bloqueadas fora da janela de 24 horas, salvo mecanismo oficial compatível e consentimento registrado. ' +
     Number(excluded.publicPosts || 0) +
     " post(s) público(s) e " +
     Number(excluded.groupPosts || 0) +
@@ -1586,7 +1586,7 @@ function security() {
           .join("")
       : '<p class="muted">Nenhuma solicitação registrada.</p>') +
     "</div></div>" +
-    '<div class="card"><h3>Exportação e backup da conta</h3><p class="muted">Portabilidade sem credenciais. Backup privado inclui registros e uploads; restauração é verificada em banco isolado.</p><div class="actions"><button class="btn secondary" data-action="downloadPrivate(\'/api/privacy\',\'radar-portabilidade.json\')">Exportar meus dados</button><button class="btn" data-action="createBackup(this)">Criar backup</button><button class="btn secondary" data-action="listBackups(this)">Ver backups</button><button class="btn secondary" data-action="previewRetention()">Prévia da limpeza</button></div><div id="backupList" class="list" style="margin-top:12px"></div></div>' +
+    '<div class="card"><h3>Exportação e backup da conta</h3><p class="muted">Portabilidade sem credenciais. Backup privado inclui registros e uploads; restauração é verificada em banco isolado.</p><div class="actions"><button class="btn secondary" data-action="downloadPrivate(\'/api/privacy\',\'radar-portabilidade.json\')">Exportar meus dados</button><button class="btn" data-action="createBackup(this)">Criar backup</button><button class="btn secondary" data-action="listBackups(this)">Ver backups</button><button class="btn secondary" data-action="previewRetention()">Prévia da limpeza</button></div><div id="backupList" class="list csp-margin-top-12px" ></div></div>' +
     section(
       "Eventos de segurança",
       "Trilha de auditoria sem expor tokens ou conteúdo sensível.",
@@ -1657,13 +1657,13 @@ function accountView() {
         );
       })
       .join("") +
-    '<h3 style="margin-top:22px">Vitrine pública</h3><div class="callout">/vitrine?loja=' +
+    '<h3 class="csp-margin-top-22px" >Vitrine pública</h3><div class="callout">/vitrine?loja=' +
     esc(a.slug || "") +
-    '</div><button class="btn" style="margin-top:12px" data-action="openStorefront()">Editar vitrine</button> <a class="btn secondary" target="_blank" href="/vitrine?loja=' +
+    '</div><button class="btn csp-margin-top-12px"  data-action="openStorefront()">Editar vitrine</button> <a class="btn secondary" target="_blank" href="/vitrine?loja=' +
     encodeURIComponent(a.slug || "") +
     '">Visualizar</a></div><div class="card"><h3>Conexões WhatsApp</h3>' +
     whatsappConnectionsMarkup() +
-    '<h3 style="margin-top:24px">Bots do Telegram</h3>' +
+    '<h3 class="csp-margin-top-24px" >Bots do Telegram</h3>' +
     (tg.length
       ? tg
           .map(function (x) {
@@ -1687,7 +1687,7 @@ function accountView() {
           })
           .join("")
       : empty("Nenhum bot conectado")) +
-    '<button class="btn" style="margin-top:12px" data-action="openTelegramConnection()">+ Conectar bot</button></div></div><div class="callout" style="margin-top:14px">O bot do Telegram precisa ser administrador do grupo ou canal. Credenciais nunca aparecem novamente na tela.</div>'
+    '<button class="btn csp-margin-top-12px"  data-action="openTelegramConnection()">+ Conectar bot</button></div></div><div class="callout csp-margin-top-14px" >O bot do Telegram precisa ser administrador do grupo ou canal. Credenciais nunca aparecem novamente na tela.</div>'
   );
 }
 function render() {
@@ -1978,9 +1978,9 @@ async function pollMedia(id, box) {
       if (!r.ok) throw Error(b.error);
       if (b.status === "COMPLETED" || b.status === "FALLBACK_COMPLETED") {
         box.innerHTML =
-          '<b>Mídia concluída e armazenada</b><br><a class="btn secondary" target="_blank" href="' +
+          '<b>Mídia concluída e armazenada</b><br><a class="btn secondary csp-margin-top-10px" target="_blank" href="' +
           esc(b.url) +
-          '" style="margin-top:10px">Abrir arquivo</a>';
+          '" >Abrir arquivo</a>';
         await load();
         show("studio");
         return;
@@ -2620,9 +2620,9 @@ function openStorefront() {
 function whatsappConnectionsMarkup() {
   var connections = D.suite.connections || [], rotation = D.suite.whatsappRotation || {enabled:true,maxConnections:5};
   var cards = connections.map(function(x,index) {
-    return '<div class="integration"><div class="intlogo" aria-hidden="true">'+(index+1)+'</div><div class="grow"><b>'+esc(x.name)+'</b><div class="muted">'+esc(x.phoneNumber || 'Informe o número')+' · '+esc(x.status)+'</div><div class="muted">Intervalo '+x.intervalSeconds+'s · '+(x.groupMessagingSupported?'Grupo confirmado pelo conector':'Aguardando validação do conector')+'</div>'+(x.lastDispatchedAt?'<div class="muted">Último envio assumido: '+esc(new Date(x.lastDispatchedAt).toLocaleString('pt-BR'))+'</div>':'')+'<div class="actions" style="margin-top:8px"><button class="btn secondary" data-action="openConnection(\''+x.id+'\')">Editar '+esc(x.name)+'</button><button class="btn secondary" data-action="toggleWhatsapp(\''+x.id+'\',\''+(x.status==='ACTIVE'?'PAUSED':'ACTIVE')+'\')">'+(x.status==='ACTIVE'?'Pausar':'Ativar')+' '+esc(x.name)+'</button><button class="btn secondary" data-action="archiveWhatsapp(\''+x.id+'\')">Remover '+esc(x.name)+'</button></div></div></div>';
+    return '<div class="integration"><div class="intlogo" aria-hidden="true">'+(index+1)+'</div><div class="grow"><b>'+esc(x.name)+'</b><div class="muted">'+esc(x.phoneNumber || 'Informe o número')+' · '+esc(x.status)+'</div><div class="muted">Intervalo '+x.intervalSeconds+'s · '+(x.groupMessagingSupported?'Grupo confirmado pelo conector':'Aguardando validação do conector')+'</div>'+(x.lastDispatchedAt?'<div class="muted">Último envio assumido: '+esc(new Date(x.lastDispatchedAt).toLocaleString('pt-BR'))+'</div>':'')+'<div class="actions csp-margin-top-8px" ><button class="btn secondary" data-action="openConnection(\''+x.id+'\')">Editar '+esc(x.name)+'</button><button class="btn secondary" data-action="toggleWhatsapp(\''+x.id+'\',\''+(x.status==='ACTIVE'?'PAUSED':'ACTIVE')+'\')">'+(x.status==='ACTIVE'?'Pausar':'Ativar')+' '+esc(x.name)+'</button><button class="btn secondary" data-action="archiveWhatsapp(\''+x.id+'\')">Remover '+esc(x.name)+'</button></div></div></div>';
   }).join('');
-  return '<div class="callout"><b>'+connections.length+' de 5 números</b> · '+(rotation.enabled?'Revezamento automático ativo':'Seleção por prioridade')+'<p>Cada publicação é assumida por um único número. Números pausados, desconectados ou em intervalo aguardam sua vez.</p><button class="btn secondary" data-action="toggleWhatsappRotation('+(rotation.enabled?'false':'true')+')">'+(rotation.enabled?'Usar prioridade':'Ativar revezamento')+'</button> <button class="btn secondary" data-action="openWhatsappPairing()">Parear conector</button></div>'+cards+(connections.length<5?'<button class="btn" style="margin-top:12px" data-action="openConnection()">+ Adicionar número ('+connections.length+'/5)</button>':'<p class="muted">Limite de cinco números atingido.</p>');
+  return '<div class="callout"><b>'+connections.length+' de 5 números</b> · '+(rotation.enabled?'Revezamento automático ativo':'Seleção por prioridade')+'<p>Cada publicação é assumida por um único número. Números pausados, desconectados ou em intervalo aguardam sua vez.</p><button class="btn secondary" data-action="toggleWhatsappRotation('+(rotation.enabled?'false':'true')+')">'+(rotation.enabled?'Usar prioridade':'Ativar revezamento')+'</button> <button class="btn secondary" data-action="openWhatsappPairing()">Parear conector</button></div>'+cards+(connections.length<5?'<button class="btn csp-margin-top-12px"  data-action="openConnection()">+ Adicionar número ('+connections.length+'/5)</button>':'<p class="muted">Limite de cinco números atingido.</p>');
 }
 async function toggleWhatsapp(id,status) {
   try {await suiteCall('PUT',{entity:'connection',id:id,status:status});show('account');toast('Estado do número atualizado');}catch(e){toast(e.message);}
@@ -3157,7 +3157,7 @@ window.addEventListener('hashchange',function(){show(decodeURIComponent(location
 var originalIntegrations=integrations;
 integrations=function(){
   var readiness=D.readiness;
-  var panel=readiness?'<div class="card" style="margin-bottom:16px"><h2>Prontidão da operação</h2><p>Configuração: '+readiness.operationalPercent+'%. '+(readiness.productionReady?'Entrega recente confirmada.':'Há etapas pendentes antes de ativar a operação.')+'</p>'+readiness.core.filter(function(item){return !item.ready;}).map(function(item){return '<p><strong>'+esc(item.label)+':</strong> '+esc(item.action)+'</p>';}).join('')+'</div>':'';
+  var panel=readiness?'<div class="card csp-margin-bottom-16px" ><h2>Prontidão da operação</h2><p>Configuração: '+readiness.operationalPercent+'%. '+(readiness.productionReady?'Entrega recente confirmada.':'Há etapas pendentes antes de ativar a operação.')+'</p>'+readiness.core.filter(function(item){return !item.ready;}).map(function(item){return '<p><strong>'+esc(item.label)+':</strong> '+esc(item.action)+'</p>';}).join('')+'</div>':'';
   return panel+originalIntegrations();
 };
 syncDrawer();nav();load();
