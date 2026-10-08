@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { webhooks } from '../hatchable/index.js';
 import { applySecurityHeaders, createRateLimiter, requestKey } from '../lib/security.js';
+import { loginPage } from '../server/standalone-auth.js';
 
 function sign(raw, secret) {
   return crypto.createHmac('sha256', secret).update(raw).digest('hex');
@@ -95,4 +96,20 @@ test('página pública respeita a CSP sem estilos, scripts ou handlers inline', 
   assert.ok(page.includes('src="/inicio.js"'));
   assert.ok(css.includes('.cookie.on'));
   assert.ok(js.includes('data-cookie-choice'));
+});
+
+
+test('página de login é compatível com CSP e usa JavaScript externo', () => {
+  let html = '';
+  const response = {
+    type() { return this; },
+    send(value) { html = value; return this; },
+    redirect() { throw new Error('Login inesperadamente redirecionado.'); }
+  };
+  loginPage({ member: null }, response);
+  const js = fs.readFileSync(new URL('../public/login.js', import.meta.url), 'utf8');
+  assert.equal(/<script>([\\s\\S]*?)<\\/script>/i.test(html), false);
+  assert.ok(html.includes('<script src="/login.js" defer></script>'));
+  assert.ok(js.includes("addEventListener('submit'"));
+  assert.ok(js.includes("fetch('/api/account/login'"));
 });
