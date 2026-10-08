@@ -716,7 +716,9 @@ function groups() {
           Math.min(100, lot) +
           '%\"></i></div><small class=\"muted\">' +
           esc(g.externalId || "ID de destino pendente") +
-          '</small></td><td><span class=\"pill ' +
+          '</small><div class="muted">' +
+          (g.platform === "TELEGRAM" ? "Telegram" : ({ GROUP: "Grupo", CHANNEL: "Canal", COMMUNITY: "Comunidade" }[g.destinationType] || "Grupo")) +
+          '</div></td><td><span class=\"pill ' +
           (g.platform === "TELEGRAM" ? "live" : "") +
           '\">' +
           esc(g.platform || "WHATSAPP") +
