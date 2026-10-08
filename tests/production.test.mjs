@@ -35,6 +35,8 @@ test('destinos WhatsApp persistem o tipo e rejeitam valores inválidos',async()=
   const stored=(await db.query("SELECT whatsapp_destination_type,status FROM promo_groups WHERE account_id=$1 AND name='Comunidade auditada'",[a.id])).rows[0];
   assert.equal(stored.whatsapp_destination_type,'COMMUNITY');
   assert.equal(stored.status,'PAUSED');
+  const communityId=(await db.query("SELECT id FROM promo_groups WHERE account_id=$1 AND name='Comunidade auditada'",[a.id])).rows[0].id;
+  assert.equal((await invoke(dataHandler,{entity:'group',id:communityId,status:'ACTIVE'},'PUT')).status,412);
   assert.equal((await invoke(dataHandler,{entity:'group',name:'Tipo inválido',platform:'WHATSAPP',destinationType:'UNKNOWN'})).status,400);
   assert.equal((await invoke(dataHandler,{entity:'group',name:'Telegram',platform:'TELEGRAM',destinationType:'COMMUNITY'})).status,200);
   const telegram=(await db.query("SELECT whatsapp_destination_type FROM promo_groups WHERE account_id=$1 AND name='Telegram'",[a.id])).rows[0];
