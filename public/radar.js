@@ -2731,9 +2731,10 @@ function openGroup(id) {
       (g && g.platform === "WHATSAPP" ? "selected" : "") +
       '>WhatsApp</option><option value=\"TELEGRAM\" ' +
       (g && g.platform === "TELEGRAM" ? "selected" : "") +
-      ">Telegram</option>";
+      ">Telegram</option>",
+    destinationTypeOptions = '<option value="GROUP" '+(!g||!g.destinationType||g.destinationType==="GROUP"?"selected":"")+">👥 Grupo</option><option value=\"CHANNEL\" "+(g&&g.destinationType==="CHANNEL"?"selected":"")+">📢 Canal</option><option value=\"COMMUNITY\" "+(g&&g.destinationType==="COMMUNITY"?"selected":"")+">🏘️ Comunidade</option>";
   openModal(
-    g ? "Configurar destino" : "Novo grupo ou canal",
+    g ? "Configurar destino" : "Novo destino WhatsApp",
     "O destino só poderá ser ativado depois que tiver um ID oficial.",
     field(
       "Nome",
@@ -2742,6 +2743,7 @@ function openGroup(id) {
       'required value=\"' + esc(g ? g.name : "") + '\"',
     ) +
       select("Plataforma", "platform", platformOptions) +
+      select("Tipo de destino WhatsApp", "destinationType", destinationTypeOptions) +
       select("Categoria", "categoryId", categoryOptions) +
       field(
         "Link de convite",
