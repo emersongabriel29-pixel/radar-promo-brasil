@@ -2737,7 +2737,7 @@ function openGroup(id) {
     destinationTypeOptions = '<option value="GROUP" '+(!g||!g.destinationType||g.destinationType==="GROUP"?"selected":"")+">👥 Grupo</option><option value=\"CHANNEL\" "+(g&&g.destinationType==="CHANNEL"?"selected":"")+">📢 Canal</option><option value=\"COMMUNITY\" "+(g&&g.destinationType==="COMMUNITY"?"selected":"")+">🏘️ Comunidade</option>";
   openModal(
     g ? "Configurar destino" : "Novo destino WhatsApp",
-    "O destino só poderá ser ativado depois que tiver um ID oficial.",
+    "Grupos exigem ID e verificação do conector. Canais e comunidades ficam pausados até haver suporte real confirmado pelo conector.",
     field(
       "Nome",
       "name",
