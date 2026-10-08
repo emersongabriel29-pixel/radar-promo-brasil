@@ -5,7 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { getDb, startScheduler, stopScheduler } from './hatchable/index.js';
-import { applySecurityHeaders, createRateLimiter } from './lib/security.js';
+import { applySecurityHeaders, createRateLimiter, parseTrustProxyHops } from './lib/security.js';
 import { authenticate, login, logout, loginPage, validateAuthConfiguration, constantEqual } from './server/standalone-auth.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -22,9 +22,10 @@ function sources(directory) {
 
 export async function createApp() {
   validateAuthConfiguration(isProduction);
+  const trustProxyHops = parseTrustProxyHops(process.env.TRUST_PROXY_HOPS);
   const app = express();
   app.disable('x-powered-by');
-  if (process.env.TRUST_PROXY_HOPS) app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS));
+  if (trustProxyHops !== null) app.set('trust proxy', trustProxyHops);
   app.use((req, res, next) => { applySecurityHeaders(res, { production: isProduction, api: req.path.startsWith('/api') }); next(); });
   app.use(createRateLimiter({ windowMs: 60000, max: 180 }));
   app.use(express.json({ limit: '256kb', verify: (req, res, buffer) => { req.rawBody = buffer.toString('utf8'); } }));
