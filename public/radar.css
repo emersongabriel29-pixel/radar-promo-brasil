@@ -1349,3 +1349,7 @@ body{font-family:Manrope,system-ui,sans-serif}.login-layout{min-height:100vh;dis
 .login-body{min-height:100vh;display:grid;place-items:center;padding:24px}
 .login-card{padding:28px;background:#fff;border:1px solid #d8e1ec;border-radius:16px}
 .login-card form{display:grid;gap:12px}
+
+/* CSP migration: replace presentation-only inline styles with reusable classes. */
+.top-heading-group{display:flex;gap:10px;align-items:center}
+.modal .modal-sectionhead{margin-top:0}
