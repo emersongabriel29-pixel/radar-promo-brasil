@@ -91,8 +91,8 @@ test('página pública respeita a CSP sem estilos, scripts ou handlers inline', 
   assert.doesNotMatch(page, /<style\\b/i);
   assert.doesNotMatch(page, /<script(?![^>]*\\bsrc=)[^>]*>/i);
   assert.doesNotMatch(page, /\\son[a-z]+\\s*=/i);
-  assert.match(page, /href="\\/inicio\\.css"/);
-  assert.match(page, /src="\\/inicio\\.js"/);
+  assert.ok(page.includes('href="/inicio.css"'));
+  assert.ok(page.includes('src="/inicio.js"'));
   assert.match(css, /\\.cookie\\.on/);
   assert.match(js, /data-cookie-choice/);
 });
