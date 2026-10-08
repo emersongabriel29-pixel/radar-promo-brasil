@@ -1,0 +1,16 @@
+*{box-sizing:border-box}
+html,body{margin:0;overflow:hidden}
+body{width:1200px;height:1200px;background:#0d1d31;color:#fff;font-family:Arial,sans-serif}
+body.ratio-1-1{width:1200px;height:1200px}
+body.ratio-3-4{width:1200px;height:1600px}
+body.ratio-4-3{width:1600px;height:1200px}
+body.ratio-9-16{width:1080px;height:1920px}
+body.ratio-16-9{width:1920px;height:1080px}
+body.ratio-21-9{width:2100px;height:900px}
+.card{position:relative;width:100%;height:100%;padding:7.5%;display:flex;flex-direction:column;justify-content:space-between;background:radial-gradient(circle at 88% 10%,#23d6a055 0 18%,transparent 40%),linear-gradient(135deg,#10233b,#163d52 70%,#145449)}
+.ring{position:absolute;width:44%;aspect-ratio:1;border:92px solid #ff6a2a33;border-radius:50%;right:-15%;bottom:-14%}
+.brand{font-weight:800;letter-spacing:3px;font-size:30px}
+.tag{display:inline-block;background:#ff6a2a;color:#fff;border-radius:999px;padding:18px 30px;font-size:26px;font-weight:800}
+.title{font-size:76px;line-height:1.05;letter-spacing:-2px;max-width:960px;font-weight:900}
+.foot{font-size:30px;color:#c8d9e6}
+.accent{height:14px;width:220px;background:#18c98d;border-radius:20px;margin-top:34px}
