@@ -108,7 +108,7 @@ test('página de login é compatível com CSP e usa JavaScript externo', () => {
   };
   loginPage({ member: null }, response);
   const js = fs.readFileSync(new URL('../public/login.js', import.meta.url), 'utf8');
-  assert.equal(/<script>([\\s\\S]*?)<\\/script>/i.test(html), false);
+  assert.equal(html.includes('<script>'), false);
   assert.ok(html.includes('<script src="/login.js" defer></script>'));
   assert.ok(js.includes("addEventListener('submit'"));
   assert.ok(js.includes("fetch('/api/account/login'"));
