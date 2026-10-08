@@ -96,3 +96,31 @@ test('página pública respeita a CSP sem estilos, scripts ou handlers inline', 
   assert.ok(css.includes('.cookie.on'));
   assert.ok(js.includes('data-cookie-choice'));
 });
+
+test('páginas públicas usam assets externos compatíveis com a CSP', () => {
+  const pages = ['privacidade', 'termos', 'vitrine'];
+  for (const name of pages) {
+    const page = fs.readFileSync(new URL(`../pages/${name}.js`, import.meta.url), 'utf8');
+    assert.equal(/<style\b/i.test(page), false, `${name}: não deve conter style inline`);
+    assert.equal(/<script(?![^>]*\bsrc=)[^>]*>/i.test(page), false, `${name}: não deve conter script inline`);
+    assert.equal(/\son[a-z]+\s*=/i.test(page), false, `${name}: não deve conter handlers inline`);
+  }
+  const privacy = fs.readFileSync(new URL('../pages/privacidade.js', import.meta.url), 'utf8');
+  const terms = fs.readFileSync(new URL('../pages/termos.js', import.meta.url), 'utf8');
+  const storefront = fs.readFileSync(new URL('../pages/vitrine.js', import.meta.url), 'utf8');
+  const storefrontJs = fs.readFileSync(new URL('../public/vitrine.js', import.meta.url), 'utf8');
+  assert.ok(privacy.includes('href="/legal.css"'));
+  assert.ok(terms.includes('href="/legal.css"'));
+  assert.ok(storefront.includes('href="/vitrine.css"'));
+  assert.ok(storefront.includes('src="/vitrine.js"'));
+  assert.ok(storefrontJs.includes('replaceChildren'));
+  assert.ok(storefrontJs.includes("protocol"));
+});
+
+test('CSP não habilita unsafe-inline em scripts ou estilos', () => {
+  const response = { headers: {}, setHeader(key, value) { this.headers[key] = value; } };
+  applySecurityHeaders(response, { production: true });
+  const csp = response.headers['Content-Security-Policy'];
+  assert.doesNotMatch(csp, /script-src[^;]*unsafe-inline/i);
+  assert.doesNotMatch(csp, /style-src[^;]*unsafe-inline/i);
+});
