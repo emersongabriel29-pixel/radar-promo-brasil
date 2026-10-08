@@ -790,9 +790,11 @@ function leads() {
           esc(g.name) +
           "</span><b>" +
           fill +
-          '%</b><div class="bar"><i style="width:' +
+          '%</b><svg class="csp-capacity-bar" viewBox="0 0 100 8" preserveAspectRatio="none" role="img" aria-label="' +
           Math.min(100, fill) +
-          '%"></i></div><div class="muted">' +
+          '% de capacidade"><rect class="csp-capacity-fill" x="0" y="0" width="' +
+          Math.min(100, fill) +
+          '" height="8" rx="4"></rect></svg><div class="muted">' +
           g.members +
           " membros · " +
           Math.max(0, g.capacity - g.members) +
@@ -880,9 +882,11 @@ function reports() {
           esc(x.day) +
           " · " +
           x.clicks +
-          ' cliques" class="csp-chart-bar-label"><div style="height:' +
+          ' cliques" class="csp-chart-bar-label"><svg class="csp-daily-bar" viewBox="0 0 10 120" preserveAspectRatio="none" aria-hidden="true"><rect class="csp-daily-bar-fill" x="0" y="' +
+          (120 - h) +
+          '" width="10" height="' +
           h +
-          'px;background:var(--orange);border-radius:5px 5px 0 0"></div><small class="muted">' +
+          '" rx="1"></rect></svg><small class="muted">' +
           String(x.day).slice(8, 10) +
           "</small></div>"
         );
