@@ -544,7 +544,7 @@ function quick() {
       "+ Cadastrar oferta",
       "openOffer()",
     ) +
-    '<div class="grid two"><div class="card"><h3>Conversor oficial</h3><p class="muted">Reconhece as lojas cadastradas. A conversão só é liberada quando o método oficial daquela conta está validado.</p><div class="field"><label>Link do produto</label><input class="input" id="convertUrl" type="url" placeholder="https://..."></div><div class="field csp-margin-top-10px" ><label>Identificação do grupo</label><input class="input" id="convertGroup" value="geral"></div><button class="btn csp-margin-top-12px"  data-action="convertLink()">Converter link</button><div id="convertResult" class="callout" style="display:none;margin-top:12px"></div></div><div class="card"><div class="steps">' +
+    '<div class="grid two"><div class="card"><h3>Conversor oficial</h3><p class="muted">Reconhece as lojas cadastradas. A conversão só é liberada quando o método oficial daquela conta está validado.</p><div class="field"><label>Link do produto</label><input class="input" id="convertUrl" type="url" placeholder="https://..."></div><div class="field csp-margin-top-10px" ><label>Identificação do grupo</label><input class="input" id="convertGroup" value="geral"></div><button class="btn csp-margin-top-12px"  data-action="convertLink()">Converter link</button><div id="convertResult" class="callout csp-hidden csp-margin-top-12px"></div></div><div class="card"><div class="steps">' +
     [
       "Cole o link",
       "Confira o produto",
@@ -871,7 +871,7 @@ function reports() {
       "Evolução diária",
       "Cliques registrados nos últimos " + reportDays + " dias.",
     ) +
-    '<div class="card" style="display:flex;align-items:flex-end;gap:4px;height:180px;overflow:auto">' +
+    '<div class="card csp-chart-bars">' +
     (r.daily || [])
       .map(function (x) {
         var h = Math.max(4, Math.round((Number(x.clicks || 0) * 120) / max));
@@ -880,7 +880,7 @@ function reports() {
           esc(x.day) +
           " · " +
           x.clicks +
-          ' cliques" style="min-width:18px;flex:1;text-align:center"><div style="height:' +
+          ' cliques" class="csp-chart-bar-label"><div style="height:' +
           h +
           'px;background:var(--orange);border-radius:5px 5px 0 0"></div><small class="muted">' +
           String(x.day).slice(8, 10) +
@@ -906,7 +906,7 @@ function reports() {
         return (
           '<div class="card"><span class="pill">' +
           esc(x.status) +
-          '</span><b style="font-size:28px;display:block;margin-top:9px">' +
+          '</span><b class="csp-stat-total">' +
           x.total +
           "</b></div>"
         );
@@ -994,7 +994,7 @@ function integrations() {
       "Fila real de renderização Runway, consulta de estado e armazenamento protegido.",
       "Disponível",
     ) +
-    '</div><div class="card"><h3>Teste interno do fluxo</h3><p class="muted">Valida produto, preço, imagem e link; classifica a categoria, escolhe grupos e monta a mensagem sem envio externo.</p><button class="btn dark" data-action="runSimulation()">Executar teste seguro</button><div id="simulationResult" class="callout" style="margin-top:12px;display:none"></div><h3 class="csp-margin-top-22px" >Estados reais</h3><p class="muted">Testado: executado com sucesso neste projeto.<br>Disponível: código executável no projeto.<br>Preparado: telas e banco prontos, credencial/API pendente.<br>Credencial: depende de autorização do provedor.<br>Parcial: há recurso seguro alternativo, mas não acesso total à conta externa.</p><div class="callout">Nenhuma integração externa é marcada como ativa sem teste real da autorização do titular.</div></div></div>'
+    '</div><div class="card"><h3>Teste interno do fluxo</h3><p class="muted">Valida produto, preço, imagem e link; classifica a categoria, escolhe grupos e monta a mensagem sem envio externo.</p><button class="btn dark" data-action="runSimulation()">Executar teste seguro</button><div id="simulationResult" class="callout csp-margin-top-12px csp-hidden"></div><h3 class="csp-margin-top-22px" >Estados reais</h3><p class="muted">Testado: executado com sucesso neste projeto.<br>Disponível: código executável no projeto.<br>Preparado: telas e banco prontos, credencial/API pendente.<br>Credencial: depende de autorização do provedor.<br>Parcial: há recurso seguro alternativo, mas não acesso total à conta externa.</p><div class="callout">Nenhuma integração externa é marcada como ativa sem teste real da autorização do titular.</div></div></div>'
   );
 }
 function integration(code, name, desc, state) {
@@ -1067,7 +1067,7 @@ function studio() {
       "studioAspect",
       '<option value="1:1">Feed quadrado</option><option value="4:5">Feed vertical</option><option value="9:16">Stories e Reels</option><option value="16:9">Facebook e YouTube</option>',
     ) +
-    '<div class="actions"><button class="btn" data-action="generateStudioText()">Gerar conteúdo</button><button class="btn dark" data-action="generateStudioImage()">Gerar arte</button><button class="btn green" data-action="generateStudioVideo()">Renderizar vídeo</button></div><div id="studioResult" class="callout" style="display:none;margin-top:14px;white-space:pre-wrap"></div></div><div class="card"><h3>Continuidade automática</h3><p class="muted">Imagem tenta o provedor principal, depois o Runway e, se ambos estiverem ocupados, entrega um cartão promocional seguro. Vídeos são enviados a uma fila real de renderização e armazenados na conta.</p><div class="steps csp-grid-template-columns-1fr-1fr" >' +
+    '<div class="actions"><button class="btn" data-action="generateStudioText()">Gerar conteúdo</button><button class="btn dark" data-action="generateStudioImage()">Gerar arte</button><button class="btn green" data-action="generateStudioVideo()">Renderizar vídeo</button></div><div id="studioResult" class="callout csp-hidden csp-margin-top-14px csp-white-space-pre-wrap"></div></div><div class="card"><h3>Continuidade automática</h3><p class="muted">Imagem tenta o provedor principal, depois o Runway e, se ambos estiverem ocupados, entrega um cartão promocional seguro. Vídeos são enviados a uma fila real de renderização e armazenados na conta.</p><div class="steps csp-grid-template-columns-1fr-1fr" >' +
     [
       "Copy validada",
       "Imagem com fallback",
@@ -1127,17 +1127,17 @@ function studio() {
               ? x.kind === "VIDEO"
                 ? '<video controls src="' +
                   esc(x.assetUrl) +
-                  '" style="width:100%;border-radius:12px;margin-bottom:10px"></video>'
+                  '" class="csp-media-video"></video>'
                 : '<img src="' +
                   esc(x.assetUrl) +
-                  '" alt="Arte gerada" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;margin-bottom:10px">'
+                  '" alt="Arte gerada" class="csp-media-image">'
               : "";
             return (
               '<div class="card">' +
               media +
               '<span class="pill">' +
               esc(x.kind) +
-              '</span><div class="muted" style="white-space:pre-wrap;max-height:180px;overflow:auto">' +
+              '</span><div class="muted csp-prewrap-scroll-180">' +
               esc(x.content || "Mídia para " + x.channel) +
               "</div></div>"
             );
@@ -1279,7 +1279,7 @@ function socialAgent() {
       esc(LABEL[x.status] || x.status) +
       "</span> · " +
       Number(x.clicks || 0) +
-      ' cliques</div><div class="muted" style="white-space:pre-wrap;max-height:92px;overflow:auto">' +
+      ' cliques</div><div class="muted csp-prewrap-scroll-92">' +
       esc(x.message) +
       "</div>" +
       (x.lastError
@@ -1442,7 +1442,7 @@ function socialAgent() {
       "text",
       'value="pessoas que procuram promoções confiáveis no Brasil"',
     ) +
-    '</div><button class="btn" data-action="runSocialAgent()">Executar agente</button><div id="agentResult" class="callout" style="display:none;margin-top:14px;white-space:pre-wrap"></div></div></div>' +
+    '</div><button class="btn" data-action="runSocialAgent()">Executar agente</button><div id="agentResult" class="callout csp-hidden csp-margin-top-14px csp-white-space-pre-wrap"></div></div></div>' +
     section(
       "Fila de posts",
       "Cada postagem mostra rede, estado, texto e rastreamento.",
@@ -1757,7 +1757,7 @@ function studioData() {
 }
 async function runSocialAgent() {
   var box = document.getElementById("agentResult");
-  box.style.display = "block";
+  box.classList.remove("csp-hidden");
   box.textContent = "Radar Social está preparando a estratégia...";
   var body = {
     task: document.querySelector('[name="agentTask"]').value,
@@ -1878,7 +1878,7 @@ async function removeSocialPost(id) {
 }
 async function generateStudioText() {
   var box = document.getElementById("studioResult");
-  box.style.display = "block";
+  box.classList.remove("csp-hidden");
   box.textContent = "A IA está criando e validando o conteúdo...";
   try {
     var r = await fetch("/api/ai/studio", {
@@ -1900,7 +1900,7 @@ async function generateStudioImage() {
   var x = studioData(),
     box = document.getElementById("studioResult");
   if (!x.title) return toast("Informe o produto ou tema.");
-  box.style.display = "block";
+  box.classList.remove("csp-hidden");
   box.textContent =
     "Gerando arte. Se o provedor estiver ocupado, o fallback será usado automaticamente...";
   try {
@@ -1926,7 +1926,7 @@ async function generateStudioImage() {
       (b.notice ? "<br>" + esc(b.notice) : "") +
       '<br><img src="' +
       esc(b.url) +
-      '" alt="Arte gerada" style="max-width:100%;margin-top:10px;border-radius:12px">';
+      '" alt="Arte gerada" class="csp-generated-image">';
     await load();
     show("studio");
     toast(b.fallback ? "Arte alternativa criada" : "Arte salva na biblioteca");
@@ -1938,7 +1938,7 @@ async function generateStudioVideo() {
   var x = studioData(),
     box = document.getElementById("studioResult");
   if (!x.title) return toast("Informe o produto ou tema.");
-  box.style.display = "block";
+  box.classList.remove("csp-hidden");
   box.textContent = "Iniciando renderização real do vídeo...";
   try {
     var r = await fetch("/api/ai/media", {
@@ -2288,7 +2288,7 @@ function openOffer() {
         "messageTemplate",
         '<option value="AUTO">Automático pela categoria</option><option value="IMPACT">Impactante</option><option value="COMPLETE">Oferta completa</option><option value="BABY">Bebês e família</option><option value="IMPORTED">Produtos importados</option><option value="CLEAN">Direto e limpo</option>',
       ) +
-      '<div class="field"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><label>Mensagem da promoção</label><div class="actions"><button type="button" class="btn secondary" data-action="previewMessage()">Montar modelo</button><button type="button" class="btn secondary" data-action="generateAI()">Melhorar com IA</button></div></div><textarea class="input" name="message" rows="12" placeholder="Clique em Montar modelo ou Melhorar com IA."></textarea></div>',
+      '<div class="field"><div class="csp-field-heading"><label>Mensagem da promoção</label><div class="actions"><button type="button" class="btn secondary" data-action="previewMessage()">Montar modelo</button><button type="button" class="btn secondary" data-action="generateAI()">Melhorar com IA</button></div></div><textarea class="input" name="message" rows="12" placeholder="Clique em Montar modelo ou Melhorar com IA."></textarea></div>',
     async function (e) {
       e.preventDefault();
       try {
@@ -2469,7 +2469,7 @@ async function generateAI() {
 }
 async function runSimulation() {
   var box = document.getElementById("simulationResult");
-  box.style.display = "block";
+  box.classList.remove("csp-hidden");
   box.textContent = "Executando validação...";
   try {
     var r = await fetch("/api/automation/simulate", {
@@ -2501,7 +2501,7 @@ async function runSimulation() {
 }
 async function convertLink() {
   var box = document.getElementById("convertResult");
-  box.style.display = "block";
+  box.classList.remove("csp-hidden");
   box.textContent = "Validando integração...";
   try {
     var r = await fetch("/api/links/convert", {

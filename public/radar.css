@@ -1373,3 +1373,16 @@ body{font-family:Manrope,system-ui,sans-serif}.login-layout{min-height:100vh;dis
 .csp-grid-template-columns-1fr-1fr{grid-template-columns:1fr 1fr}
 .csp-white-space-pre-wrap{white-space:pre-wrap}
 .csp-margin-top-15px{margin-top:15px}
+
+
+/* CSP migration batch 4: presentational styles moved from markup to classes. */
+.csp-hidden{display:none!important}
+.csp-chart-bars{display:flex;align-items:flex-end;gap:4px;height:180px;overflow:auto}
+.csp-chart-bar-label{min-width:18px;flex:1;text-align:center}
+.csp-stat-total{font-size:28px;display:block;margin-top:9px}
+.csp-media-video{width:100%;border-radius:12px;margin-bottom:10px}
+.csp-media-image{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;margin-bottom:10px}
+.csp-prewrap-scroll-180{white-space:pre-wrap;max-height:180px;overflow:auto}
+.csp-prewrap-scroll-92{white-space:pre-wrap;max-height:92px;overflow:auto}
+.csp-generated-image{max-width:100%;margin-top:10px;border-radius:12px}
+.csp-field-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
