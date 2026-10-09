@@ -850,7 +850,7 @@ function reports() {
       }),
     );
   return (
-    '<div class="sectionhead"><div><h2>Relatórios</h2><p>Resultados reais por período, categoria, grupo, canal e marketplace.</p></div><div class="toolbar"><select class="input" onchange="changeReportDays(this.value)"><option value="7" ' +
+    '<div class="sectionhead"><div><h2>Relatórios</h2><p>Resultados reais por período, categoria, grupo, canal e marketplace.</p></div><div class="toolbar"><select class="input" data-change="changeReportDays"><option value="7" ' +
     (reportDays === 7 ? "selected" : "") +
     '>7 dias</option><option value="30" ' +
     (reportDays === 30 ? "selected" : "") +
@@ -3248,6 +3248,7 @@ document.addEventListener('keydown',function(event){
     if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
   }
 });
+document.addEventListener('change',function(event){var target=event.target.closest('[data-change]');if(!target)return;var action=target.getAttribute('data-change');if(action==='changeReportDays')changeReportDays(target.value);});
 matchMedia('(max-width:900px)').addEventListener('change',function(){menu(false);syncDrawer();});
 window.addEventListener('hashchange',function(){show(decodeURIComponent(location.hash.slice(1)));});
 var originalIntegrations=integrations;
