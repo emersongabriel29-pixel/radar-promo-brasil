@@ -118,26 +118,26 @@ test('recorrência concorrente cria apenas uma mensagem, ignora tarefa antiga e 
 });
 test('feeds rejeitam destinos privados, redirects privados, HTML e excesso de tamanho',async()=>{
  await assert.rejects(()=>fetchOfferFeed('https://127.0.0.1/data'));
- const old=globalThis.fetch;
- try{
-  globalThis.fetch=async()=>new Response('',{status:302,headers:{location:'https://10.0.0.1/x'}});await assert.rejects(()=>fetchOfferFeed('https://example.com/data'));
-  globalThis.fetch=async()=>new Response('<html>',{headers:{'content-type':'text/html'}});await assert.rejects(()=>fetchOfferFeed('https://example.com/data'));
-  globalThis.fetch=async()=>new Response('{}',{headers:{'content-type':'application/json','content-length':'1048577'}});await assert.rejects(()=>fetchOfferFeed('https://example.com/data'));
- }finally{globalThis.fetch=old;}
+ const resolve=async url=>{if(new URL(url).hostname==='10.0.0.1')throw new Error('private');return {host:'example.com',address:'93.184.216.34',family:4};};
+ const fakeResponse=(statusCode,headers,body='')=>(url,options,callback)=>{
+   const {EventEmitter}=await import('node:events');
+   const {Readable}=await import('node:stream');
+   const request=new EventEmitter();request.setTimeout=()=>request;request.destroy=()=>request;request.end=()=>{options.lookup(new URL(url).hostname,{},(err)=>{if(err){request.emit('error',err);return;}const response=Readable.from([Buffer.from(body)]);response.statusCode=statusCode;response.headers=headers;callback(response);});};return request;
+ };
+ await assert.rejects(()=>fetchOfferFeed('https://example.com/data',{resolve,requestImpl:fakeResponse(302,{location:'https://10.0.0.1/x'})}));
+ await assert.rejects(()=>fetchOfferFeed('https://example.com/data',{resolve,requestImpl:fakeResponse(200,{'content-type':'text/html'},'<html>')}));
+ await assert.rejects(()=>fetchOfferFeed('https://example.com/data',{resolve,requestImpl:fakeResponse(200,{'content-type':'application/json','content-length':'1048577'},'{}')}));
 });
 test('captura autorizada importa dados reais do feed, deduplica e mantém isolamento',async()=>{
  await db.query("INSERT INTO monitors(id,account_id,name,source_type,source_url,status,source_authorized) VALUES('feed-test',$1,'Feed','FEED','https://example.com/feed','ACTIVE',true),('unauthorized',$2,'Sem autorização','FEED','https://example.com/feed','PAUSED',false)",[a.id,b.id]);
  await assert.rejects(()=>canActivateMonitor(a.id,'unauthorized'),e=>e.status===404);await assert.rejects(()=>canActivateMonitor(b.id,'unauthorized'),e=>e.status===412);
- const old=globalThis.fetch;
- globalThis.fetch=async()=>new Response(JSON.stringify({offers:[{title:'Produto do feed',source:'AMAZON',currentPrice:49.9,originalPrice:99.9,affiliateUrl:'https://amazon.com.br/dp/feed?tag=test',productUrl:'https://amazon.com.br/dp/feed',imageUrl:'https://example.com/feed.png'},null]}),{headers:{'content-type':'application/json'}});
- try{
-  assert.equal((await runMonitors({accountId:a.id,monitorId:'feed-test',manual:true})).captured,1);
-  assert.equal((await runMonitors({accountId:a.id,monitorId:'feed-test',manual:true})).checked,0);
-  await db.query("UPDATE monitors SET last_run_at=now()-interval '2 minutes' WHERE id='feed-test'");
-  assert.equal((await runMonitors({accountId:a.id,monitorId:'feed-test',manual:true})).captured,0);
-  const offer=(await db.query("SELECT current_price,source_monitor_id,status FROM offers WHERE title='Produto do feed'")).rows[0];assert.equal(offer.current_price,4990);assert.equal(offer.source_monitor_id,'feed-test');assert.equal(offer.status,'PENDING');
-  assert.equal((await db.query("SELECT captured_count FROM monitors WHERE id='feed-test'")).rows[0].captured_count,1);
- }finally{globalThis.fetch=old;}
+ const fetchFeed=async()=>[{title:'Produto do feed',source:'AMAZON',currentPrice:49.9,originalPrice:99.9,affiliateUrl:'https://amazon.com.br/dp/feed?tag=test',productUrl:'https://amazon.com.br/dp/feed',imageUrl:'https://example.com/feed.png'},null];
+ assert.equal((await runMonitors({accountId:a.id,monitorId:'feed-test',manual:true,fetchFeed})).captured,1);
+ assert.equal((await runMonitors({accountId:a.id,monitorId:'feed-test',manual:true,fetchFeed})).checked,0);
+ await db.query("UPDATE monitors SET last_run_at=now()-interval '2 minutes' WHERE id='feed-test'");
+ assert.equal((await runMonitors({accountId:a.id,monitorId:'feed-test',manual:true,fetchFeed})).captured,0);
+ const offer=(await db.query("SELECT current_price,source_monitor_id,status FROM offers WHERE title='Produto do feed'")).rows[0];assert.equal(offer.current_price,4990);assert.equal(offer.source_monitor_id,'feed-test');assert.equal(offer.status,'PENDING');
+ assert.equal((await db.query("SELECT captured_count FROM monitors WHERE id='feed-test'")).rows[0].captured_count,1);
 });
 test('LGPD exige identidade, anonimiza apenas o titular e impede nova captura após revogação',async()=>{
  const hash='audit-contact-hash-123456';await publication('other-lead',b.id);
