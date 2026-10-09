@@ -126,6 +126,38 @@ test('feeds rejeitam destinos privados, redirects privados, HTML e excesso de ta
  await assert.rejects(()=>fetchOfferFeed('https://example.com/data',{request:async()=>new Response('<html>',{headers:{'content-type':'text/html'}})}));
  await assert.rejects(()=>fetchOfferFeed('https://example.com/data',{request:async()=>new Response('{}',{headers:{'content-type':'application/json','content-length':'1048577'}})}));
 });
+test('feed aplica deadline absoluto inclusive a uma requisição que não retorna',async()=>{
+ const started=Date.now();
+ await assert.rejects(()=>fetchOfferFeed('https://example.com/data',{
+  timeout:25,
+  request:()=>new Promise(()=>{})
+ }),e=>e.status===408&&/Tempo limite absoluto/.test(e.message));
+ assert.ok(Date.now()-started<500,'o timeout não deve ficar preso à promessa da origem');
+});
+test('feed compartilha o deadline entre redirecionamentos sucessivos',async()=>{
+ let calls=0;
+ await assert.rejects(()=>fetchOfferFeed('https://example.com/start',{
+  timeout:25,
+  request:async url=>{
+   calls++;await new Promise(resolve=>setTimeout(resolve,15));
+   return {status:302,ok:false,headers:{get:name=>name==='location'?(new URL(url).pathname==='/start'?'/second':'/third'):null},body:null};
+  }
+ }),e=>e.status===408&&/Tempo limite absoluto/.test(e.message));
+ assert.ok(calls<=2,'o orçamento de tempo deve ser compartilhado entre os redirecionamentos');
+});
+test('feed aplica um único deadline ao consumo de um corpo lento',async()=>{
+ let cancelled=false;
+ const body=new ReadableStream({
+  pull(controller){controller.enqueue(new TextEncoder().encode('{"offers":'));return new Promise(()=>{});},
+  cancel(){cancelled=true;}
+ });
+ await assert.rejects(()=>fetchOfferFeed('https://example.com/data',{
+  timeout:30,
+  request:async()=>({status:200,ok:true,headers:{get:name=>name==='content-type'?'application/json':null},body})
+ }),e=>e.status===408&&/Tempo limite absoluto/.test(e.message));
+ await new Promise(resolve=>setTimeout(resolve,0));
+ assert.equal(cancelled,true,'o corpo deve ser cancelado ao atingir o deadline');
+});
 test('captura autorizada importa dados reais do feed, deduplica e mantém isolamento',async()=>{
  await db.query("INSERT INTO monitors(id,account_id,name,source_type,source_url,status,source_authorized) VALUES('feed-test',$1,'Feed','FEED','https://example.com/feed','ACTIVE',true),('unauthorized',$2,'Sem autorização','FEED','https://example.com/feed','PAUSED',false)",[a.id,b.id]);
  await assert.rejects(()=>canActivateMonitor(a.id,'unauthorized'),e=>e.status===404);await assert.rejects(()=>canActivateMonitor(b.id,'unauthorized'),e=>e.status===412);
