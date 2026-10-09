@@ -36,6 +36,8 @@ test('destinos WhatsApp persistem o tipo e rejeitam valores inválidos',async()=
   assert.equal(stored.whatsapp_destination_type,'COMMUNITY');
   assert.equal(stored.status,'PAUSED');
   const communityId=(await db.query("SELECT id FROM promo_groups WHERE account_id=$1 AND name='Comunidade auditada'",[a.id])).rows[0].id;
+  await offer(a.id,'offer-community-block');
+  assert.equal((await invoke(dataHandler,{entity:'publication',offerId:'offer-community-block',groupId:communityId})).status,412,'publicação direta em comunidade WhatsApp deve ser bloqueada');
   assert.equal((await invoke(dataHandler,{entity:'group',id:communityId,status:'ACTIVE'},'PUT')).status,412);
   assert.equal((await invoke(dataHandler,{entity:'group',name:'Tipo inválido',platform:'WHATSAPP',destinationType:'UNKNOWN'})).status,400);
   assert.equal((await invoke(dataHandler,{entity:'group',name:'Telegram',platform:'TELEGRAM',destinationType:'COMMUNITY'})).status,200);
