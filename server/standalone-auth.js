@@ -60,7 +60,7 @@ export function login(req, res) {
 }
 export function logout(req,res,{sessionStore}={}){
   const session=readSession(req);
-  const clear=()=>{if(session?.nonce&&session.exp>Date.now()){pruneRevoked();revoked.set(session.nonce,session.exp);}res.clearCookie('radar_session',cookieOptions());return res.json({ok:true});};
+  const clear=()=>{if(!sessionStore&&session?.nonce&&session.exp>Date.now()){pruneRevoked();revoked.set(session.nonce,session.exp);}res.clearCookie('radar_session',cookieOptions());return res.json({ok:true});};
   if(session?.nonce&&session.exp>Date.now()&&sessionStore){
     return sessionStore.query(
       'INSERT INTO standalone_session_revocations(nonce,expires_at) VALUES($1,$2) ON CONFLICT(nonce) DO UPDATE SET expires_at=EXCLUDED.expires_at',
