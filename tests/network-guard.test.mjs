@@ -34,7 +34,7 @@ test('requisição HTTPS usa o mesmo IP público validado no lookup',async()=>{
     const request=new EventEmitter();
     request.setTimeout=()=>{};
     request.destroy=error=>request.emit('error',error);
-    request.end=()=>callback(Object.assign(Readable.from(['{"offers":[]}']),{
+    request.end=()=>callback(Object.assign(Readable.from([Buffer.from('{"offers":[]}')]),{
       statusCode:200,
       headers:{'content-type':'application/json','content-length':'14'}
     }));
