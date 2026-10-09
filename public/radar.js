@@ -714,7 +714,9 @@ function groups() {
           esc(g.name) +
           '</b><svg class=\"csp-capacity-bar\" viewBox=\"0 0 100 8\" preserveAspectRatio=\"none\" role=\"img\" aria-label=\"' + Math.min(100, lot) + '% de capacidade\"><rect class=\"csp-capacity-fill\" x=\"0\" y=\"0\" width=\"' + Math.min(100, lot) + '\" height=\"8\" rx=\"4\"></rect></svg><small class=\"muted\">' +
           esc(g.externalId || "ID de destino pendente") +
-          '</small></td><td><span class=\"pill ' +
+          '</small><div class="muted">' +
+          (g.platform === "TELEGRAM" ? "Telegram" : ({ GROUP: "Grupo", CHANNEL: "Canal", COMMUNITY: "Comunidade" }[g.destinationType] || "Grupo")) +
+          '</div></td><td><span class=\"pill ' +
           (g.platform === "TELEGRAM" ? "live" : "") +
           '\">' +
           esc(g.platform || "WHATSAPP") +
@@ -2733,10 +2735,11 @@ function openGroup(id) {
       (g && g.platform === "WHATSAPP" ? "selected" : "") +
       '>WhatsApp</option><option value=\"TELEGRAM\" ' +
       (g && g.platform === "TELEGRAM" ? "selected" : "") +
-      ">Telegram</option>";
+      ">Telegram</option>",
+    destinationTypeOptions = '<option value="GROUP" '+(!g||!g.destinationType||g.destinationType==="GROUP"?"selected":"")+">👥 Grupo</option><option value=\"CHANNEL\" "+(g&&g.destinationType==="CHANNEL"?"selected":"")+">📢 Canal</option><option value=\"COMMUNITY\" "+(g&&g.destinationType==="COMMUNITY"?"selected":"")+">🏘️ Comunidade</option>";
   openModal(
-    g ? "Configurar destino" : "Novo grupo ou canal",
-    "O destino só poderá ser ativado depois que tiver um ID oficial.",
+    g ? "Configurar destino" : "Novo destino WhatsApp",
+    "Grupos exigem ID e verificação do conector. Canais e comunidades ficam pausados até haver suporte real confirmado pelo conector.",
     field(
       "Nome",
       "name",
@@ -2744,6 +2747,7 @@ function openGroup(id) {
       'required value=\"' + esc(g ? g.name : "") + '\"',
     ) +
       select("Plataforma", "platform", platformOptions) +
+      select("Tipo de destino WhatsApp", "destinationType", destinationTypeOptions) +
       select("Categoria", "categoryId", categoryOptions) +
       field(
         "Link de convite",
@@ -2792,6 +2796,18 @@ function openGroup(id) {
       }
     },
   );
+  var platformField=document.querySelector('#form [name="platform"]');
+  var destinationField=document.querySelector('#form [name="destinationType"]');
+  var syncDestinationType=function(){
+    var isWhatsapp=platformField&&platformField.value==="WHATSAPP";
+    if(destinationField){
+      destinationField.closest(".field").hidden=!isWhatsapp;
+      destinationField.disabled=!isWhatsapp;
+      if(!isWhatsapp)destinationField.value="GROUP";
+    }
+  };
+  if(platformField)platformField.addEventListener("change",syncDestinationType);
+  syncDestinationType();
 }
 function openMonitor() {
   openModal(
