@@ -102,10 +102,10 @@ export default async function(req,res){
   try{
     const body=req.body||{},accountId=String(body.accountId||'').slice(0,100);
     if(!accountId)return res.status(400).json({error:'accountId obrigatório.'});
-    if(!(await db.query("SELECT id FROM accounts WHERE id=$1 AND status='ACTIVE'",[accountId])).rows.length)return res.status(404).json({error:'Conta inválida.'});
     const verified=await verify(req,accountId);
     if(verified===null)return res.status(503).json({error:'Ponte n8n aguardando configuração segura.'});
     if(!verified)return res.status(401).json({error:'Assinatura inválida.'});
+    if(!(await db.query("SELECT id FROM accounts WHERE id=$1 AND status='ACTIVE'",[accountId])).rows.length)return res.status(404).json({error:'Conta inválida.'});
     const action=String(body.action||''),eventKey=String(body.eventId||'').slice(0,160);
     if(!['ingest','pull','result','lead','sale','connection','connections','ping'].includes(action))return res.status(400).json({error:'Ação desconhecida.'});
     if(!eventKey)return res.status(400).json({error:'eventId obrigatório.'});
