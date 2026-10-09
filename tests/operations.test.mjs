@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import {EventEmitter} from 'node:events';
+import {Readable} from 'node:stream';
 process.env.PGLITE_DATA_DIR=':memory:';
 process.env.STANDALONE_SCHEDULER_ENABLED='false';
 process.env.N8N_WEBHOOK_SECRET='operations-test-master';
@@ -120,9 +122,7 @@ test('feeds rejeitam destinos privados, redirects privados, HTML e excesso de ta
  await assert.rejects(()=>fetchOfferFeed('https://127.0.0.1/data'));
  const resolve=async url=>{if(new URL(url).hostname==='10.0.0.1')throw new Error('private');return {host:'example.com',address:'93.184.216.34',family:4};};
  const fakeResponse=(statusCode,headers,body='')=>(url,options,callback)=>{
-   const {EventEmitter}=await import('node:events');
-   const {Readable}=await import('node:stream');
-   const request=new EventEmitter();request.setTimeout=()=>request;request.destroy=()=>request;request.end=()=>{options.lookup(new URL(url).hostname,{},(err)=>{if(err){request.emit('error',err);return;}const response=Readable.from([Buffer.from(body)]);response.statusCode=statusCode;response.headers=headers;callback(response);});};return request;
+      const request=new EventEmitter();request.setTimeout=()=>request;request.destroy=()=>request;request.end=()=>{options.lookup(new URL(url).hostname,{},(err)=>{if(err){request.emit('error',err);return;}const response=Readable.from([Buffer.from(body)]);response.statusCode=statusCode;response.headers=headers;callback(response);});};return request;
  };
  await assert.rejects(()=>fetchOfferFeed('https://example.com/data',{resolve,requestImpl:fakeResponse(302,{location:'https://10.0.0.1/x'})}));
  await assert.rejects(()=>fetchOfferFeed('https://example.com/data',{resolve,requestImpl:fakeResponse(200,{'content-type':'text/html'},'<html>')}));
