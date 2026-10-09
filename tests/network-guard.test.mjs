@@ -61,3 +61,88 @@ test('não abre conexão quando o DNS resolve para IP privado',async()=>{
   }),/não é público/);
   assert.equal(requested,false);
 });
+
+
+const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+function fakeRequestWithBody(makeBody){
+  let incoming;
+  const request=new EventEmitter();
+  request.destroy=error=>{incoming?.destroy(error);request.emit('error',error);};
+  request.end=()=>{
+    incoming=makeBody();
+    incoming.statusCode=200;
+    incoming.headers={'content-type':'application/json'};
+    request.response=incoming;
+    request.onResponse?.(incoming);
+  };
+  return request;
+}
+
+test('deadline absolute expire pendant le DNS même si la résolution ne répond jamais',async()=>{
+  await assert.rejects(fetchPinnedHttps('https://slow-dns.example/feed',{
+    timeout:20,
+    lookup:()=>new Promise(()=>{}),
+    requestImpl:()=>{throw new Error('ne doit pas connecter');}
+  }),/Temps limite absolu/);
+});
+
+test('deadline absolu interrompt un corps qui envoie des fragments lentement',async()=>{
+  let activeRequest;
+  const requestImpl=(_url,_options,callback)=>{
+    const request=fakeRequestWithBody(()=>Readable.from((async function*(){
+      yield Buffer.from('{"offers":');
+      await delay(20);
+      yield Buffer.from('[]');
+      await delay(100);
+      yield Buffer.from('}');
+    })()));
+    activeRequest=request;
+    request.end=()=>{
+      const body=Readable.from((async function*(){
+        yield Buffer.from('{"offers":');
+        await delay(20);
+        yield Buffer.from('[]');
+        await delay(100);
+        yield Buffer.from('}');
+      })());
+      body.statusCode=200;body.headers={'content-type':'application/json'};
+      request.incoming=body;request.destroy=error=>{body.destroy(error);request.emit('error',error);};
+      callback(body);
+    };
+    return request;
+  };
+  const response=await fetchPinnedHttps('https://slow-body.example/feed',{
+    timeout:45,
+    lookup:async()=>[{address:'93.184.216.34',family:4}],
+    requestImpl
+  });
+  const reader=response.body.getReader();
+  let received=0;let failed=false;
+  try{while(true){const item=await reader.read();if(item.done)break;received+=item.value.byteLength;}}
+  catch(error){failed=/Tempo limite absoluto/.test(error.message);}
+  assert.ok(received>0,'deve receber parte do corpo antes do deadline');
+  assert.equal(failed,true,'o deadline deve interromper o corpo mesmo com dados parciais');
+  assert.ok(activeRequest);
+});
+
+test('erro de conexão no meio do corpo é propagado ao leitor',async()=>{
+  const requestImpl=(_url,_options,callback)=>{
+    const request=new EventEmitter();
+    let body;
+    request.destroy=error=>{body?.destroy(error);request.emit('error',error);};
+    request.end=()=>{
+      body=Readable.from((async function*(){yield Buffer.from('parte-1');await delay(5);throw new Error('conexão interrompida');})());
+      body.statusCode=200;body.headers={'content-type':'application/json'};
+      callback(body);
+    };
+    return request;
+  };
+  const response=await fetchPinnedHttps('https://broken.example/feed',{
+    timeout:200,
+    lookup:async()=>[{address:'93.184.216.34',family:4}],
+    requestImpl
+  });
+  const reader=response.body.getReader();
+  assert.equal(new TextDecoder().decode((await reader.read()).value),'parte-1');
+  await assert.rejects(reader.read(),/conexão interrompida/);
+});
