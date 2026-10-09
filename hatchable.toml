@@ -34,6 +34,11 @@ required = true
 description = "Segredo compartilhado para assinar as requisições entre o n8n e o Radar Promo Brasil."
 
 [[secret]]
+name = "API_CREDENTIALS_MASTER_KEY"
+required = true
+description = "Chave aleatória forte com pelo menos 32 caracteres para criptografar chaves de API cadastradas por conta."
+
+[[secret]]
 name = "TELEGRAM_BOT_TOKEN_1"
 required = false
 description = "Token do bot principal criado no @BotFather."
