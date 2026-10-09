@@ -83,7 +83,7 @@ test('deadline absolute expire pendant le DNS même si la résolution ne répond
     timeout:20,
     lookup:()=>new Promise(()=>{}),
     requestImpl:()=>{throw new Error('ne doit pas connecter');}
-  }),/Temps limite absolu/);
+  }),/Tempo limite absoluto/);
 });
 
 test('deadline absolu interrompt un corps qui envoie des fragments lentement',async()=>{
