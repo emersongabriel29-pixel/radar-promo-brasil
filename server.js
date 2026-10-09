@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { getDb, startScheduler, stopScheduler } from './hatchable/index.js';
+import { db, getDb, startScheduler, stopScheduler } from './hatchable/index.js';
 import { applySecurityHeaders, createRateLimiter, parseTrustProxyHops } from './lib/security.js';
 import { authenticate, login, logout, loginPage, validateAuthConfiguration, constantEqual } from './server/standalone-auth.js';
 
@@ -29,10 +29,10 @@ export async function createApp() {
   app.use((req, res, next) => { applySecurityHeaders(res, { production: isProduction, api: req.path.startsWith('/api') }); next(); });
   app.use(createRateLimiter({ windowMs: 60000, max: 180 }));
   app.use(express.json({ limit: '256kb', verify: (req, res, buffer) => { req.rawBody = buffer.toString('utf8'); } }));
-  app.use(authenticate({ production: isProduction }));
+  app.use(authenticate({ production: isProduction, sessionStore: isProduction ? db : undefined }));
   app.get('/login', loginPage);
   app.post('/api/account/login', createRateLimiter({ windowMs: 15 * 60000, max: 10 }), login);
-  app.post('/api/account/logout', logout);
+  app.post('/api/account/logout', (req, res, next) => Promise.resolve(logout(req, res, { sessionStore: isProduction ? db : undefined })).catch(next));
   app.get('/api/account/session', (req, res) => res.json({ authenticated: Boolean(req.member), member: req.member ? { id: req.member.id, displayName: req.member.display_name } : null }));
   app.get('/healthz', async (req, res) => {
     try { await (await getDb()).query('SELECT 1'); res.json({ ok: true }); }
