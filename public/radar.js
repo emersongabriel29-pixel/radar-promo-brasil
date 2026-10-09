@@ -149,7 +149,7 @@ function groupPage(key) {
         return (
           '<button class="group-tab ' +
           (n === active ? "on" : "") +
-          '" data-action="switchGroup(\'' +
+          '" onclick="switchGroup(\'' +
           key +
           "','" +
           n[0] +
@@ -180,6 +180,7 @@ function switchGroup(key, id) {
     b.classList.toggle("on", b.textContent.trim().includes(item[1]));
   });
   document.getElementById("group-panel").innerHTML = window[item[3]]();
+  if(key==="settings"&&id==="integrations")loadApiCredentials();
 }
 async function call(method, body, query) {
   var r = await fetch("/api/data" + (query || ""), {
@@ -236,7 +237,7 @@ function section(t, p, button, action) {
     p +
     "</p></div>" +
     (button
-      ? '<button class="btn" data-action="' + action + '">' + button + "</button>"
+      ? '<button class="btn" onclick="' + action + '">' + button + "</button>"
       : "") +
     "</div>"
   );
@@ -278,13 +279,13 @@ function offerRow(o) {
     (o.discountPercent ? " · " + o.discountPercent + "% OFF" : "") +
     '</div></div><div class="actions">' +
     (o.status === "PENDING"
-      ? "<button class=\"btn green\" data-action=\"status('offer','" +
+      ? "<button class=\"btn green\" onclick=\"status('offer','" +
         o.id +
         "','APPROVED')\">Aprovar</button>"
       : "") +
-    '<button class="btn dark" data-action="prepare(\'' +
+    '<button class="btn dark" onclick="prepare(\'' +
     o.id +
-    "')\">Preparar envio</button><button class=\"btn danger\" data-action=\"removeItem('offer','" +
+    "')\">Preparar envio</button><button class=\"btn danger\" onclick=\"removeItem('offer','" +
     o.id +
     "')\">Excluir</button></div></div>"
   );
@@ -318,7 +319,7 @@ function dashboard() {
       validatedMarketplaces > 0 &&
       activeConnections > 0;
   return (
-    '<section class="hero"><div><div class="eyebrow eyebrow-highlight">OPERAÇÃO INTELIGENTE</div><h2>Da oferta encontrada ao grupo certo, sem trabalho repetitivo.</h2><p>Monitore fontes, converta links, use IA para categorizar, organize filas e envie a imagem do produto junto com texto e link.</p><div class="actions"><button type=\"button\" id=\"create-promotion\" class=\"btn\" data-action=\"show(\'quick\')\">Criar promoção</button><button type="button" id="configure-monitor" class="btn secondary" data-action="show(\'monitoring\')">Configurar monitor</button></div></div><div class="pulsebox"><div class="pulse"><span>Motor de automação</span><i class="dot"></i></div><strong>' +
+    '<section class="hero"><div><div class="eyebrow" style="color:#61e7ba">OPERAÇÃO INTELIGENTE</div><h2>Da oferta encontrada ao grupo certo, sem trabalho repetitivo.</h2><p>Monitore fontes, converta links, use IA para categorizar, organize filas e envie a imagem do produto junto com texto e link.</p><div class="actions"><button type=\"button\" id=\"create-promotion\" class=\"btn\" onclick=\"show(\'quick\')\">Criar promoção</button><button type="button" id="configure-monitor" class="btn secondary" onclick="show(\'monitoring\')">Configurar monitor</button></div></div><div class="pulsebox"><div class="pulse"><span>Motor de automação</span><i class="dot"></i></div><strong>' +
     (operationOn ? "24/7 ativo" : "Em configuração") +
     "</strong><small>" +
     active +
@@ -438,7 +439,7 @@ function mode(code, title, text, target) {
     (ready ? "" : "muted") +
     '">' +
     (ready ? "Configurado" : "Configuração necessária") +
-    '</b><button class="btn secondary" data-action="show(\'' +
+    '</b><button class="btn secondary" onclick="show(\'' +
     target +
     "')\">Abrir</button></div></div>"
   );
@@ -481,7 +482,7 @@ function monitoring() {
         );
       })
       .join("") +
-    '</div><div class=\"callout\" class=\"csp-margin-top-15px\">Cadastrar uma fonte não autoriza leitura automática do WhatsApp, de redes sociais ou de marketplaces. É necessário um conector oficial e credenciais válidas.</div></div>' +
+    '</div><div class=\"callout\" style=\"margin-top:15px\">Cadastrar uma fonte não autoriza leitura automática do WhatsApp, de redes sociais ou de marketplaces. É necessário um conector oficial e credenciais válidas.</div></div>' +
     section(
       "Fontes cadastradas",
       "Mantenha a origem pausada até validar o conector.",
@@ -506,11 +507,11 @@ function monitoring() {
               LABEL[m.status] +
               "</span>" +
               (m.status === "ACTIVE"
-                ? "<button class=\"btn secondary\" data-action=\"status('monitor','" +
+                ? "<button class=\"btn secondary\" onclick=\"status('monitor','" +
                   m.id +
                   "','PAUSED')\">Pausar</button>"
-                : '<button class="btn secondary" data-action="status(\'monitor\',\''+m.id+'\',\'ACTIVE\')">Ativar</button>') +
-              (m.status==='ACTIVE' && ['FEED','MARKETPLACE'].includes(m.sourceType) ? '<button class="btn secondary" data-action="captureMonitor(\''+m.id+'\',this)">Capturar agora</button>' : '') +
+                : '<button class="btn secondary" onclick="status(\'monitor\',\''+m.id+'\',\'ACTIVE\')">Ativar</button>') +
+              (m.status==='ACTIVE' && ['FEED','MARKETPLACE'].includes(m.sourceType) ? '<button class="btn secondary" onclick="captureMonitor(\''+m.id+'\',this)">Capturar agora</button>' : '') +
               "</div>"
             );
           })
@@ -533,7 +534,7 @@ function cloneView() {
         );
       })
       .join("") +
-    '</div><div class="callout csp-margin-top-15px" >Mensagens com vários produtos ficam para revisão. O sistema não altera preço, cupom ou frete sem confirmação da fonte.</div></div><div class="card"><h3>Regras do clone</h3><p class="muted">✓ Preservar formatação e imagem<br>✓ Substituir links reconhecidos<br>✓ Gerar link de cupom quando disponível<br>✓ Bloquear duplicações<br>✓ Enviar à categoria compatível</p><button class="btn" data-action="openMonitor()">Adicionar origem</button></div></div>'
+    '</div><div class="callout" style="margin-top:15px">Mensagens com vários produtos ficam para revisão. O sistema não altera preço, cupom ou frete sem confirmação da fonte.</div></div><div class="card"><h3>Regras do clone</h3><p class="muted">✓ Preservar formatação e imagem<br>✓ Substituir links reconhecidos<br>✓ Gerar link de cupom quando disponível<br>✓ Bloquear duplicações<br>✓ Enviar à categoria compatível</p><button class="btn" onclick="openMonitor()">Adicionar origem</button></div></div>'
   );
 }
 function quick() {
@@ -544,7 +545,7 @@ function quick() {
       "+ Cadastrar oferta",
       "openOffer()",
     ) +
-    '<div class="grid two"><div class="card"><h3>Conversor oficial</h3><p class="muted">Reconhece as lojas cadastradas. A conversão só é liberada quando o método oficial daquela conta está validado.</p><div class="field"><label>Link do produto</label><input class="input" id="convertUrl" type="url" placeholder="https://..."></div><div class="field csp-margin-top-10px" ><label>Identificação do grupo</label><input class="input" id="convertGroup" value="geral"></div><button class="btn csp-margin-top-12px"  data-action="convertLink()">Converter link</button><div id="convertResult" class="callout csp-hidden csp-margin-top-12px"></div></div><div class="card"><div class="steps">' +
+    '<div class="grid two"><div class="card"><h3>Conversor oficial</h3><p class="muted">Reconhece as lojas cadastradas. A conversão só é liberada quando o método oficial daquela conta está validado.</p><div class="field"><label>Link do produto</label><input class="input" id="convertUrl" type="url" placeholder="https://..."></div><div class="field" style="margin-top:10px"><label>Identificação do grupo</label><input class="input" id="convertGroup" value="geral"></div><button class="btn" style="margin-top:12px" onclick="convertLink()">Converter link</button><div id="convertResult" class="callout" style="display:none;margin-top:12px"></div></div><div class="card"><div class="steps">' +
     [
       "Cole o link",
       "Confira o produto",
@@ -593,7 +594,7 @@ function queues() {
           })
           .join("")
       : empty("Nenhuma fila criada")) +
-    '</div></div><div><div class="sectionhead sectionhead-flush"><div><h2>Mensagens recorrentes</h2><p>Ative após validar o destino e o conector.</p></div><button class=\"btn secondary\" data-action=\"openSchedule()\">+ Nova recorrência</button></div><div class="list">' +
+    '</div></div><div><div class="sectionhead" style="margin-top:0"><div><h2>Mensagens recorrentes</h2><p>Ative após validar o destino e o conector.</p></div><button class=\"btn secondary\" onclick=\"openSchedule()\">+ Nova recorrência</button></div><div class="list">' +
     (D.schedules.length
       ? D.schedules
           .map(function (s) {
@@ -610,7 +611,7 @@ function queues() {
               (s.lastError ? '<br>'+esc(s.lastError) : '') +
               '</div></div><span class="pill '+(s.status==='ACTIVE'?'live':'warn')+'">' +
               esc(LABEL[s.status] || s.status) +
-              '</span><button class="btn secondary" data-action="status(\'schedule\',\''+s.id+'\',\''+(s.status==='ACTIVE'?'PAUSED':'ACTIVE')+'\')">'+(s.status==='ACTIVE'?'Pausar':'Ativar')+'</button></div>'
+              '</span><button class="btn secondary" onclick="status(\'schedule\',\''+s.id+'\',\''+(s.status==='ACTIVE'?'PAUSED':'ACTIVE')+'\')">'+(s.status==='ACTIVE'?'Pausar':'Ativar')+'</button></div>'
             );
           })
           .join("")
@@ -644,9 +645,9 @@ function publicationRow(p) {
     p.clicks +
     ' cliques</div></div><div class="actions"><button class="btn" ' +
     (p.status === "PUBLISHED" ? "disabled" : "") +
-    " data-action=\"share('" +
+    " onclick=\"share('" +
     p.id +
-    "')\">Compartilhar</button><button class=\"btn danger\" data-action=\"removeItem('publication','" +
+    "')\">Compartilhar</button><button class=\"btn danger\" onclick=\"removeItem('publication','" +
     p.id +
     "')\">Excluir</button></div></div>"
   );
@@ -664,6 +665,7 @@ function offers() {
       ? D.offers.map(offerRow).join("")
       : empty("Nenhuma oferta")) +
     "</div>" +
+    '<div class="card" style="margin:14px 0"><h3>Lotes de vitrine separados</h3><p>Monte uma prévia por categoria e destino Telegram. Só entram ofertas aprovadas com imagem e link individual HTTPS; o envio real exige confirmação.</p><button class="btn" onclick="openBatchWizard()">Pré-visualizar e enviar lote</button></div>' +
     section(
       "Modelos de mensagens",
       "Formatos prontos inspirados nos exemplos enviados. Preços, descontos e cupons só aparecem quando informados.",
@@ -688,7 +690,7 @@ function messageExample(title, text) {
   return (
     '<div class="card"><h3>' +
     title +
-    '</h3><div class="callout csp-white-space-pre-wrap" >' +
+    '</h3><div class="callout" style="white-space:pre-wrap">' +
     esc(text) +
     "</div></div>"
   );
@@ -712,11 +714,11 @@ function groups() {
         return (
           "<tr><td><b>" +
           esc(g.name) +
-          '</b><svg class=\"csp-capacity-bar\" viewBox=\"0 0 100 8\" preserveAspectRatio=\"none\" role=\"img\" aria-label=\"' + Math.min(100, lot) + '% de capacidade\"><rect class=\"csp-capacity-fill\" x=\"0\" y=\"0\" width=\"' + Math.min(100, lot) + '\" height=\"8\" rx=\"4\"></rect></svg><small class=\"muted\">' +
+          '</b><div class=\"bar\"><i style=\"width:' +
+          Math.min(100, lot) +
+          '%\"></i></div><small class=\"muted\">' +
           esc(g.externalId || "ID de destino pendente") +
-          '</small><div class="muted">' +
-          (g.platform === "TELEGRAM" ? "Telegram" : ({ GROUP: "Grupo", CHANNEL: "Canal", COMMUNITY: "Comunidade" }[g.destinationType] || "Grupo")) +
-          '</div></td><td><span class=\"pill ' +
+          '</small></td><td><span class=\"pill ' +
           (g.platform === "TELEGRAM" ? "live" : "") +
           '\">' +
           esc(g.platform || "WHATSAPP") +
@@ -730,11 +732,11 @@ function groups() {
           (g.status === "ACTIVE" && hasId ? "live" : "warn") +
           '\">' +
           (hasId ? LABEL[g.status] : "Configuração pendente") +
-          '</span></td><td><div class=\"actions\"><button class=\"btn secondary\" data-action=\"openGroup(\'' +
+          '</span></td><td><div class=\"actions\"><button class=\"btn secondary\" onclick=\"openGroup(\'' +
           g.id +
           "')\">Configurar</button>" +
           (hasId
-            ? "<button class=\"btn secondary\" data-action=\"status('group','" +
+            ? "<button class=\"btn secondary\" onclick=\"status('group','" +
               g.id +
               "','" +
               (g.status === "ACTIVE" ? "PAUSED" : "ACTIVE") +
@@ -743,7 +745,7 @@ function groups() {
               "</button>"
             : "") +
           (g.platform === "TELEGRAM" && hasId
-            ? '<button class=\"btn dark\" data-action=\"testTelegram(\'' +
+            ? '<button class=\"btn dark\" onclick=\"testTelegram(\'' +
               g.id +
               "')\">Testar</button>"
             : "") +
@@ -790,17 +792,15 @@ function leads() {
           esc(g.name) +
           "</span><b>" +
           fill +
-          '%</b><svg class="csp-capacity-bar" viewBox="0 0 100 8" preserveAspectRatio="none" role="img" aria-label="' +
+          '%</b><div class="bar"><i style="width:' +
           Math.min(100, fill) +
-          '% de capacidade"><rect class="csp-capacity-fill" x="0" y="0" width="' +
-          Math.min(100, fill) +
-          '" height="8" rx="4"></rect></svg><div class="muted">' +
+          '%"></i></div><div class="muted">' +
           g.members +
           " membros · " +
           Math.max(0, g.capacity - g.members) +
           " vagas</div>" +
           (fill >= 90
-            ? '<div class="callout csp-margin-top-10px" >Grupo próximo da lotação.</div>'
+            ? '<div class="callout" style="margin-top:10px">Grupo próximo da lotação.</div>'
             : "") +
           "</div>"
         );
@@ -850,7 +850,7 @@ function reports() {
       }),
     );
   return (
-    '<div class="sectionhead"><div><h2>Relatórios</h2><p>Resultados reais por período, categoria, grupo, canal e marketplace.</p></div><div class="toolbar"><select class="input" data-change="changeReportDays"><option value="7" ' +
+    '<div class="sectionhead"><div><h2>Relatórios</h2><p>Resultados reais por período, categoria, grupo, canal e marketplace.</p></div><div class="toolbar"><select class="input" onchange="changeReportDays(this.value)"><option value="7" ' +
     (reportDays === 7 ? "selected" : "") +
     '>7 dias</option><option value="30" ' +
     (reportDays === 30 ? "selected" : "") +
@@ -858,7 +858,7 @@ function reports() {
     (reportDays === 90 ? "selected" : "") +
     '>90 dias</option><option value="365" ' +
     (reportDays === 365 ? "selected" : "") +
-    '>12 meses</option></select><button class="btn" data-action="openSale()">+ Registrar venda</button></div></div><div class="metrics">' +
+    '>12 meses</option></select><button class="btn" onclick="openSale()">+ Registrar venda</button></div></div><div class="metrics">' +
     metric("Links compartilhados", s.shared || 0, "publicações concluídas") +
     metric("Cliques", s.clicks || 0, "eventos rastreados") +
     metric("Vendas", s.sales || 0, "pedidos não cancelados") +
@@ -873,7 +873,7 @@ function reports() {
       "Evolução diária",
       "Cliques registrados nos últimos " + reportDays + " dias.",
     ) +
-    '<div class="card csp-chart-bars">' +
+    '<div class="card" style="display:flex;align-items:flex-end;gap:4px;height:180px;overflow:auto">' +
     (r.daily || [])
       .map(function (x) {
         var h = Math.max(4, Math.round((Number(x.clicks || 0) * 120) / max));
@@ -882,11 +882,9 @@ function reports() {
           esc(x.day) +
           " · " +
           x.clicks +
-          ' cliques" class="csp-chart-bar-label"><svg class="csp-daily-bar" viewBox="0 0 10 120" preserveAspectRatio="none" aria-hidden="true"><rect class="csp-daily-bar-fill" x="0" y="' +
-          (120 - h) +
-          '" width="10" height="' +
+          ' cliques" style="min-width:18px;flex:1;text-align:center"><div style="height:' +
           h +
-          '" rx="1"></rect></svg><small class="muted">' +
+          'px;background:var(--orange);border-radius:5px 5px 0 0"></div><small class="muted">' +
           String(x.day).slice(8, 10) +
           "</small></div>"
         );
@@ -910,7 +908,7 @@ function reports() {
         return (
           '<div class="card"><span class="pill">' +
           esc(x.status) +
-          '</span><b class="csp-stat-total">' +
+          '</span><b style="font-size:28px;display:block;margin-top:9px">' +
           x.total +
           "</b></div>"
         );
@@ -925,6 +923,16 @@ function integrations() {
       "Integrações",
       "Conecte cada serviço para ativar a automação completa.",
     ) +
+    '<div class="card" style="margin-bottom:16px"><h3>Central de APIs</h3><p class="muted">Escolha uma plataforma, abra a página oficial para criar sua chave e depois cadastre a chave aqui. As chaves ficam criptografadas e só mostramos os últimos quatro caracteres.</p><div class="grid three">' +
+    [
+      ["OpenAI", "https://platform.openai.com/api-keys", "Criar chave OpenAI"],
+      ["Google Gemini", "https://aistudio.google.com/app/apikey", "Criar chave Gemini"],
+      ["Anthropic Claude", "https://console.anthropic.com/settings/keys", "Criar chave Claude"],
+      ["Runway", "https://dev.runwayml.com/", "Criar acesso Runway"],
+      ["Meta Developers", "https://developers.facebook.com/apps/", "Criar aplicativo Meta"],
+      ["Mercado Livre", "https://developers.mercadolivre.com.br/", "Criar aplicativo Mercado Livre"]
+    ].map(function(x){return '<div class="integration"><div class="grow"><b>'+esc(x[0])+'</b><p class="muted">Abra a plataforma oficial para criar ou consultar suas credenciais.</p><a class="btn secondary" href="'+x[1]+'" target="_blank" rel="noopener noreferrer">'+esc(x[2])+' ↗</a></div></div>';}).join("") +
+    '</div><div class="formgrid" style="margin-top:16px"><div class="field"><label for="apiProvider">Plataforma da API</label><select class="input" id="apiProvider" name="apiProvider"><option value="OPENAI">OpenAI</option><option value="GEMINI">Google Gemini</option><option value="ANTHROPIC">Anthropic Claude</option><option value="RUNWAY">Runway</option><option value="META">Meta / Facebook / Instagram</option><option value="MERCADO_LIVRE">Mercado Livre</option><option value="CUSTOM">Outra API</option></select></div><div class="field"><label for="apiLabel">Nome da API (opcional, obrigatório para Outra API)</label><input class="input" id="apiLabel" name="apiLabel" placeholder="Ex.: API de análise de links"></div></div><div class="field"><label for="apiKeyInput">Chave da API</label><input class="input" id="apiKeyInput" name="apiKeyInput" type="password" autocomplete="new-password" placeholder="Cole sua chave secreta aqui" maxlength="4096" required><p class="muted">Nunca compartilhe sua chave em grupos ou mensagens. Ao salvar, ela será criptografada e não poderá ser visualizada novamente.</p></div><div class="actions"><button class="btn" type="button" onclick="saveApiCredential()">Cadastrar / atualizar API</button><button class="btn secondary" type="button" onclick="loadApiCredentials()">Atualizar lista</button></div><div id="apiCredentialNotice" class="callout" style="display:none;margin-top:12px" role="status"></div><h3 style="margin-top:20px">APIs cadastradas</h3><div id="apiCredentialsList" class="grid two"><div class="empty">Carregando APIs cadastradas...</div></div></div>' +
     '<div class="grid two"><div class="card">' +
     integration(
       "ML",
@@ -998,8 +1006,40 @@ function integrations() {
       "Fila real de renderização Runway, consulta de estado e armazenamento protegido.",
       "Disponível",
     ) +
-    '</div><div class="card"><h3>Teste interno do fluxo</h3><p class="muted">Valida produto, preço, imagem e link; classifica a categoria, escolhe grupos e monta a mensagem sem envio externo.</p><button class="btn dark" data-action="runSimulation()">Executar teste seguro</button><div id="simulationResult" class="callout csp-margin-top-12px csp-hidden"></div><h3 class="csp-margin-top-22px" >Estados reais</h3><p class="muted">Testado: executado com sucesso neste projeto.<br>Disponível: código executável no projeto.<br>Preparado: telas e banco prontos, credencial/API pendente.<br>Credencial: depende de autorização do provedor.<br>Parcial: há recurso seguro alternativo, mas não acesso total à conta externa.</p><div class="callout">Nenhuma integração externa é marcada como ativa sem teste real da autorização do titular.</div></div></div>'
+    '</div><div class="card"><h3>Teste interno do fluxo</h3><p class="muted">Valida produto, preço, imagem e link; classifica a categoria, escolhe grupos e monta a mensagem sem envio externo.</p><button class="btn dark" onclick="runSimulation()">Executar teste seguro</button><div id="simulationResult" class="callout" style="margin-top:12px;display:none"></div><h3 style="margin-top:22px">Estados reais</h3><p class="muted">Testado: executado com sucesso neste projeto.<br>Disponível: código executável no projeto.<br>Preparado: telas e banco prontos, credencial/API pendente.<br>Credencial: depende de autorização do provedor.<br>Parcial: há recurso seguro alternativo, mas não acesso total à conta externa.</p><div class="callout">Nenhuma integração externa é marcada como ativa sem teste real da autorização do titular.</div></div></div>'
   );
+}
+async function loadApiCredentials() {
+  var list=document.getElementById("apiCredentialsList");
+  if(!list)return;
+  list.innerHTML='<div class="empty">Carregando credenciais cadastradas...</div>';
+  try{
+    var response=await fetch("/api/integrations/apis"),data=await response.json();
+    if(!response.ok)throw Error(data.error||"Não foi possível carregar as APIs.");
+    list.innerHTML=(data.items||[]).length?(data.items||[]).map(function(item){
+      return '<div class="integration"><div class="grow"><b>'+esc(item.label||item.provider)+'</b><div class="muted">'+esc(item.provider)+' · chave terminada em ••••'+esc(item.keyLast4||'')+'</div><small class="muted">Cadastrada em '+esc(item.updatedAt?new Date(item.updatedAt).toLocaleDateString("pt-BR"):"—")+'</small></div><button class="btn danger" type="button" onclick="deleteApiCredential(\''+esc(item.provider)+'\')">Excluir</button></div>';
+    }).join(""):'<div class="empty">Nenhuma API cadastrada ainda.</div>';
+  }catch(error){list.innerHTML='<div class="empty" role="alert">'+esc(error.message)+'</div>';}
+}
+async function saveApiCredential(){
+  var provider=document.getElementById("apiProvider"),label=document.getElementById("apiLabel"),key=document.getElementById("apiKeyInput"),notice=document.getElementById("apiCredentialNotice");
+  if(!provider||!key||!notice)return;
+  notice.style.display="block";notice.textContent="Protegendo e cadastrando a chave...";
+  try{
+    var response=await fetch("/api/integrations/apis",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({provider:provider.value,label:label?label.value:"",apiKey:key.value})}),data=await response.json();
+    if(!response.ok)throw Error(data.error||"Não foi possível cadastrar a API.");
+    key.value="";if(label)label.value="";
+    notice.textContent=data.message||"API cadastrada com segurança.";
+    await loadApiCredentials();toast("API cadastrada com segurança.");
+  }catch(error){notice.textContent=error.message;toast(error.message);}
+}
+async function deleteApiCredential(provider){
+  if(!confirm("Excluir a credencial de "+provider+"? Essa ação não pode ser desfeita."))return;
+  try{
+    var response=await fetch("/api/integrations/apis?provider="+encodeURIComponent(provider),{method:"DELETE"}),data=await response.json();
+    if(!response.ok)throw Error(data.error||"Não foi possível excluir a API.");
+    toast(data.deleted?"Credencial excluída.":"Nenhuma credencial encontrada.");await loadApiCredentials();
+  }catch(error){toast(error.message);}
 }
 function integration(code, name, desc, state) {
   return (
@@ -1021,8 +1061,8 @@ function studio() {
     jobs = D.growth.mediaJobs || [];
   return (
     section(
-      "Estúdio de IA multimodelo",
-      "Gere textos, anúncios, cupons, imagens e vídeos reais com fatos validados.",
+      "Estúdio de conteúdo e divulgação",
+      "Gere textos e vídeos; artes de IA são exclusivas para cupons/grupos e datas especiais. Ofertas usam a imagem original do anúncio.",
     ) +
     '<div class="grid two"><div class="card"><div class="formgrid">' +
     select(
@@ -1037,10 +1077,10 @@ function studio() {
     ) +
     "</div>" +
     field(
-      "Produto ou tema",
+      "Tema / texto da divulgação",
       "studioTitle",
       "text",
-      'placeholder="Ex.: Air Fryer 4L"',
+      'placeholder="Ex.: entre no grupo e receba cupons"',
     ) +
     '<div class="formgrid">' +
     field("Preço confirmado", "studioPrice", "text", 'placeholder="299,90"') +
@@ -1067,14 +1107,19 @@ function studio() {
     ) +
     "</div>" +
     select(
+      "Finalidade da arte (não usar para produto)",
+      "studioImagePurpose",
+      '<option value="COUPON_GROUP">Divulgação de cupom ou grupo</option><option value="SPECIAL_DATE">Data especial / campanha sazonal</option>',
+    ) +
+    select(
       "Formato da arte",
       "studioAspect",
       '<option value="1:1">Feed quadrado</option><option value="4:5">Feed vertical</option><option value="9:16">Stories e Reels</option><option value="16:9">Facebook e YouTube</option>',
     ) +
-    '<div class="actions"><button class="btn" data-action="generateStudioText()">Gerar conteúdo</button><button class="btn dark" data-action="generateStudioImage()">Gerar arte</button><button class="btn green" data-action="generateStudioVideo()">Renderizar vídeo</button></div><div id="studioResult" class="callout csp-hidden csp-margin-top-14px csp-white-space-pre-wrap"></div></div><div class="card"><h3>Continuidade automática</h3><p class="muted">Imagem tenta o provedor principal, depois o Runway e, se ambos estiverem ocupados, entrega um cartão promocional seguro. Vídeos são enviados a uma fila real de renderização e armazenados na conta.</p><div class="steps csp-grid-template-columns-1fr-1fr" >' +
+    '<div class="callout">Regra de imagem: promoções de produtos usam a imagem original do anúncio/link. A geração de IA abaixo só serve para divulgação de cupons/grupos e datas especiais.</div><div class="actions"><button class="btn" onclick="generateStudioText()">Gerar conteúdo</button><button class="btn dark" onclick="generateStudioImage()">Gerar arte de divulgação</button><button class="btn green" onclick="generateStudioVideo()">Renderizar vídeo</button></div><div id="studioResult" class="callout" style="display:none;margin-top:14px;white-space:pre-wrap"></div></div><div class="card"><h3>Regras de mídia</h3><p class="muted">Ofertas usam a imagem original do produto; se ela não estiver disponível, não publicar. A IA só gera artes de divulgação de cupons/grupos e campanhas de datas especiais. Vídeos são enviados a uma fila real de renderização e armazenados na conta.</p><div class="steps" style="grid-template-columns:1fr 1fr">' +
     [
-      "Copy validada",
-      "Imagem com fallback",
+      "Texto promocional revisado",
+      "Imagem original obrigatória",
       "Vídeo assíncrono",
       "Arquivo protegido",
     ]
@@ -1108,9 +1153,9 @@ function studio() {
               esc(x.provider || "aguardando") +
               "</div>" +
               (x.outputUrl
-                ? '<a class="btn secondary csp-margin-top-12px" target="_blank" href="' +
+                ? '<a class="btn secondary" target="_blank" href="' +
                   esc(x.outputUrl) +
-                  '" >Abrir arquivo</a>'
+                  '" style="margin-top:12px">Abrir arquivo</a>'
                 : "") +
               (x.lastError
                 ? '<div class="muted">' + esc(x.lastError) + "</div>"
@@ -1131,17 +1176,17 @@ function studio() {
               ? x.kind === "VIDEO"
                 ? '<video controls src="' +
                   esc(x.assetUrl) +
-                  '" class="csp-media-video"></video>'
+                  '" style="width:100%;border-radius:12px;margin-bottom:10px"></video>'
                 : '<img src="' +
                   esc(x.assetUrl) +
-                  '" alt="Arte gerada" class="csp-media-image">'
+                  '" alt="Arte gerada" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;margin-bottom:10px">'
               : "";
             return (
               '<div class="card">' +
               media +
               '<span class="pill">' +
               esc(x.kind) +
-              '</span><div class="muted csp-prewrap-scroll-180">' +
+              '</span><div class="muted" style="white-space:pre-wrap;max-height:180px;overflow:auto">' +
               esc(x.content || "Mídia para " + x.channel) +
               "</div></div>"
             );
@@ -1174,7 +1219,7 @@ function growth() {
     ) +
     metric("Canais preparados", connections.length, "Meta e e-mail") +
     metric("Conteúdos IA", (g.assets || []).length, "biblioteca recente") +
-    '</div><div class="grid two"><div class="card"><div class="sectionhead sectionhead-flush"><div><h2>Cupons</h2><p>Código, validade e link oficial.</p></div><button class="btn" data-action="openCoupon()">+ Cupom</button></div>' +
+    '</div><div class="grid two"><div class="card"><div class="sectionhead" style="margin-top:0"><div><h2>Cupons</h2><p>Código, validade e link oficial.</p></div><button class="btn" onclick="openCoupon()">+ Cupom</button></div>' +
     (coupons.length
       ? coupons
           .map(function (x) {
@@ -1213,13 +1258,13 @@ function growth() {
           (x && x.status === "ACTIVE" ? "live" : "warn") +
           '">' +
           esc(x ? x.status : "PREPARADO") +
-          '</span><button class="btn secondary" data-action="openSocial(\'' +
+          '</span><button class="btn secondary" onclick="openSocial(\'' +
           n +
           "')\">Configurar</button></div>"
         );
       })
       .join("") +
-    '<div class="callout">Publicação automática real no Instagram/Facebook exige conta profissional, aplicativo Meta, permissões e aprovação. Gmail/Outlook podem receber testes; envio como sua caixa exige OAuth próprio.</div><button class="btn secondary csp-margin-top-12px"  data-action="openEmailTest()">Testar entrega por e-mail</button></div></div>' +
+    '<div class="callout">Publicação automática real no Instagram/Facebook exige conta profissional, aplicativo Meta, permissões e aprovação. Gmail/Outlook podem receber testes; envio como sua caixa exige OAuth próprio.</div><button class="btn secondary" style="margin-top:12px" onclick="openEmailTest()">Testar entrega por e-mail</button></div></div>' +
     section(
       "Campanhas e Ads",
       "Planejamento com UTM; ativação nas plataformas depende das credenciais oficiais.",
@@ -1283,27 +1328,27 @@ function socialAgent() {
       esc(LABEL[x.status] || x.status) +
       "</span> · " +
       Number(x.clicks || 0) +
-      ' cliques</div><div class="muted csp-prewrap-scroll-92">' +
+      ' cliques</div><div class="muted" style="white-space:pre-wrap;max-height:92px;overflow:auto">' +
       esc(x.message) +
       "</div>" +
       (x.lastError
-        ? '<div class="muted csp-color-b72e2e" >' +
+        ? '<div class="muted" style="color:#b72e2e">' +
           esc(x.lastError) +
           "</div>"
         : "") +
       '</div><div class="actions">' +
       (x.status === "DRAFT"
-        ? '<button class="btn green" data-action="approveSocialPost(\'' +
+        ? '<button class="btn green" onclick="approveSocialPost(\'' +
           x.id +
           "')\">Aprovar</button>"
         : "") +
       (["FAILED", "BLOCKED"].includes(x.status)
-        ? '<button class="btn secondary" data-action="retrySocialPost(\'' +
+        ? '<button class="btn secondary" onclick="retrySocialPost(\'' +
           x.id +
           "')\">Tentar novamente</button>"
         : "") +
       (x.status !== "PUBLISHED"
-        ? '<button class="btn danger" data-action="removeSocialPost(\'' +
+        ? '<button class="btn danger" onclick="removeSocialPost(\'' +
           x.id +
           "')\">Excluir</button>"
         : "") +
@@ -1395,7 +1440,7 @@ function socialAgent() {
       "time",
       'value="' + esc(s.endTime || "22:00") + '"',
     ) +
-    '</div><div class="actions"><button class="btn" data-action="saveSocialSettings()">Salvar e ativar</button><button class="btn secondary" data-action="generateSocialQueue()">Gerar mensagens agora</button><button class="btn dark" data-action="runSocialQueue()">Executar fila</button></div><div class="callout csp-margin-top-14px" >A IA não inventa preço, desconto, cupom, frete ou urgência. Cada link aponta para o rastreador do Radar e depois redireciona ao link de afiliado cadastrado.</div></div><div class="card"><h3>Conexões oficiais Meta</h3>' +
+    '</div><div class="actions"><button class="btn" onclick="saveSocialSettings()">Salvar e ativar</button><button class="btn secondary" onclick="generateSocialQueue()">Gerar mensagens agora</button><button class="btn dark" onclick="runSocialQueue()">Executar fila</button></div><div class="callout" style="margin-top:14px">A IA não inventa preço, desconto, cupom, frete ou urgência. Cada link aponta para o rastreador do Radar e depois redireciona ao link de afiliado cadastrado.</div></div><div class="card"><h3>Conexões oficiais Meta</h3>' +
     ["INSTAGRAM", "FACEBOOK"]
       .map(function (n) {
         var x = connection(n);
@@ -1415,7 +1460,7 @@ function socialAgent() {
         );
       })
       .join("") +
-    '<button class="btn secondary" data-action="testMetaConnection()">Testar autorização Meta</button><h3 class="csp-margin-top-22px" >Agente especialista</h3><div class="formgrid">' +
+    '<button class="btn secondary" onclick="testMetaConnection()">Testar autorização Meta</button><h3 style="margin-top:22px">Agente especialista</h3><div class="formgrid">' +
     select(
       "Tarefa",
       "agentTask",
@@ -1446,7 +1491,7 @@ function socialAgent() {
       "text",
       'value="pessoas que procuram promoções confiáveis no Brasil"',
     ) +
-    '</div><button class="btn" data-action="runSocialAgent()">Executar agente</button><div id="agentResult" class="callout csp-hidden csp-margin-top-14px csp-white-space-pre-wrap"></div></div></div>' +
+    '</div><button class="btn" onclick="runSocialAgent()">Executar agente</button><div id="agentResult" class="callout" style="display:none;margin-top:14px;white-space:pre-wrap"></div></div></div>' +
     section(
       "Fila de posts",
       "Cada postagem mostra rede, estado, texto e rastreamento.",
@@ -1496,7 +1541,7 @@ function compliancePanel() {
         );
       })
       .join("") +
-    '</div><div class="callout csp-margin-top-14px" ><b>Importante:</b> mensagens promocionais automáticas individuais são bloqueadas fora da janela de 24 horas, salvo mecanismo oficial compatível e consentimento registrado. ' +
+    '</div><div class="callout" style="margin-top:14px"><b>Importante:</b> mensagens promocionais automáticas individuais são bloqueadas fora da janela de 24 horas, salvo mecanismo oficial compatível e consentimento registrado. ' +
     Number(excluded.publicPosts || 0) +
     " post(s) público(s) e " +
     Number(excluded.groupPosts || 0) +
@@ -1584,13 +1629,13 @@ function security() {
               esc(x.requesterEmail) +
               '</div></div><span class="pill warn">' +
               esc(x.status) +
-              '</span>' + (x.status==='DONE' ? '' : '<button class="btn secondary" data-action="openPrivacyProcess(\''+x.id+'\')">'+(x.identityVerifiedAt?'Processar':'Verificar identidade')+'</button>') + '</div>'
+              '</span>' + (x.status==='DONE' ? '' : '<button class="btn secondary" onclick="openPrivacyProcess(\''+x.id+'\')">'+(x.identityVerifiedAt?'Processar':'Verificar identidade')+'</button>') + '</div>'
             );
           })
           .join("")
       : '<p class="muted">Nenhuma solicitação registrada.</p>') +
     "</div></div>" +
-    '<div class="card"><h3>Exportação e backup da conta</h3><p class="muted">Portabilidade sem credenciais. Backup privado inclui registros e uploads; restauração é verificada em banco isolado.</p><div class="actions"><button class="btn secondary" data-action="downloadPrivate(\'/api/privacy\',\'radar-portabilidade.json\')">Exportar meus dados</button><button class="btn" data-action="createBackup(this)">Criar backup</button><button class="btn secondary" data-action="listBackups(this)">Ver backups</button><button class="btn secondary" data-action="previewRetention()">Prévia da limpeza</button></div><div id="backupList" class="list csp-margin-top-12px" ></div></div>' +
+    '<div class="card"><h3>Exportação e backup da conta</h3><p class="muted">Portabilidade sem credenciais. Backup privado inclui registros e uploads; restauração é verificada em banco isolado.</p><div class="actions"><button class="btn secondary" onclick="downloadPrivate(\'/api/privacy\',\'radar-portabilidade.json\')">Exportar meus dados</button><button class="btn" onclick="createBackup(this)">Criar backup</button><button class="btn secondary" onclick="listBackups(this)">Ver backups</button><button class="btn secondary" onclick="previewRetention()">Prévia da limpeza</button></div><div id="backupList" class="list" style="margin-top:12px"></div></div>' +
     section(
       "Eventos de segurança",
       "Trilha de auditoria sem expor tokens ou conteúdo sensível.",
@@ -1639,7 +1684,7 @@ function accountView() {
         stores.length,
       "integrações validadas",
     ) +
-    '</div><div class="grid two"><div class="card"><h3>Marketplaces e SubIDs</h3>' +
+    `</div><div class="card" style="margin-bottom:14px"><h3>Minha vitrine Shopee · Collshp</h3><p>Vitrine externa para divulgar seus produtos. Para rastrear comissão, cadastre cada oferta com o link individual gerado no painel oficial de afiliados da Shopee.</p><a class="btn" target="_blank" rel="noopener noreferrer" href="https://collshp.com/emersongabriel291295?view=storefront">Abrir minha vitrine Collshp</a><div class="muted" style="margin-top:8px;overflow-wrap:anywhere">https://collshp.com/emersongabriel291295?view=storefront</div></div><div class="grid two"><div class="card"><h3>Marketplaces e SubIDs</h3>` +
     stores
       .map(function (x) {
         return (
@@ -1655,19 +1700,19 @@ function accountView() {
             : "Aguardando identificação oficial") +
           " · " +
           esc(x.status) +
-          '</div></div><button class="btn secondary" data-action="openMarketplace(\'' +
+          '</div></div><button class="btn secondary" onclick="openMarketplace(\'' +
           x.marketplace +
           "')\">Configurar</button></div>"
         );
       })
       .join("") +
-    '<h3 class="csp-margin-top-22px" >Vitrine pública</h3><div class="callout">/vitrine?loja=' +
+    '<h3 style="margin-top:22px">Vitrine pública</h3><div class="callout">/vitrine?loja=' +
     esc(a.slug || "") +
-    '</div><button class="btn csp-margin-top-12px"  data-action="openStorefront()">Editar vitrine</button> <a class="btn secondary" target="_blank" href="/vitrine?loja=' +
+    '</div><button class="btn" style="margin-top:12px" onclick="openStorefront()">Editar vitrine</button> <a class="btn secondary" target="_blank" href="/vitrine?loja=' +
     encodeURIComponent(a.slug || "") +
     '">Visualizar</a></div><div class="card"><h3>Conexões WhatsApp</h3>' +
     whatsappConnectionsMarkup() +
-    '<h3 class="csp-margin-top-24px" >Bots do Telegram</h3>' +
+    '<h3 style="margin-top:24px">Bots do Telegram</h3>' +
     (tg.length
       ? tg
           .map(function (x) {
@@ -1680,7 +1725,7 @@ function accountView() {
               esc(x.status) +
               " · prioridade " +
               x.priority +
-              '</div></div><button class="btn secondary" data-action="toggleTelegram(\'' +
+              '</div></div><button class="btn secondary" onclick="toggleTelegram(\'' +
               x.id +
               "','" +
               (x.status === "ACTIVE" ? "PAUSED" : "ACTIVE") +
@@ -1691,7 +1736,7 @@ function accountView() {
           })
           .join("")
       : empty("Nenhum bot conectado")) +
-    '<button class="btn csp-margin-top-12px"  data-action="openTelegramConnection()">+ Conectar bot</button></div></div><div class="callout csp-margin-top-14px" >O bot do Telegram precisa ser administrador do grupo ou canal. Credenciais nunca aparecem novamente na tela.</div>'
+    '<button class="btn" style="margin-top:12px" onclick="openTelegramConnection()">+ Conectar bot</button></div></div><div class="callout" style="margin-top:14px">O bot do Telegram precisa ser administrador do grupo ou canal. Credenciais nunca aparecem novamente na tela.</div>'
   );
 }
 function render() {
@@ -1720,6 +1765,7 @@ function render() {
   };
   document.getElementById("content").innerHTML =
     '<section class="view on">' + f[current]() + "</section>";
+  if(current==="settings"&&selectedGroups.settings==="integrations")loadApiCredentials();
 }
 function catOpts() {
   return D.categories
@@ -1761,7 +1807,7 @@ function studioData() {
 }
 async function runSocialAgent() {
   var box = document.getElementById("agentResult");
-  box.classList.remove("csp-hidden");
+  box.style.display = "block";
   box.textContent = "Radar Social está preparando a estratégia...";
   var body = {
     task: document.querySelector('[name="agentTask"]').value,
@@ -1882,7 +1928,7 @@ async function removeSocialPost(id) {
 }
 async function generateStudioText() {
   var box = document.getElementById("studioResult");
-  box.classList.remove("csp-hidden");
+  box.style.display = "block";
   box.textContent = "A IA está criando e validando o conteúdo...";
   try {
     var r = await fetch("/api/ai/studio", {
@@ -1904,15 +1950,16 @@ async function generateStudioImage() {
   var x = studioData(),
     box = document.getElementById("studioResult");
   if (!x.title) return toast("Informe o produto ou tema.");
-  box.classList.remove("csp-hidden");
+  box.style.display = "block";
   box.textContent =
-    "Gerando arte. Se o provedor estiver ocupado, o fallback será usado automaticamente...";
+    "Gerando arte de divulgação (cupons/grupos ou data especial). Imagens de produtos não são geradas por IA...";
   try {
     var r = await fetch("/api/ai/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: x.title,
+          purpose: document.querySelector('[name="studioImagePurpose"]').value,
           style: x.tone,
           aspect: x.aspect,
           channel: "INSTAGRAM",
@@ -1930,7 +1977,7 @@ async function generateStudioImage() {
       (b.notice ? "<br>" + esc(b.notice) : "") +
       '<br><img src="' +
       esc(b.url) +
-      '" alt="Arte gerada" class="csp-generated-image">';
+      '" alt="Arte gerada" style="max-width:100%;margin-top:10px;border-radius:12px">';
     await load();
     show("studio");
     toast(b.fallback ? "Arte alternativa criada" : "Arte salva na biblioteca");
@@ -1942,7 +1989,7 @@ async function generateStudioVideo() {
   var x = studioData(),
     box = document.getElementById("studioResult");
   if (!x.title) return toast("Informe o produto ou tema.");
-  box.classList.remove("csp-hidden");
+  box.style.display = "block";
   box.textContent = "Iniciando renderização real do vídeo...";
   try {
     var r = await fetch("/api/ai/media", {
@@ -1982,9 +2029,9 @@ async function pollMedia(id, box) {
       if (!r.ok) throw Error(b.error);
       if (b.status === "COMPLETED" || b.status === "FALLBACK_COMPLETED") {
         box.innerHTML =
-          '<b>Mídia concluída e armazenada</b><br><a class="btn secondary csp-margin-top-10px" target="_blank" href="' +
+          '<b>Mídia concluída e armazenada</b><br><a class="btn secondary" target="_blank" href="' +
           esc(b.url) +
-          '" >Abrir arquivo</a>';
+          '" style="margin-top:10px">Abrir arquivo</a>';
         await load();
         show("studio");
         return;
@@ -2253,6 +2300,50 @@ function storeOptions() {
     })
     .join("");
 }
+function openBatchWizard() {
+  var telegramGroups = D.groups.filter(function (g) { return g.platform === "TELEGRAM"; });
+  var groupOptions = '<option value="">Selecione um destino Telegram</option>' + telegramGroups.map(function (g) {
+    return '<option value="' + esc(g.id) + '">' + esc(g.name) + ' · ' + esc(g.status) + (g.externalId ? '' : ' · ID pendente') + '</option>';
+  }).join("");
+  var categoryOptions = '<option value="">Todas as categorias</option>' + D.categories.map(function (c) {
+    return '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>';
+  }).join("");
+  openModal(
+    "Lotes de vitrine separados",
+    "Primeiro fazemos uma prévia. O envio real só ocorre após confirmação e somente com ofertas elegíveis.",
+    select("Destino Telegram", "groupId", groupOptions) +
+      select("Categoria / lote", "categoryId", categoryOptions) +
+      '<div class="callout">A vitrine Collshp é um link externo, não uma fonte de produtos validada. O lote usa ofertas já cadastradas no Radar Promo Brasil. Nenhum produto será inventado nem link comum convertido em link de afiliado.</div>',
+    async function (e) {
+      e.preventDefault();
+      var form = e.target, values = Object.fromEntries(new FormData(form));
+      if (!values.groupId) throw Error(telegramGroups.length ? "Selecione um destino Telegram." : "Não há destino Telegram cadastrado nesta conta. Cadastre um canal/grupo em Grupos e canais e informe o ID oficial.");
+      var previewResponse = await fetch("/api/batches", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "PREVIEW", groupId: values.groupId, categoryId: values.categoryId || null })
+      });
+      var preview = await previewResponse.json();
+      if (!previewResponse.ok) throw Error(preview.error || "Não foi possível montar a prévia.");
+      var route = (preview.routes || []).find(function (item) { return item.groupId === values.groupId; });
+      if (!route || !route.ready) throw Error("Conecte um bot Telegram nesta conta e ative o destino com ID oficial antes de enviar.");
+      if (!route.count) throw Error("Este lote tem 0 ofertas elegíveis. Cadastre e aprove ofertas com imagem e link individual HTTPS. Não foi enviado nada.");
+      var summary = "Prévia: " + route.count + " oferta(s) para " + route.groupName + ".\n\n" +
+        route.offers.map(function (o) { return "• " + o.title; }).join("\n") +
+        "\n\nDeseja publicar este lote no Telegram agora?";
+      if (!window.confirm(summary)) return;
+      var sendResponse = await fetch("/api/batches", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "SEND", confirmSend: true, groupId: values.groupId, categoryId: values.categoryId || null })
+      });
+      var sent = await sendResponse.json();
+      if (!sendResponse.ok) throw Error(sent.error || "Não foi possível enviar o lote.");
+      closeModal();
+      await load();
+      show("publishing");
+      toast("Lote " + sent.batchId.slice(0, 8) + ": " + sent.prepared + " publicação(ões) encaminhada(s) ao agendador.");
+    }
+  );
+}
 function openOffer() {
   openModal(
     "Nova oferta",
@@ -2283,7 +2374,7 @@ function openOffer() {
         "url",
         'required placeholder="https://..."',
       ) +
-      '<div class="formgrid">' +
+      '<div class="callout">Shopee: use o link individual gerado na sua área oficial de afiliados. Não use o link geral da vitrine como link de produto e não transforme links comuns em links com comissão. Após salvar, aprove a oferta e crie uma publicação para o canal Telegram ativo.</div><label style="display:flex;align-items:center;gap:8px;margin:12px 0"><input type="checkbox" name="storefrontVisible" checked> Exibir também na vitrine pública do Radar Promo</label><div class="formgrid">' +
       field("Código do cupom", "couponCode", "text", 'placeholder="CASA20"') +
       field("Link do cupom", "couponUrl", "url", 'placeholder="https://..."') +
       "</div>" +
@@ -2292,7 +2383,7 @@ function openOffer() {
         "messageTemplate",
         '<option value="AUTO">Automático pela categoria</option><option value="IMPACT">Impactante</option><option value="COMPLETE">Oferta completa</option><option value="BABY">Bebês e família</option><option value="IMPORTED">Produtos importados</option><option value="CLEAN">Direto e limpo</option>',
       ) +
-      '<div class="field"><div class="csp-field-heading"><label>Mensagem da promoção</label><div class="actions"><button type="button" class="btn secondary" data-action="previewMessage()">Montar modelo</button><button type="button" class="btn secondary" data-action="generateAI()">Melhorar com IA</button></div></div><textarea class="input" name="message" rows="12" placeholder="Clique em Montar modelo ou Melhorar com IA."></textarea></div>',
+      '<div class="field"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><label>Mensagem da promoção</label><div class="actions"><button type="button" class="btn secondary" onclick="previewMessage()">Montar modelo</button><button type="button" class="btn secondary" onclick="generateAI()">Melhorar com IA</button></div></div><textarea class="input" name="message" rows="12" placeholder="Clique em Montar modelo ou Melhorar com IA."></textarea></div>',
     async function (e) {
       e.preventDefault();
       try {
@@ -2304,6 +2395,7 @@ function openOffer() {
         if (!ur.ok) throw Error(ub.error);
         var x = Object.fromEntries(fd);
         delete x.image;
+        x.storefrontVisible = fd.get("storefrontVisible") === "on";
         await call(
           "POST",
           Object.assign({ entity: "offer", imageUrl: ub.url, imageKey: ub.key }, x),
@@ -2473,7 +2565,7 @@ async function generateAI() {
 }
 async function runSimulation() {
   var box = document.getElementById("simulationResult");
-  box.classList.remove("csp-hidden");
+  box.style.display = "block";
   box.textContent = "Executando validação...";
   try {
     var r = await fetch("/api/automation/simulate", {
@@ -2505,7 +2597,7 @@ async function runSimulation() {
 }
 async function convertLink() {
   var box = document.getElementById("convertResult");
-  box.classList.remove("csp-hidden");
+  box.style.display = "block";
   box.textContent = "Validando integração...";
   try {
     var r = await fetch("/api/links/convert", {
@@ -2539,7 +2631,7 @@ function openMarketplace(store) {
     }) || {};
   openModal(
     "Configurar " + store.replace("_", " "),
-    "Use somente identificação e endpoint oficiais da sua conta.",
+    store === "SHOPEE" ? "Shopee: a vitrine Collshp é para divulgação. A publicação usa links individuais gerados pela sua conta oficial; sem API/feed oficial validado, a captura automática permanece desativada." : "Use somente identificação e endpoint oficiais da sua conta.",
     field(
       "Tag ou identificação de afiliado",
       "affiliateTag",
@@ -2560,7 +2652,7 @@ function openMarketplace(store) {
           esc(x.conversionEndpoint || "") +
           '" placeholder="https://..."',
       ) +
-      '<div class="callout">A integração permanecerá pendente até o sistema concluir um teste oficial. O status não pode ser ativado manualmente.</div>',
+      '<div class="callout">' + (store === "SHOPEE" ? 'A Shopee permanece pendente até existir e ser validado um conector/API/feed oficial para esta conta. Enquanto isso, cadastre ofertas com links individuais já gerados pela Shopee Afiliados; o envio ao Telegram pode ser feito após aprovação.' : 'A integração permanecerá pendente até o sistema concluir um teste oficial. O status não pode ser ativado manualmente.') + '</div>',
     async function (e) {
       e.preventDefault();
       try {
@@ -2624,9 +2716,9 @@ function openStorefront() {
 function whatsappConnectionsMarkup() {
   var connections = D.suite.connections || [], rotation = D.suite.whatsappRotation || {enabled:true,maxConnections:5};
   var cards = connections.map(function(x,index) {
-    return '<div class="integration"><div class="intlogo" aria-hidden="true">'+(index+1)+'</div><div class="grow"><b>'+esc(x.name)+'</b><div class="muted">'+esc(x.phoneNumber || 'Informe o número')+' · '+esc(x.status)+'</div><div class="muted">Intervalo '+x.intervalSeconds+'s · '+(x.groupMessagingSupported?'Grupo confirmado pelo conector':'Aguardando validação do conector')+'</div>'+(x.lastDispatchedAt?'<div class="muted">Último envio assumido: '+esc(new Date(x.lastDispatchedAt).toLocaleString('pt-BR'))+'</div>':'')+'<div class="actions csp-margin-top-8px" ><button class="btn secondary" data-action="openConnection(\''+x.id+'\')">Editar '+esc(x.name)+'</button><button class="btn secondary" data-action="toggleWhatsapp(\''+x.id+'\',\''+(x.status==='ACTIVE'?'PAUSED':'ACTIVE')+'\')">'+(x.status==='ACTIVE'?'Pausar':'Ativar')+' '+esc(x.name)+'</button><button class="btn secondary" data-action="archiveWhatsapp(\''+x.id+'\')">Remover '+esc(x.name)+'</button></div></div></div>';
+    return '<div class="integration"><div class="intlogo" aria-hidden="true">'+(index+1)+'</div><div class="grow"><b>'+esc(x.name)+'</b><div class="muted">'+esc(x.phoneNumber || 'Informe o número')+' · '+esc(x.status)+'</div><div class="muted">Intervalo '+x.intervalSeconds+'s · '+(x.groupMessagingSupported?'Grupo confirmado pelo conector':'Aguardando validação do conector')+'</div>'+(x.lastDispatchedAt?'<div class="muted">Último envio assumido: '+esc(new Date(x.lastDispatchedAt).toLocaleString('pt-BR'))+'</div>':'')+'<div class="actions" style="margin-top:8px"><button class="btn secondary" onclick="openConnection(\''+x.id+'\')">Editar '+esc(x.name)+'</button><button class="btn secondary" onclick="toggleWhatsapp(\''+x.id+'\',\''+(x.status==='ACTIVE'?'PAUSED':'ACTIVE')+'\')">'+(x.status==='ACTIVE'?'Pausar':'Ativar')+' '+esc(x.name)+'</button><button class="btn secondary" onclick="archiveWhatsapp(\''+x.id+'\')">Remover '+esc(x.name)+'</button></div></div></div>';
   }).join('');
-  return '<div class="callout"><b>'+connections.length+' de 5 números</b> · '+(rotation.enabled?'Revezamento automático ativo':'Seleção por prioridade')+'<p>Cada publicação é assumida por um único número. Números pausados, desconectados ou em intervalo aguardam sua vez.</p><button class="btn secondary" data-action="toggleWhatsappRotation('+(rotation.enabled?'false':'true')+')">'+(rotation.enabled?'Usar prioridade':'Ativar revezamento')+'</button> <button class="btn secondary" data-action="openWhatsappPairing()">Parear conector</button></div>'+cards+(connections.length<5?'<button class="btn csp-margin-top-12px"  data-action="openConnection()">+ Adicionar número ('+connections.length+'/5)</button>':'<p class="muted">Limite de cinco números atingido.</p>');
+  return '<div class="callout"><b>'+connections.length+' de 5 números</b> · '+(rotation.enabled?'Revezamento automático ativo':'Seleção por prioridade')+'<p>Cada publicação é assumida por um único número. Números pausados, desconectados ou em intervalo aguardam sua vez.</p><button class="btn secondary" onclick="toggleWhatsappRotation('+(rotation.enabled?'false':'true')+')">'+(rotation.enabled?'Usar prioridade':'Ativar revezamento')+'</button> <button class="btn secondary" onclick="openWhatsappPairing()">Parear conector</button></div>'+cards+(connections.length<5?'<button class="btn" style="margin-top:12px" onclick="openConnection()">+ Adicionar número ('+connections.length+'/5)</button>':'<p class="muted">Limite de cinco números atingido.</p>');
 }
 async function toggleWhatsapp(id,status) {
   try {await suiteCall('PUT',{entity:'connection',id:id,status:status});show('account');toast('Estado do número atualizado');}catch(e){toast(e.message);}
@@ -2735,11 +2827,10 @@ function openGroup(id) {
       (g && g.platform === "WHATSAPP" ? "selected" : "") +
       '>WhatsApp</option><option value=\"TELEGRAM\" ' +
       (g && g.platform === "TELEGRAM" ? "selected" : "") +
-      ">Telegram</option>",
-    destinationTypeOptions = '<option value="GROUP" '+(!g||!g.destinationType||g.destinationType==="GROUP"?"selected":"")+">👥 Grupo</option><option value=\"CHANNEL\" "+(g&&g.destinationType==="CHANNEL"?"selected":"")+">📢 Canal</option><option value=\"COMMUNITY\" "+(g&&g.destinationType==="COMMUNITY"?"selected":"")+">🏘️ Comunidade</option>";
+      ">Telegram</option>";
   openModal(
-    g ? "Configurar destino" : "Novo destino WhatsApp",
-    "Grupos exigem ID e verificação do conector. Canais e comunidades ficam pausados até haver suporte real confirmado pelo conector.",
+    g ? "Configurar destino" : "Novo grupo ou canal",
+    "O destino só poderá ser ativado depois que tiver um ID oficial.",
     field(
       "Nome",
       "name",
@@ -2747,7 +2838,6 @@ function openGroup(id) {
       'required value=\"' + esc(g ? g.name : "") + '\"',
     ) +
       select("Plataforma", "platform", platformOptions) +
-      select("Tipo de destino WhatsApp", "destinationType", destinationTypeOptions) +
       select("Categoria", "categoryId", categoryOptions) +
       field(
         "Link de convite",
@@ -2796,18 +2886,6 @@ function openGroup(id) {
       }
     },
   );
-  var platformField=document.querySelector('#form [name="platform"]');
-  var destinationField=document.querySelector('#form [name="destinationType"]');
-  var syncDestinationType=function(){
-    var isWhatsapp=platformField&&platformField.value==="WHATSAPP";
-    if(destinationField){
-      destinationField.closest(".field").hidden=!isWhatsapp;
-      destinationField.disabled=!isWhatsapp;
-      if(!isWhatsapp)destinationField.value="GROUP";
-    }
-  };
-  if(platformField)platformField.addEventListener("change",syncDestinationType);
-  syncDestinationType();
 }
 function openMonitor() {
   openModal(
@@ -3067,7 +3145,7 @@ var navPaths = {
 };
 function nav(){
   document.getElementById('nav').innerHTML=NAV.map(function(n){
-    return '<button '+(current===n[0]?'aria-current="page" ':'')+'class="'+(current===n[0]?'on':'')+'" data-action="show(\''+n[0]+'\')"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+navPaths[n[0]]+'"/></svg></span>'+n[1]+'</button>';
+    return '<button '+(current===n[0]?'aria-current="page" ':'')+'class="'+(current===n[0]?'on':'')+'" onclick="show(\''+n[0]+'\')"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+navPaths[n[0]]+'"/></svg></span>'+n[1]+'</button>';
   }).join('');
 }
 function syncDrawer(){
@@ -3111,10 +3189,10 @@ async function load(){
     D=Object.assign({},D,data);D.loadFailures=failures;
     var hash=decodeURIComponent(location.hash.slice(1));
     if(hash)show(hash);else render();
-    if(failures.length)document.getElementById('content').insertAdjacentHTML('afterbegin','<div role="alert" class="partial-error">Algumas áreas não puderam ser atualizadas: '+esc(failures.join(', '))+'. <button class="btn secondary" data-action="load()">Tentar novamente</button></div>');
+    if(failures.length)document.getElementById('content').insertAdjacentHTML('afterbegin','<div role="alert" class="partial-error">Algumas áreas não puderam ser atualizadas: '+esc(failures.join(', '))+'. <button class="btn secondary" onclick="load()">Tentar novamente</button></div>');
   }catch(error){
     if(sequence!==loadSequence)return;
-    document.getElementById('content').innerHTML='<div class="empty" role="alert"><b>Não foi possível carregar</b><p>'+esc(error.message)+'</p><button class="btn" data-action="load()">Tentar novamente</button></div>';
+    document.getElementById('content').innerHTML='<div class="empty" role="alert"><b>Não foi possível carregar</b><p>'+esc(error.message)+'</p><button class="btn" onclick="load()">Tentar novamente</button></div>';
   }
 }
 function toast(message){
@@ -3126,7 +3204,7 @@ function openModal(title,hint,body,submit){
   modalReturnFocus=document.activeElement;
   document.getElementById('modalTitle').textContent=title;document.getElementById('modalHint').textContent=hint;
   var form=document.getElementById('form');
-  form.innerHTML='<div class="formerror" id="formError" role="alert"></div>'+body+'<div class="formactions"><button type="button" class="btn secondary" data-action="closeModal()">Cancelar</button><button class="btn" type="submit">Salvar</button></div>';
+  form.innerHTML='<div class="formerror" id="formError" role="alert"></div>'+body+'<div class="formactions"><button type="button" class="btn secondary" onclick="closeModal()">Cancelar</button><button class="btn" type="submit">Salvar</button></div>';
   form.onsubmit=async function(event){
     event.preventDefault();if(form.getAttribute('aria-busy')==='true')return;
     document.getElementById('formError').textContent='';form.setAttribute('aria-busy','true');
@@ -3175,7 +3253,7 @@ window.addEventListener('hashchange',function(){show(decodeURIComponent(location
 var originalIntegrations=integrations;
 integrations=function(){
   var readiness=D.readiness;
-  var panel=readiness?'<div class="card csp-margin-bottom-16px" ><h2>Prontidão da operação</h2><p>Configuração: '+readiness.operationalPercent+'%. '+(readiness.productionReady?'Entrega recente confirmada.':'Há etapas pendentes antes de ativar a operação.')+'</p>'+readiness.core.filter(function(item){return !item.ready;}).map(function(item){return '<p><strong>'+esc(item.label)+':</strong> '+esc(item.action)+'</p>';}).join('')+'</div>':'';
+  var panel=readiness?'<div class="card" style="margin-bottom:16px"><h2>Prontidão da operação</h2><p>Configuração: '+readiness.operationalPercent+'%. '+(readiness.productionReady?'Entrega recente confirmada.':'Há etapas pendentes antes de ativar a operação.')+'</p>'+readiness.core.filter(function(item){return !item.ready;}).map(function(item){return '<p><strong>'+esc(item.label)+':</strong> '+esc(item.action)+'</p>';}).join('')+'</div>':'';
   return panel+originalIntegrations();
 };
 syncDrawer();nav();load();
@@ -3193,7 +3271,7 @@ function saveDownload(data,name){
 async function downloadPrivate(path,name){try{saveDownload(await operationRequest(path),name);}catch(e){toast(e.message);}}
 async function listBackups(button){
   if(button)button.disabled=true;
-  try{var r=await operationRequest('/api/backups'),target=document.getElementById('backupList');if(target)target.innerHTML=r.backups.length?r.backups.map(function(b){return '<div class="row"><div class="grow"><b>'+esc(new Date(b.createdAt).toLocaleString('pt-BR'))+'</b><div class="muted">'+Math.ceil(b.bytes/1024)+' KiB · SHA-256 '+esc(b.sha256.slice(0,12))+'…</div></div><button class="btn secondary" data-action="downloadPrivate(\'/api/backups?id='+b.id+'\',\'radar-backup-'+b.id+'.json\')">Baixar backup</button></div>';}).join(''):empty('Nenhum backup criado.');}catch(e){toast(e.message);}finally{if(button)button.disabled=false;}
+  try{var r=await operationRequest('/api/backups'),target=document.getElementById('backupList');if(target)target.innerHTML=r.backups.length?r.backups.map(function(b){return '<div class="row"><div class="grow"><b>'+esc(new Date(b.createdAt).toLocaleString('pt-BR'))+'</b><div class="muted">'+Math.ceil(b.bytes/1024)+' KiB · SHA-256 '+esc(b.sha256.slice(0,12))+'…</div></div><button class="btn secondary" onclick="downloadPrivate(\'/api/backups?id='+b.id+'\',\'radar-backup-'+b.id+'.json\')">Baixar backup</button></div>';}).join(''):empty('Nenhum backup criado.');}catch(e){toast(e.message);}finally{if(button)button.disabled=false;}
 }
 async function createBackup(button){button.disabled=true;try{await operationRequest('/api/backups',{});await listBackups();toast('Backup privado criado e integridade registrada.');}catch(e){toast(e.message);}finally{button.disabled=false;}}
 async function previewRetention(){try{var r=await operationRequest('/api/privacy',{action:'RETENTION_PREVIEW'});toast(r.enabledAccounts?r.removed+' evento(s) antigo(s) elegíveis à limpeza.':'Limpeza automática desativada.');}catch(e){toast(e.message);}}
@@ -3205,50 +3283,11 @@ function openPrivacyProcess(id){
   openModal(verified?'Processar solicitação':'Verificar identidade','Confira a identidade e o escopo antes de tratar dados. Serviços externos exigem atendimento próprio.',form,async function(e){e.preventDefault();try{var data=Object.fromEntries(new FormData(e.target)),r=await operationRequest('/api/privacy',Object.assign({id:id,action:verified?'RESOLVE':'VERIFY'},data));if(r.data&&['ACCESS','PORTABILITY'].includes(item.requestType))saveDownload(r.data,'radar-solicitacao-'+id+'.json');await load();closeModal();show('security');toast(verified?'Solicitação processada.':'Identidade registrada. Agora processe a solicitação.');}catch(error){toast(error.message);}});
 }
 
-
-// CSP-safe delegated actions: rendered controls use data-action instead of inline event handlers.
-function parseActionArgs(source,element){
-  var args=[],token='',quote='',escape=false,depth=0;
-  for(var i=0;i<source.length;i++){
-    var ch=source[i];
-    if(escape){token+=ch;escape=false;continue;}
-    if(quote){token+=ch;if(ch==='\\\\'){escape=true;}else if(ch===quote){quote='';}continue;}
-    if(quote){token+=ch;if(ch==='\\'){escape=true;}else if(ch===quote){quote='';}continue;}
-    if(ch==="'"||ch==='\"'){quote=ch;token+=ch;continue;}
-    if(ch===')'||ch===']'||ch==='}'){depth--;token+=ch;continue;}
-    if(ch===','&&depth===0){args.push(token.trim());token='';continue;}
-    token+=ch;
-  }
-  if(token.trim()||source.trim())args.push(token.trim());
-  return args.map(function(value){
-    if(value==='this')return element;
-    if(value==='true')return true;if(value==='false')return false;if(value==='null')return null;
-    if(/^[-+]?\\d+(?:\\.\\d+)?$/.test(value))return Number(value);
-    if((value[0]==="'"&&value[value.length-1]==="'")||(value[0]==='\"'&&value[value.length-1]==='\"')){
-      var body=value.slice(1,-1);return body.replace(/\\\\([\\\\'"nrt])/g,function(_,c){return ({n:'\\n',r:'\\r',t:'\\t'})[c]||c;});
-    }
-    return value;
-  });
-}
-document.addEventListener('change',function(event){
-  var el=event.target.closest('[data-change]');if(!el)return;
-  var name=el.getAttribute('data-change')||'';if(!/^[A-Za-z_$][\\w$]*$/.test(name))return;
-  var fn=window[name];if(typeof fn!=='function')return;
-  fn.call(window,el.value,el);
-});
-document.addEventListener('click',function(event){
-  var el=event.target.closest('[data-action]');if(!el)return;
-  var source=el.getAttribute('data-action')||'';
-  var match=source.match(/^([A-Za-z_$][\w$]*)\((.*)\)$/s);if(!match)return;
-  var fn=window[match[1]];if(typeof fn!=='function')return;
-  event.preventDefault();fn.apply(window,parseActionArgs(match[2],el));
-});
-
 var whatsappPairing=null;
 async function openWhatsappPairing(){
   try{
     var data=await operationRequest('/api/n8n/pairing',{});whatsappPairing=data;
-    openModal('Parear conector','Copie o código para o conector desta conta. Após validar os números e os grupos, ative os números no painel.',field('Conta do conector','workerAccountId','text','readonly value="'+esc(data.accountId)+'"')+field('Código de pareamento','workerPairingCode','password','readonly value="'+esc(data.pairingSecret)+'" autocomplete="off"')+'<button type="button" class="btn secondary" data-action="copyWhatsappPairing()">Copiar código</button>',async function(e){e.preventDefault();closeModal();});
+    openModal('Parear conector','Copie o código para o conector desta conta. Após validar os números e os grupos, ative os números no painel.',field('Conta do conector','workerAccountId','text','readonly value="'+esc(data.accountId)+'"')+field('Código de pareamento','workerPairingCode','password','readonly value="'+esc(data.pairingSecret)+'" autocomplete="off"')+'<button type="button" class="btn secondary" onclick="copyWhatsappPairing()">Copiar código</button>',async function(e){e.preventDefault();closeModal();});
     document.querySelector('#form button[type=submit]').textContent='Concluído';
   }catch(e){whatsappPairing=null;toast(e.message);}
 }
