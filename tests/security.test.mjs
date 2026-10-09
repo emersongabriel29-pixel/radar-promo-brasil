@@ -34,9 +34,10 @@ test('HMAC local rejeita timestamp expirado para impedir replay', () => {
 });
 
 
-test('rate limit identifica conta e IP sem expor dados sensíveis', () => {
+test('rate limit usa IP confiável e não aceita X-Forwarded-For sem proxy confiável', () => {
   assert.equal(requestKey({ member: { id: 'account-1' }, ip: '10.0.0.1' }), 'account-1|10.0.0.1');
-  assert.equal(requestKey({ headers: { 'x-forwarded-for': '10.0.0.2, proxy' } }), '10.0.0.2');
+  assert.equal(requestKey({ headers: { 'x-forwarded-for': '10.0.0.2, proxy' } }), 'unknown');
+  assert.equal(requestKey({ headers: { 'x-forwarded-for': '10.0.0.2' }, socket: { remoteAddress: '203.0.113.7' } }), '203.0.113.7');
 });
 
 test('rate limit bloqueia excesso e informa retry', () => {
