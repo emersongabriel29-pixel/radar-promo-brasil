@@ -134,6 +134,17 @@ test('feed aplica deadline absoluto inclusive a uma requisição que não retorn
  }),e=>e.status===408&&/Tempo limite absoluto/.test(e.message));
  assert.ok(Date.now()-started<500,'o timeout não deve ficar preso à promessa da origem');
 });
+test('feed compartilha o deadline entre redirecionamentos sucessivos',async()=>{
+ let calls=0;
+ await assert.rejects(()=>fetchOfferFeed('https://example.com/start',{
+  timeout:25,
+  request:async url=>{
+   calls++;await new Promise(resolve=>setTimeout(resolve,15));
+   return {status:302,ok:false,headers:{get:name=>name==='location'?(new URL(url).pathname==='/start'?'/second':'/third'):null},body:null};
+  }
+ }),e=>e.status===408&&/Tempo limite absoluto/.test(e.message));
+ assert.ok(calls<=2,'o orçamento de tempo deve ser compartilhado entre os redirecionamentos');
+});
 test('feed aplica um único deadline ao consumo de um corpo lento',async()=>{
  let cancelled=false;
  const body=new ReadableStream({
