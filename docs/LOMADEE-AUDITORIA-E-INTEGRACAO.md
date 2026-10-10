@@ -4,7 +4,7 @@ Data: 10/10/2026. Projeto: `emersongabriel29-pixel/radar-promo-brasil`.
 
 ## Resultado executivo
 
-**Status: integração preparada para cadastro de credencial; ainda não conectada nem homologada.** Esta alteração adiciona Lomadee à lista de provedores de credenciais por conta. Ela não afirma que a chave foi testada, não faz chamadas à Lomadee, não gera links de afiliado e não publica ofertas.
+**Status: cadastro de credencial e teste de leitura implementados; ainda não executados com credencial real nem homologados.** A rota aceita uma ação de teste que consulta a Central de Conteúdo. Ela não gera links de afiliado nem publica ofertas.
 
 ## Auditoria do SDK oficial
 
@@ -41,7 +41,7 @@ O Radar tem dois ambientes que não devem ser confundidos:
 
 Por isso, não foi adicionado `@thelomadee/sdk` às dependências do projeto. Antes de usar o pacote no ambiente hospedado, é preciso confirmar suporte a dependências externas no runtime. Uma implementação HTTP compatível com o contrato oficial pode ser considerada depois de validar os endpoints e as permissões da conta.
 
-A rota `api/integrations/apis.js` agora lista Lomadee como provedor e permite guardar a credencial com o mecanismo existente de criptografia AES-GCM e isolamento por conta. Esse mecanismo **só armazena a chave**; ainda não existe um adaptador Lomadee que a leia e a use para chamar a API.
+A rota `api/integrations/apis.js` lista Lomadee como provedor, armazena a credencial com criptografia AES-GCM e isolamento por conta e possui uma ação de teste de leitura. O teste recupera a chave apenas no servidor e consulta `GET /api/contents?limit=1` no host `dashboard-api.lomadee.com.br`, conforme o cliente do SDK. O teste ainda não foi executado com uma credencial real; a existência e a permissão efetiva desse endpoint devem ser confirmadas no ambiente da conta.
 
 ## Comparação operacional
 
@@ -84,6 +84,6 @@ Referências adicionais:
 ## Alteração feita nesta branch
 
 - Adicionado o provedor `LOMADEE` à lista da rota de credenciais de APIs, com link para o SDK oficial.
-- Adicionado teste de credencial somente leitura, com timeout, tratamento de erros e sem exposição do segredo.
+- Adicionado teste de credencial somente leitura, com timeout, tratamento de erros e sem exposição do segredo. Ainda não executado com credencial real.
 - Mantidos o isolamento por conta e o armazenamento cifrado já existentes.
 - Não foram adicionadas dependências, não foram alterados segredos e não foram enviados anúncios/mensagens.
