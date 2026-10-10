@@ -5,7 +5,7 @@
 - Projeto Hatchable: Radar Promo Brasil, versão publicada 116 (deploy em 2026-10-10).
 - Repositório: `emersongabriel29-pixel/radar-promo-brasil`.
 - Base GitHub observada: `71efa8a13379b4dde060ca93d0e1839348073233` (`main`).
-- A proposta principal está na branch de auditoria e não altera `main`. Uma correção pequena e segura de diagnóstico foi publicada separadamente no Hatchable v113; a correção do parser de `items_prices` foi publicada em v114; o tratamento de claims antigos do WhatsApp/n8n foi publicado em v115; a autenticação HMAC antes da consulta da conta foi publicada em v116.
+- A reconciliação foi mesclada em `main` no commit `f5dadf1286bbd59839173aebdf4b275048d9e9e4` (PR #44). Hatchable v116 está live. As rotas e os arquivos principais listados nesta auditoria conferem entre o Hatchable e o GitHub main, ignorando apenas quebras de linha finais; as quatro migrações têm conteúdo idêntico com nomes 026–029 no GitHub para evitar colisão com o histórico específico do repositório.
 
 ## Divergências reconciliadas nesta proposta
 
