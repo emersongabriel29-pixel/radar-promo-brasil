@@ -2,10 +2,10 @@
 
 ## Estado de referência
 
-- Projeto Hatchable: Radar Promo Brasil, versão publicada 115 (deploy em 2026-10-10).
+- Projeto Hatchable: Radar Promo Brasil, versão publicada 116 (deploy em 2026-10-10).
 - Repositório: `emersongabriel29-pixel/radar-promo-brasil`.
 - Base GitHub observada: `71efa8a13379b4dde060ca93d0e1839348073233` (`main`).
-- A proposta principal está na branch de auditoria e não altera `main`. Uma correção pequena e segura de diagnóstico foi publicada separadamente no Hatchable v113; a correção do parser de `items_prices` foi publicada em v114; o tratamento de claims antigos do WhatsApp/n8n foi publicado em v115.
+- A proposta principal está na branch de auditoria e não altera `main`. Uma correção pequena e segura de diagnóstico foi publicada separadamente no Hatchable v113; a correção do parser de `items_prices` foi publicada em v114; o tratamento de claims antigos do WhatsApp/n8n foi publicado em v115; a autenticação HMAC antes da consulta da conta foi publicada em v116.
 
 ## Divergências reconciliadas nesta proposta
 
@@ -14,6 +14,7 @@
 - Revisão adicional identificou que o processador rejeitava o formato oficial de recurso `items_prices` (`/items/{id}/prices`). O parser foi corrigido no código-fonte Hatchable e nesta branch para aceitar somente esse caminho adicional quando o tópico for `items_prices`; o deploy v114 foi concluído depois do dry-run sem erros e do CI da alteração de código aprovado.
 - Também foi backportada a proteção de claims antigos da ponte WhatsApp/n8n: publicações `DISPATCHING` há mais de 5 minutos passam para `WAITING_CONFIRMATION`, nunca para reenvio automático. Publicado em v115.
 - `api/n8n/bridge.js` agora está alinhado entre Hatchable e a branch da PR, ignorando somente a quebra de linha final. Removi do GitHub o filtro `whatsapp_destination_type='GROUP'`, porque essa coluna não existe no esquema Hatchable v115; não copiei esse filtro para produção.
+- A primeira execução de CI após alinhar o bridge detectou que o Hatchable consultava a existência da conta antes de validar o HMAC (o teste esperava 401 e recebeu 404). Corrigi a ordem em ambas as plataformas; agora a assinatura é validada antes da consulta da conta. Publicado em v116; CI para o commit corrigido está aguardando execução.
 - `api/links/convert.js` foi alinhado ao comportamento mais conservador publicado: não inventa parâmetros de afiliado e bloqueia a conversão automática do Mercado Livre; para outras lojas sem integração implementada, instrui usar o gerador oficial.
 - As quatro migrações que existem no Hatchable receberam novos números sequenciais no repositório (`026` a `029`) para evitar colisão com a numeração de migrações específica do código standalone que já existe em `main`. Não renumerar de volta sem revisar o histórico do banco.
 
@@ -61,7 +62,7 @@
 - Em `api/n8n/pairing.js`, o código-fonte Hatchable foi ajustado para tratar `config.get('N8N_WEBHOOK_SECRET')` ausente/não declarado e devolver um 503 específico e acionável, em vez de cair no erro genérico. A mesma alteração está nesta branch GitHub. Os arquivos conferem ignorando somente a quebra de linha final.
 - Hatchable continua publicado na versão 112; o ajuste está salvo como rascunho e **não está ativo em produção**. Não foi criado nem alterado segredo. Publicação fica pendente da configuração segura e da homologação do fluxo.
 
-- Após v115: `POST /api/jobs/mercadolivre-notifications` retornou HTTP 200 com zero eventos examinados e zero ofertas alteradas; valida a execução do worker sem disparar ações externas, mas não prova processamento real de notificação.
+- Após v116: `POST /api/jobs/mercadolivre-notifications` retornou HTTP 200 com zero eventos examinados e zero ofertas alteradas; valida a execução do worker sem disparar ações externas, mas não prova processamento real de notificação.
 - Após v114: POST de notificação sem campos obrigatórios retornou 400; `application_id` incorreto retornou 403; `/api/n8n/pairing` anônimo retornou 401 e como membro retornou 503 específico; conversão automática do Mercado Livre continua retornando 412 e bloqueada.
 - `dry_run_deploy` antes de v114 retornou `ok: true`, sem erros ou avisos. O CI dos commits de código até `f7d7490ce8da1c8114f813dc47961b4dbf94a7c4` terminou com sucesso; os workflows do commit de documentação mais recente estavam em execução na última consulta.
 
