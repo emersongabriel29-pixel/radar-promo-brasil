@@ -3180,9 +3180,10 @@ function apiCredentialsPanel(){
  ["Anthropic Claude","https://console.anthropic.com/settings/keys","Criar chave Claude"],
  ["Runway","https://dev.runwayml.com/","Criar acesso Runway"],
  ["Meta Developers","https://developers.facebook.com/apps/","Criar aplicativo Meta"],
- ["Mercado Livre","https://developers.mercadolivre.com.br/","Criar aplicativo Mercado Livre"]
+ ["Mercado Livre","https://developers.mercadolivre.com.br/","Criar aplicativo Mercado Livre"],
+ ["Lomadee","https://github.com/lomadee/lomadee-sdk","Consultar SDK oficial Lomadee"]
  ].map(function(x){return '<div class="integration"><div class="grow"><b>'+esc(x[0])+'</b><p class="muted">Abra a plataforma oficial para criar ou consultar suas credenciais.</p><a class="btn secondary" href="'+x[1]+'" target="_blank" rel="noopener noreferrer">'+esc(x[2])+' ↗</a></div></div>';}).join("")+
- '</div><div class="formgrid"><div class="field"><label for="apiProvider">Plataforma da API</label><select class="input" id="apiProvider" name="apiProvider"><option value="OPENAI">OpenAI</option><option value="GEMINI">Google Gemini</option><option value="ANTHROPIC">Anthropic Claude</option><option value="RUNWAY">Runway</option><option value="META">Meta / Facebook / Instagram</option><option value="MERCADO_LIVRE">Mercado Livre</option><option value="CUSTOM">Outra API</option></select></div><div class="field"><label for="apiLabel">Nome da API (obrigatório para Outra API)</label><input class="input" id="apiLabel" name="apiLabel" placeholder="Ex.: API de análise de links"></div></div><div class="field"><label for="apiKeyInput">Chave da API</label><input class="input" id="apiKeyInput" name="apiKeyInput" type="password" autocomplete="new-password" placeholder="Cole sua chave secreta aqui" maxlength="4096" required><p class="muted">Nunca compartilhe sua chave. Ela será criptografada e não poderá ser visualizada novamente.</p></div><div class="actions"><button class="btn" type="button" data-action="saveApiCredential()">Cadastrar / atualizar API</button><button class="btn secondary" type="button" data-action="loadApiCredentials()">Atualizar lista</button></div><div id="apiCredentialNotice" class="callout" role="status" hidden></div><h3>APIs cadastradas</h3><div id="apiCredentialsList" class="grid two"><div class="empty">Carregando APIs cadastradas...</div></div></div>';
+ '</div><div class="formgrid"><div class="field"><label for="apiProvider">Plataforma da API</label><select class="input" id="apiProvider" name="apiProvider"><option value="OPENAI">OpenAI</option><option value="GEMINI">Google Gemini</option><option value="ANTHROPIC">Anthropic Claude</option><option value="RUNWAY">Runway</option><option value="META">Meta / Facebook / Instagram</option><option value="MERCADO_LIVRE">Mercado Livre</option><option value="LOMADEE">Lomadee</option><option value="CUSTOM">Outra API</option></select></div><div class="field"><label for="apiLabel">Nome da API (obrigatório para Outra API)</label><input class="input" id="apiLabel" name="apiLabel" placeholder="Ex.: API de análise de links"></div></div><div class="field"><label for="apiKeyInput">Chave da API</label><input class="input" id="apiKeyInput" name="apiKeyInput" type="password" autocomplete="new-password" placeholder="Cole sua chave secreta aqui" maxlength="4096" required><p class="muted">Nunca compartilhe sua chave. Ela será criptografada e não poderá ser visualizada novamente.</p></div><div class="actions"><button class="btn" type="button" data-action="saveApiCredential()">Cadastrar / atualizar API</button><button class="btn secondary" type="button" data-action="loadApiCredentials()">Atualizar lista</button></div><div id="apiCredentialNotice" class="callout" role="status" hidden></div><div class="actions"><button class="btn secondary" type="button" data-action="testLomadeeCredential()">Testar conexão Lomadee (somente leitura)</button></div><p class="muted">O teste consulta apenas a Central de Conteúdo. Ele não busca catálogo de produtos, não gera links e não publica ofertas.</p><h3>APIs cadastradas</h3><div id="apiCredentialsList" class="grid two"><div class="empty">Carregando APIs cadastradas...</div></div></div>';
 }
 async function loadApiCredentials(){
  var list=document.getElementById("apiCredentialsList");if(!list)return;
@@ -3204,6 +3205,18 @@ async function saveApiCredential(){
   if(!response.ok)throw Error(data.error||"Não foi possível cadastrar a API.");
   key.value="";if(label)label.value="";
   notice.textContent=data.message||"API cadastrada com segurança.";await loadApiCredentials();toast("API cadastrada com segurança.");
+ }catch(error){notice.textContent=error.message;toast(error.message);}
+}
+async function testLomadeeCredential(){
+ var notice=document.getElementById("apiCredentialNotice");
+ if(!notice)return;
+ notice.hidden=false;notice.textContent="Testando a credencial Lomadee em consulta somente leitura...";
+ try{
+  var response=await fetch("/api/integrations/apis",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"test"})});
+  var data=await response.json();
+  if(!response.ok)throw Error(data.error||"Não foi possível testar a conexão.");
+  notice.textContent=data.message||"Consulta somente leitura concluída. A geração de links e o catálogo continuam pendentes de validação.";
+  toast("Lomadee respondeu à consulta somente leitura.");
  }catch(error){notice.textContent=error.message;toast(error.message);}
 }
 async function deleteApiCredential(provider){
