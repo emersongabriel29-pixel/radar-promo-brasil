@@ -53,6 +53,11 @@
 - A versão Hatchable não possui a coluna `promo_groups.whatsapp_destination_type`; portanto, a implementação standalone de `main` que depende dessa coluna não deve ser copiada cegamente para o Hatchable.
 - O arquivo `api/n8n/bridge.js` do GitHub contém uma proteção adicional para claims antigos e um filtro de tipo de destino. O filtro depende de esquema que não existe no banco Hatchable observado; qualquer backport deve portar apenas a lógica compatível e ser testado antes do deploy.
 
+## Ajuste de diagnóstico preparado (ainda não publicado)
+
+- Em `api/n8n/pairing.js`, o código-fonte Hatchable foi ajustado para tratar `config.get('N8N_WEBHOOK_SECRET')` ausente/não declarado e devolver um 503 específico e acionável, em vez de cair no erro genérico. A mesma alteração está nesta branch GitHub. Os arquivos conferem ignorando somente a quebra de linha final.
+- Hatchable continua publicado na versão 112; o ajuste está salvo como rascunho e **não está ativo em produção**. Não foi criado nem alterado segredo. Publicação fica pendente da configuração segura e da homologação do fluxo.
+
 ## Critério de conclusão
 
 Esta proposta documenta a reconciliação no GitHub, mas não declara as integrações externas funcionais. Após o CI da branch, revisar o diff e decidir o merge. Depois, sincronizar explicitamente as mudanças compatíveis ao Hatchable, executar testes de contrato e somente então considerar deploy. A configuração do segredo n8n exige ação segura do titular; nenhum segredo deve ser commitado ou enviado em mensagens.
