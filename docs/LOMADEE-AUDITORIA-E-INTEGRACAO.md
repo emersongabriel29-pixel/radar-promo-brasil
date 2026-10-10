@@ -84,6 +84,8 @@ Referências adicionais:
 ## Alteração feita nesta branch
 
 - Adicionado o provedor `LOMADEE` à lista da rota de credenciais de APIs, com link para o SDK oficial.
-- Adicionado teste de credencial somente leitura, com timeout, tratamento de erros e sem exposição do segredo. Ainda não executado com credencial real.
+- Adicionado teste de credencial somente leitura, com timeout, tratamento de erros e sem exposição do segredo.
+- Adicionada a opção Lomadee ao seletor e botão na interface de Integrações, com aviso explícito sobre o escopo limitado do teste.
+- Ainda não executado com credencial real.
 - Mantidos o isolamento por conta e o armazenamento cifrado já existentes.
 - Não foram adicionadas dependências, não foram alterados segredos e não foram enviados anúncios/mensagens.
