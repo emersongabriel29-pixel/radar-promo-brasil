@@ -1,0 +1,1 @@
+ALTER TABLE marketplace_rules ADD COLUMN IF NOT EXISTS social_profile_url TEXT NOT NULL DEFAULT '';
