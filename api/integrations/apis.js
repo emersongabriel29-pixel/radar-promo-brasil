@@ -8,12 +8,13 @@ const PROVIDERS = {
   RUNWAY: { name: 'Runway', docs: 'https://dev.runwayml.com/' },
   META: { name: 'Meta / Facebook / Instagram', docs: 'https://developers.facebook.com/apps/' },
   MERCADO_LIVRE: { name: 'Mercado Livre', docs: 'https://developers.mercadolivre.com.br/' },
+  LOMADEE: { name: 'Lomadee (API; integração pendente)', docs: 'https://github.com/lomadee/lomadee-sdk' },
   CUSTOM: { name: 'Outra API', docs: 'https://www.google.com/' }
 };
 const clean=(v,n=180)=>String(v??'').trim().slice(0,n);
 const encBytes=bytes=>btoa(String.fromCharCode(...new Uint8Array(bytes)));
 const decBytes=value=>Uint8Array.from(atob(value),c=>c.charCodeAt(0));
-async function accountFor(member){return (await db.query('SELECT id FROM accounts WHERE owner_member_id=$1 AND status=\'ACTIVE\'',[String(member.id)])).rows[0]}
+async function accountFor(member){return (await db.query('SELECT id FROM accounts WHERE owner_member_id=$1 AND status=\\'ACTIVE\\'',[String(member.id)])).rows[0]}
 async function cipherKey(accountId){
   let master;
   try { master=await config.get('API_CREDENTIALS_MASTER_KEY'); } catch { master=''; }
