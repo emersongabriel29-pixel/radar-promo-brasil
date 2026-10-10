@@ -14,7 +14,8 @@ export default async function(req,res){
   try{
     const account=(await db.query('SELECT id FROM accounts WHERE owner_member_id=$1 AND status=$2',[String(req.member.id),'ACTIVE'])).rows[0];
     if(!account)return res.status(412).json({error:'Abra o painel para inicializar sua conta.'});
-    const master=await config.get('N8N_WEBHOOK_SECRET');
+    let master='';
+    try { master=String(await config.get('N8N_WEBHOOK_SECRET')||'').trim(); } catch { master=''; }
     if(!master)return res.status(503).json({error:'Segredo principal do n8n ainda não configurado.'});
     return res.json({accountId:account.id,pairingSecret:await derive(master,account.id),algorithm:'HMAC-SHA256',warning:'Copie uma vez para a credencial segura do n8n. Não publique este valor.'});
   }catch{return res.status(503).json({error:'Integração n8n aguardando configuração segura.'})}
