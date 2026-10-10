@@ -2,10 +2,10 @@
 
 ## Estado de referência
 
-- Projeto Hatchable: Radar Promo Brasil, versão publicada 116 (deploy em 2026-10-10).
+- Projeto Hatchable: Radar Promo Brasil, versão publicada 117 (deploy em 2026-10-10).
 - Repositório: `emersongabriel29-pixel/radar-promo-brasil`.
 - Base GitHub observada: `71efa8a13379b4dde060ca93d0e1839348073233` (`main`).
-- A reconciliação foi mesclada em `main` no commit `f5dadf1286bbd59839173aebdf4b275048d9e9e4` (PR #44). Hatchable v116 está live. As rotas e os arquivos principais listados nesta auditoria conferem entre o Hatchable e o GitHub main, ignorando apenas quebras de linha finais; as quatro migrações têm conteúdo idêntico com nomes 026–029 no GitHub para evitar colisão com o histórico específico do repositório.
+- A reconciliação foi mesclada em `main` no commit `f5dadf1286bbd59839173aebdf4b275048d9e9e4` (PR #44). Hatchable v117 está live. As rotas e os arquivos principais listados nesta auditoria conferem entre o Hatchable e o GitHub main, ignorando apenas quebras de linha finais; as quatro migrações 026–029 têm conteúdo idêntico às 022–025 do Hatchable; a migração 030 de destino WhatsApp agora também existe em ambas as plataformas.
 
 ## Divergências reconciliadas nesta proposta
 
@@ -13,8 +13,9 @@
 - O código de `api/mercadolivre/products.js` foi alinhado ao comportamento publicado: busca de catálogo para descoberta, indicação explícita de que catálogo não confirma anúncio comprável e `safeToAutoPublish: false`.
 - Revisão adicional identificou que o processador rejeitava o formato oficial de recurso `items_prices` (`/items/{id}/prices`). O parser foi corrigido no código-fonte Hatchable e em `main` para aceitar somente esse caminho adicional quando o tópico for `items_prices`; o deploy v114 foi concluído depois do dry-run sem erros e do CI da alteração de código aprovado.
 - Também foi backportada a proteção de claims antigos da ponte WhatsApp/n8n: publicações `DISPATCHING` há mais de 5 minutos passam para `WAITING_CONFIRMATION`, nunca para reenvio automático. Publicado em v115.
-- `api/n8n/bridge.js` agora está alinhado entre Hatchable e `main`, ignorando somente a quebra de linha final. Removi do GitHub o filtro `whatsapp_destination_type='GROUP'`, porque essa coluna não existe no esquema Hatchable v115; não copiei esse filtro para produção.
-- A primeira execução de CI após alinhar o bridge detectou que o Hatchable consultava a existência da conta antes de validar o HMAC (o teste esperava 401 e recebeu 404). Corrigi a ordem em ambas as plataformas; agora a assinatura é validada antes da consulta da conta. Publicado em v116; CI para o commit corrigido está aguardando execução.
+- `api/n8n/bridge.js` e `lib/whatsapp-rotation.js` estão alinhados entre Hatchable v117 e `main`, incluindo o filtro `whatsapp_destination_type='GROUP'`. A coluna foi adicionada com a migração idempotente `030_whatsapp_destination_types.sql`; grupos legados recebem `GROUP` por padrão e a restrição aceita somente `GROUP`, `CHANNEL` ou `COMMUNITY`.
+- `api/mercadolivre/connect.js` e `api/mercadolivre/callback.js` também foram alinhados entre Hatchable e `main`, preservando PKCE, os scopes necessários e logs de diagnóstico sem registrar tokens.
+- A primeira execução de CI após alinhar o bridge detectou que o Hatchable consultava a existência da conta antes de validar o HMAC (o teste esperava 401 e recebeu 404). Corrigi a ordem em ambas as plataformas; agora a assinatura é validada antes da consulta da conta. Publicado em v116; o CI dessa correção passou.
 - `api/links/convert.js` foi alinhado ao comportamento mais conservador publicado: não inventa parâmetros de afiliado e bloqueia a conversão automática do Mercado Livre; para outras lojas sem integração implementada, instrui usar o gerador oficial.
 - As quatro migrações que existem no Hatchable receberam novos números sequenciais no repositório (`026` a `029`) para evitar colisão com a numeração de migrações específica do código standalone que já existe em `main`. Não renumerar de volta sem revisar o histórico do banco.
 
