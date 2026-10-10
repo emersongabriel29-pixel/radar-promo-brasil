@@ -8,6 +8,7 @@ const PROVIDERS = {
   RUNWAY: { name: 'Runway', docs: 'https://dev.runwayml.com/' },
   META: { name: 'Meta / Facebook / Instagram', docs: 'https://developers.facebook.com/apps/' },
   MERCADO_LIVRE: { name: 'Mercado Livre', docs: 'https://developers.mercadolivre.com.br/' },
+  LOMADEE: { name: 'Lomadee (credencial cadastrada; API a validar)', docs: 'https://www.lomadee.com/' },
   CUSTOM: { name: 'Outra API', docs: 'https://www.google.com/' }
 };
 const clean=(v,n=180)=>String(v??'').trim().slice(0,n);
