@@ -1,3 +1,4 @@
+var lastMeliInspection = null;
 var D = {
     categories: [],
     groups: [],
@@ -319,7 +320,7 @@ function dashboard() {
       validatedMarketplaces > 0 &&
       activeConnections > 0;
   return (
-    '<section class="hero"><div><div class="eyebrow eyebrow-highlight">OPERAÇÃO INTELIGENTE</div><h2>Da oferta encontrada ao grupo certo, sem trabalho repetitivo.</h2><p>Monitore fontes, converta links, use IA para categorizar, organize filas e envie a imagem do produto junto com texto e link.</p><div class="actions"><button type=\"button\" id=\"create-promotion\" class=\"btn\" data-action=\"show(\'quick\')\">Criar promoção</button><button type="button" id="configure-monitor" class="btn secondary" data-action="show(\'monitoring\')">Configurar monitor</button></div></div><div class="pulsebox"><div class="pulse"><span>Motor de automação</span><i class="dot"></i></div><strong>' +
+    '<section class="hero"><div><div class="eyebrow eyebrow-highlight">OPERAÇÃO INTELIGENTE</div><h2>Da oferta encontrada ao grupo certo, sem trabalho repetitivo.</h2><p>Monitore fontes, analise produtos, valide links de afiliado e prepare publicações com imagem e texto. O envio só é liberado quando os requisitos do canal e do rastreamento estiverem confirmados.</p><div class="actions"><button type=\"button\" id=\"create-promotion\" class=\"btn\" data-action=\"show(\'quick\')\">Criar promoção</button><button type="button" id="configure-monitor" class="btn secondary" data-action="show(\'monitoring\')">Configurar monitor</button></div></div><div class="pulsebox"><div class="pulse"><span>Motor de automação</span><i class="dot"></i></div><strong>' +
     (operationOn ? "24/7 ativo" : "Em configuração") +
     "</strong><small>" +
     active +
@@ -341,7 +342,7 @@ function dashboard() {
     mode(
       "MODO 01",
       "Monitoramento inteligente",
-      "Captura, valida, converte e distribui ofertas automaticamente.",
+      "Captura e valida ofertas; só distribui quando a origem, o link de afiliado e o destino estão confirmados.",
       "monitoring",
     ) +
     mode(
@@ -473,7 +474,7 @@ function monitoring() {
       "Recebe do conector",
       "Detecta produto",
       "Valida oferta",
-      "Converte link",
+      "Valida link afiliado",
       "Direciona ao grupo",
     ]
       .map(function (x, i) {
@@ -524,7 +525,7 @@ function cloneView() {
   return (
     section(
       "Modo clone",
-      "Preserva conteúdo e troca somente links rastreáveis.",
+      "Preserva o conteúdo e envia para revisão quando não consegue validar o link de afiliado.",
     ) +
     '<div class="grid two"><div class="card"><h3>Fluxo protegido</h3><div class="steps">' +
     ["Captura", "Identifica links", "Converte", "Mantém mídia", "Enfileira"]
@@ -534,7 +535,7 @@ function cloneView() {
         );
       })
       .join("") +
-    '</div><div class="callout csp-margin-top-15px" >Mensagens com vários produtos ficam para revisão. O sistema não altera preço, cupom ou frete sem confirmação da fonte.</div></div><div class="card"><h3>Regras do clone</h3><p class="muted">✓ Preservar formatação e imagem<br>✓ Substituir links reconhecidos<br>✓ Gerar link de cupom quando disponível<br>✓ Bloquear duplicações<br>✓ Enviar à categoria compatível</p><button class="btn" data-action="openMonitor()">Adicionar origem</button></div></div>'
+    '</div><div class="callout csp-margin-top-15px" >Mensagens com vários produtos ficam para revisão. O sistema não altera preço, cupom ou frete sem confirmação da fonte.</div></div><div class="card"><h3>Regras do clone</h3><p class="muted">✓ Preservar formatação e imagem<br>✓ Substituir somente links com conversão oficial validada<br>✓ Preservar links de cupom confirmados<br>✓ Bloquear duplicações<br>✓ Enviar à categoria compatível</p><button class="btn" data-action="openMonitor()">Adicionar origem</button></div></div>'
   );
 }
 function quick() {
@@ -545,7 +546,7 @@ function quick() {
       "+ Cadastrar oferta",
       "openOffer()",
     ) +
-    '<div class="grid two"><div class="card"><h3>Conversor oficial</h3><p class="muted">Reconhece as lojas cadastradas. A conversão só é liberada quando o método oficial daquela conta está validado.</p><div class="field"><label>Link do produto</label><input class="input" id="convertUrl" type="url" placeholder="https://..."></div><div class="field csp-margin-top-10px" ><label>Identificação do grupo</label><input class="input" id="convertGroup" value="geral"></div><button class="btn csp-margin-top-12px"  data-action="convertLink()">Converter link</button><div id="convertResult" class="callout csp-hidden csp-margin-top-12px"></div></div><div class="card"><div class="steps">' +
+    '<div class="grid two"><div class="card"><h3>Analisador de links</h3><p class="muted">No Mercado Livre, identifica o produto e consulta preço/estoque quando a API permite. Links de afiliado devem vir do gerador oficial; o Radar não inventa rastreamento.</p><div class="field"><label>Link do produto ou link oficial de afiliado</label><input class="input" id="convertUrl" type="url" placeholder="https://meli.la/... ou URL do produto"></div><div class="field csp-margin-top-10px" ><label>Identificação do grupo</label><input class="input" id="convertGroup" value="geral"></div><button class="btn csp-margin-top-12px"  data-action="convertLink()">Analisar link</button><div id="convertResult" class="callout csp-hidden csp-margin-top-12px"></div></div><div class="card"><div class="steps">' +
     [
       "Cole o link",
       "Confira o produto",
@@ -560,6 +561,7 @@ function quick() {
       })
       .join("") +
     "</div></div></div>" +
+    '<div class="card csp-margin-top-16px"><h3>Descobrir produtos no Mercado Livre</h3><p class="muted">A busca geral de anúncios está retornando 403 nesta conexão. O Radar usa o catálogo para descobrir produtos, mas catálogo não confirma preço, estoque nem anúncio comprável. Escolha um anúncio individual, confira preço e disponibilidade e gere o link comissionado no <a href="https://www.mercadolivre.com.br/l/afiliados-gerar-link" target="_blank" rel="noopener noreferrer">portal oficial de afiliados ↗</a>. Como alternativa, cadastre os dados conferidos em <b>Central de ofertas → Nova oferta</b>; a API não preencherá preço/estoque quando não conseguir confirmá-los.</p><div class="field"><label for="marketSearchQuery">Produto para pesquisar</label><input class="input" id="marketSearchQuery" placeholder="Ex.: fone bluetooth, fralda, air fryer" maxlength="120"></div><button class="btn csp-margin-top-12px" data-action="searchMercadoLivreProducts(this)">Buscar no catálogo</button><div id="marketSearchResults" class="list csp-margin-top-12px"></div></div>' +
     recent()
   );
 }
@@ -932,6 +934,7 @@ function integrations() {
       "Mercado Livre",
       "Produtos e OAuth preparados; teste real depende da credencial.",
       "Preparado",
+      "connectMercadoLivre()",
     ) +
     integration(
       "SH",
@@ -1002,7 +1005,7 @@ function integrations() {
     '</div><div class="card"><h3>Teste interno do fluxo</h3><p class="muted">Valida produto, preço, imagem e link; classifica a categoria, escolhe grupos e monta a mensagem sem envio externo.</p><button class="btn dark" data-action="runSimulation()">Executar teste seguro</button><div id="simulationResult" class="callout csp-margin-top-12px csp-hidden"></div><h3 class="csp-margin-top-22px" >Estados reais</h3><p class="muted">Testado: executado com sucesso neste projeto.<br>Disponível: código executável no projeto.<br>Preparado: telas e banco prontos, credencial/API pendente.<br>Credencial: depende de autorização do provedor.<br>Parcial: há recurso seguro alternativo, mas não acesso total à conta externa.</p><div class="callout">Nenhuma integração externa é marcada como ativa sem teste real da autorização do titular.</div></div></div>'
   );
 }
-function integration(code, name, desc, state) {
+function integration(code, name, desc, state, action) {
   return (
     '<div class="integration"><div class="intlogo">' +
     code +
@@ -1010,7 +1013,9 @@ function integration(code, name, desc, state) {
     name +
     '</b><div class="muted">' +
     desc +
-    '</div></div><span class="pill ' +
+    '</div>' +
+    (action ? '<button type="button" class="btn secondary csp-margin-top-10px" data-action="' + action + '">Conectar conta</button>' : '') +
+    '</div><span class="pill ' +
     (state === "Testado" || state === "Disponível" ? "live" : "warn") +
     '">' +
     state +
@@ -2507,61 +2512,159 @@ async function runSimulation() {
 async function convertLink() {
   var box = document.getElementById("convertResult");
   box.classList.remove("csp-hidden");
-  box.textContent = "Validando integração...";
+  box.textContent = "Analisando o link e verificando os dados disponíveis...";
+  var input = document.getElementById("convertUrl").value.trim();
   try {
-    var r = await fetch("/api/links/convert", {
+    var host = "";
+    try { host = new URL(input).hostname.toLowerCase(); } catch {}
+    if (["mercadolivre.com.br","www.mercadolivre.com.br","produto.mercadolivre.com.br","mercadolivre.com","www.mercadolivre.com","mercadolibre.com","www.mercadolibre.com","mercadolibre.com.br","www.mercadolibre.com.br","meli.la"].indexOf(host) >= 0) {
+      var inspected = await fetch("/api/mercadolivre/parse-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: document.getElementById("convertUrl").value,
-          group: document.getElementById("convertGroup").value,
-        }),
-      }),
-      b = await r.json();
+        body: JSON.stringify({ url: input })
+      });
+      var product = await inspected.json();
+      if (!inspected.ok) throw Error(product.error || "Não foi possível analisar o link.");
+      lastMeliInspection = product;
+      var priceText = product.price != null
+        ? Number(product.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+        : "Preço não confirmado pela API";
+      var stockText = product.availableQuantity == null ? "Estoque não confirmado" : (product.availableQuantity > 0 ? product.availableQuantity + " em estoque informado pela API" : "Sem estoque informado");
+      var productAnchor = product.productUrl
+        ? '<a target="_blank" rel="noopener noreferrer" href="' + esc(product.productUrl) + '">Abrir página do produto ↗</a>'
+        : "";
+      var affiliate = product.affiliateLinkCandidate
+        ? '<p><b>Link recebido:</b> <a target="_blank" rel="noopener noreferrer" href="' + esc(product.affiliateLinkCandidate) + '">' + esc(product.affiliateLinkCandidate) + '</a><br><small>Preservado como recebido; comissão ainda não verificada.</small></p>'
+        : "";
+      var checks = '<ul><li>' + (product.dataChecks?.realPriceConfirmed ? 'Preço real confirmado' : 'Preço pendente de confirmação') + '</li><li>' + (product.dataChecks?.imageAvailable ? 'Imagem disponível' : 'Imagem não confirmada') + '</li><li>' + (product.dataChecks?.itemIdConfirmed ? 'Anúncio identificado' : 'Anúncio individual não identificado') + '</li></ul>';
+      box.innerHTML = '<b>Análise do Mercado Livre · ' + esc(product.kind) + '</b>' +
+        (product.title ? '<h3>' + esc(product.title) + '</h3>' : '<p>O destino foi reconhecido, mas a API não retornou o nome do produto.</p>') +
+        '<p><b>Preço:</b> ' + esc(priceText) + '<br><b>Disponibilidade:</b> ' + esc(stockText) + '</p>' +
+        productAnchor + checks + affiliate +
+        '<p><b>Próximo passo:</b> ' + esc(product.nextStep || product.resolutionNote || 'Confira os dados antes de cadastrar.') + '</p>' +
+        '<p><a target="_blank" rel="noopener noreferrer" href="https://www.mercadolivre.com.br/l/afiliados-gere-seus-links">Abrir Gerador oficial de links de afiliado ↗</a></p>' +
+        (product.canPrepareDraft ? '<button type="button" class="btn csp-margin-top-12px" data-action="openMeliOfferForm()">Preparar oferta para revisão</button>' : '') +
+        '<small>Publicação automática bloqueada até confirmar preço, estoque, produto e rastreamento de afiliado.</small>';
+      return;
+    }
+    var r = await fetch("/api/links/convert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: input, group: document.getElementById("convertGroup").value })
+    });
+    var b = await r.json();
     if (!r.ok) throw Error(b.error);
-    box.innerHTML =
-      "<b>" +
-      esc(b.marketplace) +
-      '</b><br><a target="_blank" rel="noopener" href="' +
-      esc(b.affiliateUrl) +
-      '">' +
-      esc(b.affiliateUrl) +
-      "</a><br><small>" +
-      esc(b.warning) +
-      "</small>";
+    box.innerHTML = "<b>" + esc(b.marketplace) + '</b><br><a target="_blank" rel="noopener noreferrer" href="' + esc(b.affiliateUrl) + '">' + esc(b.affiliateUrl) + "</a><br><small>" + esc(b.warning) + "</small>";
   } catch (e) {
     box.textContent = e.message;
   }
+}
+async function searchMercadoLivreProducts(button) {
+  var input = document.getElementById("marketSearchQuery");
+  var target = document.getElementById("marketSearchResults");
+  if (!input || !target) return;
+  var q = input.value.trim();
+  if (!q) { target.textContent = "Digite o nome do produto que deseja buscar."; return; }
+  if (button) button.disabled = true;
+  target.innerHTML = '<div class="empty">Consultando a API do Mercado Livre...</div>';
+  try {
+    var response = await fetch("/api/mercadolivre/products?q=" + encodeURIComponent(q));
+    var data = await response.json();
+    if (!response.ok) throw Error(data.error || "Não foi possível buscar produtos.");
+    target.innerHTML = (data.results || []).length ? (data.results || []).slice(0, 12).map(function(item) {
+      var price = item.price != null ? Number(item.price).toLocaleString("pt-BR", {style:"currency",currency:"BRL"}) : "Preço não confirmado";
+      var stock = item.availableQuantity == null ? "Estoque não confirmado" : (item.availableQuantity > 0 ? "Estoque informado: " + item.availableQuantity : "Sem estoque");
+      var image = item.imageUrl ? '<img class="thumb" src="' + esc(item.imageUrl) + '" alt="Imagem do produto">' : '<div class="thumb"></div>';
+      var link = item.productUrl ? '<a target="_blank" rel="noopener noreferrer" href="' + esc(item.productUrl) + '">' + (data.source === "catalog" ? "Abrir catálogo e escolher anúncio ↗" : "Abrir anúncio ↗") + '</a>' : "";
+      var state = item.canPrepareDraft ? "Anúncio identificado; confira preço e estoque e gere o link oficial de afiliado antes de cadastrar." : (data.source === "catalog" ? "Resultado de catálogo, não um anúncio confirmado. Escolha um anúncio individual com preço e disponibilidade e gere o link oficial de afiliado." : "Não publicável automaticamente: faltam dados reais do anúncio ou do preço.");
+      return '<div class="row">' + image + '<div class="grow"><b>' + esc(item.title || "Produto sem título") + '</b><div class="price">' + esc(price) + '</div><div class="muted">' + esc(stock) + '</div><div class="muted">' + esc(state) + '</div>' + link + '</div></div>';
+    }).join("") : '<div class="empty">Nenhum resultado encontrado para essa busca.</div>';
+    if (data.notice) target.insertAdjacentHTML("afterbegin", '<div class="callout">' + esc(data.notice) + '</div>');
+  } catch (error) {
+    target.textContent = error.message || "Falha ao buscar produtos.";
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+function openMeliOfferForm() {
+  var p = lastMeliInspection;
+  if (!p || !p.canPrepareDraft || !p.title || p.price == null || !p.imageUrl || !p.productUrl) {
+    toast("Não há dados reais suficientes para preparar esta oferta.");
+    return;
+  }
+  var current = Number(p.price).toFixed(2);
+  var content =
+    field("Nome do produto", "title", "text", 'required value="' + esc(p.title) + '"') +
+    '<div class="formgrid">' +
+    '<div class="field"><label for="meliSource">Loja</label><select class="input" id="meliSource" name="source"><option value="MERCADO_LIVRE" selected>Mercado Livre</option></select></div>' +
+    '<div class="field"><label for="meliCategory">Categoria</label><select class="input" id="meliCategory" name="categoryId">' + catOpts() + '</select></div></div>' +
+    '<div class="formgrid">' +
+    field("Preço atual (R$)", "currentPrice", "number", 'step=".01" min=".01" required value="' + current + '"') +
+    field("Preço anterior (R$)", "originalPrice", "number", 'step=".01" min="0"') +
+    '</div>' +
+    field("Página do produto", "productUrl", "url", 'required value="' + esc(p.productUrl) + '"') +
+    field("Link oficial de afiliado", "affiliateUrl", "url", 'required value="' + esc(p.affiliateLinkCandidate || "") + '" placeholder="Cole aqui o link gerado no portal oficial"') +
+    field("Imagem do produto (URL)", "imageUrl", "url", 'required value="' + esc(p.imageUrl) + '"') +
+    '<div class="field"><label><input type="checkbox" name="affiliateConfirmed" required> Confirmo que conferi o link de afiliado no portal oficial. A oferta ficará pendente de revisão.</label></div>' +
+    select("Modelo da mensagem", "messageTemplate", '<option value="AUTO" selected>Automático pela categoria</option><option value="IMPACT">Impactante</option><option value="COMPLETE">Oferta completa</option><option value="CLEAN">Direto e limpo</option>');
+  openModal("Preparar oferta do Mercado Livre", "Os dados vêm da API quando disponíveis. A oferta será salva como pendente e não será publicada automaticamente.", content, async function(e) {
+    e.preventDefault();
+    try {
+      var fd = new FormData(e.target);
+      var original = String(fd.get("originalPrice") || "").trim();
+      var payload = {
+        entity: "offer",
+        title: String(fd.get("title") || "").trim(),
+        source: "MERCADO_LIVRE",
+        categoryId: String(fd.get("categoryId") || ""),
+        currentPrice: Number(fd.get("currentPrice")),
+        originalPrice: original ? Number(original) : "",
+        productUrl: String(fd.get("productUrl") || "").trim(),
+        affiliateUrl: String(fd.get("affiliateUrl") || "").trim(),
+        imageUrl: String(fd.get("imageUrl") || "").trim(),
+        messageTemplate: String(fd.get("messageTemplate") || "AUTO")
+      };
+      if (!fd.get("affiliateConfirmed")) throw Error("Confirme que conferiu o link de afiliado oficial.");
+      await call("POST", payload);
+      closeModal();
+      show("offers");
+      toast("Oferta salva como pendente para revisão; nada foi publicado.");
+    } catch (error) {
+      toast(error.message || "Não foi possível preparar a oferta.");
+    }
+  });
 }
 function openMarketplace(store) {
   var x =
     (D.suite.marketplaces || []).find(function (i) {
       return i.marketplace === store;
     }) || {};
+  var isMeli = store === "MERCADO_LIVRE";
+  var fields = field(
+    isMeli ? "Identificação oficial de afiliado (se fornecida pelo Mercado Livre)" : "Tag ou identificação de afiliado",
+    "affiliateTag",
+    "text",
+    'value="' + esc(x.affiliateTag || "") + '"' + (isMeli ? ' placeholder="Opcional; não cole aqui o link meli.la"' : ""),
+  );
+  if (isMeli) {
+    fields += field("Perfil social de referência (não é link de produto/afiliado)","socialProfileUrl","url",'value="' + esc(x.socialProfileUrl || "") + '" placeholder="https://www.mercadolivre.com.br/social/seu-perfil"') + '<div class="callout"><strong>Perfil salvo apenas como referência.</strong> Ele não será usado como oferta nem como link comissionado. Rastreamento de conversões segue desativado: use o link individual gerado no portal oficial e consulte vendas e comissões no painel do Mercado Livre. A conexão OAuth da API é configurada separadamente.</div>';
+  } else {
+    fields += field(
+      "Modelo do SubID",
+      "subidTemplate",
+      "text",
+      'value="' + esc(x.subidTemplate || "{group}") + '"',
+    ) + field(
+      "Endpoint oficial de conversão",
+      "conversionEndpoint",
+      "url",
+      'value="' + esc(x.conversionEndpoint || "") + '" placeholder="https://..."',
+    ) + '<div class="callout">A integração permanecerá pendente até o sistema concluir um teste oficial. O status não pode ser ativado manualmente.</div>';
+  }
   openModal(
     "Configurar " + store.replace("_", " "),
-    "Use somente identificação e endpoint oficiais da sua conta.",
-    field(
-      "Tag ou identificação de afiliado",
-      "affiliateTag",
-      "text",
-      'value="' + esc(x.affiliateTag || "") + '"',
-    ) +
-      field(
-        "Modelo do SubID",
-        "subidTemplate",
-        "text",
-        'value="' + esc(x.subidTemplate || "{group}") + '"',
-      ) +
-      field(
-        "Endpoint oficial de conversão",
-        "conversionEndpoint",
-        "url",
-        'value="' +
-          esc(x.conversionEndpoint || "") +
-          '" placeholder="https://..."',
-      ) +
-      '<div class="callout">A integração permanecerá pendente até o sistema concluir um teste oficial. O status não pode ser ativado manualmente.</div>',
+    isMeli ? "Configure somente dados confirmados. O rastreamento de comissões não será simulado." : "Use somente identificação e endpoint oficiais da sua conta.",
+    fields,
     async function (e) {
       e.preventDefault();
       try {
@@ -2573,7 +2676,7 @@ function openMarketplace(store) {
           ),
         );
         closeModal();
-        toast("Configuração salva");
+        toast(isMeli ? "Configuração salva; conversões não serão simuladas." : "Configuração salva");
       } catch (err) {
         toast(err.message);
       }
@@ -3180,9 +3283,10 @@ function apiCredentialsPanel(){
  ["Anthropic Claude","https://console.anthropic.com/settings/keys","Criar chave Claude"],
  ["Runway","https://dev.runwayml.com/","Criar acesso Runway"],
  ["Meta Developers","https://developers.facebook.com/apps/","Criar aplicativo Meta"],
- ["Mercado Livre","https://developers.mercadolivre.com.br/","Criar aplicativo Mercado Livre"]
+ ["Mercado Livre","https://developers.mercadolivre.com.br/","Criar aplicativo Mercado Livre"],
+  ["Lomadee","https://www.lomadee.com/","Abrir plataforma Lomadee"]
  ].map(function(x){return '<div class="integration"><div class="grow"><b>'+esc(x[0])+'</b><p class="muted">Abra a plataforma oficial para criar ou consultar suas credenciais.</p><a class="btn secondary" href="'+x[1]+'" target="_blank" rel="noopener noreferrer">'+esc(x[2])+' ↗</a></div></div>';}).join("")+
- '</div><div class="formgrid"><div class="field"><label for="apiProvider">Plataforma da API</label><select class="input" id="apiProvider" name="apiProvider"><option value="OPENAI">OpenAI</option><option value="GEMINI">Google Gemini</option><option value="ANTHROPIC">Anthropic Claude</option><option value="RUNWAY">Runway</option><option value="META">Meta / Facebook / Instagram</option><option value="MERCADO_LIVRE">Mercado Livre</option><option value="CUSTOM">Outra API</option></select></div><div class="field"><label for="apiLabel">Nome da API (obrigatório para Outra API)</label><input class="input" id="apiLabel" name="apiLabel" placeholder="Ex.: API de análise de links"></div></div><div class="field"><label for="apiKeyInput">Chave da API</label><input class="input" id="apiKeyInput" name="apiKeyInput" type="password" autocomplete="new-password" placeholder="Cole sua chave secreta aqui" maxlength="4096" required><p class="muted">Nunca compartilhe sua chave. Ela será criptografada e não poderá ser visualizada novamente.</p></div><div class="actions"><button class="btn" type="button" data-action="saveApiCredential()">Cadastrar / atualizar API</button><button class="btn secondary" type="button" data-action="loadApiCredentials()">Atualizar lista</button></div><div id="apiCredentialNotice" class="callout" role="status" hidden></div><h3>APIs cadastradas</h3><div id="apiCredentialsList" class="grid two"><div class="empty">Carregando APIs cadastradas...</div></div></div>';
+ '</div><div class="formgrid"><div class="field"><label for="apiProvider">Plataforma da API</label><select class="input" id="apiProvider" name="apiProvider"><option value="OPENAI">OpenAI</option><option value="GEMINI">Google Gemini</option><option value="ANTHROPIC">Anthropic Claude</option><option value="RUNWAY">Runway</option><option value="META">Meta / Facebook / Instagram</option><option value="MERCADO_LIVRE">Mercado Livre</option><option value="LOMADEE">Lomadee</option><option value="CUSTOM">Outra API</option></select></div><div class="field"><label for="apiLabel">Nome da API (obrigatório para Outra API)</label><input class="input" id="apiLabel" name="apiLabel" placeholder="Ex.: API de análise de links"></div></div><div class="field"><label for="apiKeyInput">Chave da API</label><input class="input" id="apiKeyInput" name="apiKeyInput" type="password" autocomplete="new-password" placeholder="Cole sua chave secreta aqui" maxlength="4096" required><p class="muted">Nunca compartilhe sua chave. Ela será criptografada e não poderá ser visualizada novamente.</p></div><div class="actions"><button class="btn" type="button" data-action="saveApiCredential()">Cadastrar / atualizar API</button><button class="btn secondary" type="button" data-action="loadApiCredentials()">Atualizar lista</button></div><div id="apiCredentialNotice" class="callout" role="status" hidden></div><h3>APIs cadastradas</h3><div id="apiCredentialsList" class="grid two"><div class="empty">Carregando APIs cadastradas...</div></div></div>';
 }
 async function loadApiCredentials(){
  var list=document.getElementById("apiCredentialsList");if(!list)return;
@@ -3225,6 +3329,14 @@ syncDrawer();nav();load();
 async function operationRequest(path,body){
   var r=await fetch(path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
   var data=await r.json();if(!r.ok)throw Error(data.error || 'Operação indisponível.');return data;
+}
+async function connectMercadoLivre(){
+  try{
+    toast('Preparando conexão segura com o Mercado Livre…');
+    var data=await operationRequest('/api/mercadolivre/connect');
+    if(!data.authorizationUrl)throw Error('O Mercado Livre não retornou o endereço de autorização.');
+    window.location.href=data.authorizationUrl;
+  }catch(error){toast(error.message||'Não foi possível iniciar a conexão com o Mercado Livre.');}
 }
 async function captureMonitor(id,button){
   button.disabled=true;try{var r=await operationRequest('/api/monitors/run',{monitorId:id});await load();toast(r.failed?'Falha na origem; consulte o monitor.':r.captured+' nova(s) oferta(s) capturada(s).');}catch(e){toast(e.message);}finally{button.disabled=false;}
