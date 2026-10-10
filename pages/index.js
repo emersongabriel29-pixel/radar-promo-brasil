@@ -36,11 +36,11 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
           <p>Imagem, mensagem e link são validados antes de entrar na fila.</p>
         </div>
       </aside>
-      <div class="shade" id="shade" data-action="menu(false)"></div>
+      <div class="shade" id="shade" onclick="menu(false)"></div>
       <main class="main" id="main">
         <header class="top">
-          <div class="top-heading-group">
-            <button class="btn secondary menu" aria-controls="side" aria-expanded="false" data-action="menu(true)">
+          <div style="display: flex; gap: 10px; align-items: center">
+            <button class="btn secondary menu" aria-controls="side" aria-expanded="false" onclick="menu(true)">
               Menu
             </button>
             <div>
@@ -49,9 +49,9 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
             </div>
           </div>
           <div class="topactions">
-            <button class="btn secondary" data-action="show('integrations')">
+            <button class="btn secondary" onclick="show('integrations')">
               Conexões</button
-            ><button class="btn" data-action="openOffer()">+ Nova oferta</button>
+            ><button class="btn" onclick="openOffer()">+ Nova oferta</button>
           </div>
         </header>
         <div class="content" id="content" tabindex="-1">
@@ -61,18 +61,18 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
     </div>
     <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalHint" aria-hidden="true">
       <div class="dialog">
-        <div class="sectionhead modal-sectionhead">
+        <div class="sectionhead" style="margin-top: 0">
           <div>
             <h2 id="modalTitle"></h2>
             <p id="modalHint"></p>
           </div>
-          <button class="btn secondary" data-action="closeModal()">Fechar</button>
+          <button class="btn secondary" onclick="closeModal()">Fechar</button>
         </div>
         <form class="form" id="form"></form>
       </div>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="/radar.js?v=whatsapp-20261001" defer></script>
+    <script src="/radar.js?v=lomadee-provider-20261010" defer></script>
   </body>
 </html>
 `);}
