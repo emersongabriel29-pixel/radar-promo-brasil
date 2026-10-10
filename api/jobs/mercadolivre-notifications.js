@@ -8,7 +8,7 @@ export const methods = ['POST'];
 const clean = (v, max = 300) => String(v ?? '').split(String.fromCharCode(13)).join(' ').split(String.fromCharCode(10)).join(' ').split(String.fromCharCode(9)).join(' ').trim().slice(0, max);
 const cents = value => Number.isFinite(Number(value)) && Number(value) > 0 ? Math.round(Number(value) * 100) : null;
 
-function itemIdFromResource(resource) {
+function itemIdFromResource(resource, topic) {
   const raw = String(resource || '').trim();
   let pathname = raw;
   if (raw.startsWith('http://') || raw.startsWith('https://')) {
@@ -18,7 +18,10 @@ function itemIdFromResource(resource) {
     pathname = parsed.pathname;
   }
   const parts = pathname.split('/').filter(Boolean);
-  if (parts.length !== 2 || parts[0].toLowerCase() !== 'items') return null;
+  const normalizedTopic = String(topic || '').toLowerCase();
+  const isItemResource = parts.length === 2 && parts[0].toLowerCase() === 'items';
+  const isPriceResource = normalizedTopic === 'items_prices' && parts.length === 3 && parts[0].toLowerCase() === 'items' && parts[2].toLowerCase() === 'prices';
+  if (!isItemResource && !isPriceResource) return null;
   const id = parts[1].replace(/-/g, '').toUpperCase();
   if (!id.startsWith('MLB') || !Number.isSafeInteger(Number(id.slice(3))) || !id.slice(3)) return null;
   return id;
@@ -50,7 +53,7 @@ async function processEvent(event) {
     );
     return { processed: 1, updatedOffers: 0, unsupported: 1, failed: 0 };
   }
-  const itemId = itemIdFromResource(event.resource);
+  const itemId = itemIdFromResource(event.resource, event.topic);
   if (!itemId) {
     await db.query(
       "UPDATE meli_notification_events SET status='UNSUPPORTED', last_error=$2, processed_at=now(), updated_at=now() WHERE id=$1",
