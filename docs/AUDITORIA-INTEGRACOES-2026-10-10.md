@@ -29,10 +29,20 @@
 - `migrations/027_marketplace_social_profile.sql`
 - `migrations/028_meli_notification_processing.sql`
 - `migrations/029_meli_notification_dispatch.sql`
+- `migrations/030_whatsapp_destination_types.sql`
 
 ## Arquivos alinhados
 
 - `api/mercadolivre/products.js`
+- `api/mercadolivre/connect.js`
+- `api/mercadolivre/callback.js`
+- `api/mercadolivre/health.js`
+- `api/mercadolivre/notifications.js`
+- `api/mercadolivre/parse-link.js`
+- `api/jobs/mercadolivre-notifications.js`
+- `api/n8n/pairing.js`
+- `api/n8n/bridge.js`
+- `lib/whatsapp-rotation.js`
 - `api/links/convert.js`
 
 ## Testes reais realizados no Hatchable
