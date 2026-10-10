@@ -2,15 +2,16 @@
 
 ## Estado de referência
 
-- Projeto Hatchable: Radar Promo Brasil, versão publicada 112.
+- Projeto Hatchable: Radar Promo Brasil, versão publicada 113 (deploy em 2026-10-10).
 - Repositório: `emersongabriel29-pixel/radar-promo-brasil`.
 - Base GitHub observada: `71efa8a13379b4dde060ca93d0e1839348073233` (`main`).
-- Esta mudança está em uma branch de auditoria; não altera `main` e não publica no Hatchable.
+- A proposta principal está na branch de auditoria e não altera `main`. Uma correção pequena e segura de diagnóstico foi publicada separadamente no Hatchable v113; a correção do parser de `items_prices` está salva como rascunho para v114.
 
 ## Divergências reconciliadas nesta proposta
 
 - Foram adicionadas ao repositório as rotas que existem no Hatchable e faltavam no GitHub: `api/mercadolivre/health.js`, `api/mercadolivre/notifications.js`, `api/mercadolivre/parse-link.js` e `api/jobs/mercadolivre-notifications.js`.
 - O código de `api/mercadolivre/products.js` foi alinhado ao comportamento publicado: busca de catálogo para descoberta, indicação explícita de que catálogo não confirma anúncio comprável e `safeToAutoPublish: false`.
+- Revisão adicional identificou que o processador rejeitava o formato oficial de recurso `items_prices` (`/items/{id}/prices`). O parser foi corrigido no código-fonte Hatchable e nesta branch para aceitar somente esse caminho adicional quando o tópico for `items_prices`; o deploy v114 ainda está pendente de CI.
 - `api/links/convert.js` foi alinhado ao comportamento mais conservador publicado: não inventa parâmetros de afiliado e bloqueia a conversão automática do Mercado Livre; para outras lojas sem integração implementada, instrui usar o gerador oficial.
 - As quatro migrações que existem no Hatchable receberam novos números sequenciais no repositório (`026` a `029`) para evitar colisão com a numeração de migrações específica do código standalone que já existe em `main`. Não renumerar de volta sem revisar o histórico do banco.
 
