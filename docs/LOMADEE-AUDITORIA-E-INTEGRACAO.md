@@ -64,7 +64,7 @@ Referências adicionais:
 1. Obter credencial oficial da Lomadee e confirmar quais APIs estão habilitadas para a conta.
 2. Confirmar documentação/contrato oficial para links de produto, tracking/subID, limites de taxa, paginação, erros e comissões.
 3. Implementar adaptador isolado que só leia credenciais do cofre no servidor; nunca enviar a chave ao browser, n8n ou logs.
-4. Implementar health check de leitura sem criar/alterar pedidos, comissões ou aceites de termos.
+4. Executar o teste somente leitura pelo backend após cadastrar a chave; ele consulta apenas a Central de Conteúdo e não cria/alterar pedidos, comissões ou aceites de termos.
 5. Adicionar testes unitários com respostas simuladas: autenticação, timeout, 401/403, rate limit, respostas inválidas e isolamento entre contas.
 6. Adicionar a origem Lomadee à descoberta de ofertas apenas se existir endpoint oficial autorizado. Se não houver endpoint de catálogo, permitir importação manual de URLs/links oficiais.
 7. Gerar ou importar link e validar redirecionamento e parâmetros de tracking com a ferramenta oficial da Lomadee.
@@ -84,5 +84,6 @@ Referências adicionais:
 ## Alteração feita nesta branch
 
 - Adicionado o provedor `LOMADEE` à lista da rota de credenciais de APIs, com link para o SDK oficial.
+- Adicionado teste de credencial somente leitura, com timeout, tratamento de erros e sem exposição do segredo.
 - Mantidos o isolamento por conta e o armazenamento cifrado já existentes.
 - Não foram adicionadas dependências, não foram alterados segredos e não foram enviados anúncios/mensagens.
