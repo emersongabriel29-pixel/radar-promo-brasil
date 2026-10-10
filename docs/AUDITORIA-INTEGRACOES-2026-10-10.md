@@ -44,9 +44,11 @@
 ## Bloqueios externos e limites
 
 - `N8N_WEBHOOK_SECRET` não está configurado/disponível no ambiente consultado. O pareamento n8n não deve ser marcado como funcional até o titular cadastrar o segredo em armazenamento seguro e testar o HMAC ponta a ponta.
-- O OAuth do Mercado Livre não estava ativo na conta usada no teste. Não foram feitos testes de publicação nem de comissão.
-- Telegram: um teste anterior sem ID oficial de destino retornou HTTP 400. Não foi enviada mensagem real.
-- WhatsApp/n8n: não houve entrega real; o fluxo exige segredo, credenciais e destino autorizado.
+- O endpoint de saúde executado com o membro de teste retornou HTTP 412 porque aquela conta não tinha conexão própria. Separadamente, uma conexão OAuth ativa já armazenada foi validada por GET somente-leitura a `https://api.mercadolibre.com/users/me`: HTTP 200, identidade retornada, sem expor nem alterar token. Isso comprova conectividade de uma conta, não todas as contas, nem publicação ou comissão.
+- Telegram: o token configurado passou uma chamada oficial somente-leitura `getMe` (HTTP 200). Existe uma conexão Telegram ativa e um grupo ativo com ID; nenhuma mensagem foi enviada, portanto entrega ponta a ponta permanece não testada.
+- WhatsApp/n8n: zero conexões WhatsApp; nove grupos WhatsApp estão pausados e sem ID externo. `WHATSAPP_API_URL`, `WHATSAPP_API_TOKEN` e `N8N_WEBHOOK_SECRET` não estão configurados; não houve entrega real.
+- O segredo `API_CREDENTIALS_MASTER_KEY` está ausente e a tabela `account_api_credentials` está vazia; assim, credenciais de API por conta (incluindo Lomadee/custom) não foram cadastradas por esse mecanismo. `RUNWAY_API_KEY`, `META_PAGE_ACCESS_TOKEN`, `META_FACEBOOK_PAGE_ID` e `META_INSTAGRAM_ACCOUNT_ID` também não estão configurados.
+- No banco consultado: 2 contas, 0 ofertas, 0 publicações e 0 eventos de notificação Mercado Livre. Há 10 grupos cadastrados, mas apenas o grupo Telegram aparece ativo; os nove grupos WhatsApp estão pausados. Isso impede comprovar o fluxo comercial completo mesmo quando um token de provedor é válido.
 - A existência de variáveis de configuração do Telegram/Mercado Livre não comprova credenciais válidas nem operação externa.
 - A versão Hatchable não possui a coluna `promo_groups.whatsapp_destination_type`; portanto, a implementação standalone de `main` que depende dessa coluna não deve ser copiada cegamente para o Hatchable.
 - O arquivo `api/n8n/bridge.js` do GitHub contém uma proteção adicional para claims antigos e um filtro de tipo de destino. O filtro depende de esquema que não existe no banco Hatchable observado; qualquer backport deve portar apenas a lógica compatível e ser testado antes do deploy.
