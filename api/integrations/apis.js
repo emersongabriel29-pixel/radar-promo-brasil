@@ -26,6 +26,43 @@ export default async function(req,res){
   if(!req.member)return res.status(401).json({error:'Não autorizado.'});
   try{
     const account=await accountFor(req.member);if(!account)return res.status(412).json({error:'Abra o painel uma vez para criar sua conta.'});
+    if(req.method==='POST' && String(req.body?.action||'').toLowerCase()==='test') {
+      const row=(await db.query('SELECT encrypted_key,nonce FROM account_api_credentials WHERE account_id=$1 AND provider=$2',[account.id,'LOMADEE'])).rows[0];
+      if(!row)return res.status(404).json({ok:false,status:'ACTION_REQUIRED',error:'Cadastre primeiro a chave da Lomadee.'});
+      const key=await cipherKey(account.id);
+      let apiKey;
+      try {
+        const decrypted=await crypto.subtle.decrypt({name:'AES-GCM',iv:decBytes(row.nonce)},key,decBytes(row.encrypted_key));
+        apiKey=new TextDecoder().decode(decrypted);
+      } catch {
+        return res.status(412).json({ok:false,status:'ACTION_REQUIRED',error:'Não foi possível descriptografar a credencial. Confira API_CREDENTIALS_MASTER_KEY.'});
+      }
+      let response;
+      try {
+        response=await fetch('https://dashboard-api.lomadee.com.br/api/contents?limit=1',{
+          method:'GET',
+          headers:{'x-auth-key':apiKey,accept:'application/json'},
+          signal:AbortSignal.timeout(10000)
+        });
+      } catch(e) {
+        const timeout=e?.name==='TimeoutError'||e?.name==='AbortError';
+        return res.status(timeout?504:502).json({ok:false,status:'ACTION_REQUIRED',error:timeout?'A Lomadee não respondeu em até 10 segundos.':'Não foi possível alcançar a API da Lomadee.'});
+      }
+      if(response.status===401||response.status===403) {
+        return res.status(422).json({ok:false,status:'ACTION_REQUIRED',httpStatus:response.status,error:'A Lomadee recusou a credencial ou a permissão para consultar conteúdos. Confirme a chave e o acesso à API no painel oficial.'});
+      }
+      if(response.status===429) {
+        return res.status(429).json({ok:false,status:'ACTION_REQUIRED',httpStatus:429,error:'A Lomadee limitou as requisições. Aguarde e tente novamente; nenhum limite foi contornado.'});
+      }
+      if(!response.ok) {
+        return res.status(502).json({ok:false,status:'ACTION_REQUIRED',httpStatus:response.status,error:'A API respondeu com erro. A integração não foi marcada como pronta.'});
+      }
+      let payload;
+      try { payload=await response.json(); } catch {
+        return res.status(502).json({ok:false,status:'ACTION_REQUIRED',error:'A API respondeu em formato inesperado; a integração não foi marcada como pronta.'});
+      }
+      return res.json({ok:true,status:'TESTED_READ_ONLY',httpStatus:response.status,provider:'LOMADEE',message:'Autenticação e consulta somente leitura responderam. Isso não confirma acesso a catálogo de produtos nem geração de links.',returnedItems:Array.isArray(payload?.data)?payload.data.length:Array.isArray(payload?.items)?payload.items.length:null});
+    }
     if(req.method==='GET'){
       const rows=(await db.query('SELECT provider,label,docs_url AS "docsUrl",key_last4 AS "keyLast4",created_at AS "createdAt",updated_at AS "updatedAt" FROM account_api_credentials WHERE account_id=$1 ORDER BY provider',[account.id])).rows;
       return res.json({items:rows,providers:Object.entries(PROVIDERS).map(([id,p])=>({id,name:p.name,docsUrl:p.docs}))});
