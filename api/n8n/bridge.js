@@ -40,7 +40,7 @@ async function pull(body,eventId,accountId){
   // Never requeue automatically: the provider may already have accepted the message.
   await db.query("UPDATE publications SET status='WAITING_CONFIRMATION',error_message='Claim expirado sem confirmação do worker; verifique o destino antes de reenviar.' WHERE account_id=$1 AND status='DISPATCHING' AND last_attempt_at<now()-interval '5 minutes'",[accountId]);
   const max=Math.max(1,Math.min(20,Number(body.limit)||10));
-  const r=await db.query(`SELECT p.id,p.content_type AS "contentType",p.message,p.image_url AS \"imageUrl\",COALESCE(p.image_storage_key,o.image_storage_key) AS \"imageStorageKey\",p.attempts,p.mention_all AS \"mentionAll\",o.title,o.affiliate_url AS \"affiliateUrl\",o.current_price AS \"currentPrice\",g.name AS \"groupName\",g.external_id AS \"groupExternalId\" FROM publications p LEFT JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id WHERE p.account_id=$1 AND p.status IN ('READY','RETRY') AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now()) AND g.status='ACTIVE' AND g.platform='WHATSAPP' AND g.whatsapp_destination_type='GROUP' AND NULLIF(trim(g.external_id),'') IS NOT NULL AND (p.content_type='MESSAGE' OR p.image_url IS NOT NULL) AND ${eligiblePublication} ORDER BY p.priority DESC,p.created_at,p.id LIMIT $2`,[accountId,max]);
+  const r=await db.query(`SELECT p.id,p.content_type AS "contentType",p.message,p.image_url AS \"imageUrl\",COALESCE(p.image_storage_key,o.image_storage_key) AS \"imageStorageKey\",p.attempts,p.mention_all AS \"mentionAll\",o.title,o.affiliate_url AS \"affiliateUrl\",o.current_price AS \"currentPrice\",g.name AS \"groupName\",g.external_id AS \"groupExternalId\" FROM publications p LEFT JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id WHERE p.account_id=$1 AND p.status IN ('READY','RETRY') AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now()) AND g.status='ACTIVE' AND g.platform='WHATSAPP' AND NULLIF(trim(g.external_id),'') IS NOT NULL AND (p.content_type='MESSAGE' OR p.image_url IS NOT NULL) AND ${eligiblePublication} ORDER BY p.priority DESC,p.created_at,p.id LIMIT $2`,[accountId,max]);
   const claimedItems=[];
   for(const item of r.rows){
     const claimed=await claimNextWhatsapp(item.id,accountId);
@@ -105,6 +105,7 @@ export default async function(req,res){
   try{
     const body=req.body||{},accountId=String(body.accountId||'').slice(0,100);
     if(!accountId)return res.status(400).json({error:'accountId obrigatório.'});
+    // Verify HMAC before querying account existence to avoid an account-enumeration oracle.
     const verified=await verify(req,accountId);
     if(verified===null)return res.status(503).json({error:'Ponte n8n aguardando configuração segura.'});
     if(!verified)return res.status(401).json({error:'Assinatura inválida.'});

@@ -25,6 +25,7 @@ export default async function(req,res){
     if(original.protocol!=='https:')return res.status(400).json({error:'Use um link HTTPS.'});
     const marketplace=identify(original.hostname.toLowerCase());
     if(!marketplace)return res.status(400).json({error:'Link não reconhecido por nenhuma loja cadastrada.'});
+    if(marketplace==='MERCADO_LIVRE')return res.status(412).json({error:'Conversão automática desativada: use o link de afiliado original gerado no portal oficial do Mercado Livre, sem modificar parâmetros. Acompanhe vendas e comissões no painel oficial.',marketplace,conversionDisabled:true});
     const a=(await db.query('SELECT id FROM accounts WHERE owner_member_id=$1',[String(req.member.id)])).rows[0];
     if(!a)return res.status(412).json({error:'Abra as configurações da conta primeiro.'});
     const rule=(await db.query('SELECT * FROM marketplace_rules WHERE account_id=$1 AND marketplace=$2',[a.id,marketplace])).rows[0];
@@ -34,7 +35,7 @@ export default async function(req,res){
     const group=safe(req.body?.group||'geral').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,60),subid=rule.subid_template.replace('{group}',group);
     if(!['AMAZON','SHOPEE','MERCADO_LIVRE'].includes(marketplace))return res.status(412).json({error:'A loja foi reconhecida, mas a conversão automática só será liberada após validar a API ou gerador oficial desta conta.',marketplace});
     if(marketplace==='AMAZON')original.searchParams.set('tag',rule.affiliate_tag);
-    else original.searchParams.set('matt_tool',rule.affiliate_tag||subid);
+    else return res.status(412).json({error:'Conversão automática não implementada para esta loja. Use o gerador oficial de afiliados e importe o link gerado; não adicionamos parâmetros presumidos.',marketplace,conversionDisabled:true});
     return res.json({ok:true,marketplace,affiliateUrl:original.toString(),subid,warning:'O crédito da comissão depende da validação oficial da loja.'});
   }catch{return res.status(400).json({error:'Link inválido.'})}
 }
