@@ -181,7 +181,7 @@ function switchGroup(key, id) {
     b.classList.toggle("on", b.textContent.trim().includes(item[1]));
   });
   document.getElementById("group-panel").innerHTML = window[item[3]]();
-  if(key==="settings"&&id==="integrations")loadApiCredentials();
+  if(key==="settings"&&id==="integrations"){loadApiCredentials();loadMarketplaceStatus();}
 }
 async function call(method, body, query) {
   var r = await fetch("/api/data" + (query || ""), {
