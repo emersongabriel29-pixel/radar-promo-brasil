@@ -1030,50 +1030,58 @@ function integrations() {
     integration(
       "WA",
       "WhatsApp",
-      "Envio com imagem via ponte segura com n8n.",
+      "Pareie o conector seguro para validar o acesso antes de ativar os números.",
       "Configurar",
+      "openWhatsappPairing()",
     ) +
     integration(
       "TG",
       "Telegram",
-      "Bot oficial envia imagem, texto, botão e link.",
-      "Disponível",
+      "Conecte o bot e valide o token antes de liberar publicações.",
+      "Conectar bot",
+      "openTelegramConnection()",
     ) +
     integration(
       "META",
       "Facebook e Instagram",
-      "Publicação oficial aguarda autorização OAuth da conta profissional.",
-      "Conectar",
+      "Testa os tokens oficiais já configurados; autorização OAuth e permissões continuam obrigatórias.",
+      "Testar conexão",
+      "testMetaConnection()",
     ) +
     integration(
       "MAIL",
       "Gmail e Outlook",
-      "Entrega transacional já funciona; remetente próprio exige domínio ou OAuth.",
-      "Disponível",
+      "Teste de entrega com consentimento; isso não autentica uma caixa Gmail ou Outlook.",
+      "Testar envio",
+      "openEmailTest()",
     ) +
     integration(
       "GEM",
       "Google Gemini",
-      "Textos, anúncios, cupons, legendas, carrosséis e roteiros testados.",
-      "Testado",
+      "Configure e valide a chave Gemini; o cadastro não substitui o segredo usado pelo backend.",
+      "Configurar chave",
+      "openApiProvider('GEMINI')",
     ) +
     integration(
       "GPT",
       "OpenAI e Claude",
-      "Conectores prontos; cada provedor exige sua própria chave.",
-      "Credencial",
+      "Configure OpenAI ou Claude e teste a chave antes de habilitar o provedor.",
+      "Configurar chave",
+      "openApiProvider('OPENAI')",
     ) +
     integration(
       "IMG",
       "IA de imagem",
-      "Provedor principal + Runway + cartão promocional automático em caso de limite.",
-      "Disponível",
+      "Configure a chave do provedor principal e confirme o uso no backend.",
+      "Configurar chave",
+      "openApiProvider('OPENAI')",
     ) +
     integration(
       "VID",
       "IA de vídeo",
-      "Fila real de renderização Runway, consulta de estado e armazenamento protegido.",
-      "Disponível",
+      "Configure a credencial Runway; a validação automática depende de endpoint oficial suportado.",
+      "Configurar Runway",
+      "openApiProvider('RUNWAY')",
     ) +
     '</div><div class="card"><h3>Teste interno do fluxo</h3><p class="muted">Valida produto, preço, imagem e link; classifica a categoria, escolhe grupos e monta a mensagem sem envio externo.</p><button class="btn dark" data-action="runSimulation()">Executar teste seguro</button><div id="simulationResult" class="callout csp-margin-top-12px csp-hidden"></div><h3 class="csp-margin-top-22px" >Estados reais</h3><p class="muted">Testado: executado com sucesso neste projeto.<br>Disponível: código executável no projeto.<br>Preparado: telas e banco prontos, credencial/API pendente.<br>Credencial: depende de autorização do provedor.<br>Parcial: há recurso seguro alternativo, mas não acesso total à conta externa.</p><div class="callout">Nenhuma integração externa é marcada como ativa sem teste real da autorização do titular.</div></div></div>'
   );
@@ -1084,6 +1092,11 @@ function integration(code, name, desc, state, action) {
   var actionLabel=action==='connectMercadoLivre()'?'Conectar conta':
     code==='MAG'?'Conectar conta seller':
     code==='SHN'?'Importar link oficial':
+    action==='openWhatsappPairing()'?'Conectar conector':
+    action==='openTelegramConnection()'?'Conectar bot':
+    action==='testMetaConnection()'?'Testar conexão':
+    action==='openEmailTest()'?'Testar envio':
+    action&&action.indexOf('openApiProvider(')===0?'Configurar chave':
     action&&action.indexOf('openMarketplaceSetup(')===0?'Conectar conta':
     action?'Abrir configuração':'';
   return (
@@ -3368,8 +3381,17 @@ document.addEventListener('keydown',function(event){
 });
 matchMedia('(max-width:900px)').addEventListener('change',function(){menu(false);syncDrawer();});
 window.addEventListener('hashchange',function(){show(decodeURIComponent(location.hash.slice(1)));});
+function openApiProvider(provider){
+ var details=Array.from(document.querySelectorAll('.integration-details')).find(function(x){return x.querySelector('.api-credentials-panel');});
+ if(!details){toast('Abra Integrações e tente novamente.');return;}
+ details.open=true;
+ var selectEl=document.getElementById('apiProvider');
+ if(selectEl)selectEl.value=provider;
+ details.scrollIntoView({behavior:'smooth',block:'start'});
+ var key=document.getElementById('apiKeyInput');if(key)key.focus({preventScroll:true});
+}
 function apiCredentialsPanel(){
- return '<div class="card api-credentials-panel"><h3>Chaves de IA e serviços técnicos</h3><p class="muted">Use esta área para provedores de IA e serviços técnicos. <b>Não cadastre aqui chaves de lojas ou afiliados</b>; use a seção Credenciais das lojas. As chaves são criptografadas e só mostramos os últimos quatro caracteres.</p><div class="grid three">'+[
+ return '<div class="card api-credentials-panel"><h3>Chaves de IA e serviços técnicos</h3><p class="muted">Use esta área para provedores de IA e serviços técnicos. <b>Não cadastre aqui chaves de lojas ou afiliados</b>; use a seção Credenciais das lojas. As chaves são criptografadas e só mostramos os últimos quatro caracteres. O teste confirma a credencial desta lista; ele não substitui automaticamente os segredos de produção usados pelo backend.</p><div class="grid three">'+[
  ["OpenAI","https://platform.openai.com/api-keys","Criar chave OpenAI"],
  ["Google Gemini","https://aistudio.google.com/app/apikey","Criar chave Gemini"],
  ["Anthropic Claude","https://console.anthropic.com/settings/keys","Criar chave Claude"],
@@ -3384,7 +3406,9 @@ async function loadApiCredentials(){
   var response=await fetch("/api/integrations/apis"),data=await response.json();
   if(!response.ok)throw Error(data.error||"Não foi possível carregar as APIs.");
   list.innerHTML=(data.items||[]).length?(data.items||[]).map(function(item){
-   return '<div class="integration"><div class="grow"><b>'+esc(item.label||item.provider)+'</b><div class="muted">'+esc(item.provider)+' · chave terminada em ••••'+esc(item.keyLast4||'')+'</div><small class="muted">Cadastrada em '+esc(item.updatedAt?new Date(item.updatedAt).toLocaleDateString("pt-BR"):"—")+'</small></div><button class="btn danger" type="button" data-action="deleteApiCredential(\''+esc(item.provider)+'\')">Excluir</button></div>';
+   var testable=['OPENAI','GEMINI','ANTHROPIC'].indexOf(item.provider)!==-1;
+   var validationLabel=item.validationStatus==='VALIDATED'?'Validada':item.validationStatus==='ERROR'?'Erro no teste':item.validationStatus==='PENDING_VALIDATION'?'Aguardando teste':'Teste manual necessário';
+   return '<div class="integration"><div class="grow"><b>'+esc(item.label||item.provider)+'</b><div class="muted">'+esc(item.provider)+' · chave terminada em ••••'+esc(item.keyLast4||'')+'</div><small class="muted">'+esc(validationLabel)+' · atualizada em '+esc(item.updatedAt?new Date(item.updatedAt).toLocaleDateString("pt-BR"):"—")+'</small>'+(item.lastError?'<div class="muted">'+esc(item.lastError)+'</div>':'')+'</div>'+(testable?'<button class="btn secondary" type="button" data-action="testApiCredential(\''+esc(item.provider)+'\')">Testar chave</button> ':'')+'<button class="btn danger" type="button" data-action="deleteApiCredential(\''+esc(item.provider)+'\')">Excluir</button></div>';
   }).join(""):'<div class="empty">Nenhuma API cadastrada ainda.</div>';
  }catch(error){list.innerHTML='<div class="empty" role="alert">'+esc(error.message)+'</div>';}
 }
@@ -3396,8 +3420,16 @@ async function saveApiCredential(){
   var response=await fetch("/api/integrations/apis",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({provider:provider.value,label:label?label.value:"",apiKey:key.value})}),data=await response.json();
   if(!response.ok)throw Error(data.error||"Não foi possível cadastrar a API.");
   key.value="";if(label)label.value="";
-  notice.textContent=data.message||"API cadastrada com segurança.";await loadApiCredentials();toast("API cadastrada com segurança.");
+  var testable=["OPENAI","GEMINI","ANTHROPIC"].indexOf(provider.value)!==-1;
+  if(testable){try{var testResponse=await fetch("/api/integrations/apis",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({provider:provider.value,action:"test"})}),testData=await testResponse.json();if(!testResponse.ok)throw Error(testData.error||"A chave foi salva, mas o teste falhou.");notice.textContent="Chave salva e validada por consulta oficial somente leitura. "+(testData.message||"");toast("Chave salva e validada.");}catch(testError){notice.textContent="Chave salva, mas a validação falhou: "+testError.message;toast("Chave salva; valide o erro antes de usar.");}}
+  else{notice.textContent=data.message||"API cadastrada com segurança. Teste automático ainda não disponível para este provedor.";toast("Chave salva; teste automático indisponível para este provedor.");}
+  await loadApiCredentials();
  }catch(error){notice.textContent=error.message;toast(error.message);}
+}
+async function testApiCredential(provider){
+ try{var response=await fetch('/api/integrations/apis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:provider,action:'test'})}),data=await response.json();if(!response.ok)throw Error(data.error||'A validação falhou.');toast('Chave '+provider+' validada por consulta oficial somente leitura.');}
+ catch(error){toast(error.message||'Não foi possível validar a chave.');}
+ await loadApiCredentials();
 }
 async function deleteApiCredential(provider){
  if(!confirm("Excluir a credencial de "+provider+"? Essa ação não pode ser desfeita."))return;
