@@ -2,6 +2,7 @@ import { db,scheduler } from 'hatchable';
 import { getOrCreateAccount as getAccount,starter } from 'lib/accounts.js';
 import { moneyCents,timeValue,colorValue,booleanValue,httpsUrl,mediaUrl } from 'lib/validation.js';
 import { fingerprint as makeFingerprint } from 'lib/automation.js';
+import { classifyProduct } from 'lib/category-classifier.js';
 import { formatPromo } from 'lib/promo-message.js';
 import { hydrateImages } from 'lib/offer-images.js';
 import {setScheduleStatus,validDay} from 'lib/recurrences.js';
@@ -64,18 +65,25 @@ export default async function(req,res){
     }else if(req.method==='POST'&&entity==='offer'){
       const imageKey=txt(b.imageKey,400)||null;
       if(imageKey&&(!imageKey.startsWith('products/'+String(req.member.id)+'/')||!/^products\/[^/]+\/[a-f\d-]+\.(png|jpg|webp)$/.test(imageKey)))return res.status(400).json({error:'Imagem não pertence à sua conta.'});
-      const categoryId=txt(b.categoryId,80)||null;if(!(await categoryOk(categoryId,a.id)))return res.status(400).json({error:'Categoria inválida.'});
+      let categoryId=txt(b.categoryId,80)||null;if(!(await categoryOk(categoryId,a.id)))return res.status(400).json({error:'Categoria inválida.'});
       const title=txt(b.title,220),affiliate=txt(b.affiliateUrl,1200),image=txt(b.imageUrl,1200),product=txt(b.productUrl,1200),coupon=txt(b.couponUrl,1200),couponCode=txt(b.couponCode,100),current=cents(b.currentPrice),original=b.originalPrice?cents(b.originalPrice):null;
       if(!title||!Number.isFinite(current)||current<=0||original!==null&&(!Number.isFinite(original)||original<current)||!url(affiliate)||!mediaUrl(image)||product&&!url(product)||coupon&&!url(coupon))return res.status(400).json({error:'Informe produto, preços válidos, link HTTPS de afiliado e uma imagem válida.'});
       const source=txt(b.source,50)||'Outro',fp=await makeFingerprint({title,source,productUrl:product||affiliate,affiliateUrl:affiliate});
+      if(!categoryId){
+        const classified=classifyProduct({title,description:b.description,sourceCategory:b.sourceCategory});
+        const matched=(await db.query('SELECT id FROM categories WHERE account_id=$1 AND lower(name)=lower($2) LIMIT 1',[a.id,classified.category])).rows[0];
+        const fallback=matched||(await db.query('SELECT id FROM categories WHERE account_id=$1 AND lower(name)=lower($2) LIMIT 1',[a.id,'Ofertas gerais'])).rows[0];
+        categoryId=fallback?.id||null;
+      }
       const categoryName=categoryId?(await db.query('SELECT name FROM categories WHERE id=$1 AND account_id=$2',[categoryId,a.id])).rows[0]?.name:'';
       const automatic=formatPromo({title,source,category:categoryName,currentPrice:current,originalPrice:original,affiliateUrl:affiliate,couponUrl:coupon,couponCode,template:txt(b.messageTemplate,30)}).message;
       const created=await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'PENDING',$15,$16,'APPROVED','MANUAL') ON CONFLICT DO NOTHING RETURNING id",[uid(),a.id,title,source,original,current,categoryId,affiliate,image,product||null,coupon||null,couponCode||null,percent(current,original),score(title,current,original),txt(b.message,3000)||automatic,fp]);
       if(!created.rows.length)return res.status(409).json({error:'Esta oferta já está cadastrada.'});
       if(imageKey)await db.query('UPDATE offers SET image_storage_key=$1 WHERE id=$2 AND account_id=$3',[imageKey,created.rows[0].id,a.id]);
     }else if(req.method==='POST'&&entity==='publication'){
-      const offerId=txt(b.offerId,80),groupId=txt(b.groupId,80),found=(await db.query('SELECT message,image_url,image_storage_key,status FROM offers WHERE id=$1 AND account_id=$2',[offerId,a.id])).rows[0],group=(await db.query('SELECT id,platform,external_id,status,whatsapp_destination_type AS "destinationType" FROM promo_groups WHERE id=$1 AND account_id=$2',[groupId,a.id])).rows[0];
+      const offerId=txt(b.offerId,80),groupId=txt(b.groupId,80),found=(await db.query('SELECT message,image_url,image_storage_key,status,category_id FROM offers WHERE id=$1 AND account_id=$2',[offerId,a.id])).rows[0],group=(await db.query('SELECT id,platform,external_id,status,category_id,whatsapp_destination_type AS "destinationType" FROM promo_groups WHERE id=$1 AND account_id=$2',[groupId,a.id])).rows[0];
       if(!found||!group)return res.status(400).json({error:'Oferta ou grupo não pertence à sua conta.'});
+      if(found.category_id&&group.category_id&&found.category_id!==group.category_id)return res.status(409).json({error:'A categoria da oferta não corresponde à categoria deste grupo. Escolha um destino compatível ou um grupo geral.'});
       if(!['APPROVED','PUBLISHED'].includes(found.status))return res.status(412).json({error:'Aprove a oferta antes de preparar o envio.'});
       if(b.scheduledAt&&!Number.isFinite(Date.parse(b.scheduledAt)))return res.status(400).json({error:'Data de agendamento inválida.'});
       if(group.platform==='WHATSAPP'&&group.destinationType!=='GROUP')return res.status(412).json({error:'Este conector ainda não tem suporte verificado para canais ou comunidades WhatsApp.'});
