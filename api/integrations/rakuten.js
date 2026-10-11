@@ -120,7 +120,7 @@ export default async function handler(req, res) {
       note: 'A API oficial emite access_token e refresh_token por /token; o Radar renova automaticamente usando Client ID, Client Secret e Account ID. Parcerias e permissões do anunciante continuam obrigatórias.'
     });
     if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
-    if (!saved) return res.status(412).json({ error: 'Cadastre o token Bearer da Rakuten no painel.' });
+    if (!saved) return res.status(412).json({ error: 'Cadastre Client ID, Client Secret e Account ID Publisher da Rakuten no painel para o Radar emitir e renovar o token oficial.' });
     const token = await tokenFor(account.id, saved.credentials || {});
     const body = req.body || {};
     const action = clean(body.action || 'test', 30).toLowerCase();
