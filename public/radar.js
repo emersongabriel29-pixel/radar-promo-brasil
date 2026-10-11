@@ -3503,7 +3503,8 @@ async function loadLomadeeResource(resource){
 }
 async function openMagaluApiCredentials(){
   try{
-    await operationRequest('/api/integrations/marketplaces');
+    var data=await operationRequest('/api/integrations/marketplaces');
+    var item=(data.items||[]).find(function(x){return x.id==='MAGALU';});
     var body='<p class="muted">Estas são credenciais da API de Marketplace para sellers no Magalu Devs — não são chaves do programa de afiliados Parceiro Magalu.</p>'+field('Client ID da aplicação Magalu Devs','clientId','text','autocomplete="off" maxlength="4096" required')+field('Client Secret da aplicação Magalu Devs','clientSecret','password','autocomplete="new-password" maxlength="4096" required')+'<div class="callout"><b>Estado real:</b> as credenciais serão criptografadas e salvas como pendentes. O fluxo OAuth 2.0 de consentimento do seller, callback, renovação de tokens e chamadas de API ainda precisam ser implementados e testados antes de declarar a conexão ativa. Não informe senha do portal nem cookies.</div>';
     openModal('Cadastrar chaves · Magalu Devs','Crie um client no portal oficial Magalu Devs. O cadastro das chaves, sozinho, não conecta a loja.',body,async function(event){
       event.preventDefault();var fd=new FormData(event.target),credentials={clientId:String(fd.get('clientId')||'').trim(),clientSecret:String(fd.get('clientSecret')||'').trim()};
