@@ -19,6 +19,16 @@ required = true
 description = "Segredo da aplicação do Mercado Livre."
 
 [[secret]]
+name = "MAGALU_CLIENT_ID"
+required = false
+description = "Client ID do aplicativo criado no ID Magalu para OAuth 2.0 seller; não é API Key ID."
+
+[[secret]]
+name = "MAGALU_CLIENT_SECRET"
+required = false
+description = "Client Secret do aplicativo criado no ID Magalu para OAuth 2.0 seller; manter somente no servidor."
+
+[[secret]]
 name = "CONNECTOR_ENCRYPTION_KEY"
 required = true
 description = "Chave com pelo menos 32 caracteres para proteger tokens OAuth no banco."
