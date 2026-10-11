@@ -181,7 +181,7 @@ function switchGroup(key, id) {
     b.classList.toggle("on", b.textContent.trim().includes(item[1]));
   });
   document.getElementById("group-panel").innerHTML = window[item[3]]();
-  if(key==="settings"&&id==="integrations")loadApiCredentials();
+  if(key==="settings"&&id==="integrations"){loadApiCredentials();loadMarketplaceStatus();}
 }
 async function call(method, body, query) {
   var r = await fetch("/api/data" + (query || ""), {
@@ -939,20 +939,72 @@ function integrations() {
     integration(
       "SH",
       "Shopee Afiliados",
-      "Conversão depende do acesso oficial da sua conta.",
-      "Configurar",
+      "Cadastro seguro das credenciais oficiais; conexão fica pendente até validação da API.",
+      "Cadastrar chaves",
+      "openMarketplaceSetup('SHOPEE')",
     ) +
     integration(
       "AMZ",
       "Amazon Associados",
-      "Tags e SubIDs por grupo.",
-      "Configurar",
+      "Tag de associado e credenciais oficiais da API, quando habilitadas na conta.",
+      "Cadastrar chaves",
+      "openMarketplaceSetup('AMAZON')",
     ) +
     integration(
-      "MKP",
-      "Shein, AliExpress, Magalu, Casas Bahia, Hotmart e outras",
-      "Catálogo e regras por conta adicionados; conectores oficiais ficam bloqueados até validação.",
-      "Preparado",
+      "ALI",
+      "AliExpress Portals",
+      "Preparar App/API e tracking ID fornecidos no portal oficial.",
+      "Cadastrar chaves",
+      "openMarketplaceSetup('ALIEXPRESS')",
+    ) +
+    integration(
+      "SHN",
+      "SHEIN Afiliados",
+      "Receber identificador/token oficial, quando fornecido pelo programa.",
+      "Cadastrar chaves",
+      "openMarketplaceSetup('SHEIN')",
+    ) +
+    integration(
+      "MAG",
+      "Parceiro Magalu",
+      "Cadastro de credenciais do programa oficial, se disponíveis.",
+      "Cadastrar chaves",
+      "openMarketplaceSetup('MAGALU')",
+    ) +
+    integration(
+      "CB",
+      "Casas Bahia",
+      "Preparar credenciais da rede/programa de afiliados contratado.",
+      "Cadastrar chaves",
+      "openMarketplaceSetup('CASAS_BAHIA')",
+    ) +
+    integration(
+      "HOT",
+      "Hotmart",
+      "Cadastro de credenciais oficiais da API para os fluxos compatíveis.",
+      "Cadastrar chaves",
+      "openMarketplaceSetup('HOTMART')",
+    ) +
+    integration(
+      "KB",
+      "KaBuM!",
+      "Receber identificação/token do programa ou rede de afiliados.",
+      "Cadastrar chaves",
+      "openMarketplaceSetup('KABUM')",
+    ) +
+    integration(
+      "AME",
+      "Americanas",
+      "Preparar credenciais da rede/programa de afiliados contratado.",
+      "Cadastrar chaves",
+      "openMarketplaceSetup('AMERICANAS')",
+    ) +
+    integration(
+      "LOM",
+      "Lomadee",
+      "Receber credencial; disponibilidade e API precisam ser confirmadas antes de ativar.",
+      "Cadastrar chaves",
+      "openMarketplaceSetup('LOMADEE')",
     ) +
     integration(
       "WA",
@@ -1726,6 +1778,7 @@ function render() {
   };
   document.getElementById("content").innerHTML =
     '<section class="view on">' + f[current]() + "</section>";
+  loadMarketplaceStatus();
 }
 function catOpts() {
   return D.categories
@@ -3318,17 +3371,58 @@ async function deleteApiCredential(provider){
   toast(data.deleted?"Credencial excluída.":"Nenhuma credencial encontrada.");await loadApiCredentials();
  }catch(error){toast(error.message);}
 }
+function marketplaceCredentialsPanel(){
+ return '<div class="card csp-margin-bottom-16px"><h3>Credenciais das lojas</h3><p class="muted">Cadastre apenas chaves, tokens e IDs emitidos pelo portal oficial. Salvar credenciais não significa que a API foi validada; nenhuma oferta é publicada por esta tela.</p><div id="marketplaceCredentialStatus" class="grid two"><div class="empty">Carregando estado das lojas...</div></div></div>';
+}
+async function loadMarketplaceStatus(){
+ var root=document.getElementById('marketplaceCredentialStatus');if(!root)return;
+ try{
+  var data=await operationRequest('/api/integrations/marketplaces');
+  root.innerHTML=(data.items||[]).map(function(item){
+   var status=item.status==='VALIDATED'?'Validada':item.status==='ERROR'?'Erro de validação':item.status==='PENDING_VALIDATION'?'Chaves salvas · validação pendente':'Aguardando credenciais';
+   var cls=item.status==='VALIDATED'?'live':'warn';
+   var fields=(item.credentialFields||[]).map(esc).join(', ');
+   return '<div class="integration"><div class="grow"><b>'+esc(item.name)+'</b><div class="muted">'+(fields?'Campos cadastrados: '+fields:'Nenhuma credencial cadastrada.')+'</div>'+(item.updatedAt?'<small class="muted">Atualizado em '+esc(new Date(item.updatedAt).toLocaleDateString('pt-BR'))+'</small>':'')+'<div class="csp-margin-top-10px"><a class="btn secondary" href="'+esc(item.portalUrl)+'" target="_blank" rel="noopener noreferrer">Abrir portal ↗</a> <button class="btn secondary" type="button" data-action="openMarketplaceSetup(\''+esc(item.id)+'\')">'+(fields?'Atualizar chaves':'Cadastrar chaves')+'</button></div></div><span class="pill '+cls+'">'+status+'</span></div>';
+  }).join('')||'<div class="empty">Nenhuma loja disponível.</div>';
+ }catch(error){root.innerHTML='<div class="empty" role="alert">'+esc(error.message)+'</div>';}
+}
 var originalIntegrations=integrations;
 integrations=function(){
   var readiness=D.readiness;
   var panel=readiness?'<div class="card csp-margin-bottom-16px" ><h2>Prontidão da operação</h2><p>Configuração: '+readiness.operationalPercent+'%. '+(readiness.productionReady?'Entrega recente confirmada.':'Há etapas pendentes antes de ativar a operação.')+'</p>'+readiness.core.filter(function(item){return !item.ready;}).map(function(item){return '<p><strong>'+esc(item.label)+':</strong> '+esc(item.action)+'</p>';}).join('')+'</div>':'';
-  return panel+originalIntegrations()+apiCredentialsPanel();
+  return panel+originalIntegrations()+marketplaceCredentialsPanel()+apiCredentialsPanel();
 };
 syncDrawer();nav();load();
 
 async function operationRequest(path,body){
   var r=await fetch(path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
   var data=await r.json();if(!r.ok)throw Error(data.error || 'Operação indisponível.');return data;
+}
+async function openMarketplaceSetup(provider){
+  try{
+    var data=await operationRequest('/api/integrations/marketplaces');
+    var item=(data.items||[]).find(function(x){return x.id===provider;});
+    if(!item)throw Error('Loja não encontrada no catálogo de integrações.');
+    var body='<p class="muted">'+esc(item.authModel)+'</p>'+
+      field('ID de afiliado / Partner ID','affiliateId','text','autocomplete="off" maxlength="4096"')+
+      field('App ID / Client ID','appId','text','autocomplete="off" maxlength="4096"')+
+      field('Client ID (se o portal usar este nome)','clientId','text','autocomplete="off" maxlength="4096"')+
+      field('Chave de API / Partner Key','apiKey','password','autocomplete="new-password" maxlength="4096"')+
+      field('Segredo de API / App Secret','apiSecret','password','autocomplete="new-password" maxlength="4096"')+
+      field('Client Secret','clientSecret','password','autocomplete="new-password" maxlength="4096"')+
+      field('Token de acesso (se fornecido)','accessToken','password','autocomplete="new-password" maxlength="4096"')+
+      field('Tracking ID / SubID padrão (opcional)','trackingId','text','autocomplete="off" maxlength="4096"')+
+      field('Outro campo oficial (opcional)','extra','text','placeholder="Ex.: campo=valor; não inclua senha de login nem cookies" maxlength="4096"')+
+      '<div class="callout">As credenciais serão criptografadas no servidor. O sistema não testa nem declara a conta conectada nesta etapa. A ativação só poderá ocorrer após validar o endpoint oficial e as permissões da conta.</div>';
+    openModal('Preparar conexão · '+item.name,'Abra o portal oficial, copie apenas as credenciais de API emitidas para sua conta e preencha os campos aplicáveis. Não informe senha de login, cookies ou códigos de recuperação.',body,async function(event){
+      event.preventDefault();
+      var formData=new FormData(event.target),credentials={};
+      ['affiliateId','appId','clientId','apiKey','apiSecret','clientSecret','accessToken','trackingId','extra'].forEach(function(key){var value=String(formData.get(key)||'').trim();if(value)credentials[key]=value;});
+      var result=await operationRequest('/api/integrations/marketplaces',{marketplace:provider,credentials:credentials});
+      closeModal();await loadMarketplaceStatus();
+      toast(result.message||'Credenciais salvas; validação oficial pendente.');
+    });
+  }catch(error){toast(error.message||'Não foi possível abrir o cadastro de credenciais.');}
 }
 async function connectMercadoLivre(){
   try{
