@@ -178,6 +178,12 @@ export default async function handler(req, res) {
     }
     return res.status(400).json({ error: 'Ação inválida. Use test, advertisers, search ou deep_link.' });
   } catch (error) {
+    const status = Number(error?.status) || 500;
+    if (status >= 500) {
+      try {
+        await db.query("UPDATE marketplace_api_credentials SET status='ERROR',last_checked_at=now(),last_error=$1,updated_at=now() WHERE account_id=$2 AND marketplace='RAKUTEN'", [clean(error?.message || 'Falha na API Rakuten.', 300), account.id]);
+      } catch {}
+    }
     if (error?.status) return res.status(error.status).json({ error: error.message });
     console.error('integrations/rakuten', JSON.stringify({ name: String(error?.name || 'Error').slice(0, 60) }));
     return res.status(500).json({ error: 'Não foi possível consultar a Rakuten Advertising. Confira as credenciais e permissões.' });
