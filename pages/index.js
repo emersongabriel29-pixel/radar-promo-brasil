@@ -17,7 +17,7 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
       href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/radar.css" />
+    <link rel="stylesheet" href="/radar.css?v=20261011-v3" />\n    <link rel="stylesheet" href="/radar-theme-v3.css?v=20261011-v3" />
   </head>
   <body><a class="skip-link" href="#content">Ir para o conteúdo</a>
     <div class="app">
