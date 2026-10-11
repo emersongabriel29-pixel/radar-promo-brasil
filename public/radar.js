@@ -3379,13 +3379,14 @@ async function loadMarketplaceStatus(){
  try{
   var data=await operationRequest('/api/integrations/marketplaces');
   root.innerHTML=(data.items||[]).map(function(item){
-   var status=item.status==='VALIDATED'?'Validada':item.status==='ERROR'?'Erro de validação':item.status==='PENDING_VALIDATION'?'Chaves salvas · validação pendente':'Aguardando credenciais';
+   var status=item.id==='SHEIN'?'Links oficiais · importação manual':item.status==='VALIDATED'?'Validada':item.status==='ERROR'?'Erro de validação':item.status==='PENDING_VALIDATION'?'Chaves salvas · validação pendente':'Aguardando credenciais';
    var cls=item.status==='VALIDATED'?'live':'warn';
    var fields=(item.credentialFields||[]).map(esc).join(', ');
    var lomadeeActions=item.id==='LOMADEE'&&(item.credentialFields||[]).indexOf('apiKey')!==-1?'<button class="btn secondary" type="button" data-action="testLomadeeConnection()">Testar API</button>'+(item.status==='VALIDATED'?' <button class="btn secondary" type="button" data-action="loadLomadeeContents()">Conteúdos</button> <button class="btn secondary" type="button" data-action="loadLomadeeCommissions()">Regras de comissão</button> <button class="btn secondary" type="button" data-action="loadLomadeeOrders()">Pedidos</button>':''):'';
    var shopeeActions=item.id==='SHOPEE'&&(item.credentialFields||[]).indexOf('appId')!==-1&&(item.credentialFields||[]).indexOf('apiSecret')!==-1?'<button class="btn secondary" type="button" data-action="openShopeeTools()">Ferramentas Shopee</button>':'';
    var amazonActions=item.id==='AMAZON'&&(item.credentialFields||[]).indexOf('clientId')!==-1&&(item.credentialFields||[]).indexOf('clientSecret')!==-1?'<button class="btn secondary" type="button" data-action="openAmazonTools()">Ferramentas Amazon</button>':'';
-   return '<div class="integration"><div class="grow"><b>'+esc(item.name)+'</b><div class="muted">'+(fields?'Campos cadastrados: '+fields:'Nenhuma credencial cadastrada.')+'</div>'+(item.updatedAt?'<small class="muted">Atualizado em '+esc(new Date(item.updatedAt).toLocaleDateString('pt-BR'))+'</small>':'')+'<div class="csp-margin-top-10px"><a class="btn secondary" href="'+esc(item.portalUrl)+'" target="_blank" rel="noopener noreferrer">Abrir portal ↗</a> <button class="btn secondary" type="button" data-action="openMarketplaceSetup(\''+esc(item.id)+'\')">'+(fields?'Atualizar chaves':'Cadastrar chaves')+'</button> '+lomadeeActions+' '+shopeeActions+' '+amazonActions+'</div></div><span class="pill '+cls+'">'+status+'</span></div>';
+   var sheinActions=item.id==='SHEIN'?'<button class="btn secondary" type="button" data-action="openSheinTools()">Ferramentas SHEIN</button>':'';
+   return '<div class="integration"><div class="grow"><b>'+esc(item.name)+'</b><div class="muted">'+(item.id==='SHEIN'?'Importe links gerados no Centro de Afiliados.':(fields?'Campos cadastrados: '+fields:'Nenhuma credencial cadastrada.'))+'</div>'+(item.updatedAt?'<small class="muted">Atualizado em '+esc(new Date(item.updatedAt).toLocaleDateString('pt-BR'))+'</small>':'')+'<div class="csp-margin-top-10px"><a class="btn secondary" href="'+esc(item.portalUrl)+'" target="_blank" rel="noopener noreferrer">Abrir portal ↗</a> <button class="btn secondary" type="button" data-action="openMarketplaceSetup(\''+esc(item.id)+'\')">'+(item.id==='SHEIN'?'Preparar oferta':(fields?'Atualizar chaves':'Cadastrar chaves'))+'</button> '+lomadeeActions+' '+shopeeActions+' '+amazonActions+' '+sheinActions+'</div></div><span class="pill '+cls+'">'+status+'</span></div>';
   }).join('')||'<div class="empty">Nenhuma loja disponível.</div>';
  }catch(error){root.innerHTML='<div class="empty" role="alert">'+esc(error.message)+'</div>';}
 }
@@ -3402,6 +3403,7 @@ async function operationRequest(path,body){
   var data=await r.json();if(!r.ok)throw Error(data.error || 'Operação indisponível.');return data;
 }
 async function openMarketplaceSetup(provider){
+  if(provider==='SHEIN'){openSheinTools();return;}
   try{
     var data=await operationRequest('/api/integrations/marketplaces');
     var item=(data.items||[]).find(function(x){return x.id===provider;});
@@ -3456,6 +3458,43 @@ async function loadLomadeeResource(resource){
         return '<div class="integration"><div class="grow"><b>'+esc(heading)+'</b><div class="muted">'+esc(details)+'</div>'+(item.url?'<a href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">Abrir conteúdo oficial ↗</a>':'')+'</div></div>';
       }).join(''):'<div class="empty">A API não retornou registros para esta consulta.</div>');
   }catch(error){panel.innerHTML='<div class="empty" role="alert">'+esc(error.message||'Consulta indisponível.')+'</div>';}
+}
+async function openSheinTools(){
+  var body='<label for="sheinAction">Operação</label><select id="sheinAction" name="action" required><option value="validate_link">Validar domínio do link (sem salvar)</option><option value="create_draft">Criar rascunho de oferta pendente</option></select>'+
+    field('Título do produto','title','text','maxlength="220" placeholder="Nome do produto"')+
+    field('Link de afiliado gerado no Centro de Afiliados','affiliateUrl','url','maxlength="2000" placeholder="https://onelink.shein.com/..."')+
+    field('Link normal do produto (opcional)','productUrl','url','maxlength="2000" placeholder="https://br.shein.com/..."')+
+    field('Preço atual em reais','currentPrice','number','min="0.01" step="0.01"')+
+    field('Preço original em reais (opcional)','originalPrice','number','min="0.01" step="0.01"')+
+    field('URL HTTPS da imagem do produto','imageUrl','url','maxlength="1200" placeholder="https://..."')+
+    '<label class="csp-margin-top-10px"><input type="checkbox" name="affiliateLinkConfirmed" value="true"> Confirmei que o link foi gerado/copiado na minha conta do Centro de Afiliados SHEIN e que ele inclui meu rastreamento.</label>'+
+    '<div class="callout">A SHEIN não disponibiliza uma API pública de afiliados validada neste fluxo. Use somente links gerados na sua conta. A validação verifica o domínio, não comprova comissão. Criar rascunho não publica nem aprova a oferta; a imagem e os preços precisam ser revisados manualmente.</div>';
+  openModal('Ferramentas · SHEIN Afiliados','Importe um link oficial e prepare um rascunho. Não cole senha, cookies ou códigos de acesso.',body,async function(event){
+    event.preventDefault();
+    var fd=new FormData(event.target),action=String(fd.get('action')||'validate_link');
+    var payload={action:action,affiliateUrl:String(fd.get('affiliateUrl')||'').trim(),productUrl:String(fd.get('productUrl')||'').trim()};
+    try{
+      if(action==='validate_link'){
+        var check=await operationRequest('/api/integrations/shein',payload);
+        closeModal();
+        openModal('Validação de link SHEIN','Domínio conferido; rastreamento não foi verificado pela API.','<pre style="white-space:pre-wrap;max-height:55vh;overflow:auto;word-break:break-word">'+esc(JSON.stringify(check,null,2))+'</pre>',function(e){e.preventDefault();closeModal();});
+        var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Fechar';
+        return;
+      }
+      payload.title=String(fd.get('title')||'').trim();
+      payload.currentPrice=String(fd.get('currentPrice')||'').trim();
+      payload.originalPrice=String(fd.get('originalPrice')||'').trim();
+      payload.imageUrl=String(fd.get('imageUrl')||'').trim();
+      payload.affiliateLinkConfirmed=fd.get('affiliateLinkConfirmed')==='true';
+      var result=await operationRequest('/api/integrations/shein',payload);
+      closeModal();
+      await load();await loadMarketplaceStatus();
+      toast('Rascunho SHEIN criado; aprovação e publicação continuam desativadas.');
+      openModal('Rascunho SHEIN criado','A oferta foi salva como pendente e não foi publicada.','<p><b>ID:</b> '+esc(result.offerId)+'</p><p><b>Status:</b> '+esc(result.status)+'</p><p>'+esc(result.message)+'</p>',function(e){e.preventDefault();closeModal();});
+      var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Fechar';
+    }catch(error){toast(error.message||'Não foi possível validar ou preparar a oferta SHEIN.');}
+  });
+  var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Executar';
 }
 async function openShopeeTools(){
   var body='<label for="shopeeAction">Operação da Open API</label><select id="shopeeAction" name="action" required><option value="test">Validar conexão (somente leitura)</option><option value="offers">Consultar ofertas</option><option value="create_link">Gerar link de afiliado</option><option value="conversions">Consultar conversões</option><option value="validated">Consultar relatório validado</option></select>'+
