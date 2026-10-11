@@ -21,3 +21,26 @@ html,body{background:#f4f6f8;color:#172638}
 @media(max-width:900px){.app{grid-template-columns:1fr}.side{background:#152b40}.sidefoot{background:#1b364b}.hero{padding:23px}.content{padding:19px 15px calc(112px + env(safe-area-inset-bottom))}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric:nth-child(2){border-right:0}.metric:nth-child(-n+2){border-bottom:1px solid #e3e8ec}}
 @media(max-width:600px){.top h1{font-size:18px}.content{padding-left:12px;padding-right:12px}.hero{border-radius:9px;padding:19px}.hero h2{font-size:26px}.metric{padding:14px}.metric b{font-size:24px}.mode{min-height:0}.card{padding:14px}}
 @media(prefers-reduced-motion:reduce){.mode,.btn{transition:none}.mode:hover,.btn:hover{transform:none}}
+
+/* v5: os modos viram uma lista de trabalho, com estado e ação alinhados. */
+.modes{grid-template-columns:minmax(0,1fr);gap:0;background:#fff;border:1px solid #d9e1e7;border-radius:10px;overflow:hidden}
+.modes .mode{display:grid;grid-template-columns:92px minmax(0,1fr) 245px;grid-template-rows:auto auto;align-items:center;column-gap:20px;row-gap:4px;min-height:94px;padding:16px 20px;border:0;border-bottom:1px solid #e3e8ec;border-radius:0;overflow:visible}
+.modes .mode:last-child{border-bottom:0}
+.modes .mode .code{grid-column:1;grid-row:1 / span 2;justify-self:start;align-self:center;white-space:nowrap}
+.modes .mode h3{grid-column:2;grid-row:1;margin:0;font-size:15px}
+.modes .mode p{grid-column:2;grid-row:2;margin:0;max-width:700px}
+.modes .mode .state{grid-column:3;grid-row:1 / span 2;align-self:center;margin:0;padding:0;border:0;gap:12px;min-width:0}
+.modes .mode .state .btn{min-width:88px;white-space:nowrap}
+.modes .mode:hover{background:#f8fafc}
+@media(max-width:900px){
+ .modes .mode{grid-template-columns:72px minmax(0,1fr);grid-template-rows:auto auto auto;column-gap:12px;row-gap:5px;padding:15px}
+ .modes .mode .code{grid-column:1;grid-row:1 / span 2;align-self:start}
+ .modes .mode h3{grid-column:2;grid-row:1}
+ .modes .mode p{grid-column:2;grid-row:2}
+ .modes .mode .state{grid-column:1 / -1;grid-row:3;margin-top:8px;padding-top:10px;border-top:1px solid #e5eaee;justify-content:space-between}
+}
+@media(max-width:600px){
+ .modes .mode{grid-template-columns:60px minmax(0,1fr);padding:14px 12px}
+ .modes .mode .state{gap:8px}
+ .modes .mode .state .btn{min-width:84px;padding:9px 11px}
+}
