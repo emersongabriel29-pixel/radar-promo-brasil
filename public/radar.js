@@ -3383,7 +3383,8 @@ async function loadMarketplaceStatus(){
    var cls=item.status==='VALIDATED'?'live':'warn';
    var fields=(item.credentialFields||[]).map(esc).join(', ');
    var lomadeeActions=item.id==='LOMADEE'&&(item.credentialFields||[]).indexOf('apiKey')!==-1?'<button class="btn secondary" type="button" data-action="testLomadeeConnection()">Testar API</button>'+(item.status==='VALIDATED'?' <button class="btn secondary" type="button" data-action="loadLomadeeContents()">Conteúdos</button> <button class="btn secondary" type="button" data-action="loadLomadeeCommissions()">Comissões</button> <button class="btn secondary" type="button" data-action="loadLomadeeOrders()">Pedidos</button>':''):'';
-   return '<div class="integration"><div class="grow"><b>'+esc(item.name)+'</b><div class="muted">'+(fields?'Campos cadastrados: '+fields:'Nenhuma credencial cadastrada.')+'</div>'+(item.updatedAt?'<small class="muted">Atualizado em '+esc(new Date(item.updatedAt).toLocaleDateString('pt-BR'))+'</small>':'')+'<div class="csp-margin-top-10px"><a class="btn secondary" href="'+esc(item.portalUrl)+'" target="_blank" rel="noopener noreferrer">Abrir portal ↗</a> <button class="btn secondary" type="button" data-action="openMarketplaceSetup(\''+esc(item.id)+'\')">'+(fields?'Atualizar chaves':'Cadastrar chaves')+'</button> '+lomadeeActions+'</div></div><span class="pill '+cls+'">'+status+'</span></div>';
+   var shopeeActions=item.id==='SHOPEE'&&(item.credentialFields||[]).indexOf('appId')!==-1&&(item.credentialFields||[]).indexOf('apiSecret')!==-1?'<button class="btn secondary" type="button" data-action="openShopeeTools()">Ferramentas Shopee</button>':'';
+   return '<div class="integration"><div class="grow"><b>'+esc(item.name)+'</b><div class="muted">'+(fields?'Campos cadastrados: '+fields:'Nenhuma credencial cadastrada.')+'</div>'+(item.updatedAt?'<small class="muted">Atualizado em '+esc(new Date(item.updatedAt).toLocaleDateString('pt-BR'))+'</small>':'')+'<div class="csp-margin-top-10px"><a class="btn secondary" href="'+esc(item.portalUrl)+'" target="_blank" rel="noopener noreferrer">Abrir portal ↗</a> <button class="btn secondary" type="button" data-action="openMarketplaceSetup(\''+esc(item.id)+'\')">'+(fields?'Atualizar chaves':'Cadastrar chaves')+'</button> '+lomadeeActions+' '+shopeeActions+'</div></div><span class="pill '+cls+'">'+status+'</span></div>';
   }).join('')||'<div class="empty">Nenhuma loja disponível.</div>';
  }catch(error){root.innerHTML='<div class="empty" role="alert">'+esc(error.message)+'</div>';}
 }
@@ -3416,7 +3417,8 @@ async function openMarketplaceSetup(provider){
       field('Outro campo oficial (opcional)','extra','text','placeholder="Ex.: campo=valor; não inclua senha de login nem cookies" maxlength="4096"')+
       '<div class="callout">As credenciais serão criptografadas no servidor. O sistema não testa nem declara a conta conectada nesta etapa. A ativação só poderá ocorrer após validar o endpoint oficial e as permissões da conta.</div>';
     if(provider==='LOMADEE') body=field('Chave de autenticação da API (x-auth-key)','apiKey','password','autocomplete="new-password" maxlength="4096" required')+'<div class="callout">Use a chave de API emitida para sua conta Lomadee — não a senha de login. O Radar valida a chave com uma consulta de leitura ao endpoint oficial de conteúdos. A SDK pública verificada oferece consultas de conteúdos, comissões e pedidos; geração de deeplinks e descoberta de produtos não estão documentadas nessa SDK.</div>';
-    openModal('Preparar conexão · '+item.name,provider==='LOMADEE'?'Abra o portal Lomadee, procure as credenciais de API e informe somente a chave de autenticação. Se o portal não disponibilizar uma chave, não informe sua senha: solicite ao suporte Lomadee a habilitação e documentação da API.':'Abra o portal oficial, copie apenas as credenciais de API emitidas para sua conta e preencha os campos aplicáveis. Não informe senha de login, cookies ou códigos de recuperação.',body,async function(event){
+    if(provider==='SHOPEE') body=field('App ID da Open API Shopee','appId','text','autocomplete="off" maxlength="200" required')+field('App Secret da Open API Shopee','apiSecret','password','autocomplete="new-password" maxlength="4096" required')+'<div class="callout">Use somente App ID e App Secret emitidos para a Open API de Afiliados Shopee. Se ainda não tiver acesso, solicite a habilitação pelo portal oficial. A validação inicial fará uma consulta de ofertas somente leitura; nenhum link será criado e nenhuma oferta será publicada.</div>';
+    openModal('Preparar conexão · '+item.name,provider==='LOMADEE'?'Abra o portal Lomadee, procure as credenciais de API e informe somente a chave de autenticação. Se o portal não disponibilizar uma chave, não informe sua senha: solicite ao suporte Lomadee a habilitação e documentação da API.':provider==='SHOPEE'?'Use as credenciais da Open API de Afiliados, não sua senha da conta Shopee. O botão de teste valida a autenticação com uma consulta somente leitura.':'Abra o portal oficial, copie apenas as credenciais de API emitidas para sua conta e preencha os campos aplicáveis. Não informe senha de login, cookies ou códigos de recuperação.',body,async function(event){
       event.preventDefault();
       var formData=new FormData(event.target),credentials={};
       ['affiliateId','appId','clientId','apiKey','apiSecret','clientSecret','accessToken','trackingId','extra'].forEach(function(key){var value=String(formData.get(key)||'').trim();if(value)credentials[key]=value;});
@@ -3452,6 +3454,34 @@ async function loadLomadeeResource(resource){
         return '<div class="integration"><div class="grow"><b>'+esc(heading)+'</b><div class="muted">'+esc(details)+'</div>'+(item.url?'<a href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">Abrir conteúdo oficial ↗</a>':'')+'</div></div>';
       }).join(''):'<div class="empty">A API não retornou registros para esta consulta.</div>');
   }catch(error){panel.innerHTML='<div class="empty" role="alert">'+esc(error.message||'Consulta indisponível.')+'</div>';}
+}
+async function openShopeeTools(){
+  var body='<label for="shopeeAction">Operação da Open API</label><select id="shopeeAction" name="action" required><option value="test">Validar conexão (somente leitura)</option><option value="offers">Consultar ofertas</option><option value="create_link">Gerar link de afiliado</option><option value="conversions">Consultar conversões</option><option value="validated">Consultar relatório validado</option></select>'+
+    '<label for="shopeeKind">Tipo de oferta</label><select id="shopeeKind" name="kind"><option value="product">Produtos</option><option value="shop">Lojas</option><option value="shopee">Campanhas Shopee</option></select>'+
+    field('Palavra-chave para ofertas','keyword','text','maxlength="80" placeholder="Ex.: fone bluetooth"')+
+    field('URL original shopee.com.br (para gerar link)','originUrl','url','maxlength="2000" placeholder="https://shopee.com.br/..."')+
+    field('SubIDs separados por vírgula (opcional, até 5)','subIds','text','maxlength="300"')+
+    field('Data inicial do relatório (opcional)','startDate','date','')+
+    field('Data final do relatório (opcional)','endDate','date','')+
+    field('Validation ID do relatório de pagamentos','validationId','text','inputmode="numeric" pattern="[0-9]{1,18}" maxlength="18"')+
+    field('Limite de resultados (1–100)','limit','number','min="1" max="100" value="20"')+
+    '<div class="callout">O teste consulta uma oferta sem publicar nem criar links. Consultas de ofertas e relatórios são somente leitura. Gerar link chama a mutação oficial para criar um link de afiliado, mas não publica em WhatsApp ou Telegram.</div>';
+  openModal('Ferramentas · Shopee Afiliados','Use apenas recursos liberados pela Open API da sua conta. Nenhuma operação publica ofertas nos canais.',body,async function(event){
+    event.preventDefault();
+    var fd=new FormData(event.target),action=String(fd.get('action')||'test'),payload={action:action};
+    if(action==='offers'){payload.kind=String(fd.get('kind')||'product');payload.keyword=String(fd.get('keyword')||'');payload.limit=Number(fd.get('limit')||10);}
+    if(action==='create_link'){payload.originUrl=String(fd.get('originUrl')||'');payload.subIds=String(fd.get('subIds')||'');}
+    if(action==='conversions'){payload.startDate=String(fd.get('startDate')||'');payload.endDate=String(fd.get('endDate')||'');payload.limit=Number(fd.get('limit')||20);}
+    if(action==='validated'){payload.validationId=String(fd.get('validationId')||'');payload.limit=Number(fd.get('limit')||20);}
+    try{
+      var result=await operationRequest('/api/integrations/shopee',payload);
+      closeModal();
+      if(action==='test')await loadMarketplaceStatus();
+      openModal('Resultado · Shopee Afiliados','Resposta da API oficial. Os dados não foram publicados em nenhum canal.','<pre style="white-space:pre-wrap;max-height:55vh;overflow:auto;word-break:break-word">'+esc(JSON.stringify(result,null,2))+'</pre>',function(e){e.preventDefault();closeModal();});
+      var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Fechar';
+    }catch(error){toast(error.message||'Não foi possível executar a operação Shopee.');}
+  });
+  var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Executar';
 }
 async function connectMercadoLivre(){
   try{

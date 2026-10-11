@@ -5,7 +5,7 @@ export const methods = ['GET', 'POST', 'DELETE'];
 
 const STORES = {
   AMAZON: { name: 'Amazon Associados', portalUrl: 'https://associados.amazon.com.br/', authModel: 'Credenciais da API oficial e identificação de Associado, quando a conta tiver acesso.' },
-  SHOPEE: { name: 'Shopee Afiliados', portalUrl: 'https://affiliate.shopee.com.br/', authModel: 'Credenciais e identificador emitidos pela plataforma de afiliados, se disponíveis para a conta.' },
+  SHOPEE: { name: 'Shopee Afiliados', portalUrl: 'https://affiliate.shopee.com.br/', authModel: 'App ID e App Secret da Open API de Afiliados; solicite habilitação à Shopee se ainda não tiver acesso.' },
   ALIEXPRESS: { name: 'AliExpress Portals', portalUrl: 'https://portals.aliexpress.com/', authModel: 'App/API e tracking ID fornecidos no portal oficial, quando habilitados.' },
   SHEIN: { name: 'SHEIN Afiliados', portalUrl: 'https://br.shein.com/', authModel: 'Identificação/token oficial de afiliado, se fornecido à conta.' },
   MAGALU: { name: 'Parceiro Magalu', portalUrl: 'https://www.parceiromagalu.com.br/', authModel: 'Credenciais e identificação emitidas no programa oficial, se disponíveis.' },
