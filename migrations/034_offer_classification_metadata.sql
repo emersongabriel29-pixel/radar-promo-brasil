@@ -1,0 +1,6 @@
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS subcategory TEXT;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS classification_tags JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS classification_confidence NUMERIC(4,3);
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS classification_status TEXT NOT NULL DEFAULT 'REVIEW';
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS classification_reason TEXT;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS source_category TEXT;
