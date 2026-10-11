@@ -3457,7 +3457,7 @@ async function loadLomadeeResource(resource){
 }
 async function openShopeeTools(){
   var body='<label for="shopeeAction">Operação da Open API</label><select id="shopeeAction" name="action" required><option value="test">Validar conexão (somente leitura)</option><option value="offers">Consultar ofertas</option><option value="create_link">Gerar link de afiliado</option><option value="conversions">Consultar conversões</option><option value="validated">Consultar relatório validado</option></select>'+
-    '<label for="shopeeKind">Tipo de oferta</label><select id="shopeeKind" name="kind"><option value="product">Produtos</option><option value="shop">Lojas</option><option value="shopee">Campanhas Shopee</option></select>'+
+    '<label for="shopeeKind">Tipo de oferta</label><select id="shopeeKind" name="kind"><option value="product">Produtos</option><option value="shop">Lojas</option><option value="brand">Marcas</option><option value="shopee">Campanhas Shopee</option></select>'+
     field('Palavra-chave para ofertas','keyword','text','maxlength="80" placeholder="Ex.: fone bluetooth"')+
     field('URL original shopee.com.br (para gerar link)','originUrl','url','maxlength="2000" placeholder="https://shopee.com.br/..."')+
     field('SubIDs separados por vírgula (opcional, até 5)','subIds','text','maxlength="300"')+
