@@ -2,6 +2,7 @@ import { db } from 'hatchable';
 import { moneyCents, mediaUrl, httpsUrl } from 'lib/validation.js';
 import { fingerprint as makeFingerprint } from 'lib/automation.js';
 import { formatPromo } from 'lib/promo-message.js';
+import { classifyProduct } from 'lib/category-classifier.js';
 
 export const access = 'member';
 export const methods = ['GET', 'POST'];
@@ -70,12 +71,18 @@ export default async function handler(req, res) {
     const imageUrl = txt(body.imageUrl, 1200);
     const current = moneyCents(body.currentPrice);
     const original = body.originalPrice === '' || body.originalPrice == null ? null : moneyCents(body.originalPrice);
-    const categoryId = txt(body.categoryId, 80) || null;
+    let categoryId = txt(body.categoryId, 80) || null;
     if (!title || !affiliateUrl || !body.affiliateLinkConfirmed) return res.status(400).json({ error: 'Informe o título, um link oficial e confirme que o link foi gerado no Centro de Afiliados SHEIN.' });
     if (body.productUrl && !productUrl) return res.status(400).json({ error: 'O link do produto precisa ser HTTPS e pertencer a um domínio oficial SHEIN.' });
     if (!Number.isFinite(current) || current <= 0 || original !== null && (!Number.isFinite(original) || original < current)) return res.status(400).json({ error: 'Informe preços válidos; o preço original, se preenchido, deve ser maior ou igual ao atual.' });
     if (!mediaUrl(imageUrl)) return res.status(400).json({ error: 'Informe uma URL HTTPS válida para a imagem do produto.' });
     if (categoryId && !(await db.query('SELECT id FROM categories WHERE id=$1 AND account_id=$2', [categoryId, account.id])).rows.length) return res.status(400).json({ error: 'Categoria inválida para esta conta.' });
+    if (!categoryId) {
+      const classified = classifyProduct({ title, description: body.description, sourceCategory: body.sourceCategory });
+      const match = await db.query('SELECT id FROM categories WHERE account_id=$1 AND lower(name)=lower($2) LIMIT 1', [account.id, classified.category]);
+      const fallback = match.rows[0] || (await db.query('SELECT id FROM categories WHERE account_id=$1 AND lower(name)=lower($2) LIMIT 1', [account.id, 'Ofertas gerais'])).rows[0];
+      categoryId = fallback?.id || null;
+    }
     const categoryName = categoryId ? (await db.query('SELECT name FROM categories WHERE id=$1 AND account_id=$2', [categoryId, account.id])).rows[0]?.name || '' : '';
     const centsCurrent = Math.round(current);
     const centsOriginal = original == null ? null : Math.round(original);
