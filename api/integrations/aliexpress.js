@@ -49,12 +49,13 @@ function unwrap(data, method) {
   const result=root?.resp_result?.result||root?.resp_result||root;
   return result;
 }
-function listOf(result) {
+function listOf(result, depth=0) {
   if(Array.isArray(result))return result;
-  for(const key of ['products','product','categories','category','promotion_links','promotion_link','orders','order','hot_products','hot_product']){
-    const v=result?.[key];if(Array.isArray(v))return v;if(v&&typeof v==='object'){for(const nested of ['product','category','promotion_link','order','hot_product']){if(Array.isArray(v[nested]))return v[nested];if(v[nested]&&typeof v[nested]==='object')return [v[nested]];}return [v];}
-  }
-  const found=Object.values(result||{}).find(v=>Array.isArray(v));return found||[];
+  if(!result||typeof result!=='object'||depth>4)return [];
+  const preferred=['products','product','categories','category','promotion_links','promotion_link','orders','order','hot_products','hot_product','promotions','promotion','items','data'];
+  for(const key of preferred){const v=result[key];if(Array.isArray(v))return v;if(v&&typeof v==='object'){const nested=listOf(v,depth+1);if(nested.length)return nested;if(['product','category','promotion_link','order','hot_product','promotion'].includes(key))return [v];}}
+  for(const v of Object.values(result)){if(v&&typeof v==='object'){const nested=listOf(v,depth+1);if(nested.length)return nested;}}
+  return [];
 }
 function normalize(items) {
   return items.slice(0,50).map(x=>({
