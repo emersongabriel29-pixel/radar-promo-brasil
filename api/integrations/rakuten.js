@@ -14,19 +14,55 @@ function tag(block, name) {
 async function accountFor(member) {
   return (await db.query("SELECT id FROM accounts WHERE owner_member_id=$1 AND status='ACTIVE' LIMIT 1", [String(member.id)])).rows[0];
 }
-async function credentialsFor(accountId) {
-  const row = (await db.query("SELECT credentials_enc,nonce,status FROM marketplace_api_credentials WHERE account_id=$1 AND marketplace='RAKUTEN' LIMIT 1", [accountId])).rows[0];
-  if (!row) return null;
+const toB64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)));
+async function rakutenKey(accountId, usages) {
   const master = String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '');
   if (master.length < 32) throw Object.assign(new Error('Configure CONNECTOR_ENCRYPTION_KEY nos segredos do projeto.'), { status: 412 });
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(master + '|radar-marketplace-credentials|' + accountId + '|RAKUTEN'));
-  const key = await crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['decrypt']);
+  return crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, usages);
+}
+async function credentialsFor(accountId) {
+  const row = (await db.query("SELECT credentials_enc,nonce,status FROM marketplace_api_credentials WHERE account_id=$1 AND marketplace='RAKUTEN' LIMIT 1", [accountId])).rows[0];
+  if (!row) return null;
+  const key = await rakutenKey(accountId, ['decrypt']);
   const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(row.nonce) }, key, fromB64(row.credentials_enc));
   return { credentials: JSON.parse(new TextDecoder().decode(plain)), status: row.status };
 }
-function tokenFor(credentials) {
+async function saveCredentials(accountId, credentials, status = 'PENDING_VALIDATION') {
+  const nonce = crypto.getRandomValues(new Uint8Array(12));
+  const key = await rakutenKey(accountId, ['encrypt']);
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce }, key, new TextEncoder().encode(JSON.stringify(credentials)));
+  const fields = Object.keys(credentials).filter(k => Boolean(credentials[k]));
+  const hint = clean(credentials.clientSecret || credentials.accessToken || credentials.refreshToken || '', 4096).slice(-4);
+  await db.query("UPDATE marketplace_api_credentials SET credentials_enc=$1,nonce=$2,credential_fields=$3::jsonb,key_last4=$4,status=CASE WHEN status='VALIDATED' THEN 'VALIDATED' ELSE $5 END,last_error='',updated_at=now() WHERE account_id=$6 AND marketplace='RAKUTEN'", [toB64(encrypted), toB64(nonce), JSON.stringify(fields), hint, status, accountId]);
+}
+async function rakutenTokenRequest(credentials, params) {
+  const clientId = clean(credentials.clientId, 500), clientSecret = clean(credentials.clientSecret, 4096), accountId = clean(credentials.accountId, 100);
+  if (!clientId || !clientSecret || !accountId) throw Object.assign(new Error('Para renovar automaticamente, cadastre Client ID, Client Secret e Account ID da conta Rakuten.'), { status: 412 });
+  const tokenKey = btoa(clientId + ':' + clientSecret);
+  const response = await fetch(BASE + '/token', { method: 'POST', headers: { authorization: 'Bearer ' + tokenKey, 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' }, body: new URLSearchParams(params).toString(), signal: AbortSignal.timeout(12000) });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.access_token) throw Object.assign(new Error('A Rakuten não emitiu/renovou o token (HTTP ' + response.status + '). Confira Client ID, Client Secret, Account ID e acesso à API.'), { status: response.status === 401 || response.status === 403 ? 502 : response.status || 502 });
+  return data;
+}
+async function tokenFor(accountId, credentials) {
+  const hasOAuthInputs = Boolean(credentials.clientId && credentials.clientSecret && credentials.accountId);
+  const expiresAt = Date.parse(credentials.accessTokenExpiresAt || '');
+  if (hasOAuthInputs && credentials.refreshToken && (!Number.isFinite(expiresAt) || expiresAt <= Date.now() + 120000)) {
+    const fresh = await rakutenTokenRequest(credentials, { grant_type: 'refresh_token', refresh_token: clean(credentials.refreshToken, 4096), scope: clean(credentials.accountId, 100) });
+    credentials.accessToken = fresh.access_token;
+    credentials.refreshToken = fresh.refresh_token || credentials.refreshToken;
+    credentials.accessTokenExpiresAt = new Date(Date.now() + Math.max(60, Number(fresh.expires_in) || 3600) * 1000).toISOString();
+    await saveCredentials(accountId, credentials);
+  } else if (hasOAuthInputs && !credentials.accessToken) {
+    const fresh = await rakutenTokenRequest(credentials, { grant_type: 'password', scope: clean(credentials.accountId, 100) });
+    credentials.accessToken = fresh.access_token;
+    credentials.refreshToken = fresh.refresh_token || '';
+    credentials.accessTokenExpiresAt = new Date(Date.now() + Math.max(60, Number(fresh.expires_in) || 3600) * 1000).toISOString();
+    await saveCredentials(accountId, credentials);
+  }
   const token = clean(credentials.accessToken, 4096);
-  if (!token) throw Object.assign(new Error('Cadastre o token Bearer temporário gerado no Developer Portal Rakuten.'), { status: 412 });
+  if (!token) throw Object.assign(new Error('Cadastre Client ID, Client Secret e Account ID para emitir o token oficial Rakuten, ou informe um Bearer temporário manualmente.'), { status: 412 });
   return token;
 }
 async function rakutenRequest(path, token, options = {}) {
@@ -85,7 +121,7 @@ export default async function handler(req, res) {
     });
     if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
     if (!saved) return res.status(412).json({ error: 'Cadastre o token Bearer da Rakuten no painel.' });
-    const token = tokenFor(saved.credentials || {});
+    const token = await tokenFor(account.id, saved.credentials || {});
     const body = req.body || {};
     const action = clean(body.action || 'test', 30).toLowerCase();
     if (action === 'test' || action === 'advertisers') {
