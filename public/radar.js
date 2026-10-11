@@ -960,43 +960,43 @@ function integrations() {
     integration(
       "SHN",
       "SHEIN Afiliados",
-      "Receber identificador/token oficial, quando fornecido pelo programa.",
-      "Cadastrar chaves",
+      "Importar link criado no Centro de Afiliados; API pública automática não confirmada.",
+      "Preparar oferta manual",
       "openMarketplaceSetup('SHEIN')",
     ) +
     integration(
       "MAG",
-      "Parceiro Magalu",
-      "Importar link oficial e preparar rascunho; API pública de afiliados não confirmada.",
-      "Importar link",
-      "openMagaluTools()",
+      "Magalu Devs · API de seller",
+      "Cadastre Client ID e Client Secret para preparar a conexão OAuth oficial. Links do programa de afiliados são importados separadamente.",
+      "Cadastrar chaves API seller",
+      "openMagaluApiCredentials()",
     ) +
     integration(
       "CB",
       "Casas Bahia",
-      "Preparar credenciais da rede/programa de afiliados contratado.",
-      "Cadastrar chaves",
+      "Cadastro genérico de credenciais apenas; conector e teste oficial ainda não implementados.",
+      "Cadastrar dados · pendente",
       "openMarketplaceSetup('CASAS_BAHIA')",
     ) +
     integration(
       "HOT",
       "Hotmart",
-      "Cadastro de credenciais oficiais da API para os fluxos compatíveis.",
-      "Cadastrar chaves",
+      "Cadastro genérico preparado; fluxo de API específico ainda precisa ser implementado e validado.",
+      "Cadastrar dados · pendente",
       "openMarketplaceSetup('HOTMART')",
     ) +
     integration(
       "KB",
       "KaBuM!",
-      "Receber identificação/token do programa ou rede de afiliados.",
-      "Cadastrar chaves",
+      "Cadastro genérico preparado; API oficial e fluxo de afiliados ainda não validados.",
+      "Cadastrar dados · pendente",
       "openMarketplaceSetup('KABUM')",
     ) +
     integration(
       "AME",
       "Americanas",
-      "Preparar credenciais da rede/programa de afiliados contratado.",
-      "Cadastrar chaves",
+      "Cadastro genérico de credenciais apenas; conector e teste oficial ainda não implementados.",
+      "Cadastrar dados · pendente",
       "openMarketplaceSetup('AMERICANAS')",
     ) +
     integration(
@@ -3408,7 +3408,7 @@ async function loadMarketplaceStatus(){
  try{
   var data=await operationRequest('/api/integrations/marketplaces');
   root.innerHTML=(data.items||[]).map(function(item){
-   var status=item.id==='SHEIN'?'Links oficiais · importação manual':item.id==='MAGALU'&&item.status==='NOT_CONFIGURED'?'Afiliados: link manual · API seller não configurada':item.status==='VALIDATED'?'Validada':item.status==='ERROR'?'Erro de validação':item.status==='PENDING_VALIDATION'?'Chaves salvas · validação pendente':item.id==='ALIEXPRESS'?'API legada · não validada':item.id==='AWIN'?'Awin · '+(item.status==='NOT_CONFIGURED'?'não configurada':item.status==='VALIDATED'?'programas validados':'validação pendente'):'Aguardando credenciais';
+   var status=item.id==='SHEIN'?'Links oficiais · importação manual':item.id==='MAGALU'?(item.credentialFields||[]).indexOf('clientId')!==-1&& (item.credentialFields||[]).indexOf('clientSecret')!==-1?'Chaves salvas · OAuth pendente':'API seller não configurada · afiliado manual':item.status==='VALIDATED'?'Validada':item.status==='ERROR'?'Erro de validação':item.status==='PENDING_VALIDATION'?'Chaves salvas · validação pendente':item.status==='NOT_CONFIGURED'?'Não configurada':item.id==='ALIEXPRESS'?'API legada · não validada':item.id==='AWIN'?'Awin · '+(item.status==='VALIDATED'?'programas validados':'validação pendente'):'Status não reconhecido';
    var cls=item.status==='VALIDATED'?'live':'warn';
    var fields=(item.credentialFields||[]).map(esc).join(', ');
    var lomadeeActions=item.id==='LOMADEE'&&(item.credentialFields||[]).indexOf('apiKey')!==-1?'<button class="btn secondary" type="button" data-action="testLomadeeConnection()">Testar API</button>'+(item.status==='VALIDATED'?' <button class="btn secondary" type="button" data-action="loadLomadeeContents()">Conteúdos</button> <button class="btn secondary" type="button" data-action="loadLomadeeCommissions()">Regras de comissão</button> <button class="btn secondary" type="button" data-action="loadLomadeeOrders()">Pedidos</button>':''):'';
