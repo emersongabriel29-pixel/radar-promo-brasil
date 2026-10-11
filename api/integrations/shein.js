@@ -77,8 +77,8 @@ export default async function handler(req, res) {
     if (!Number.isFinite(current) || current <= 0 || original !== null && (!Number.isFinite(original) || original < current)) return res.status(400).json({ error: 'Informe preços válidos; o preço original, se preenchido, deve ser maior ou igual ao atual.' });
     if (!mediaUrl(imageUrl)) return res.status(400).json({ error: 'Informe uma URL HTTPS válida para a imagem do produto.' });
     if (categoryId && !(await db.query('SELECT id FROM categories WHERE id=$1 AND account_id=$2', [categoryId, account.id])).rows.length) return res.status(400).json({ error: 'Categoria inválida para esta conta.' });
+    const classified = classifyProduct({ title, description: body.description, sourceCategory: body.sourceCategory });
     if (!categoryId) {
-      const classified = classifyProduct({ title, description: body.description, sourceCategory: body.sourceCategory });
       const match = await db.query('SELECT id FROM categories WHERE account_id=$1 AND lower(name)=lower($2) LIMIT 1', [account.id, classified.category]);
       const fallback = match.rows[0] || (await db.query('SELECT id FROM categories WHERE account_id=$1 AND lower(name)=lower($2) LIMIT 1', [account.id, 'Ofertas gerais'])).rows[0];
       categoryId = fallback?.id || null;
@@ -98,6 +98,7 @@ export default async function handler(req, res) {
       [crypto.randomUUID(), account.id, title, centsOriginal, centsCurrent, categoryId, affiliateUrl.toString(), imageUrl, productUrl?.toString() || null, centsOriginal > centsCurrent ? Math.round((centsOriginal - centsCurrent) * 100 / centsOriginal) : 0, score, promo.message, fp]
     );
     if (!created.rows.length) return res.status(409).json({ error: 'Esta oferta já está cadastrada ou duplicada.' });
+    await db.query('UPDATE offers SET subcategory=$1,classification_tags=$2::jsonb,classification_confidence=$3,classification_status=$4,classification_reason=$5,source_category=$6 WHERE id=$7 AND account_id=$8',[classified.subcategory,JSON.stringify(classified.tags),classified.confidence,body.categoryId?'MANUAL':classified.needsReview?'REVIEW':'AUTO',body.categoryId?'manual_override':classified.reason,txt(body.sourceCategory,200)||null,created.rows[0].id,account.id]);
     return res.json({
       ok: true, offerId: created.rows[0].id, source: 'SHEIN', status: 'PENDING',
       validationStatus: 'PENDING', storefrontVisible: false, published: false,
