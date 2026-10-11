@@ -50,10 +50,13 @@ export default async function handler(req, res) {
         [account.id]
       )).rows;
       const configured = new Map(rows.map(row => [row.marketplace, row]));
+      const connections = (await db.query("SELECT marketplace,status,updated_at AS \"updatedAt\",last_error AS \"lastError\" FROM marketplace_connections WHERE account_id=$1 AND marketplace='MAGALU' LIMIT 1", [account.id])).rows;
+      const magaluConnection = connections[0] || null;
       return res.json({
         items: Object.entries(STORES).map(([id, store]) => {
           const row = configured.get(id);
-          return { id, ...store, status: row?.status || 'NOT_CONFIGURED', credentialFields: row?.credentialFields || [], keyLast4: row?.keyLast4 || '', lastCheckedAt: row?.lastCheckedAt || null, lastError: row?.lastError || '', updatedAt: row?.updatedAt || null };
+          const connected = id === 'MAGALU' && magaluConnection?.status === 'ACTIVE';
+          return { id, ...store, status: connected ? 'CONNECTED' : (row?.status || 'NOT_CONFIGURED'), credentialFields: row?.credentialFields || [], keyLast4: row?.keyLast4 || '', lastCheckedAt: connected ? magaluConnection.updatedAt : (row?.lastCheckedAt || null), lastError: connected ? (magaluConnection.lastError || '') : (row?.lastError || ''), updatedAt: connected ? magaluConnection.updatedAt : (row?.updatedAt || null) };
         }),
         note: 'Salvar credenciais não equivale a validar a API. O estado só muda para VALIDATED depois de uma verificação oficial implementada e aprovada.'
       });
