@@ -2729,53 +2729,17 @@ function openMeliOfferForm() {
   });
 }
 function openMarketplace(store) {
-  var x =
-    (D.suite.marketplaces || []).find(function (i) {
-      return i.marketplace === store;
-    }) || {};
-  var isMeli = store === "MERCADO_LIVRE";
-  var fields = field(
-    isMeli ? "Identificação oficial de afiliado (se fornecida pelo Mercado Livre)" : "Tag ou identificação de afiliado",
-    "affiliateTag",
-    "text",
-    'value="' + esc(x.affiliateTag || "") + '"' + (isMeli ? ' placeholder="Opcional; não cole aqui o link meli.la"' : ""),
-  );
-  if (isMeli) {
-    fields += field("Perfil social de referência (não é link de produto/afiliado)","socialProfileUrl","url",'value="' + esc(x.socialProfileUrl || "") + '" placeholder="https://www.mercadolivre.com.br/social/seu-perfil"') + '<div class="callout"><strong>Perfil salvo apenas como referência.</strong> Ele não será usado como oferta nem como link comissionado. Rastreamento de conversões segue desativado: use o link individual gerado no portal oficial e consulte vendas e comissões no painel do Mercado Livre. A conexão OAuth da API é configurada separadamente.</div>';
-  } else {
-    fields += field(
-      "Modelo do SubID",
-      "subidTemplate",
-      "text",
-      'value="' + esc(x.subidTemplate || "{group}") + '"',
-    ) + field(
-      "Endpoint oficial de conversão",
-      "conversionEndpoint",
-      "url",
-      'value="' + esc(x.conversionEndpoint || "") + '" placeholder="https://..."',
-    ) + '<div class="callout">A integração permanecerá pendente até o sistema concluir um teste oficial. O status não pode ser ativado manualmente.</div>';
+  // Never ask for generic affiliate tags, SubID templates, or conversion endpoints.
+  // Each integration must use its documented provider-specific flow.
+  if (store === "MERCADO_LIVRE" || store === "MERCADOLIVRE") {
+    connectMercadoLivre();
+    return;
   }
-  openModal(
-    "Configurar " + store.replace("_", " "),
-    isMeli ? "Configure somente dados confirmados. O rastreamento de comissões não será simulado." : "Use somente identificação e endpoint oficiais da sua conta.",
-    fields,
-    async function (e) {
-      e.preventDefault();
-      try {
-        await suiteCall(
-          "PUT",
-          Object.assign(
-            { entity: "marketplace", marketplace: store },
-            Object.fromEntries(new FormData(e.target)),
-          ),
-        );
-        closeModal();
-        toast(isMeli ? "Configuração salva; conversões não serão simuladas." : "Configuração salva");
-      } catch (err) {
-        toast(err.message);
-      }
-    },
-  );
+  if (store === "MAGALU") {
+    openMagaluApiCredentials();
+    return;
+  }
+  openMarketplaceSetup(store);
 }
 function openStorefront() {
   var s = D.suite.storefront || {};
@@ -3486,7 +3450,20 @@ async function operationRequest(path,body){
 async function openMarketplaceSetup(provider){
   if(provider==='SHEIN'){openSheinTools();return;}
   if(provider==='MAGALU'){openMagaluApiCredentials();return;}
-    if(provider==='ALIEXPRESS'){/* continue with the provider-specific secure credential form below */}
+  if(provider==='MERCADO_LIVRE'||provider==='MERCADOLIVRE'){connectMercadoLivre();return;}
+  // These portals do not currently have a verified affiliate-offer integration in this app.
+  // Do not accept arbitrary credentials or imply that seller/business APIs are affiliate APIs.
+  if(['CASAS_BAHIA','HOTMART','KABUM','AMERICANAS'].indexOf(provider)!==-1){
+    var explanations={
+      CASAS_BAHIA:'O portal público localizado é para integração de lojistas do marketplace (catálogo, estoque, preço e pedidos), não uma API de descoberta de ofertas para afiliados. Não cadastre credenciais aqui para esse objetivo.',
+      HOTMART:'A API Hotmart é voltada à integração de produtos digitais, vendas e dados da conta. Ainda não foi confirmado um endpoint oficial de catálogo de ofertas afiliadas adequado ao Radar. Não cadastre chaves genéricas aqui.',
+      KABUM:'A documentação pública localizada é para integração de sellers via Mirakl, com API Key e operações de catálogo/pedidos. Isso não comprova uma API de afiliados para descobrir ofertas. Não cadastre essa chave neste fluxo.',
+      AMERICANAS:'Não foi confirmada nesta auditoria uma API pública oficial de afiliados para descoberta de produtos, geração de deeplinks e consulta de comissões. Não informe credenciais até identificarmos a rede oficial da sua conta.'
+    };
+    openModal('Integração não validada · '+provider.replace('_',' '),'A configuração genérica foi desativada para evitar pedir campos não documentados. '+explanations[provider],'<div class="callout">'+explanations[provider]+'</div><p class="muted">Estado: não implementada/validada para descoberta de ofertas de afiliados. Nenhuma credencial foi alterada.</p>',async function(){throw Error('Este fluxo ainda não aceita credenciais. Nenhuma credencial foi salva ou alterada.');});
+    var unavailableSubmit=document.querySelector('#form button[type="submit"]');if(unavailableSubmit){unavailableSubmit.disabled=true;unavailableSubmit.textContent='Não disponível';}
+    return;
+  }
   try{
     var data=await operationRequest('/api/integrations/marketplaces');
     var item=(data.items||[]).find(function(x){return x.id===provider;});
@@ -3557,7 +3534,7 @@ async function openMagaluApiCredentials(){
   try{
     var data=await operationRequest('/api/integrations/marketplaces');
     var item=(data.items||[]).find(function(x){return x.id==='MAGALU';});
-    var body='<p class="muted">Preencha os três campos exatamente como aparecem no portal Magalu. Não substitua estes campos por Client ID/Client Secret.</p>'+field('API Key','apiKey','text','autocomplete="off" maxlength="4096" required')+field('API Key ID','apiKeyId','text','autocomplete="off" maxlength="4096" required')+field('API Key Secret','apiKeySecret','password','autocomplete="new-password" maxlength="4096" required')+'<div class="callout"><b>Estado real:</b> as três credenciais serão criptografadas e salvas como pendentes. Ainda precisamos confirmar o tipo de API Magalu habilitada na sua conta e implementar/testar a autenticação oficial correspondente antes de declarar a conexão ativa. Não informe senha do portal nem cookies.</div>';
+    var hasSavedKeys=!!(item&&item.credentialFields&&item.credentialFields.indexOf('apiKey')!==-1&&item.credentialFields.indexOf('apiKeyId')!==-1&&item.credentialFields.indexOf('apiKeySecret')!==-1);var body='<div class="callout"><b>'+ (hasSavedKeys?'As três chaves já estão cadastradas.':'Nenhum cadastro completo das três chaves foi confirmado nesta conta.') +'</b> '+(hasSavedKeys?'Elas permanecem salvas e criptografadas. Não é necessário cadastrá-las novamente para corrigir a tela de SubID. Só preencha e salve abaixo se quiser substituir as chaves.':'Cadastre somente se ainda não as salvou. O cadastro não comprova conexão com a API.')+'</div><p class="muted">Não substitua estas chaves por Client ID/Client Secret. A documentação pública atual do Grupo Magalu descreve OAuth 2.0 com Client ID/Client Secret; estas três chaves permanecem separadas até identificarmos o produto/portal que as emitiu. As credenciais já salvas não serão apagadas por esta correção.</p>'+field('API Key','apiKey','text','autocomplete="off" maxlength="4096" required')+field('API Key ID','apiKeyId','text','autocomplete="off" maxlength="4096" required')+field('API Key Secret','apiKeySecret','password','autocomplete="new-password" maxlength="4096" required')+'<div class="callout"><b>Estado real:</b> as três credenciais serão criptografadas e salvas como pendentes. Ainda precisamos confirmar o tipo de API Magalu habilitada na sua conta e implementar/testar a autenticação oficial correspondente antes de declarar a conexão ativa. Não informe senha do portal nem cookies.</div>';
     openModal('Cadastrar chaves · Magalu','Use API Key, API Key ID e API Key Secret emitidas pelo portal Magalu. O cadastro das chaves, sozinho, não conecta a loja.',body,async function(event){
       event.preventDefault();var fd=new FormData(event.target),credentials={apiKey:String(fd.get('apiKey')||'').trim(),apiKeyId:String(fd.get('apiKeyId')||'').trim(),apiKeySecret:String(fd.get('apiKeySecret')||'').trim()};
       try{var result=await operationRequest('/api/integrations/marketplaces',{marketplace:'MAGALU',credentials:credentials});closeModal();await loadMarketplaceStatus();toast(result.message||'Chaves salvas; OAuth e validação continuam pendentes.');}
