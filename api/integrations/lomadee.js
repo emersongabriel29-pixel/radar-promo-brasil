@@ -91,7 +91,7 @@ export default async function handler(req, res) {
         return res.json({
           ok: true, status: 'VALIDATED',
           capabilities: ['contents', 'commissions', 'orders'],
-          note: 'A chave autenticou uma consulta de leitura à API oficial. A geração de links de afiliado e a descoberta de produtos não são expostas pelo SDK oficial verificado e permanecem pelo fluxo do portal.'
+          note: 'A chave autenticou uma consulta de leitura à API oficial. O recurso commissions representa regras de comissão, não extratos de ganhos. A geração de links de afiliado e a descoberta de produtos não são expostas pelo SDK oficial verificado e permanecem pelo fluxo do portal.'
         });
       } catch (error) {
         const code = Number(error?.status) || 0;
