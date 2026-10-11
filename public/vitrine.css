@@ -1,1 +1,16 @@
 *{box-sizing:border-box}body{margin:0;background:#f5f7f8;color:#102033;font-family:system-ui,sans-serif}.wrap{width:min(1100px,calc(100% - 28px));margin:auto}header{background:#101b2c;color:white;padding:32px 0}h1{margin:0 0 7px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:28px 0}.card{background:white;border:1px solid #dfe6ea;border-radius:16px;overflow:hidden}.card img{width:100%;aspect-ratio:1/1;object-fit:cover;background:#edf1f3}.body{padding:14px}.body h2{font-size:15px;min-height:42px}.price{font-size:21px;font-weight:900}.old{color:#788692;text-decoration:line-through;font-size:13px}.btn{display:block;text-align:center;margin-top:12px;padding:11px;border-radius:9px;background:#ff6a2a;color:white;text-decoration:none;font-weight:800}.empty{margin:50px auto;background:white;border-radius:18px;padding:35px;text-align:center}.source{font-size:11px;text-transform:uppercase;color:#6a7884}@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:480px){.grid{grid-template-columns:1fr}}
+
+/* Radar Promo Brasil — vitrine com identidade visual consistente e responsiva */
+body{background:linear-gradient(135deg,#f7faff,#eef4fc);color:#14243b;font-family:Manrope,system-ui,sans-serif;font-size:15px;line-height:1.55}
+header{background:radial-gradient(ellipse at 95% 0%,#1769e055,transparent 38%),linear-gradient(120deg,#101d32,#173656 70%,#135451);padding:38px 0;border-bottom:3px solid #34d3a0}
+.grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;padding:32px 0}
+.card{border-color:#dce5f0;border-radius:14px;box-shadow:0 5px 18px #142b470b;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.card:hover{transform:translateY(-3px);border-color:#bfd2e9;box-shadow:0 12px 28px #142b4716}
+.body{padding:16px}
+.price{font-size:23px;font-weight:850;letter-spacing:-.035em;color:#14243b}
+.btn{margin-top:14px;padding:12px;background:linear-gradient(135deg,#1769e0,#1055bc);box-shadow:0 4px 12px #1769e025;transition:transform .16s ease,box-shadow .16s ease}
+.btn:hover{transform:translateY(-1px);box-shadow:0 7px 18px #1769e038}
+.empty{border:1px solid #dce5f0;border-radius:16px;color:#465b73;box-shadow:0 8px 24px #142b470b}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}}
+@media(max-width:480px){.wrap{width:min(100% - 24px,1100px)}header{padding:28px 0}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:18px 0}.body{padding:11px}.body h2{font-size:13px;line-height:1.4;min-height:0}.price{font-size:18px}.btn{font-size:12px;padding:10px 6px}}
+@media(prefers-reduced-motion:reduce){.card,.btn{transition:none}.card:hover,.btn:hover{transform:none}}
