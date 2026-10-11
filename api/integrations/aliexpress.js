@@ -89,7 +89,7 @@ function build(method,body,c) {
     if(!ids.length)throw Object.assign(new Error('Informe de 1 a 20 IDs numéricos de produtos AliExpress.'),{status:400});
     return {api:'aliexpress.affiliate.productdetail.get',params:{fields,product_ids:ids.join(','),...common}};
   }
-  if(method==='categories')return {api:'aliexpress.affiliate.category.get',params:{fields:'category_id,parent_category_id,category_name',...common}};
+  if(method==='categories')return {api:'aliexpress.affiliate.category.get',params:{fields:'category_id,parent_category_id,category_name'}};
   if(method==='campaigns')return {api:'aliexpress.affiliate.featuredpromo.get',params:{fields,app_signature:clean(c.appSignature,300)}};
   if(method==='campaignProducts'){
     const promo=clean(body.promotionName,180);
@@ -99,7 +99,7 @@ function build(method,body,c) {
   if(method==='generateLink'){
     let source;try{source=new URL(String(body.productUrl||''));}catch{throw Object.assign(new Error('Informe a URL original do produto AliExpress.'),{status:400});}
     const host=source.hostname.toLowerCase();
-    if(source.protocol!=='https:'||!(host==='aliexpress.com'||host.endsWith('.aliexpress.com')||host==='aliexpress.us'||host.endsWith('.aliexpress.us')))throw Object.assign(new Error('O link de origem precisa ser HTTPS e pertencer a um domínio oficial AliExpress.'),{status:400});
+    if(source.protocol!=='https:'||source.username||source.password||!(host==='aliexpress.com'||host.endsWith('.aliexpress.com')||host==='aliexpress.us'||host.endsWith('.aliexpress.us')))throw Object.assign(new Error('O link de origem precisa ser HTTPS, sem credenciais embutidas, e pertencer a um domínio oficial AliExpress.'),{status:400});
     return {api:'aliexpress.affiliate.link.generate',params:{promotion_link_type:'0',source_values:source.toString(),tracking_id:clean(body.trackingId||c.trackingId,200)}};
   }
   if(method==='orders'){
