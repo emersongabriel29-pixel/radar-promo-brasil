@@ -11,6 +11,7 @@ const TOKEN_ENDPOINTS = {
 };
 const OPERATIONS = new Set(['searchItems', 'getItems', 'getVariations', 'getBrowseNodes']);
 const ALLOWED_MARKETPLACES = new Set(['www.amazon.com.br','www.amazon.com','www.amazon.ca','www.amazon.com.mx','www.amazon.co.uk','www.amazon.de','www.amazon.fr','www.amazon.it','www.amazon.es','www.amazon.nl','www.amazon.com.be','www.amazon.eg','www.amazon.in','www.amazon.ie','www.amazon.pl','www.amazon.sa','www.amazon.se','www.amazon.com.tr','www.amazon.ae','www.amazon.co.jp','www.amazon.sg','www.amazon.com.au']);
+const tokenCache = new Map();
 const DEFAULT_RESOURCES = [
   'images.primary.medium',
   'itemInfo.title',
@@ -53,6 +54,9 @@ function credentialsFor(c) {
   return { version, clientId, clientSecret, partnerTag, marketplace };
 }
 async function getAccessToken(c) {
+  const cacheKey = c.version + '|' + c.clientId;
+  const cached = tokenCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now() + 60000) return cached.token;
   const response = await fetch(TOKEN_ENDPOINTS[c.version], {
     method: 'POST',
     headers: { 'content-type': 'application/json', accept: 'application/json' },
@@ -71,6 +75,8 @@ async function getAccessToken(c) {
     const status = response.status === 401 || response.status === 403 ? 502 : response.status || 502;
     throw Object.assign(new Error('A Amazon não autorizou a autenticação Creators API (HTTP ' + status + '). Confira Credential ID, Secret, versão e habilitação da conta.'), { status });
   }
+  const ttl = Math.max(60, Math.min(3600, Number(body.expires_in) || 3600));
+  tokenCache.set(cacheKey, { token: body.access_token, expiresAt: Date.now() + ttl * 1000 });
   return body.access_token;
 }
 async function amazonRequest(c, operation, payload) {
@@ -162,7 +168,7 @@ export default async function handler(req, res) {
     return res.json({ ok: true, status: 'VALIDATED', operation, result, readOnly: true, published: false });
   } catch (error) {
     const status = Number(error?.status) || 502;
-    if (req.member) {
+    if (req.member && (status >= 500 || status === 401 || status === 403)) {
       try {
         const account = await getAccount(req.member);
         if (account) await db.query(
