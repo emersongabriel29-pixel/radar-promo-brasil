@@ -1,0 +1,26 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { classifyProduct, categoryHint } from '../lib/category-classifier.js';
+
+test('classifies intimate products before broad fashion terms', () => {
+  assert.equal(classifyProduct({ title: 'Lingerie sensual com vibrador recarregável' }).category, 'Sex shop');
+  assert.equal(classifyProduct({ title: 'Lubrificante íntimo à base de água' }).subcategory, 'Lubrificantes e géis');
+});
+
+test('does not classify every product from a marketplace as imported goods', () => {
+  assert.equal(categoryHint('Fone Bluetooth', 'AliExpress'), 'Tecnologia');
+  assert.equal(categoryHint('Liquidificador 2 litros', 'Shopee'), 'Casa e cozinha');
+});
+
+test('returns a review-needed fallback when there is no reliable category signal', () => {
+  const result = classifyProduct({ title: 'Produto modelo XYZ 2026' });
+  assert.equal(result.category, 'Ofertas gerais');
+  assert.equal(result.needsReview, true);
+  assert.ok(result.confidence < 0.5);
+});
+
+test('exposes stable tags and a reason for traceability', () => {
+  const result = classifyProduct({ title: 'Vibrador recarregável' });
+  assert.ok(result.tags.includes('sex-shop'));
+  assert.equal(result.reason, 'keyword_match');
+});
