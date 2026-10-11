@@ -117,7 +117,7 @@ export default async function handler(req, res) {
       apiDocumentation: 'https://developers.rakutenadvertising.com/',
       tokenLifetimeMinutes: 60,
       publicationEnabled: false,
-      note: 'Token Bearer emitido no Developer Portal; normalmente expira em 60 minutos e precisa ser renovado. Parcerias e permissões do anunciante são obrigatórias.'
+      note: 'A API oficial emite access_token e refresh_token por /token; o Radar renova automaticamente usando Client ID, Client Secret e Account ID. Parcerias e permissões do anunciante continuam obrigatórias.'
     });
     if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
     if (!saved) return res.status(412).json({ error: 'Cadastre o token Bearer da Rakuten no painel.' });
