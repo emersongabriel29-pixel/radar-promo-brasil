@@ -11,8 +11,8 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/radar.css?v=20261011-v4" />
-    <link rel="stylesheet" href="/radar-theme-v4.css?v=20261011-v4" />
+    <link rel="stylesheet" href="/radar.css?v=20261011-v5" />
+    <link rel="stylesheet" href="/radar-theme-v5.css?v=20261011-v5" />
   </head>
   <body><a class="skip-link" href="#content">Ir para o conteúdo</a>
     <div class="app">
@@ -32,6 +32,6 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
     </div>
     <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalHint" aria-hidden="true"><div class="dialog"><div class="sectionhead" style="margin-top:0"><div><h2 id="modalTitle"></h2><p id="modalHint"></p></div><button class="btn secondary" onclick="closeModal()">Fechar</button></div><form class="form" id="form"></form></div></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="/radar.js?v=20261011-v4" defer></script>
+    <script src="/radar.js?v=20261011-v5" defer></script>
   </body>
 </html>`);}
