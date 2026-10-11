@@ -3277,7 +3277,18 @@ async function readJSON(path){
   if(!response.ok)throw Error(value.error||'Não foi possível carregar '+path);
   return value;
 }
-async function load(){
+var loadInFlight=null,loadAgain=false;
+function load(){
+  // Several UI actions can request a refresh at once; share one dashboard request burst.
+  if(loadInFlight){loadAgain=true;return loadInFlight;}
+  var task=loadNow();
+  loadInFlight=task;
+  return task.finally(function(){
+    if(loadInFlight===task)loadInFlight=null;
+    if(loadAgain){loadAgain=false;Promise.resolve().then(load);}
+  });
+}
+async function loadNow(){
   var sequence=++loadSequence;
   try{
     var data=await readJSON('/api/data');
