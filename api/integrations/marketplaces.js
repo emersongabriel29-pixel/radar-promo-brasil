@@ -11,14 +11,14 @@ const STORES = {
   SHOPEE: { name: 'Shopee Afiliados', portalUrl: 'https://affiliate.shopee.com.br/', authModel: 'App ID e App Secret da Open API de Afiliados; solicite habilitação à Shopee se ainda não tiver acesso.' },
   ALIEXPRESS: { name: 'AliExpress Afiliados · Open Platform (legada)', portalUrl: 'https://portals.aliexpress.com/', authModel: 'App Key, App Secret, Tracking ID e, se exigida, App Signature. Atenção: a documentação pública dos métodos Affiliate API está marcada como descontinuada; só teste se o portal ainda habilitar essa API para sua conta.' },
   SHEIN: { name: 'SHEIN Afiliados · importação de links oficiais', portalUrl: 'https://onelink.shein.com/3/3usk7i1vyedb', authModel: 'A nova plataforma brasileira gera links de produtos e campanhas no Centro de Afiliados. Não foi identificada uma API pública de afiliados para geração automática; importe os links gerados pela sua conta.' },
-  MAGALU: { name: 'Magalu · Afiliados + API Marketplace seller', portalUrl: 'https://developers.magalu.com/docs/', authModel: 'Separar dois fluxos: afiliados Parceiro Magalu usa links gerados manualmente (https://www.parceiromagalu.com.br/). API Magalu Devs é para sellers/marketplace, usa Client ID + Client Secret e OAuth 2.0 com consentimento explícito do seller; salvar credenciais não equivale a conectar.' },
+  MAGALU: { name: 'Magalu · API Key credentials', portalUrl: 'https://developers.magalu.com/docs/', authModel: 'Use exatamente os três campos fornecidos pelo seu portal Magalu: API Key, API Key ID e API Key Secret. Este formulário apenas armazena as credenciais de forma criptografada; a autenticação e as chamadas oficiais precisam ser confirmadas conforme o produto Magalu habilitado na conta. Links do Parceiro Magalu são um fluxo separado.' },
   CASAS_BAHIA: { name: 'Casas Bahia', portalUrl: 'https://www.casasbahia.com.br/', authModel: 'Credenciais do programa/rede de afiliados contratada, quando houver API.' },
   HOTMART: { name: 'Hotmart', portalUrl: 'https://app.hotmart.com/', authModel: 'Credenciais oficiais da API Hotmart, se necessárias ao fluxo.' },
   KABUM: { name: 'KaBuM!', portalUrl: 'https://www.kabum.com.br/', authModel: 'Identificação/token fornecido pelo programa ou rede de afiliados.' },
   AMERICANAS: { name: 'Americanas', portalUrl: 'https://www.americanas.com.br/', authModel: 'Credenciais do programa/rede de afiliados contratada, quando houver API.' },
   LOMADEE: { name: 'Lomadee', portalUrl: 'https://www.lomadee.com.br/pt-br/afiliados', authModel: 'Chave de autenticação da API oficial no cabeçalho x-auth-key, conforme SDK pública @thelomadee/sdk.' }
 };
-const ALLOWED_FIELDS = ['affiliateId','appId','apiKey','apiSecret','clientId','clientSecret','accessToken','trackingId','accountId','version','marketplace','appSignature','legacyApiAcknowledged','extra'];
+const ALLOWED_FIELDS = ['affiliateId','appId','apiKey','apiKeyId','apiKeySecret','apiSecret','clientId','clientSecret','accessToken','trackingId','accountId','version','marketplace','appSignature','legacyApiAcknowledged','extra'];
 const clean = (value, max = 2000) => String(value ?? '').trim().slice(0, max);
 const toB64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)));
 const fromB64 = value => Uint8Array.from(atob(value), char => char.charCodeAt(0));
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
       }
       if (!Object.keys(credentials).length) return res.status(400).json({ error: 'Informe ao menos uma credencial oficial ou identificação de afiliado.' });
       if (Object.values(credentials).some(value => value.length > 4096)) return res.status(400).json({ error: 'Uma credencial excede o limite permitido.' });
-      const secret = credentials.apiSecret || credentials.clientSecret || credentials.accessToken || credentials.apiKey || '';
+      const secret = credentials.apiKeySecret || credentials.apiSecret || credentials.clientSecret || credentials.accessToken || credentials.apiKey || '';
       const hint = secret ? secret.slice(-4) : String(credentials.appId || credentials.affiliateId || credentials.clientId || credentials.trackingId || '').slice(-4);
       const sealed = await encryptCredentials(account.id, marketplace, credentials);
       const fields = Object.keys(credentials);
