@@ -7,7 +7,7 @@ const STORES = {
   AMAZON: { name: 'Amazon Associados · Creators API', portalUrl: 'https://associados.amazon.com.br/creatorsapi/docs/en-us/onboarding/register-for-creators-api', authModel: 'Creators API: Credential ID, Credential Secret, versão da credencial e Partner Tag da conta de Associado.' },
   SHOPEE: { name: 'Shopee Afiliados', portalUrl: 'https://affiliate.shopee.com.br/', authModel: 'App ID e App Secret da Open API de Afiliados; solicite habilitação à Shopee se ainda não tiver acesso.' },
   ALIEXPRESS: { name: 'AliExpress Portals', portalUrl: 'https://portals.aliexpress.com/', authModel: 'App/API e tracking ID fornecidos no portal oficial, quando habilitados.' },
-  SHEIN: { name: 'SHEIN Afiliados', portalUrl: 'https://br.shein.com/', authModel: 'Identificação/token oficial de afiliado, se fornecido à conta.' },
+  SHEIN: { name: 'SHEIN Afiliados · importação de links oficiais', portalUrl: 'https://onelink.shein.com/3/3usk7i1vyedb', authModel: 'A nova plataforma brasileira gera links de produtos e campanhas no Centro de Afiliados. Não foi identificada uma API pública de afiliados para geração automática; importe os links gerados pela sua conta.' },
   MAGALU: { name: 'Parceiro Magalu', portalUrl: 'https://www.parceiromagalu.com.br/', authModel: 'Credenciais e identificação emitidas no programa oficial, se disponíveis.' },
   CASAS_BAHIA: { name: 'Casas Bahia', portalUrl: 'https://www.casasbahia.com.br/', authModel: 'Credenciais do programa/rede de afiliados contratada, quando houver API.' },
   HOTMART: { name: 'Hotmart', portalUrl: 'https://app.hotmart.com/', authModel: 'Credenciais oficiais da API Hotmart, se necessárias ao fluxo.' },
