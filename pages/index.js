@@ -72,7 +72,7 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
       </div>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="/radar.js?v=lomadee-provider-20261010" defer></script>
+    <script src="/radar.js?v=20261011-v3" defer></script>
   </body>
 </html>
 `);}
