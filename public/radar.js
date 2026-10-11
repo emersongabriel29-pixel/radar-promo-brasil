@@ -966,10 +966,10 @@ function integrations() {
     ) +
     integration(
       "MAG",
-      "Magalu Devs · API de seller",
-      "Cadastre Client ID e Client Secret para preparar a conexão OAuth oficial. Links do programa de afiliados são importados separadamente.",
-      "Cadastrar chaves API seller",
-      "openMagaluApiCredentials()",
+      "Magalu · Conta seller (OAuth)",
+      "Conecte sua conta pelo consentimento oficial do ID Magalu. O cadastro das três chaves API não substitui o Client ID/Client Secret OAuth; links de afiliado continuam separados.",
+      "Conectar conta",
+      "connectMagaluAccount()"
     ) +
     integration(
       "CB",
@@ -3415,8 +3415,8 @@ async function loadMarketplaceStatus(){
  try{
   var data=await operationRequest('/api/integrations/marketplaces');
   root.innerHTML=(data.items||[]).map(function(item){
-   var status=item.id==='SHEIN'?'Links oficiais · importação manual':item.id==='MAGALU'?(item.credentialFields||[]).indexOf('apiKey')!==-1&&(item.credentialFields||[]).indexOf('apiKeyId')!==-1&&(item.credentialFields||[]).indexOf('apiKeySecret')!==-1?'3 chaves salvas · conexão pendente':'Chaves API pendentes · afiliado manual':item.status==='VALIDATED'?'Validada':item.status==='ERROR'?'Erro de validação':item.status==='PENDING_VALIDATION'?'Chaves salvas · validação pendente':item.status==='NOT_CONFIGURED'?'Não configurada':item.id==='ALIEXPRESS'?'API legada · validação pendente':item.id==='AWIN'?'Awin · validação pendente':'Status não reconhecido';
-   var cls=item.status==='VALIDATED'?'live':'warn';
+   var status=item.id==='SHEIN'?'Links oficiais · importação manual':item.id==='MAGALU'&&item.status==='CONNECTED'?'Conta conectada via OAuth':item.id==='MAGALU'?(item.credentialFields||[]).indexOf('apiKey')!==-1&&(item.credentialFields||[]).indexOf('apiKeyId')!==-1&&(item.credentialFields||[]).indexOf('apiKeySecret')!==-1?'3 chaves salvas · conecte a conta':'Chaves API pendentes · afiliado manual':item.status==='VALIDATED'?'Validada':item.status==='ERROR'?'Erro de validação':item.status==='PENDING_VALIDATION'?'Chaves salvas · validação pendente':item.status==='NOT_CONFIGURED'?'Não configurada':item.id==='ALIEXPRESS'?'API legada · validação pendente':item.id==='AWIN'?'Awin · validação pendente':'Status não reconhecido';
+   var cls=(item.status==='VALIDATED'||item.status==='CONNECTED')?'live':'warn';
    var fields=(item.credentialFields||[]).map(esc).join(', ');
    var lomadeeActions=item.id==='LOMADEE'&&(item.credentialFields||[]).indexOf('apiKey')!==-1?'<button class="btn secondary" type="button" data-action="testLomadeeConnection()">Testar API</button>'+(item.status==='VALIDATED'?' <button class="btn secondary" type="button" data-action="loadLomadeeContents()">Conteúdos</button> <button class="btn secondary" type="button" data-action="loadLomadeeCommissions()">Regras de comissão</button> <button class="btn secondary" type="button" data-action="loadLomadeeOrders()">Pedidos</button>':''):'';
    var shopeeActions=item.id==='SHOPEE'&&(item.credentialFields||[]).indexOf('appId')!==-1&&(item.credentialFields||[]).indexOf('apiSecret')!==-1?'<button class="btn secondary" type="button" data-action="openShopeeTools()">Ferramentas Shopee</button>':'';
@@ -3426,14 +3426,14 @@ async function loadMarketplaceStatus(){
    var awinActions=item.id==='AWIN'&&(item.credentialFields||[]).indexOf('accessToken')!==-1&&(item.credentialFields||[]).indexOf('affiliateId')!==-1?'<button class="btn secondary" type="button" data-action="openAwinTools()">Ferramentas Awin</button>':'';
    var rakutenActions=item.id==='RAKUTEN'&&(item.credentialFields||[]).indexOf('accessToken')!==-1?'<button class="btn secondary" type="button" data-action="openRakutenTools()">Ferramentas Rakuten</button>':'';
    var admitadActions=item.id==='ADMITAD'&&(item.credentialFields||[]).indexOf('clientId')!==-1&&(item.credentialFields||[]).indexOf('clientSecret')!==-1?'<button class="btn secondary" type="button" data-action="openAdmitadTools()">Ferramentas Admitad</button>':'';
-   return '<div class="integration"><div class="grow"><b>'+esc(item.name)+'</b><div class="muted">'+(item.id==='SHEIN'?'Importe links gerados no Centro de Afiliados.':item.id==='MAGALU'?(fields.indexOf('apiKey')!==-1&&fields.indexOf('apiKeyId')!==-1&&fields.indexOf('apiKeySecret')!==-1?'API Magalu: três chaves salvas; autenticação e teste oficial ainda pendentes.':'API Key, API Key ID e API Key Secret ainda não cadastradas. Links de afiliado são um fluxo separado.'):(fields?'Campos cadastrados: '+fields:'Nenhuma credencial cadastrada.'))+'</div>'+(item.updatedAt?'<small class="muted">Atualizado em '+esc(new Date(item.updatedAt).toLocaleDateString('pt-BR'))+'</small>':'')+'<div class="csp-margin-top-10px"><a class="btn secondary" href="'+esc(item.portalUrl)+'" target="_blank" rel="noopener noreferrer">Abrir portal ↗</a> <button class="btn secondary" type="button" data-action="openMarketplaceSetup(\''+esc(item.id)+'\')">'+(item.id==='MAGALU'?'Cadastrar 3 chaves API':item.id==='SHEIN'?'Preparar oferta':(fields?'Atualizar chaves':'Cadastrar chaves'))+'</button> '+(item.id==='MAGALU'?'<button class="btn secondary" type="button" data-action="openMagaluTools()">Importar link de afiliado</button>':'')+' '+lomadeeActions+' '+shopeeActions+' '+amazonActions+' '+sheinActions+' '+aliexpressActions+' '+awinActions+' '+rakutenActions+' '+admitadActions+'</div></div><span class="pill '+cls+'">'+status+'</span></div>';
+   return '<div class="integration"><div class="grow"><b>'+esc(item.name)+'</b><div class="muted">'+(item.id==='SHEIN'?'Importe links gerados no Centro de Afiliados.':item.id==='MAGALU'?(fields.indexOf('apiKey')!==-1&&fields.indexOf('apiKeyId')!==-1&&fields.indexOf('apiKeySecret')!==-1?'API Magalu: três chaves salvas; autenticação e teste oficial ainda pendentes.':'API Key, API Key ID e API Key Secret ainda não cadastradas. Links de afiliado são um fluxo separado.'):(fields?'Campos cadastrados: '+fields:'Nenhuma credencial cadastrada.'))+'</div>'+(item.updatedAt?'<small class="muted">Atualizado em '+esc(new Date(item.updatedAt).toLocaleDateString('pt-BR'))+'</small>':'')+'<div class="csp-margin-top-10px"><a class="btn secondary" href="'+esc(item.portalUrl)+'" target="_blank" rel="noopener noreferrer">Abrir portal ↗</a> <button class="btn secondary" type="button" data-action="'+(item.id==='MAGALU'?'connectMagaluAccount()':'openMarketplaceSetup(\''+esc(item.id)+'\')')+'">'+(item.id==='MAGALU'?'Conectar conta':item.id==='SHEIN'?'Preparar oferta':(fields?'Atualizar chaves':'Cadastrar chaves'))+'</button> '+(item.id==='MAGALU'?'<button class="btn secondary" type="button" data-action="openMagaluApiCredentials()">Atualizar chaves API</button> <button class="btn secondary" type="button" data-action="openMagaluTools()">Importar link de afiliado</button>':'')+' '+lomadeeActions+' '+shopeeActions+' '+amazonActions+' '+sheinActions+' '+aliexpressActions+' '+awinActions+' '+rakutenActions+' '+admitadActions+'</div></div><span class="pill '+cls+'">'+status+'</span></div>';
   }).join('')||'<div class="empty">Nenhuma loja disponível.</div>';
   var overviewCode={MERCADOLIVRE:'ML',SHOPEE:'SH',AMAZON:'AMZ',ALIEXPRESS:'ALI',SHEIN:'SHN',MAGALU:'MAG',CASAS_BAHIA:'CB',HOTMART:'HOT',KABUM:'KB',AMERICANAS:'AME',LOMADEE:'LOM',AWIN:'AWIN',RAKUTEN:'RAK',ADMITAD:'ADM'};
   (data.items||[]).forEach(function(item){
    var code=overviewCode[item.id],card=code?document.querySelector('.integration[data-integration-code="'+code+'"]'):null,pill=card&&card.querySelector('.pill');
    if(!pill)return;
-   var label=item.id==='SHEIN'?'Fluxo manual':item.id==='MAGALU'?(item.credentialFields||[]).indexOf('apiKey')!==-1&&(item.credentialFields||[]).indexOf('apiKeyId')!==-1&&(item.credentialFields||[]).indexOf('apiKeySecret')!==-1?'Conexão pendente':'Chaves pendentes':item.status==='VALIDATED'?'Validada':item.status==='ERROR'?'Erro':item.status==='PENDING_VALIDATION'?'Validação pendente':item.status==='NOT_CONFIGURED'?'Não configurada':item.status;
-   pill.textContent=label;pill.className='pill '+(item.status==='VALIDATED'?'live':'warn');
+   var label=item.id==='SHEIN'?'Fluxo manual':item.id==='MAGALU'&&item.status==='CONNECTED'?'Conta conectada':item.id==='MAGALU'?(item.credentialFields||[]).indexOf('apiKey')!==-1&&(item.credentialFields||[]).indexOf('apiKeyId')!==-1&&(item.credentialFields||[]).indexOf('apiKeySecret')!==-1?'Conecte a conta':'Chaves pendentes':item.status==='CONNECTED'?'Conta conectada':item.status==='VALIDATED'?'Validada':item.status==='ERROR'?'Erro':item.status==='PENDING_VALIDATION'?'Validação pendente':item.status==='NOT_CONFIGURED'?'Não configurada':item.status;
+   pill.textContent=label;pill.className='pill '+((item.status==='VALIDATED'||item.status==='CONNECTED')?'live':'warn');
   });
  }catch(error){root.innerHTML='<div class="empty" role="alert">'+esc(error.message)+'</div>';}
 }
@@ -3513,6 +3513,10 @@ async function loadLomadeeResource(resource){
         return '<div class="integration"><div class="grow"><b>'+esc(heading)+'</b><div class="muted">'+esc(details)+'</div>'+(item.url?'<a href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">Abrir conteúdo oficial ↗</a>':'')+'</div></div>';
       }).join(''):'<div class="empty">A API não retornou registros para esta consulta.</div>');
   }catch(error){panel.innerHTML='<div class="empty" role="alert">'+esc(error.message||'Consulta indisponível.')+'</div>';}
+}
+async function connectMagaluAccount(){
+  try{var result=await operationRequest('/api/integrations/magalu-connect');if(!result.authorizationUrl)throw Error('A Magalu não retornou a URL de autorização.');window.location.href=result.authorizationUrl;}
+  catch(error){toast(error.message||'Não foi possível iniciar a conexão Magalu. Confira as credenciais OAuth do aplicativo.');}
 }
 async function openMagaluApiCredentials(){
   try{
