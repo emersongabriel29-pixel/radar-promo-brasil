@@ -3730,7 +3730,6 @@ async function openWhatsappPairing(){
   }catch(e){whatsappPairing=null;toast(e.message);}
 }
 async function copyWhatsappPairing(){try{if(whatsappPairing){await navigator.clipboard.writeText(whatsappPairing.pairingSecret);toast('Código copiado. Guarde apenas no conector desta conta.');}}catch{toast('Não foi possível copiar. Selecione o código no campo.');}}
-
 async function openAwinTools(){
   var body='<label for="awinAction">Operação Awin</label><select id="awinAction" name="action" required><option value="test">Validar conexão (programas joined)</option><option value="programmes">Listar programas por relacionamento</option><option value="feed">Consultar feed de produtos JSONL</option></select>'+
     '<label for="awinRelationship">Relacionamento</label><select id="awinRelationship" name="relationship"><option value="joined">joined · aprovado/participando</option><option value="pending">pending · aguardando</option><option value="notjoined">notjoined · ainda não associado</option><option value="suspended">suspended · suspenso</option><option value="rejected">rejected · recusado</option></select>'+
