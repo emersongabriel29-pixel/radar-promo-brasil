@@ -16,10 +16,16 @@ const encBytes=bytes=>btoa(String.fromCharCode(...new Uint8Array(bytes)));
 const decBytes=value=>Uint8Array.from(atob(value),c=>c.charCodeAt(0));
 async function accountFor(member){return (await db.query('SELECT id FROM accounts WHERE owner_member_id=$1 AND status=\'ACTIVE\'',[String(member.id)])).rows[0]}
 async function cipherKey(accountId){
-  let master;
-  try { master=await config.get('API_CREDENTIALS_MASTER_KEY'); } catch { master=''; }
-  if(!master)throw Object.assign(new Error('Configure o segredo API_CREDENTIALS_MASTER_KEY em Configurações do projeto antes de cadastrar chaves. Use uma chave aleatória forte com pelo menos 32 caracteres; ela protege a criptografia das credenciais.'),{status:412});
-  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(master)+'|radar-promo-api-credentials|'+accountId));
+  let master='';
+  try { master=String(await config.get('API_CREDENTIALS_MASTER_KEY')||''); } catch {}
+  // Reuse the project's established connector master secret when the optional
+  // dedicated API key is not configured. Purpose-separated derivation keeps
+  // API credentials cryptographically distinct from marketplace credentials.
+  if(master.length<32){
+    try { master=String(await config.get('CONNECTOR_ENCRYPTION_KEY')||''); } catch {}
+  }
+  if(master.length<32)throw Object.assign(new Error('Configure CONNECTOR_ENCRYPTION_KEY (ou API_CREDENTIALS_MASTER_KEY) em Configurações do projeto, com pelo menos 32 caracteres, para proteger as credenciais.'),{status:412});
+  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(master+'|radar-promo-api-credentials|'+accountId));
   return crypto.subtle.importKey('raw',digest,{name:'AES-GCM'},false,['encrypt','decrypt']);
 }
 export default async function(req,res){
