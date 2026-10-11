@@ -183,8 +183,10 @@ export default async function handler(req, res) {
       if (feedUrl.username || feedUrl.password || (feedUrl.protocol !== 'http:' && feedUrl.protocol !== 'https:')) throw Object.assign(new Error('A URL do feed retornada pela Admitad é inválida.'), { status: 502 });
       // Legacy feed URLs can be HTTP; upgrade only the verified official export host to HTTPS so account codes never travel in clear text.
       feedUrl.protocol = 'https:';
-      const feedResponse = await fetch(feedUrl.toString(), { headers: { accept: 'application/xml,text/xml;q=0.9,*/*;q=0.1' }, signal: AbortSignal.timeout(20000) });
+      const feedResponse = await fetch(feedUrl.toString(), { redirect: 'error', headers: { accept: 'application/xml,text/xml;q=0.9,*/*;q=0.1' }, signal: AbortSignal.timeout(20000) });
       if (!feedResponse.ok) throw Object.assign(new Error('O feed da Admitad não pôde ser lido por HTTPS (HTTP ' + feedResponse.status + '). Confira se o feed está habilitado.'), { status: 502 });
+      const declaredSize = Number(feedResponse.headers.get('content-length') || 0);
+      if (declaredSize > 2000000) throw Object.assign(new Error('O feed XML ultrapassa 2 MB; escolha outro feed ou reduza o catálogo no portal Admitad.'), { status: 413 });
       const xml = await feedResponse.text();
       if (xml.length > 2000000) throw Object.assign(new Error('O feed XML ultrapassa 2 MB; escolha outro feed ou reduza o catálogo no portal Admitad.'), { status: 413 });
       const parsed = parseProductFeed(xml, limit);
