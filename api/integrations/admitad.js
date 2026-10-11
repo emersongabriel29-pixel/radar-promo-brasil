@@ -44,7 +44,7 @@ async function accessToken(accountId, credentials) {
     form.set('client_secret', clientSecret);
   } else {
     form.set('grant_type', 'client_credentials');
-    form.set('scope', 'advcampaigns deeplink_generator websites');
+    form.set('scope', 'advcampaigns advcampaigns_for_website deeplink_generator websites');
     headers.authorization = 'Basic ' + btoa(clientId + ':' + clientSecret);
   }
   const response = await fetch(BASE + '/token/', { method: 'POST', headers, body: form.toString(), signal: AbortSignal.timeout(12000) });
@@ -71,6 +71,43 @@ async function apiRequest(path, token, options = {}) {
   if (!response.ok) throw Object.assign(new Error('A Admitad recusou a operação (HTTP ' + response.status + '). Confira website ID, campanha e escopos autorizados.'), { status: response.status === 401 || response.status === 403 ? 502 : response.status >= 400 && response.status < 500 ? response.status : 502 });
   return data;
 }
+function decodeXml(value) {
+  return String(value || '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, function (_, n) { return String.fromCodePoint(Math.min(0x10ffff, Number(n) || 0)); });
+}
+function xmlValue(block, names) {
+  for (const name of names) {
+    const pattern = '<' + name + '[^>]*>([\\s\\S]*?)</' + name + '>';
+    const match = String(block || '').match(new RegExp(pattern, 'i'));
+    if (match) return decodeXml(match[1].replace(/<[^>]+>/g, '').trim());
+  }
+  return '';
+}
+function parseProductFeed(xml, limit) {
+  const source = String(xml || '');
+  const matches = source.match(/<offer\b[^>]*>[\s\S]*?<\/offer>|<item\b[^>]*>[\s\S]*?<\/item>/gi) || [];
+  const items = [];
+  for (const block of matches.slice(0, 500)) {
+    const idAttrMatch = block.match(/<offer[^>]*id=["']([^"']+)["']/i) || block.match(/<item[^>]*id=["']([^"']+)["']/i);
+    const productUrl = xmlValue(block, ['url', 'link']);
+    const imageUrl = xmlValue(block, ['picture', 'image', 'image_link']);
+    const price = xmlValue(block, ['price', 'sale_price']);
+    const title = xmlValue(block, ['name', 'title']);
+    if (!title || !/^https:\/\//i.test(productUrl)) continue;
+    items.push({
+      id: clean((idAttrMatch && idAttrMatch[1]) || xmlValue(block, ['id', 'sku']), 100),
+      title: clean(title, 250),
+      description: clean(xmlValue(block, ['description']), 500),
+      productUrl: clean(productUrl, 2000),
+      imageUrl: /^https:\/\//i.test(imageUrl) ? clean(imageUrl, 2000) : '',
+      price: clean(price, 80),
+      currency: clean(xmlValue(block, ['currencyId', 'currency']), 3),
+      brand: clean(xmlValue(block, ['vendor', 'brand']), 120),
+      category: clean(xmlValue(block, ['category']), 160),
+      source: 'ADMITAD'
+    });
+  }
+  return { items: items.slice(0, limit), count: matches.length, incomplete: matches.length > limit };
+}
 function normalizeCampaign(c) {
   return {
     id: String(c.id ?? ''),
@@ -96,7 +133,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') return res.json({
       provider: 'ADMITAD',
       status: saved?.status || 'NOT_CONFIGURED',
-      capabilities: ['affiliate_campaigns', 'website_campaigns', 'automatic_token_refresh', 'affiliate_deeplinks'],
+      capabilities: ['affiliate_campaigns', 'website_campaigns', 'product_feed_preview', 'automatic_token_refresh', 'affiliate_deeplinks'],
       apiDocumentation: 'https://developers.mitgo.com/hc/en-us/articles/34481290690834-Introduction',
       publicationEnabled: false,
       note: 'Client credentials e tokens são criptografados. O token é renovado com refresh_token; o Website ID deve pertencer à sua conta.'
@@ -128,6 +165,54 @@ export default async function handler(req, res) {
         publicationEnabled: false,
         note: 'Consulta somente leitura. URLs de feed contendo credenciais nunca são retornadas.'
       });
+    }
+    if (action === 'product_feed') {
+      const campaignId = clean(body.campaignId, 20);
+      const feedIndex = Math.min(20, Math.max(0, Math.floor(Number(body.feedIndex) || 0)));
+      const limit = Math.min(50, Math.max(1, Math.floor(Number(body.limit) || 20)));
+      if (!/^\d{1,20}$/.test(campaignId)) return res.status(400).json({ error: 'O ID da campanha precisa ser numérico.' });
+      const campaign = await apiRequest('/advcampaigns/' + campaignId + '/website/' + websiteId + '/', token);
+      if (!campaign.show_products_links) return res.status(412).json({ error: 'Esta campanha não liberou feed de produtos para o seu Website ID.' });
+      const feeds = Array.isArray(campaign.feeds_info) ? campaign.feeds_info : [];
+      const feed = feeds[feedIndex] || null;
+      const feedUrlText = (feed && feed.xml_link) || campaign.products_xml_link || '';
+      let feedUrl;
+      try { feedUrl = new URL(feedUrlText); } catch { throw Object.assign(new Error('A Admitad não retornou um URL XML de feed válido.'), { status: 502 }); }
+      const host = feedUrl.hostname.toLowerCase();
+      if (host !== 'export.admitad.com' && !host.endsWith('.export.admitad.com')) throw Object.assign(new Error('O host do feed retornado pela Admitad não está autorizado.'), { status: 502 });
+      if (feedUrl.username || feedUrl.password || (feedUrl.protocol !== 'http:' && feedUrl.protocol !== 'https:')) throw Object.assign(new Error('A URL do feed retornada pela Admitad é inválida.'), { status: 502 });
+      // Legacy feed URLs can be HTTP; upgrade only the verified official export host to HTTPS so account codes never travel in clear text.
+      feedUrl.protocol = 'https:';
+      const feedResponse = await fetch(feedUrl.toString(), { headers: { accept: 'application/xml,text/xml;q=0.9,*/*;q=0.1' }, signal: AbortSignal.timeout(20000) });
+      if (!feedResponse.ok) throw Object.assign(new Error('O feed da Admitad não pôde ser lido por HTTPS (HTTP ' + feedResponse.status + '). Confira se o feed está habilitado.'), { status: 502 });
+      const xml = await feedResponse.text();
+      if (xml.length > 2000000) throw Object.assign(new Error('O feed XML ultrapassa 2 MB; escolha outro feed ou reduza o catálogo no portal Admitad.'), { status: 413 });
+      const parsed = parseProductFeed(xml, limit);
+      return res.json({ provider: 'ADMITAD', campaignId, feedName: clean((feed && feed.name) || campaign.name, 180), feedUpdatedAt: clean((feed && feed.admitad_last_update) || '', 40), ...parsed, publicationEnabled: false, feedUrlExposed: false, note: 'Pré-visualização somente leitura. A URL autenticada do feed nunca é retornada e nenhum produto é salvo ou publicado.' });
+    }
+    if (action === 'product_feed') {
+      const campaignId = clean(body.campaignId, 20);
+      const feedIndex = Math.min(20, Math.max(0, Math.floor(Number(body.feedIndex) || 0)));
+      const limit = Math.min(50, Math.max(1, Math.floor(Number(body.limit) || 20)));
+      if (!/^\d{1,20}$/.test(campaignId)) return res.status(400).json({ error: 'O ID da campanha precisa ser numérico.' });
+      const campaign = await apiRequest('/advcampaigns/' + campaignId + '/website/' + websiteId + '/', token);
+      if (!campaign.show_products_links) return res.status(412).json({ error: 'Esta campanha não liberou feed de produtos para o seu Website ID.' });
+      const feeds = Array.isArray(campaign.feeds_info) ? campaign.feeds_info : [];
+      const feed = feeds[feedIndex] || null;
+      const feedUrlText = (feed && feed.xml_link) || campaign.products_xml_link || '';
+      let feedUrl;
+      try { feedUrl = new URL(feedUrlText); } catch { throw Object.assign(new Error('A Admitad não retornou um URL XML de feed válido.'), { status: 502 }); }
+      const host = feedUrl.hostname.toLowerCase();
+      if (host !== 'export.admitad.com' && !host.endsWith('.export.admitad.com')) throw Object.assign(new Error('O host do feed retornado pela Admitad não está autorizado.'), { status: 502 });
+      if (feedUrl.username || feedUrl.password || (feedUrl.protocol !== 'http:' && feedUrl.protocol !== 'https:')) throw Object.assign(new Error('A URL do feed retornada pela Admitad é inválida.'), { status: 502 });
+      // Legacy feed URLs can be HTTP; upgrade only the verified official export host to HTTPS so account codes never travel in clear text.
+      feedUrl.protocol = 'https:';
+      const feedResponse = await fetch(feedUrl.toString(), { headers: { accept: 'application/xml,text/xml;q=0.9,*/*;q=0.1' }, signal: AbortSignal.timeout(20000) });
+      if (!feedResponse.ok) throw Object.assign(new Error('O feed da Admitad não pôde ser lido por HTTPS (HTTP ' + feedResponse.status + '). Confira se o feed está habilitado.'), { status: 502 });
+      const xml = await feedResponse.text();
+      if (xml.length > 2000000) throw Object.assign(new Error('O feed XML ultrapassa 2 MB; escolha outro feed ou reduza o catálogo no portal Admitad.'), { status: 413 });
+      const parsed = parseProductFeed(xml, limit);
+      return res.json({ provider: 'ADMITAD', campaignId, feedName: clean((feed && feed.name) || campaign.name, 180), feedUpdatedAt: clean((feed && feed.admitad_last_update) || '', 40), ...parsed, publicationEnabled: false, feedUrlExposed: false, note: 'Pré-visualização somente leitura. A URL autenticada do feed nunca é retornada e nenhum produto é salvo ou publicado.' });
     }
     if (action === 'deeplink') {
       const campaignId = clean(body.campaignId, 20);
