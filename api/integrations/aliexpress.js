@@ -64,9 +64,9 @@ function normalize(items) {
     imageUrl:clean(x.product_main_image_url||x.productMainImageUrl,1500),
     productUrl:clean(x.product_detail_url||x.productDetailUrl||x.source_value,2000),
     affiliateUrl:clean(x.promotion_link||x.promotionLink||x.promotion_link_url,2000),
-    price: x.target_sale_price??x.sale_price??x.salePrice??null,
+    price: x.target_sale_price??x.app_sale_price??x.sale_price??x.salePrice??null,
     originalPrice:x.target_original_price??x.original_price??null,
-    commissionRate:x.commission_rate??x.commissionRate??null,
+    commissionRate:x.commission_rate??x.commision_rate??x.hot_product_commission_rate??x.commissionRate??null,
     status:clean(x.order_status||x.status,80),
     createdAt:clean(x.created_time||x.createdTime,80),
     rawType:clean(x.type||x.category_name,100)
@@ -77,6 +77,13 @@ function build(method,body,c) {
   const pageNo=Math.min(1000,Math.max(1,Math.floor(Number(body.page)||1)));
   const country=clean(body.country||'BR',2).toUpperCase();
   const common={tracking_id:clean(body.trackingId||c.trackingId,200),target_currency:'BRL',target_language:'PT',ship_to_country:country};
+  const dates=()=>{
+    const start=clean(body.startTime,19),end=clean(body.endTime,19);
+    const valid=s=>/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(s)&&Number.isFinite(Date.parse(s.replace(' ','T')+'Z'));
+    if(!valid(start)||!valid(end)||Date.parse(end.replace(' ','T')+'Z')<Date.parse(start.replace(' ','T')+'Z')||Date.parse(end.replace(' ','T')+'Z')-Date.parse(start.replace(' ','T')+'Z')>90*86400000)throw Object.assign(new Error('Informe startTime/endTime no formato AAAA-MM-DD HH:mm:ss, em um intervalo de até 90 dias.'),{status:400});
+    return {start_time:start,end_time:end};
+  };
+  const orderFields='order_id,product_id,product_title,product_count,product_price,commission_rate,commission,created_time,order_status';
   if(method==='test'||method==='products'){
     const params={fields,keywords:clean(body.keyword||(method==='test'?'cabo usb':''),120),page_no:pageNo,page_size:method==='test'?1:page,sort:clean(body.sort||'SALE_PRICE_ASC',40),...common};
     if(body.categoryIds)params.category_ids=clean(body.categoryIds,200);
@@ -84,14 +91,21 @@ function build(method,body,c) {
     if(body.maxPrice)params.max_sale_price=clean(body.maxPrice,30);
     return {api:'aliexpress.affiliate.product.query',params};
   }
+  if(method==='smartMatch'){
+    const params={fields,keywords:clean(body.keyword,120),page_no:pageNo,country,target_currency:'BRL',target_language:'PT',tracking_id:clean(body.trackingId||c.trackingId,200)};
+    const productId=clean(body.productId,30);if(productId&&/^\d{1,30}$/.test(productId))params.product_id=productId;
+    if(!params.keywords&&!params.product_id)throw Object.assign(new Error('Informe uma palavra-chave ou um ID de produto para a recomendação inteligente.'),{status:400});
+    return {api:'aliexpress.affiliate.product.smartmatch',params};
+  }
   if(method==='hotProducts')return {api:'aliexpress.affiliate.hotproduct.query',params:{fields,category_ids:clean(body.categoryIds,200),page_no:pageNo,page_size:page,...common}};
+  if(method==='hotProductsDownload')return {api:'aliexpress.affiliate.hotproduct.download',params:{fields,category_id:clean(body.categoryId,80),country,locale_site:clean(body.localeSite||'global',30),page_no:pageNo,page_size:page,target_currency:'BRL',target_language:'PT',tracking_id:clean(body.trackingId||c.trackingId,200)}};
   if(method==='productDetail'){
     const ids=clean(body.productIds,500).split(',').map(x=>x.trim()).filter(x=>/^\d{1,30}$/.test(x)).slice(0,20);
     if(!ids.length)throw Object.assign(new Error('Informe de 1 a 20 IDs numéricos de produtos AliExpress.'),{status:400});
     return {api:'aliexpress.affiliate.productdetail.get',params:{fields,product_ids:ids.join(','),...common}};
   }
   if(method==='categories')return {api:'aliexpress.affiliate.category.get',params:{fields:'category_id,parent_category_id,category_name'}};
-  if(method==='campaigns')return {api:'aliexpress.affiliate.featuredpromo.get',params:{fields:'promotion_name,promotion_start_time,promotion_end_time,commission_rate,sale_price',app_signature:clean(c.appSignature,300)}};
+  if(method==='campaigns')return {api:'aliexpress.affiliate.featuredpromo.get',params:{fields:'promotion_name,promotion_start_time,promotion_end_time,commission_rate,sale_price'}};
   if(method==='campaignProducts'){
     const promo=clean(body.promotionName,180);
     if(!promo)throw Object.assign(new Error('Informe o nome exato da campanha retornado pelo AliExpress.'),{status:400});
@@ -103,11 +117,16 @@ function build(method,body,c) {
     if(source.protocol!=='https:'||source.username||source.password||!(host==='aliexpress.com'||host.endsWith('.aliexpress.com')||host==='aliexpress.us'||host.endsWith('.aliexpress.us')))throw Object.assign(new Error('O link de origem precisa ser HTTPS, sem credenciais embutidas, e pertencer a um domínio oficial AliExpress.'),{status:400});
     return {api:'aliexpress.affiliate.link.generate',params:{promotion_link_type:'0',source_values:source.toString(),tracking_id:clean(body.trackingId||c.trackingId,200)}};
   }
-  if(method==='orders'){
-    const start=clean(body.startTime,19),end=clean(body.endTime,19);
-    const validDate=s=>/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(s)&&Number.isFinite(Date.parse(s.replace(' ','T')+'Z'));
-    if(!validDate(start)||!validDate(end)||Date.parse(end.replace(' ','T')+'Z')<Date.parse(start.replace(' ','T')+'Z')||Date.parse(end.replace(' ','T')+'Z')-Date.parse(start.replace(' ','T')+'Z')>90*86400000)throw Object.assign(new Error('Informe startTime/endTime no formato AAAA-MM-DD HH:mm:ss, em um intervalo de até 90 dias.'),{status:400});
-    return {api:'aliexpress.affiliate.order.list',params:{fields:'order_id,product_id,product_title,product_count,product_price,commission_rate,commission,created_time,order_status',start_time:start,end_time:end,page_no:pageNo,page_size:page,locale_site:'br_site',status:clean(body.orderStatus||'Payment Completed',50),app_signature:clean(c.appSignature,300)}};
+  if(method==='orders')return {api:'aliexpress.affiliate.order.list',params:{fields:orderFields,...dates(),page_no:pageNo,page_size:page,locale_site:'global',status:clean(body.orderStatus||'Payment Completed',50)}};
+  if(method==='orderDetail'){
+    const ids=clean(body.orderIds,500).split(',').map(x=>x.trim()).filter(x=>/^\d{1,40}$/.test(x)).slice(0,20);
+    if(!ids.length)throw Object.assign(new Error('Informe de 1 a 20 IDs numéricos de pedidos.'),{status:400});
+    return {api:'aliexpress.affiliate.order.get',params:{fields:orderFields,order_ids:ids.join(',')}};
+  }
+  if(method==='ordersByCursor'){
+    const cursor=clean(body.cursor,200);
+    if(!cursor)throw Object.assign(new Error('Informe o start_query_index_id retornado pela consulta anterior.'),{status:400});
+    return {api:'aliexpress.affiliate.order.listbyindex',params:{fields:orderFields,...dates(),start_query_index_id:cursor,page_size:page,locale_site:'global',status:clean(body.orderStatus||'Payment Completed',50)}};
   }
   return null;
 }
@@ -121,7 +140,7 @@ export default async function handler(req,res){
       provider:'ALIEXPRESS',
       status:saved?.status||'NOT_CONFIGURED',
       mode:'official_TOP_affiliate_legacy_compatibility',
-      capabilities:['product_search','hot_products','product_details','categories','featured_campaigns','campaign_products','affiliate_link_generation','order_commission_reports'],
+      capabilities:['product_search','smart_match_recommendations','hot_products','hot_product_download','product_details','categories','featured_campaigns','campaign_products','affiliate_link_generation','order_list','order_details','cursor_order_reports'],
       apiDocumentationStatus:'LEGACY_DOCUMENTATION_MARKED_DEPRECATED',
       publicationEnabled:false,
       note:'A documentação pública dos métodos Affiliate API está marcada como descontinuada. A validação real depende de a conta ainda ter acesso e permissões no portal. O Radar não publica ofertas automaticamente.'
@@ -139,7 +158,7 @@ export default async function handler(req,res){
         throw error;
       }
     }
-    const map={products:'products',hotProducts:'hotProducts',productDetail:'productDetail',categories:'categories',campaigns:'campaigns',campaignProducts:'campaignProducts',generateLink:'generateLink',orders:'orders'};
+    const map={products:'products',smartMatch:'smartMatch',hotProducts:'hotProducts',hotProductsDownload:'hotProductsDownload',productDetail:'productDetail',categories:'categories',campaigns:'campaigns',campaignProducts:'campaignProducts',generateLink:'generateLink',orders:'orders',orderDetail:'orderDetail',ordersByCursor:'ordersByCursor'};
     const actionName=map[action];if(!actionName)return res.status(400).json({error:'Operação não suportada.'});
     const spec=build(actionName,req.body||{},c);if(!spec)return res.status(400).json({error:'Parâmetros inválidos.'});
     const data=await topRequest(c,spec.api,spec.params),result=unwrap(data,spec.api),items=normalize(listOf(result));
