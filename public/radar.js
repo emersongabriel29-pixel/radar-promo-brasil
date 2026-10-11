@@ -1079,19 +1079,26 @@ function integrations() {
   );
 }
 function integration(code, name, desc, state, action) {
+  var needsSetup=['Cadastrar chaves','Cadastrar chaves API seller','Cadastrar dados · pendente','Preparar oferta manual','Importar link'].indexOf(state)!==-1;
+  var initialStatus=needsSetup?'Não configurada':state;
+  var actionLabel=action==='connectMercadoLivre()'?'Autorizar Mercado Livre':
+    code==='MAG'?'Cadastrar chaves API seller':
+    code==='SHN'?'Importar link / preparar oferta':
+    action&&action.indexOf('openMarketplaceSetup(')===0?'Cadastrar chaves':
+    action?'Abrir configuração':'';
   return (
-    '<div class="integration"><div class="intlogo">' +
+    '<div class="integration" data-integration-code="'+esc(code)+'"><div class="intlogo">' +
     code +
     '</div><div class="grow"><b>' +
     name +
     '</b><div class="muted">' +
     desc +
     '</div>' +
-    (action ? '<button type="button" class="btn secondary csp-margin-top-10px" data-action="' + action + '">Conectar conta</button>' : '') +
+    (action ? '<button type="button" class="btn secondary csp-margin-top-10px" data-action="' + action + '">' + actionLabel + '</button>' : '') +
     '</div><span class="pill ' +
-    (state === "Testado" || state === "Disponível" ? "live" : "warn") +
+    (initialStatus === "Testado" || initialStatus === "Disponível" ? "live" : "warn") +
     '">' +
-    state +
+    initialStatus +
     "</span></div>"
   );
 }
@@ -3408,7 +3415,7 @@ async function loadMarketplaceStatus(){
  try{
   var data=await operationRequest('/api/integrations/marketplaces');
   root.innerHTML=(data.items||[]).map(function(item){
-   var status=item.id==='SHEIN'?'Links oficiais · importação manual':item.id==='MAGALU'?(item.credentialFields||[]).indexOf('clientId')!==-1&& (item.credentialFields||[]).indexOf('clientSecret')!==-1?'Chaves salvas · OAuth pendente':'API seller não configurada · afiliado manual':item.status==='VALIDATED'?'Validada':item.status==='ERROR'?'Erro de validação':item.status==='PENDING_VALIDATION'?'Chaves salvas · validação pendente':item.status==='NOT_CONFIGURED'?'Não configurada':item.id==='ALIEXPRESS'?'API legada · não validada':item.id==='AWIN'?'Awin · '+(item.status==='VALIDATED'?'programas validados':'validação pendente'):'Status não reconhecido';
+   var status=item.id==='SHEIN'?'Links oficiais · importação manual':item.id==='MAGALU'?(item.credentialFields||[]).indexOf('clientId')!==-1&&(item.credentialFields||[]).indexOf('clientSecret')!==-1?'Chaves salvas · OAuth pendente':'API seller não configurada · afiliado manual':item.status==='VALIDATED'?'Validada':item.status==='ERROR'?'Erro de validação':item.status==='PENDING_VALIDATION'?'Chaves salvas · validação pendente':item.status==='NOT_CONFIGURED'?'Não configurada':item.id==='ALIEXPRESS'?'API legada · validação pendente':item.id==='AWIN'?'Awin · validação pendente':'Status não reconhecido';
    var cls=item.status==='VALIDATED'?'live':'warn';
    var fields=(item.credentialFields||[]).map(esc).join(', ');
    var lomadeeActions=item.id==='LOMADEE'&&(item.credentialFields||[]).indexOf('apiKey')!==-1?'<button class="btn secondary" type="button" data-action="testLomadeeConnection()">Testar API</button>'+(item.status==='VALIDATED'?' <button class="btn secondary" type="button" data-action="loadLomadeeContents()">Conteúdos</button> <button class="btn secondary" type="button" data-action="loadLomadeeCommissions()">Regras de comissão</button> <button class="btn secondary" type="button" data-action="loadLomadeeOrders()">Pedidos</button>':''):'';
@@ -3421,6 +3428,13 @@ async function loadMarketplaceStatus(){
    var admitadActions=item.id==='ADMITAD'&&(item.credentialFields||[]).indexOf('clientId')!==-1&&(item.credentialFields||[]).indexOf('clientSecret')!==-1?'<button class="btn secondary" type="button" data-action="openAdmitadTools()">Ferramentas Admitad</button>':'';
    return '<div class="integration"><div class="grow"><b>'+esc(item.name)+'</b><div class="muted">'+(item.id==='SHEIN'?'Importe links gerados no Centro de Afiliados.':item.id==='MAGALU'?(fields.indexOf('clientId')!==-1&&fields.indexOf('clientSecret')!==-1?'API de seller: chaves salvas; OAuth e teste oficial ainda pendentes.':'Afiliados: importe link manual. API de seller usa OAuth 2.0 e é uma integração separada.'):(fields?'Campos cadastrados: '+fields:'Nenhuma credencial cadastrada.'))+'</div>'+(item.updatedAt?'<small class="muted">Atualizado em '+esc(new Date(item.updatedAt).toLocaleDateString('pt-BR'))+'</small>':'')+'<div class="csp-margin-top-10px"><a class="btn secondary" href="'+esc(item.portalUrl)+'" target="_blank" rel="noopener noreferrer">Abrir portal ↗</a> <button class="btn secondary" type="button" data-action="openMarketplaceSetup(\''+esc(item.id)+'\')">'+(item.id==='MAGALU'?'Cadastrar chaves API seller':item.id==='SHEIN'?'Preparar oferta':(fields?'Atualizar chaves':'Cadastrar chaves'))+'</button> '+(item.id==='MAGALU'?'<button class="btn secondary" type="button" data-action="openMagaluTools()">Importar link de afiliado</button>':'')+' '+lomadeeActions+' '+shopeeActions+' '+amazonActions+' '+sheinActions+' '+aliexpressActions+' '+awinActions+' '+rakutenActions+' '+admitadActions+'</div></div><span class="pill '+cls+'">'+status+'</span></div>';
   }).join('')||'<div class="empty">Nenhuma loja disponível.</div>';
+  var overviewCode={MERCADOLIVRE:'ML',SHOPEE:'SH',AMAZON:'AMZ',ALIEXPRESS:'ALI',SHEIN:'SHN',MAGALU:'MAG',CASAS_BAHIA:'CB',HOTMART:'HOT',KABUM:'KB',AMERICANAS:'AME',LOMADEE:'LOM',AWIN:'AWIN',RAKUTEN:'RAK',ADMITAD:'ADM'};
+  (data.items||[]).forEach(function(item){
+   var code=overviewCode[item.id],card=code?document.querySelector('.integration[data-integration-code="'+code+'"]'):null,pill=card&&card.querySelector('.pill');
+   if(!pill)return;
+   var label=item.id==='SHEIN'?'Fluxo manual':item.id==='MAGALU'?(item.credentialFields||[]).indexOf('clientId')!==-1&&(item.credentialFields||[]).indexOf('clientSecret')!==-1?'OAuth pendente':'API seller pendente':item.status==='VALIDATED'?'Validada':item.status==='ERROR'?'Erro':item.status==='PENDING_VALIDATION'?'Validação pendente':item.status==='NOT_CONFIGURED'?'Não configurada':item.status;
+   pill.textContent=label;pill.className='pill '+(item.status==='VALIDATED'?'live':'warn');
+  });
  }catch(error){root.innerHTML='<div class="empty" role="alert">'+esc(error.message)+'</div>';}
 }
 var originalIntegrations=integrations;
