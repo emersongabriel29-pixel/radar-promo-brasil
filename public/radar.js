@@ -320,7 +320,7 @@ function dashboard() {
       validatedMarketplaces > 0 &&
       activeConnections > 0;
   return (
-    '<section class="hero"><div><div class="eyebrow eyebrow-highlight">OPERAÇÃO INTELIGENTE</div><h2>Da oferta encontrada ao grupo certo, sem trabalho repetitivo.</h2><p>Monitore fontes, analise produtos, valide links de afiliado e prepare publicações com imagem e texto. O envio só é liberado quando os requisitos do canal e do rastreamento estiverem confirmados.</p><div class="actions"><button type=\"button\" id=\"create-promotion\" class=\"btn\" data-action=\"show(\'quick\')\">Criar promoção</button><button type="button" id="configure-monitor" class="btn secondary" data-action="show(\'monitoring\')">Configurar monitor</button></div></div><div class="pulsebox"><div class="pulse"><span>Motor de automação</span><i class="dot"></i></div><strong>' +
+    '<section class="hero"><div><div class="eyebrow eyebrow-highlight">RESUMO DA OPERAÇÃO</div><h2>Ofertas, canais e envios em um só lugar.</h2><p>Acompanhe as fontes, revise ofertas e confira a fila antes de publicar. Links e requisitos do canal são verificados antes do envio.</p><div class="actions"><button type=\"button\" id=\"create-promotion\" class=\"btn\" data-action=\"show(\'quick\')\">Criar promoção</button><button type="button" id="configure-monitor" class="btn secondary" data-action="show(\'monitoring\')">Configurar monitor</button></div></div><div class="pulsebox"><div class="pulse"><span>Motor de automação</span><i class="dot"></i></div><strong>' +
     (operationOn ? "24/7 ativo" : "Em configuração") +
     "</strong><small>" +
     active +
@@ -335,8 +335,8 @@ function dashboard() {
     metric("Cliques rastreados", clicks, "links publicados") +
     "</div>" +
     section(
-      "Quatro modos de operação",
-      "Escolha entre controle total e automação completa.",
+      "Fluxo de trabalho",
+      "Escolha como capturar, preparar e distribuir ofertas.",
     ) +
     '<div class="grid modes">' +
     mode(
