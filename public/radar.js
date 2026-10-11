@@ -3372,7 +3372,7 @@ async function deleteApiCredential(provider){
  }catch(error){toast(error.message);}
 }
 function marketplaceCredentialsPanel(){
- return '<div class="card csp-margin-bottom-16px"><h3>Credenciais das lojas</h3><p class="muted">Cadastre apenas chaves, tokens e IDs emitidos pelo portal oficial. Salvar credenciais não significa que a API foi validada; nenhuma oferta é publicada por esta tela.</p><div id="marketplaceCredentialStatus" class="grid two"><div class="empty">Carregando estado das lojas...</div></div></div>';
+ return '<div class="card csp-margin-bottom-16px"><h3>Credenciais das lojas</h3><p class="muted">Cadastre apenas chaves, tokens e IDs emitidos pelo portal oficial. Salvar credenciais não significa que a API foi validada; nenhuma oferta é publicada por esta tela.</p><div id="marketplaceCredentialStatus" class="grid two"><div class="empty">Carregando estado das lojas...</div></div><div id="lomadeeDataPanel" class="csp-margin-top-16px"></div></div>';
 }
 async function loadMarketplaceStatus(){
  var root=document.getElementById('marketplaceCredentialStatus');if(!root)return;
@@ -3382,7 +3382,8 @@ async function loadMarketplaceStatus(){
    var status=item.status==='VALIDATED'?'Validada':item.status==='ERROR'?'Erro de validação':item.status==='PENDING_VALIDATION'?'Chaves salvas · validação pendente':'Aguardando credenciais';
    var cls=item.status==='VALIDATED'?'live':'warn';
    var fields=(item.credentialFields||[]).map(esc).join(', ');
-   return '<div class="integration"><div class="grow"><b>'+esc(item.name)+'</b><div class="muted">'+(fields?'Campos cadastrados: '+fields:'Nenhuma credencial cadastrada.')+'</div>'+(item.updatedAt?'<small class="muted">Atualizado em '+esc(new Date(item.updatedAt).toLocaleDateString('pt-BR'))+'</small>':'')+'<div class="csp-margin-top-10px"><a class="btn secondary" href="'+esc(item.portalUrl)+'" target="_blank" rel="noopener noreferrer">Abrir portal ↗</a> <button class="btn secondary" type="button" data-action="openMarketplaceSetup(\''+esc(item.id)+'\')">'+(fields?'Atualizar chaves':'Cadastrar chaves')+'</button></div></div><span class="pill '+cls+'">'+status+'</span></div>';
+   var lomadeeActions=item.id==='LOMADEE'&&(item.credentialFields||[]).indexOf('apiKey')!==-1?'<button class="btn secondary" type="button" data-action="testLomadeeConnection()">Testar API</button>'+(item.status==='VALIDATED'?' <button class="btn secondary" type="button" data-action="loadLomadeeContents()">Conteúdos</button> <button class="btn secondary" type="button" data-action="loadLomadeeCommissions()">Comissões</button> <button class="btn secondary" type="button" data-action="loadLomadeeOrders()">Pedidos</button>':''):'';
+   return '<div class="integration"><div class="grow"><b>'+esc(item.name)+'</b><div class="muted">'+(fields?'Campos cadastrados: '+fields:'Nenhuma credencial cadastrada.')+'</div>'+(item.updatedAt?'<small class="muted">Atualizado em '+esc(new Date(item.updatedAt).toLocaleDateString('pt-BR'))+'</small>':'')+'<div class="csp-margin-top-10px"><a class="btn secondary" href="'+esc(item.portalUrl)+'" target="_blank" rel="noopener noreferrer">Abrir portal ↗</a> <button class="btn secondary" type="button" data-action="openMarketplaceSetup(\''+esc(item.id)+'\')">'+(fields?'Atualizar chaves':'Cadastrar chaves')+'</button> '+lomadeeActions+'</div></div><span class="pill '+cls+'">'+status+'</span></div>';
   }).join('')||'<div class="empty">Nenhuma loja disponível.</div>';
  }catch(error){root.innerHTML='<div class="empty" role="alert">'+esc(error.message)+'</div>';}
 }
@@ -3414,7 +3415,8 @@ async function openMarketplaceSetup(provider){
       field('Tracking ID / SubID padrão (opcional)','trackingId','text','autocomplete="off" maxlength="4096"')+
       field('Outro campo oficial (opcional)','extra','text','placeholder="Ex.: campo=valor; não inclua senha de login nem cookies" maxlength="4096"')+
       '<div class="callout">As credenciais serão criptografadas no servidor. O sistema não testa nem declara a conta conectada nesta etapa. A ativação só poderá ocorrer após validar o endpoint oficial e as permissões da conta.</div>';
-    openModal('Preparar conexão · '+item.name,'Abra o portal oficial, copie apenas as credenciais de API emitidas para sua conta e preencha os campos aplicáveis. Não informe senha de login, cookies ou códigos de recuperação.',body,async function(event){
+    if(provider==='LOMADEE') body=field('Chave de autenticação da API (x-auth-key)','apiKey','password','autocomplete="new-password" maxlength="4096" required')+'<div class="callout">Use a chave de API emitida para sua conta Lomadee — não a senha de login. O Radar valida a chave com uma consulta de leitura ao endpoint oficial de conteúdos. A SDK pública verificada oferece consultas de conteúdos, comissões e pedidos; geração de deeplinks e descoberta de produtos não estão documentadas nessa SDK.</div>';
+    openModal('Preparar conexão · '+item.name,provider==='LOMADEE'?'Abra o portal Lomadee, procure as credenciais de API e informe somente a chave de autenticação. Se o portal não disponibilizar uma chave, não informe sua senha: solicite ao suporte Lomadee a habilitação e documentação da API.':'Abra o portal oficial, copie apenas as credenciais de API emitidas para sua conta e preencha os campos aplicáveis. Não informe senha de login, cookies ou códigos de recuperação.',body,async function(event){
       event.preventDefault();
       var formData=new FormData(event.target),credentials={};
       ['affiliateId','appId','clientId','apiKey','apiSecret','clientSecret','accessToken','trackingId','extra'].forEach(function(key){var value=String(formData.get(key)||'').trim();if(value)credentials[key]=value;});
@@ -3423,6 +3425,33 @@ async function openMarketplaceSetup(provider){
       toast(result.message||'Credenciais salvas; validação oficial pendente.');
     });
   }catch(error){toast(error.message||'Não foi possível abrir o cadastro de credenciais.');}
+}
+async function testLomadeeConnection(){
+  try{
+    var result=await operationRequest('/api/integrations/lomadee',{action:'validate'});
+    await loadMarketplaceStatus();
+    toast(result.status==='VALIDATED'?'Lomadee autenticada. Consultas de leitura habilitadas.':'Validação da Lomadee concluída.');
+  }catch(error){await loadMarketplaceStatus();toast(error.message||'Não foi possível validar a chave Lomadee.');}
+}
+async function loadLomadeeContents(){return loadLomadeeResource('contents');}
+async function loadLomadeeCommissions(){return loadLomadeeResource('commissions');}
+async function loadLomadeeOrders(){return loadLomadeeResource('orders');}
+async function loadLomadeeResource(resource){
+  var panel=document.getElementById('lomadeeDataPanel');if(!panel)return;
+  panel.innerHTML='<div class="empty">Consultando dados da Lomadee...</div>';
+  try{
+    var result=await operationRequest('/api/integrations/lomadee?resource='+encodeURIComponent(resource)+'&limit=10');
+    var labels={contents:'Conteúdos disponíveis',commissions:'Comissões',orders:'Pedidos'};
+    var rows=result.items||[];
+    panel.innerHTML='<h3>'+esc(labels[resource]||'Dados Lomadee')+'</h3><p class="muted">Consulta somente leitura · '+rows.length+' registro(s) retornado(s). Dados pessoais de clientes são omitidos.</p>'+
+      (rows.length?rows.map(function(item){
+        var heading=item.title||item.name||item.id||'Registro';
+        var details=resource==='contents'?[item.type,item.status,item.highlighted?'Destaque':''].filter(Boolean).join(' · '):
+          resource==='commissions'?[item.type,item.value===null?'':String(item.value),item.active?'Ativa':'Inativa',item.startAt,item.endAt].filter(Boolean).join(' · '):
+          [item.status,item.value===null?'':String(item.value),item.createdAt].filter(Boolean).join(' · ');
+        return '<div class="integration"><div class="grow"><b>'+esc(heading)+'</b><div class="muted">'+esc(details)+'</div>'+(item.url?'<a href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">Abrir conteúdo oficial ↗</a>':'')+'</div></div>';
+      }).join(''):'<div class="empty">A API não retornou registros para esta consulta.</div>');
+  }catch(error){panel.innerHTML='<div class="empty" role="alert">'+esc(error.message||'Consulta indisponível.')+'</div>';}
 }
 async function connectMercadoLivre(){
   try{

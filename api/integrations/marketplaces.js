@@ -13,7 +13,7 @@ const STORES = {
   HOTMART: { name: 'Hotmart', portalUrl: 'https://app.hotmart.com/', authModel: 'Credenciais oficiais da API Hotmart, se necessárias ao fluxo.' },
   KABUM: { name: 'KaBuM!', portalUrl: 'https://www.kabum.com.br/', authModel: 'Identificação/token fornecido pelo programa ou rede de afiliados.' },
   AMERICANAS: { name: 'Americanas', portalUrl: 'https://www.americanas.com.br/', authModel: 'Credenciais do programa/rede de afiliados contratada, quando houver API.' },
-  LOMADEE: { name: 'Lomadee', portalUrl: 'https://www.lomadee.com/', authModel: 'Credencial oficial, sujeita à confirmação de disponibilidade do serviço/API.' }
+  LOMADEE: { name: 'Lomadee', portalUrl: 'https://www.lomadee.com.br/pt-br/afiliados', authModel: 'Chave de autenticação da API oficial no cabeçalho x-auth-key, conforme SDK pública @thelomadee/sdk.' }
 };
 const ALLOWED_FIELDS = ['affiliateId','appId','apiKey','apiSecret','clientId','clientSecret','accessToken','trackingId','accountId','extra'];
 const clean = (value, max = 2000) => String(value ?? '').trim().slice(0, max);
