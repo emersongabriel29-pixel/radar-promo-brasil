@@ -967,9 +967,9 @@ function integrations() {
     integration(
       "MAG",
       "Parceiro Magalu",
-      "Cadastro de credenciais do programa oficial, se disponíveis.",
-      "Cadastrar chaves",
-      "openMarketplaceSetup('MAGALU')",
+      "Importar link oficial e preparar rascunho; API pública de afiliados não confirmada.",
+      "Importar link",
+      "openMagaluTools()",
     ) +
     integration(
       "CB",
@@ -3400,7 +3400,7 @@ async function loadMarketplaceStatus(){
  try{
   var data=await operationRequest('/api/integrations/marketplaces');
   root.innerHTML=(data.items||[]).map(function(item){
-   var status=item.id==='SHEIN'?'Links oficiais · importação manual':item.status==='VALIDATED'?'Validada':item.status==='ERROR'?'Erro de validação':item.status==='PENDING_VALIDATION'?'Chaves salvas · validação pendente':item.id==='ALIEXPRESS'?'API legada · não validada':item.id==='AWIN'?'Awin · '+(item.status==='NOT_CONFIGURED'?'não configurada':'validação pendente'):'Aguardando credenciais';
+   var status=item.id==='SHEIN'?'Links oficiais · importação manual':item.id==='MAGALU'?'Importação manual · API afiliados não confirmada':item.status==='VALIDATED'?'Validada':item.status==='ERROR'?'Erro de validação':item.status==='PENDING_VALIDATION'?'Chaves salvas · validação pendente':item.id==='ALIEXPRESS'?'API legada · não validada':item.id==='AWIN'?'Awin · '+(item.status==='NOT_CONFIGURED'?'não configurada':'validação pendente'):'Aguardando credenciais';
    var cls=item.status==='VALIDATED'?'live':'warn';
    var fields=(item.credentialFields||[]).map(esc).join(', ');
    var lomadeeActions=item.id==='LOMADEE'&&(item.credentialFields||[]).indexOf('apiKey')!==-1?'<button class="btn secondary" type="button" data-action="testLomadeeConnection()">Testar API</button>'+(item.status==='VALIDATED'?' <button class="btn secondary" type="button" data-action="loadLomadeeContents()">Conteúdos</button> <button class="btn secondary" type="button" data-action="loadLomadeeCommissions()">Regras de comissão</button> <button class="btn secondary" type="button" data-action="loadLomadeeOrders()">Pedidos</button>':''):'';
@@ -3429,6 +3429,7 @@ async function operationRequest(path,body){
 }
 async function openMarketplaceSetup(provider){
   if(provider==='SHEIN'){openSheinTools();return;}
+  if(provider==='MAGALU'){openMagaluTools();return;}
     if(provider==='ALIEXPRESS'){/* continue with the provider-specific secure credential form below */}
   try{
     var data=await operationRequest('/api/integrations/marketplaces');
@@ -3488,6 +3489,29 @@ async function loadLomadeeResource(resource){
         return '<div class="integration"><div class="grow"><b>'+esc(heading)+'</b><div class="muted">'+esc(details)+'</div>'+(item.url?'<a href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">Abrir conteúdo oficial ↗</a>':'')+'</div></div>';
       }).join(''):'<div class="empty">A API não retornou registros para esta consulta.</div>');
   }catch(error){panel.innerHTML='<div class="empty" role="alert">'+esc(error.message||'Consulta indisponível.')+'</div>';}
+}
+async function openMagaluTools(){
+  var body='<label for="magaluAction">Operação Parceiro Magalu</label><select id="magaluAction" name="action" required><option value="validate_link">Validar domínio do link (sem salvar)</option><option value="create_draft">Criar rascunho de oferta pendente</option></select>'+
+    field('Título do produto','title','text','maxlength="220" placeholder="Nome do produto"')+
+    field('Link de afiliado gerado na sua conta','affiliateUrl','url','maxlength="2000" placeholder="https://www.magazinevoce.com.br/..."')+
+    field('Link do produto (opcional)','productUrl','url','maxlength="2000"')+
+    field('Imagem HTTPS do produto','imageUrl','url','maxlength="1200"')+
+    field('Preço atual em reais','currentPrice','number','min="0.01" step="0.01"')+
+    field('Preço original em reais (opcional)','originalPrice','number','min="0.01" step="0.01"')+
+    field('ID da categoria no Radar (opcional)','categoryId','text','maxlength="80"')+
+    '<label class="csp-margin-top-10px"><input type="checkbox" name="affiliateLinkConfirmed" value="true"> Confirmo que copiei este link do meu painel oficial do Parceiro Magalu e que o rastreamento foi gerado pela minha conta.</label>'+
+    '<div class="callout"><b>Limitação conhecida:</b> não foi confirmada API pública de afiliados do Parceiro Magalu. As APIs do Magalu Devs atendem operações de sellers/marketplace e não substituem a geração de links de influenciador. O Radar só valida o domínio, não confirma comissão ou rastreamento. O rascunho fica pendente e não é publicado.</div>';
+  openModal('Importar link · Parceiro Magalu','Use links que você mesmo gerou na conta oficial. Não informe senha nem cookies.',body,async function(event){
+    event.preventDefault();var fd=new FormData(event.target),action=String(fd.get('action')||'validate_link'),payload={action:action};
+    ['title','affiliateUrl','productUrl','imageUrl','currentPrice','originalPrice','categoryId'].forEach(function(key){var value=String(fd.get(key)||'').trim();if(value)payload[key]=value;});
+    payload.affiliateLinkConfirmed=fd.get('affiliateLinkConfirmed')==='true';
+    try{
+      var result=await operationRequest('/api/integrations/magalu',payload);
+      if(action==='validate_link'){closeModal();openModal('Validação do link Magalu','O resultado confere apenas o domínio, não a comissão nem o rastreamento.','<pre style="white-space:pre-wrap;max-height:55vh;overflow:auto;word-break:break-word">'+esc(JSON.stringify(result,null,2))+'</pre>',function(e){e.preventDefault();closeModal();});var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Fechar';return;}
+      closeModal();await load();await loadMarketplaceStatus();toast('Rascunho Magalu criado; aprovação e publicação continuam desativadas.');
+      openModal('Rascunho Magalu criado','A oferta foi salva como pendente e não foi publicada.','<p><b>ID:</b> '+esc(result.offerId)+'</p><p><b>Status:</b> '+esc(result.status)+'</p><p>'+esc(result.message)+'</p>',function(e){e.preventDefault();closeModal();});var submit2=document.querySelector('#form button[type="submit"]');if(submit2)submit2.textContent='Fechar';
+    }catch(error){toast(error.message||'Não foi possível validar ou preparar o rascunho Magalu.');}
+  });var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Executar';
 }
 async function openSheinTools(){
   var body='<label for="sheinAction">Operação</label><select id="sheinAction" name="action" required><option value="validate_link">Validar domínio do link (sem salvar)</option><option value="create_draft">Criar rascunho de oferta pendente</option></select>'+
