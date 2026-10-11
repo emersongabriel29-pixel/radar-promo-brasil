@@ -91,7 +91,7 @@ function build(method,body,c) {
     return {api:'aliexpress.affiliate.productdetail.get',params:{fields,product_ids:ids.join(','),...common}};
   }
   if(method==='categories')return {api:'aliexpress.affiliate.category.get',params:{fields:'category_id,parent_category_id,category_name'}};
-  if(method==='campaigns')return {api:'aliexpress.affiliate.featuredpromo.get',params:{fields,app_signature:clean(c.appSignature,300)}};
+  if(method==='campaigns')return {api:'aliexpress.affiliate.featuredpromo.get',params:{fields:'promotion_name,promotion_start_time,promotion_end_time,commission_rate,sale_price',app_signature:clean(c.appSignature,300)}};
   if(method==='campaignProducts'){
     const promo=clean(body.promotionName,180);
     if(!promo)throw Object.assign(new Error('Informe o nome exato da campanha retornado pelo AliExpress.'),{status:400});
