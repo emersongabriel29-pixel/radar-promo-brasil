@@ -10,6 +10,7 @@ const TOKEN_ENDPOINTS = {
   '3.3': 'https://api.amazon.co.jp/auth/o2/token'
 };
 const OPERATIONS = new Set(['searchItems', 'getItems', 'getVariations', 'getBrowseNodes']);
+const ALLOWED_MARKETPLACES = new Set(['www.amazon.com.br','www.amazon.com','www.amazon.ca','www.amazon.com.mx','www.amazon.co.uk','www.amazon.de','www.amazon.fr','www.amazon.it','www.amazon.es','www.amazon.nl','www.amazon.com.be','www.amazon.eg','www.amazon.in','www.amazon.ie','www.amazon.pl','www.amazon.sa','www.amazon.se','www.amazon.com.tr','www.amazon.ae','www.amazon.co.jp','www.amazon.sg','www.amazon.com.au']);
 const DEFAULT_RESOURCES = [
   'images.primary.medium',
   'itemInfo.title',
@@ -46,7 +47,7 @@ function credentialsFor(c) {
     throw Object.assign(new Error('Cadastre Credential ID, Credential Secret e Partner Tag da Amazon Creators API.'), { status: 412 });
   }
   if (!TOKEN_ENDPOINTS[version]) throw Object.assign(new Error('Versão de credencial inválida. Use a versão informada pela Amazon (3.1, 3.2 ou 3.3).'), { status: 400 });
-  if (!/^[a-z0-9.-]+$/.test(marketplace) || !marketplace.startsWith('www.amazon.')) {
+  if (!ALLOWED_MARKETPLACES.has(marketplace)) {
     throw Object.assign(new Error('Marketplace inválido. Informe um domínio oficial como www.amazon.com.br.'), { status: 400 });
   }
   return { version, clientId, clientSecret, partnerTag, marketplace };
@@ -109,6 +110,7 @@ function buildRequest(action, input) {
     if (brand) payload.brand = brand;
     const minPrice = Number(input.minPrice);
     const maxPrice = Number(input.maxPrice);
+    if (Number.isFinite(minPrice) && minPrice > 0 && Number.isFinite(maxPrice) && maxPrice > 0 && maxPrice < minPrice) throw Object.assign(new Error('O preço máximo não pode ser menor que o mínimo.'), { status: 400 });
     if (Number.isFinite(minPrice) && minPrice > 0) payload.minPrice = Math.floor(minPrice * 100);
     if (Number.isFinite(maxPrice) && maxPrice > 0) payload.maxPrice = Math.floor(maxPrice * 100);
     return { operation: 'searchItems', payload };
