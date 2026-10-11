@@ -5,6 +5,7 @@ export const methods = ['GET', 'POST', 'DELETE'];
 
 const STORES = {
   AWIN: { name: 'Awin Afiliados · Publisher API e Product Feed', portalUrl: 'https://help.awin.com/apidocs/introduction-1', authModel: 'Token Bearer da API Awin e Publisher ID numérico. Feed de produtos disponível conforme anunciante, locale e permissões.' },
+  RAKUTEN: { name: 'Rakuten Advertising · Product Search e Deep Links', portalUrl: 'https://developers.rakutenadvertising.com/', authModel: 'Token Bearer gerado no Developer Portal. O token normalmente dura 60 minutos; parcerias e permissão de deep link dependem do anunciante.' },
   AMAZON: { name: 'Amazon Associados · Creators API', portalUrl: 'https://associados.amazon.com.br/creatorsapi/docs/en-us/onboarding/register-for-creators-api', authModel: 'Creators API: Credential ID, Credential Secret, versão da credencial e Partner Tag da conta de Associado.' },
   SHOPEE: { name: 'Shopee Afiliados', portalUrl: 'https://affiliate.shopee.com.br/', authModel: 'App ID e App Secret da Open API de Afiliados; solicite habilitação à Shopee se ainda não tiver acesso.' },
   ALIEXPRESS: { name: 'AliExpress Afiliados · Open Platform (legada)', portalUrl: 'https://portals.aliexpress.com/', authModel: 'App Key, App Secret, Tracking ID e, se exigida, App Signature. Atenção: a documentação pública dos métodos Affiliate API está marcada como descontinuada; só teste se o portal ainda habilitar essa API para sua conta.' },
