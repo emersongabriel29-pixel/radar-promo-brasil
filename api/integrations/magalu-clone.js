@@ -42,12 +42,40 @@ function numberPrice(value) {
 function productRecord(value, base) {
   if (!value || typeof value !== 'object') return null;
   const offers = Array.isArray(value.offers) ? value.offers[0] : value.offers;
-  const image = Array.isArray(value.image) ? value.image[0] : value.image;
-  const productUrl = absolutePageUrl(value.url || value['@id'], base);
-  const imageUrl = safePublicUrl(typeof image === 'string' ? image : image?.url, base);
-  const title = String(value.name || value.title || '').trim().slice(0, 220);
+  const image = Array.isArray(value.images) ? value.images[0] : (Array.isArray(value.image) ? value.image[0] : (value.image || value.images));
+  const productUrl = absolutePageUrl(value.url || value.link || value['@id'], base);
+  let rawImage = typeof image === 'string' ? image : image?.url;
+  if (rawImage) rawImage = String(rawImage).replace(/\{width\}x\{height\}/g, '600x600');
+  const imageUrl = safePublicUrl(rawImage, base);
+  const title = String(value.name || value.title || value.technical_details || '').trim().slice(0, 220);
+  const priceValue = offers?.price || offers?.lowPrice || value.price?.cash || value.price?.current || value.price;
   if (!title || (!productUrl && !imageUrl)) return null;
-  return { title, description: String(value.description || '').replace(/<[^>]*>/g, ' ').trim().slice(0, 600), currentPrice: numberPrice(offers?.price || offers?.lowPrice || value.price), imageUrl, productUrl };
+  return { title, description: String(value.description || value.technical_details || '').replace(/<[^>]*>/g, ' ').trim().slice(0, 600), currentPrice: numberPrice(priceValue), imageUrl, productUrl };
+}
+function extractArrayAfter(html, marker) {
+  const markerAt = html.indexOf(marker);
+  if (markerAt < 0) return [];
+  const start = html.indexOf('[', markerAt + marker.length);
+  if (start < 0) return [];
+  let depth = 0, quoted = false, escaped = false;
+  for (let i = start; i < html.length; i++) {
+    const ch = html[i];
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '"') quoted = false;
+      continue;
+    }
+    if (ch === '"') { quoted = true; continue; }
+    if (ch === '[') depth++;
+    else if (ch === ']') {
+      depth--;
+      if (depth === 0) {
+        try { const parsed = JSON.parse(html.slice(start, i + 1)); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
+      }
+    }
+  }
+  return [];
 }
 function collectJsonProducts(html, base) {
   const out = [];
@@ -68,6 +96,10 @@ function collectJsonProducts(html, base) {
       };
       visit(data);
     } catch {}
+  }
+  for (const item of extractArrayAfter(html, 'showcaseProducts:')) {
+    const record = productRecord(item, base);
+    if (record) out.push(record);
   }
   return out;
 }
