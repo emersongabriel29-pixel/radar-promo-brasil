@@ -13,7 +13,7 @@ function parseInput(value) {
   return url;
 }
 function safePublicUrl(value, base) {
-  try { const url = new URL(String(value || ''), base); const host = url.hostname.toLowerCase(); const allowed = ALLOWED_HOSTS.has(host) || host === 'a-static.mlcdn.com.br' || host.endsWith('.a-static.mlcdn.com.br') || host === 'mvc.mlcdn.com.br' || host.endsWith('.mvc.mlcdn.com.br'); if (url.protocol !== 'https:' || url.username || url.password || url.port || !allowed) return ''; return url.toString(); } catch { return ''; }
+  try { const url = new URL(String(value || ''), String(base)); const host = url.hostname.toLowerCase(); const allowed = ALLOWED_HOSTS.has(host) || host === 'a-static.mlcdn.com.br' || host.endsWith('.a-static.mlcdn.com.br') || host === 'mvc.mlcdn.com.br' || host.endsWith('.mvc.mlcdn.com.br'); if (url.protocol !== 'https:' || url.username || url.password || url.port || !allowed) return ''; return url.toString(); } catch { return ''; }
 }
 function decodeHtml(value) {
   return String(value || '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&#x([\da-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16))).trim();
@@ -28,7 +28,7 @@ function meta(html, key) {
 }
 function absolutePageUrl(value, base) {
   try {
-    const url = new URL(String(value || ''), base);
+    const url = new URL(String(value || ''), String(base));
     if (url.protocol !== 'https:' || url.username || url.password || url.port || !ALLOWED_HOSTS.has(url.hostname.toLowerCase())) return '';
     url.hash = '';
     return url.toString();
@@ -179,6 +179,7 @@ export default async function handler(req, res) {
       description: String(description || '').slice(0, 1000), imageUrl, currentPrice,
       productUrl: finalUrl.toString(), affiliateLinkCandidate: '', affiliateTrackingVerified: false,
       isStorefront, products, productCount: products.length, maxProducts: MAX_PRODUCTS,
+      diagnostics: { htmlBytes: html.length, hasShowcaseProducts: html.includes('showcaseProducts:'), showcaseItemsDetected: extractArrayAfter(html, 'showcaseProducts:').length, sampleTitle: String(extractArrayAfter(html, 'showcaseProducts:')[0]?.title || '').slice(0, 80), sampleLink: String(extractArrayAfter(html, 'showcaseProducts:')[0]?.link || '').slice(0, 160), sampleResolvedHost: (() => { try { return new URL(String(extractArrayAfter(html, 'showcaseProducts:')[0]?.link || ''), String(finalUrl)).hostname; } catch { return 'invalid'; } })(), sampleImageHost: (() => { try { return new URL(String(extractArrayAfter(html, 'showcaseProducts:')[0]?.images?.[0]?.url || '').replace(/\\{width\\}x\\{height\\}/g, '600x600'), String(finalUrl)).hostname; } catch { return 'invalid'; } })(), sampleProductUrlValid: Boolean(absolutePageUrl(extractArrayAfter(html, 'showcaseProducts:')[0]?.link, finalUrl)), sampleImageUrlValid: Boolean(safePublicUrl(String(extractArrayAfter(html, 'showcaseProducts:')[0]?.images?.[0]?.url || '').replace(/\\{width\\}x\\{height\\}/g, '600x600'), finalUrl)), samplePrice: numberPrice(extractArrayAfter(html, 'showcaseProducts:')[0]?.price?.cash) },
       fieldsNeedReview: ['title', 'currentPrice', 'imageUrl', 'affiliateUrl'],
       note: 'Importação limitada a metadados e links presentes no HTML público (máximo de 24 itens). Páginas que carregam produtos via JavaScript podem não expor todos os itens. Preços e links de comissão precisam de confirmação no Parceiro Magalu.'
     });
