@@ -1076,7 +1076,7 @@ function integrations() {
     integration(
       "LOM",
       "Lomadee",
-      "Gere links rastreáveis no portal oficial; API pública de produtos não confirmada.",
+      "API oficial de afiliados: produtos, campanhas, pedidos, canais e geração de links rastreáveis.",
       "Ver fluxo oficial",
       "openMarketplaceSetup('LOMADEE')",
     ) +
@@ -3505,7 +3505,7 @@ async function loadMarketplaceStatus(){
     hasFields?'Próximo: executar o teste oficial disponível; credenciais salvas não provam conexão.':'Próximo: abrir o portal oficial e obter as credenciais do produto correto.';
    if(item.status==='ERROR'&&item.lastError)nextStep='Corrigir a falha informada abaixo e repetir o teste oficial.';
    var fields=(item.credentialFields||[]).map(esc).join(', ');
-   var lomadeeActions=item.id==='LOMADEE'&&item.status==='VALIDATED'?'<button class="btn secondary" type="button" data-action="importLomadeeProducts()">Importar ofertas</button> <button class="btn secondary" type="button" data-action="loadLomadeeCommissions()">Ver campanhas</button> <button class="btn secondary" type="button" data-action="loadLomadeeOffers()">Ver ofertas</button> <button class="btn secondary" type="button" data-action="loadLomadeeShortUrls()">Ver links encurtados</button> <button class="btn secondary" type="button" data-action="loadLomadeeOrders()">Ver pedidos e comissões</button> <button class="btn secondary" type="button" data-action="loadLomadeeChannels()">Ver canais</button>':'';
+   var lomadeeActions=item.id==='LOMADEE'&&item.status==='VALIDATED'?'<button class="btn secondary" type="button" data-action="importLomadeeProducts()">Importar ofertas</button> <button class="btn secondary" type="button" data-action="searchLomadeeProducts()">Pesquisar produtos</button> <button class="btn secondary" type="button" data-action="shortenLomadeeUrl()">Gerar link rastreável</button> <button class="btn secondary" type="button" data-action="loadLomadeeCommissions()">Ver campanhas</button> <button class="btn secondary" type="button" data-action="loadLomadeeOffers()">Ver ofertas</button> <button class="btn secondary" type="button" data-action="loadLomadeeShortUrls()">Ver links encurtados</button> <button class="btn secondary" type="button" data-action="loadLomadeeOrders()">Ver pedidos e comissões</button> <button class="btn secondary" type="button" data-action="loadLomadeeChannels()">Ver canais</button>':'';
    var shopeeActions=item.id==='SHOPEE'&&(item.credentialFields||[]).indexOf('appId')!==-1&&(item.credentialFields||[]).indexOf('apiSecret')!==-1?'<button class="btn secondary" type="button" data-action="openShopeeTools()">Ferramentas Shopee</button>':'';
    var amazonActions=item.id==='AMAZON'&&(item.credentialFields||[]).indexOf('clientId')!==-1&&(item.credentialFields||[]).indexOf('clientSecret')!==-1?'<button class="btn secondary" type="button" data-action="openAmazonTools()">Ferramentas Amazon</button>':'';
    var sheinActions=item.id==='SHEIN'?'<button class="btn secondary" type="button" data-action="openSheinTools()">Ferramentas SHEIN</button>':'';
@@ -3605,6 +3605,54 @@ async function importLomadeeProducts(){
     openModal('Importação Lomadee concluída','A API oficial foi consultada e os links rastreáveis foram gerados quando disponíveis. A publicação depende das regras e destinos ativos.','<div class="callout"><b>Importadas:</b> '+esc(result.imported||0)+'<br><b>Ignoradas:</b> '+esc(result.skipped||0)+'<br><b>Disparo do piloto automático:</b> '+(result.autopilotTriggered?'solicitado':'não necessário')+'</div>'+(result.items&&result.items.length?'<ul>'+result.items.map(function(x){return '<li>'+esc(x.title)+' · '+esc(x.discount)+'% de desconto</li>';}).join('')+'</ul>':'<p>Nenhum produto com desconto verificável e link rastreável foi importado nesta consulta.</p>'),function(e){e.preventDefault();closeModal();});
   }catch(error){toast(error.message||'Não foi possível importar ofertas da Lomadee.');}
 }
+var lomadeeProductFilters={};
+async function searchLomadeeProducts(){
+  var search=window.prompt('Nome ou descrição do produto (opcional):','');
+  if(search===null)return;
+  var price=window.prompt('Faixa de preço em centavos, formato mínimo:máximo (opcional; ex. 5000:10000):','');
+  if(price===null)return;
+  var organizationIds=window.prompt('UUIDs das marcas separados por vírgula (opcional):','');
+  if(organizationIds===null)return;
+  lomadeeProductFilters={};
+  if(String(search).trim())lomadeeProductFilters.search=String(search).trim();
+  if(String(price).trim())lomadeeProductFilters.price=String(price).trim();
+  if(String(organizationIds).trim())lomadeeProductFilters.organizationIds=String(organizationIds).trim();
+  return loadLomadeeProducts(1);
+}
+async function loadLomadeeProducts(page){
+  return loadLomadeeResource('products',Object.assign({page:Math.max(1,Math.floor(Number(page)||1)),limit:20},lomadeeProductFilters));
+}
+async function shortenLomadeeUrl(){
+  var organizationId=window.prompt('UUID da marca (organizationId) no portal Lomadee:','');
+  if(organizationId===null)return;
+  var type=window.prompt('Tipo do link: Coupon, Offer, BrandPage, Custom ou Home','BrandPage');
+  if(type===null)return;
+  type=String(type).trim();
+  var payload={action:'shorten_url',organizationId:String(organizationId).trim(),type:type};
+  if(type==='Coupon'||type==='Offer'){
+    var featureId=window.prompt('ID da operação da campanha (featureId):','');
+    if(featureId===null)return;
+    payload.featureId=String(featureId).trim();
+  }
+  if(type==='Custom'){
+    var url=window.prompt('URL HTTPS que deseja encurtar:','https://');
+    if(url===null)return;
+    payload.url=String(url).trim();
+  }
+  var mdasc=window.prompt('Identificador de rastreamento mdasc (opcional):','');
+  if(mdasc===null)return;
+  if(String(mdasc).trim())payload.mdasc=String(mdasc).trim();
+  if(!window.confirm('Confirmar criação de link(s) rastreável(is) na conta Lomadee? Nenhuma oferta será publicada por esta ação.'))return;
+  var panel=document.getElementById('lomadeeDataPanel');if(!panel)return;
+  panel.innerHTML='<div class="empty">Solicitando geração do link à Lomadee...</div>';
+  try{
+    var result=await operationRequest('/api/integrations/lomadee',payload);
+    var rows=result.channels||[];
+    panel.innerHTML='<h3>Resultado da geração de link</h3><p class="muted">Links gerados: '+Number(result.generatedCount||0)+' · Nenhuma oferta publicada.</p>'+
+      (rows.length?rows.map(function(row){return '<div class="integration"><div class="grow"><b>'+esc(row.name||row.availableChannel&&row.availableChannel.name||row.id||'Canal')+'</b>'+(row.message?'<p>'+esc(row.message)+'</p>':'')+(row.shortUrls||[]).map(function(link){return '<p><a href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">'+esc(link)+'</a></p>';}).join('')+'</div></div>';}).join(''):'<div class="empty">A Lomadee não retornou canais ou links para esta solicitação.</div>')+
+      '<button class="btn secondary" type="button" data-action="loadLomadeeShortUrls(1)">Ver links encurtados</button>';
+  }catch(error){panel.innerHTML='<div class="empty" role="alert">'+esc(error.message||'Não foi possível gerar o link.')+'</div>';}
+}
 async function loadLomadeeContents(){return loadLomadeeResource('products');}
 async function loadLomadeeCommissions(){return loadLomadeeResource('campaigns');}
 async function loadLomadeeOrders(){return loadLomadeeResource('orders');}
@@ -3673,7 +3721,7 @@ async function loadLomadeeResource(resource,filters){
     var result=await operationRequest('/api/integrations/lomadee?'+query.toString());
     var labels={products:'Produtos afiliados',campaigns:'Campanhas ativas',brands:'Marcas disponíveis',channels:'Canais de afiliado',orders:'Pedidos e comissões'};
     var rows=result.items||[];
-    panel.innerHTML='<h3>'+esc(labels[resource]||'Dados Lomadee')+'</h3><p class="muted">Consulta somente leitura · '+rows.length+' registro(s) retornado(s). Dados pessoais de clientes são omitidos.</p>'+
+    panel.innerHTML='<h3>'+esc(labels[resource]||'Dados Lomadee')+'</h3><p class="muted">Consulta somente leitura · '+rows.length+' registro(s) retornado(s). Dados pessoais de clientes são omitidos.</p>'+(resource==='products'?'<div class="actions"><button class="btn secondary" type="button" data-action="searchLomadeeProducts()">Alterar filtros de produtos</button><span class="muted">Página '+Number(result.page||1)+' de '+Number(result.totalPages||1)+' · total '+Number(result.total||result.count||rows.length)+'</span>'+(Number(result.page||1)>1?'<button class="btn secondary" type="button" data-action="loadLomadeeProducts('+(Number(result.page||1)-1)+')">Página anterior</button>':'')+(Number(result.page||1)<Number(result.totalPages||1)?'<button class="btn secondary" type="button" data-action="loadLomadeeProducts('+(Number(result.page||1)+1)+')">Próxima página</button>':'')+'</div>':'')+
       (rows.length?rows.map(function(item){
         var heading=item.title||item.name||item.id||'Registro';
         var details=resource==='products'?[item.seller,item.currentPrice===null?'':'R$ '+(item.currentPrice/100).toFixed(2),item.available?'Disponível':'Indisponível'].filter(Boolean).join(' · '):
