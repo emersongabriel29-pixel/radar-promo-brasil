@@ -1076,8 +1076,8 @@ function integrations() {
     integration(
       "LOM",
       "Lomadee",
-      "Receber credencial; disponibilidade e API precisam ser confirmadas antes de ativar.",
-      "Conectar conta",
+      "Gere links rastreáveis no portal oficial; API pública de produtos não confirmada.",
+      "Ver fluxo oficial",
       "openMarketplaceSetup('LOMADEE')",
     ) +
     integration(
@@ -3496,7 +3496,7 @@ async function loadMarketplaceStatus(){
     item.id==='HOTMART'?'Próximo: identificar API/escopo oficial compatível com ofertas de afiliados antes de configurar.':
     item.id==='AMERICANAS'?'Próximo: confirmar a rede de afiliados e sua documentação oficial.':
     item.id==='ALIEXPRESS'?'Próximo: confirmar que o portal ainda habilita a API legada; depois executar teste somente leitura.':
-    item.id==='LOMADEE'?'Próximo: salvar x-auth-key e usar Testar API; recursos só ficam disponíveis após validação.':
+    item.id==='LOMADEE'?'Próximo: escolher uma marca no portal Lomadee e gerar um link rastreável; API pública de produtos não confirmada.':
     item.id==='RAKUTEN'?'Próximo: salvar Client ID, Client Secret e Account ID Publisher; executar teste oficial.':
     item.id==='ADMITAD'?'Próximo: conferir Website ID e escopos OAuth; depois testar campanhas de leitura.':
     item.id==='AWIN'?'Próximo: conferir Publisher ID e token; testar programas joined em leitura.':
@@ -3505,7 +3505,7 @@ async function loadMarketplaceStatus(){
     hasFields?'Próximo: executar o teste oficial disponível; credenciais salvas não provam conexão.':'Próximo: abrir o portal oficial e obter as credenciais do produto correto.';
    if(item.status==='ERROR'&&item.lastError)nextStep='Corrigir a falha informada abaixo e repetir o teste oficial.';
    var fields=(item.credentialFields||[]).map(esc).join(', ');
-   var lomadeeActions=item.id==='LOMADEE'&&(item.credentialFields||[]).indexOf('apiKey')!==-1?'<button class="btn secondary" type="button" data-action="testLomadeeConnection()">Testar API</button>'+(item.status==='VALIDATED'?' <button class="btn secondary" type="button" data-action="loadLomadeeContents()">Conteúdos</button> <button class="btn secondary" type="button" data-action="loadLomadeeCommissions()">Regras de comissão</button> <button class="btn secondary" type="button" data-action="loadLomadeeOrders()">Pedidos</button>':''):'';
+   var lomadeeActions='';
    var shopeeActions=item.id==='SHOPEE'&&(item.credentialFields||[]).indexOf('appId')!==-1&&(item.credentialFields||[]).indexOf('apiSecret')!==-1?'<button class="btn secondary" type="button" data-action="openShopeeTools()">Ferramentas Shopee</button>':'';
    var amazonActions=item.id==='AMAZON'&&(item.credentialFields||[]).indexOf('clientId')!==-1&&(item.credentialFields||[]).indexOf('clientSecret')!==-1?'<button class="btn secondary" type="button" data-action="openAmazonTools()">Ferramentas Amazon</button>':'';
    var sheinActions=item.id==='SHEIN'?'<button class="btn secondary" type="button" data-action="openSheinTools()">Ferramentas SHEIN</button>':'';
@@ -3544,12 +3544,13 @@ async function openMarketplaceSetup(provider){
   if(provider==='MERCADO_LIVRE'||provider==='MERCADOLIVRE'){connectMercadoLivre();return;}
   // These portals do not currently have a verified affiliate-offer integration in this app.
   // Do not accept arbitrary credentials or imply that seller/business APIs are affiliate APIs.
-  if(['CASAS_BAHIA','HOTMART','KABUM','AMERICANAS'].indexOf(provider)!==-1){
+  if(['CASAS_BAHIA','HOTMART','KABUM','AMERICANAS','LOMADEE'].indexOf(provider)!==-1){
     var explanations={
       CASAS_BAHIA:'O portal público localizado é para integração de lojistas do marketplace (catálogo, estoque, preço e pedidos), não uma API de descoberta de ofertas para afiliados. Não cadastre credenciais aqui para esse objetivo.',
       HOTMART:'A API Hotmart é voltada à integração de produtos digitais, vendas e dados da conta. Ainda não foi confirmado um endpoint oficial de catálogo de ofertas afiliadas adequado ao Radar. Não cadastre chaves genéricas aqui.',
       KABUM:'A documentação pública localizada é para integração de sellers via Mirakl, com API Key e operações de catálogo/pedidos. Isso não comprova uma API de afiliados para descobrir ofertas. Não cadastre essa chave neste fluxo.',
-      AMERICANAS:'Não foi confirmada nesta auditoria uma API pública oficial de afiliados para descoberta de produtos, geração de deeplinks e consulta de comissões. Não informe credenciais até identificarmos a rede oficial da sua conta.'
+      AMERICANAS:'Não foi confirmada nesta auditoria uma API pública oficial de afiliados para descoberta de produtos, geração de deeplinks e consulta de comissões. Não informe credenciais até identificarmos a rede oficial da sua conta.',
+      LOMADEE:'O portal oficial permite escolher marcas e gerar links rastreáveis, mas não foi localizada documentação pública oficial para uma API de descoberta automática de produtos e geração de deeplinks. Use o portal oficial; não informe senha nem chave não documentada.'
     };
     openModal('Integração não validada · '+provider.replace('_',' '),'A configuração genérica foi desativada para evitar pedir campos não documentados. '+explanations[provider],'<div class="callout">'+explanations[provider]+'</div><p class="muted">Estado: não implementada/validada para descoberta de ofertas de afiliados. Nenhuma credencial foi alterada.</p>',async function(){throw Error('Este fluxo ainda não aceita credenciais. Nenhuma credencial foi salva ou alterada.');});
     var unavailableSubmit=document.querySelector('#form button[type="submit"]');if(unavailableSubmit){unavailableSubmit.disabled=true;unavailableSubmit.textContent='Não disponível';}
