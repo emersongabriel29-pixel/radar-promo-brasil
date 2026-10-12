@@ -17,6 +17,7 @@ export default async function handler(req, res) {
     const connected = row?.status === 'ACTIVE';
     const apiFailed = Boolean(row?.lastError);
     const requestedScopes = String(await config.get('MAGALU_SCOPES') || 'open:portfolio-skus-seller:read open:portfolio-prices-seller:read open:portfolio-stocks-seller:read').split(/\s+/).filter(Boolean);
+    const tenantId = String(await config.get('MAGALU_TENANT_ID') || '').trim();
     if (req.method === 'GET') {
       return res.json({
         provider: 'MAGALU',
@@ -25,6 +26,8 @@ export default async function handler(req, res) {
         apiStatus: !connected ? 'NOT_TESTED' : apiFailed ? 'ERROR' : 'NOT_CONFIRMED',
         requestedScopes,
         scopeGrantVerified: false,
+        tenantIdConfigured: Boolean(tenantId),
+        tenantIdFormat: tenantId ? (tenantId.startsWith('GENPUB.') ? 'GENPUB' : 'configured') : 'missing',
         expiresAt: row?.expiresAt || null,
         updatedAt: row?.updatedAt || null,
         lastError: row?.lastError || '',
@@ -35,10 +38,15 @@ export default async function handler(req, res) {
     }
     if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
     if (String(req.body?.action || 'test') !== 'test') return res.status(400).json({ error: 'Ação inválida. Use test.' });
+    if (!tenantId) {
+      const message = 'O OAuth está conectado, mas falta configurar MAGALU_TENANT_ID nos segredos do projeto. A API de produtos precisa do cabeçalho X-Tenant-Id; informe o tenant autorizado no ID Magalu antes de repetir o teste.';
+      await db.query("UPDATE marketplace_connections SET last_error=$1,updated_at=now() WHERE account_id=$2 AND marketplace='MAGALU'", [message, account.id]);
+      return res.status(412).json({ provider: 'MAGALU', status: 'API_TEST_BLOCKED_CONFIGURATION', connectionStatus: 'CONNECTED', apiStatus: 'NOT_TESTED', requiredConfiguration: 'MAGALU_TENANT_ID', requiredHeader: 'X-Tenant-Id', oauthRefresh: 'NOT_ATTEMPTED', error: message, publicationEnabled: false });
+    }
     const token = await magaluToken(account.id, { forceRefresh: true });
     const response = await fetch('https://api.magalu.com/seller/v1/portfolios/skus', {
       method: 'GET',
-      headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' },
+      headers: { Authorization: 'Bearer ' + token, Accept: 'application/json', 'X-Tenant-Id': tenantId },
       signal: AbortSignal.timeout(15000)
     });
     const data = await response.json().catch(() => ({}));
@@ -49,7 +57,7 @@ export default async function handler(req, res) {
           ? 'OAuth renovado, mas a API de SKUs não aceitou o token (401). Confira o cliente OAuth, a conta autorizada e reconecte somente se as credenciais ou o consentimento estiverem incorretos.'
           : 'A API oficial de SKUs respondeu HTTP ' + response.status + '.';
       await db.query("UPDATE marketplace_connections SET last_error=$1,updated_at=now() WHERE account_id=$2 AND marketplace='MAGALU'", [message, account.id]);
-      return res.status(response.status === 401 || response.status === 403 ? 502 : response.status).json({ provider: 'MAGALU', status: 'API_TEST_FAILED', connectionStatus: 'CONNECTED', apiStatus: 'ERROR', oauthRefresh: 'SUCCESS', httpStatus: response.status, requiredScope: 'open:portfolio-skus-seller:read', scopeGrantVerified: false, error: message, publicationEnabled: false });
+      return res.status(response.status === 401 || response.status === 403 ? 502 : response.status).json({ provider: 'MAGALU', status: 'API_TEST_FAILED', connectionStatus: 'CONNECTED', apiStatus: 'ERROR', oauthRefresh: 'SUCCESS', httpStatus: response.status, providerErrorCode: typeof data.slug === 'string' ? data.slug.slice(0, 80) : null, requiredHeader: 'X-Tenant-Id', requiredScope: 'open:portfolio-skus-seller:read', scopeGrantVerified: false, error: message, publicationEnabled: false });
     }
     const results = Array.isArray(data) ? data : Array.isArray(data.results) ? data.results : Array.isArray(data.data) ? data.data : [];
     await db.query("UPDATE marketplace_connections SET status='ACTIVE',last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='MAGALU'", [account.id]);
