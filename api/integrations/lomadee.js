@@ -18,8 +18,9 @@ async function getCredentials(accountId) {
     [accountId]
   )).rows[0];
   if (!row) return null;
-  const raw = String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '');
-  if (raw.length < 32) throw Object.assign(new Error('A chave de criptografia do conector não está configurada.'), { status: 412 });
+  let raw = String(await config.get('API_CREDENTIALS_MASTER_KEY') || '');
+  if (raw.length < 32) raw = String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '');
+  if (raw.length < 32) throw Object.assign(new Error('Configure API_CREDENTIALS_MASTER_KEY ou CONNECTOR_ENCRYPTION_KEY com pelo menos 32 caracteres.'), { status: 412 });
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw + '|radar-marketplace-credentials|' + accountId + '|LOMADEE'));
   const key = await crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['decrypt']);
   const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(row.nonce) }, key, fromB64(row.credentials_enc));
