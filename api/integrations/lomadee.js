@@ -28,7 +28,7 @@ async function getCredentials(accountId) {
   return { credentials, status: row.status };
 }
 async function apiRequest(path, apiKey, params = {}, method = 'GET', payload = null) {
-  if (!['/affiliate/products','/affiliate/brands','/affiliate/campaigns','/affiliate/channels','/affiliate/orders','/affiliate/shortener/url'].includes(path) && !(path.startsWith('/affiliate/brands/') && path.slice('/affiliate/brands/'.length).length > 0 && !path.slice('/affiliate/brands/'.length).includes('/')) && !(path.startsWith('/affiliate/orders/') && path.slice('/affiliate/orders/'.length).length > 0 && !path.slice('/affiliate/orders/'.length).includes('/')) && !(path.startsWith('/affiliate/channels/') && path.slice('/affiliate/channels/'.length).length > 0 && !path.slice('/affiliate/channels/'.length).includes('/')) && !(path.startsWith('/affiliate/campaigns/') && path.slice('/affiliate/campaigns/'.length).length > 0 && !path.slice('/affiliate/campaigns/'.length).includes('/'))) {
+  if (!['/affiliate/products','/affiliate/brands','/affiliate/campaigns','/affiliate/channels','/affiliate/orders','/affiliate/shortener/url','/affiliate/shortener/urls'].includes(path) && !(path.startsWith('/affiliate/brands/') && path.slice('/affiliate/brands/'.length).length > 0 && !path.slice('/affiliate/brands/'.length).includes('/')) && !(path.startsWith('/affiliate/orders/') && path.slice('/affiliate/orders/'.length).length > 0 && !path.slice('/affiliate/orders/'.length).includes('/')) && !(path.startsWith('/affiliate/channels/') && path.slice('/affiliate/channels/'.length).length > 0 && !path.slice('/affiliate/channels/'.length).includes('/')) && !(path.startsWith('/affiliate/campaigns/') && path.slice('/affiliate/campaigns/'.length).length > 0 && !path.slice('/affiliate/campaigns/'.length).includes('/')) && !(path.startsWith('/affiliate/shortener/urls/') && path.slice('/affiliate/shortener/urls/'.length).length > 0 && !path.slice('/affiliate/shortener/urls/'.length).includes('/'))) {
     throw Object.assign(new Error('Recurso Lomadee não permitido.'), { status: 400 });
   }
   const url = new URL(BASE_URL + path);
@@ -58,6 +58,10 @@ function listFrom(body) {
   return [];
 }
 function safeRows(resource, body) {
+  if (resource === 'shortener' && body?.data && !Array.isArray(body.data) && typeof body.data === 'object') {
+    const x = body.data;
+    return [{ originalUrl: typeof x.originalUrl === 'string' && /^https:\/\//i.test(x.originalUrl) ? x.originalUrl.slice(0, 2000) : '', shortUrl: typeof x.shortUrl === 'string' && /^https:\/\//i.test(x.shortUrl) ? x.shortUrl.slice(0, 2000) : '', urlCode: clean(x.urlCode, 120), organizationId: clean(x.organizationId, 120), active: typeof x.active === 'boolean' ? x.active : null, count: Number.isFinite(Number(x.count)) ? Number(x.count) : null, linkType: clean(x.linkType, 40) }];
+  }
   const rows = listFrom(body);
   if (resource === 'products') return rows.map(x => {
     const option = (Array.isArray(x.options) ? x.options : []).find(o => o.available) || x.options?.[0] || {};
@@ -91,6 +95,14 @@ function safeRows(resource, body) {
     createdAt: clean(x.createdAt, 50),
     type: clean(x.availableChannel?.name || x.type, 100)
   }));
+  if (resource === 'shortener') return rows.map(x => ({
+    originalUrl: typeof x.originalUrl === 'string' && /^https:\/\//i.test(x.originalUrl) ? x.originalUrl.slice(0, 2000) : '',
+    shortUrl: typeof x.shortUrl === 'string' && /^https:\/\//i.test(x.shortUrl) ? x.shortUrl.slice(0, 2000) : '',
+    urlCode: clean(x.urlCode, 120), organizationId: clean(x.organizationId, 120),
+    active: typeof x.active === 'boolean' ? x.active : null,
+    count: Number.isFinite(Number(x.count)) ? Number(x.count) : null,
+    linkType: clean(x.linkType || x.type, 40)
+  }));
   if (resource === 'orders') return rows.map(row => {
     const x = row?.data && typeof row.data === 'object' ? row.data : row;
     const items = Array.isArray(x.items) ? x.items : Array.isArray(x['items  ']) ? x['items  '] : [];
@@ -119,7 +131,7 @@ export default async function handler(req, res) {
       marketplace: 'LOMADEE', status: saved?.status || 'NOT_CONFIGURED',
       configured: Boolean(saved), apiStatus: saved?.status === 'VALIDATED' ? 'VALIDATED' : saved ? 'PENDING_VALIDATION' : 'NOT_CONFIGURED',
       publicationEnabled: saved?.status === 'VALIDATED',
-      capabilities: ['products:read','campaigns:read','brands:read','channels:read','orders:read','shortener:write'],
+      capabilities: ['products:read','campaigns:read','brands:read','channels:read','orders:read','shortener:read','shortener:write'],
       portalUrl: 'https://www.lomadee.com.br/pt-br/afiliados',
       docsUrl: 'https://docs.lomadee.com.br/llms.txt'
     });
@@ -131,17 +143,18 @@ export default async function handler(req, res) {
       const action = clean(req.body?.action, 40);
       if (action === 'validate') {
         try {
-          const [products, campaigns, channels, orders] = await Promise.all([
+          const [products, campaigns, channels, orders, shortenedUrls] = await Promise.all([
             apiRequest('/affiliate/products', apiKey, { page: 1, limit: 1 }),
             apiRequest('/affiliate/campaigns', apiKey, { page: 1, limit: 1, status: 'onTime' }),
             apiRequest('/affiliate/channels', apiKey, {}),
-            apiRequest('/affiliate/orders', apiKey, { page: 1, limit: 1 })
+            apiRequest('/affiliate/orders', apiKey, { page: 1, limit: 1 }),
+            apiRequest('/affiliate/shortener/urls', apiKey, { page: 1, limit: 1, active: true })
           ]);
           await db.query(
             "UPDATE marketplace_api_credentials SET status='VALIDATED',last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='LOMADEE'",
             [account.id]
           );
-          return res.json({ ok: true, status: 'VALIDATED', checks: { products: listFrom(products).length, campaigns: listFrom(campaigns).length, channels: listFrom(channels).length, orders: listFrom(orders).length }, capabilities: ['products:read','campaigns:read','brands:read','channels:read','orders:read','shortener:write'], note: 'Consultas de leitura de produtos, campanhas, canais e pedidos validadas. O escopo shortener:write será confirmado na primeira geração real de link; nenhum link foi criado neste teste.' });
+          return res.json({ ok: true, status: 'VALIDATED', checks: { products: listFrom(products).length, campaigns: listFrom(campaigns).length, channels: listFrom(channels).length, orders: listFrom(orders).length, shortenedUrls: listFrom(shortenedUrls).length }, capabilities: ['products:read','campaigns:read','brands:read','channels:read','orders:read','shortener:read','shortener:write'], note: 'Consultas de leitura de produtos, campanhas, canais, pedidos e links encurtados validadas. O escopo shortener:write será confirmado na primeira geração real de link; nenhum link foi criado neste teste.' });
         } catch (error) {
           const code = Number(error?.status) || 0;
           await db.query(
@@ -206,8 +219,8 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      if (!['products','campaigns','brands','channels','orders'].includes(resource)) return res.status(400).json({ error: 'Recurso somente leitura não suportado.' });
-      const limit = Math.min(resource === 'products' || resource === 'orders' ? 100 : 20, Math.max(1, Math.floor(Number(req.query?.limit) || 10)));
+      if (!['products','campaigns','brands','channels','orders','shortener'].includes(resource)) return res.status(400).json({ error: 'Recurso somente leitura não suportado.' });
+      const limit = Math.min(resource === 'products' || resource === 'orders' || resource === 'shortener' ? 100 : 20, Math.max(1, Math.floor(Number(req.query?.limit) || 10)));
       const params = { page: Math.max(1, Math.floor(Number(req.query?.page) || 1)), limit };
       if (resource === 'products') { if (req.query?.search) params.search = clean(req.query.search, 100); params.isAvailable = true; }
       if (resource === 'campaigns') {
@@ -228,6 +241,35 @@ export default async function handler(req, res) {
           if (!Number.isFinite(Date.parse(startAt)) || !Number.isFinite(Date.parse(endAt)) || Date.parse(startAt) > Date.parse(endAt)) return res.status(400).json({ error: 'Informe um período ISO válido: startAt deve ser anterior ou igual a endAt.' });
           params.startAt = startAt; params.endAt = endAt;
         } else if (req.query?.startAt || req.query?.endAt) return res.status(400).json({ error: 'Informe startAt e endAt juntos.' });
+      }
+      if (resource === 'shortener') {
+        if (req.query?.urlCode) {
+          const urlCode = clean(req.query.urlCode, 120);
+          if (!/^[A-Za-z0-9_-]+$/.test(urlCode)) return res.status(400).json({ error: 'Código da URL encurtada inválido.' });
+          const body = await apiRequest('/affiliate/shortener/urls/' + encodeURIComponent(urlCode), apiKey);
+          const items = safeRows('shortener', body);
+          return res.json({ resource, items, count: items.length, total: items.length, readOnly: true });
+        }
+        if (req.query?.search) params.search = clean(req.query.search, 200);
+        if (req.query?.organizationId) params.organizationId = clean(req.query.organizationId, 120);
+        if (req.query?.type) {
+          const type = clean(req.query.type, 30);
+          if (!['Coupon','BrandPage','Offer','Custom'].includes(type)) return res.status(400).json({ error: 'type deve ser Coupon, BrandPage, Offer ou Custom.' });
+          params.type = type;
+        }
+        if (req.query?.active !== undefined) {
+          const active = String(req.query.active).toLowerCase();
+          if (!['true','false'].includes(active)) return res.status(400).json({ error: 'active deve ser true ou false.' });
+          params.active = active;
+        } else params.active = true;
+        if (req.query?.startAt && req.query?.endAt) {
+          const startAt = clean(req.query.startAt, 40), endAt = clean(req.query.endAt, 40);
+          if (!Number.isFinite(Date.parse(startAt)) || !Number.isFinite(Date.parse(endAt)) || Date.parse(startAt) > Date.parse(endAt)) return res.status(400).json({ error: 'Informe startAt e endAt válidos, com startAt anterior ou igual a endAt.' });
+          params.startAt = startAt; params.endAt = endAt;
+        } else if (req.query?.startAt || req.query?.endAt) return res.status(400).json({ error: 'Informe startAt e endAt juntos.' });
+        const body = await apiRequest('/affiliate/shortener/urls', apiKey, params);
+        const items = safeRows('shortener', body);
+        return res.json({ resource, items, count: items.length, total: Number(body?.meta?.total) || items.length, page: Number(body?.meta?.page) || params.page, limit: Number(body?.meta?.limit) || limit, totalPages: Number(body?.meta?.totalPages) || (items.length ? 1 : 0), readOnly: true });
       }
       if (resource === 'campaigns' && req.query?.campaignId) {
         const campaignId = clean(req.query.campaignId, 120);
