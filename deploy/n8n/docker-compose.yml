@@ -1,0 +1,61 @@
+name: radar-n8n
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:${N8N_IMAGE_TAG:-stable}
+    restart: unless-stopped
+    environment:
+      N8N_HOST: ${N8N_HOST:?Set N8N_HOST to a DNS name pointing to this server}
+      N8N_PROTOCOL: https
+      N8N_PORT: 5678
+      N8N_LISTEN_ADDRESS: 0.0.0.0
+      N8N_EDITOR_BASE_URL: https://${N8N_HOST}/
+      WEBHOOK_URL: https://${N8N_HOST}/
+      N8N_PROXY_HOPS: 1
+      N8N_SECURE_COOKIE: "true"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      GENERIC_TIMEZONE: America/Sao_Paulo
+      TZ: America/Sao_Paulo
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?Set a unique random N8N_ENCRYPTION_KEY}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    expose:
+      - "5678"
+    networks:
+      - private
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      N8N_HOST: ${N8N_HOST:?Set N8N_HOST}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - private
+    depends_on:
+      - n8n
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  private:
+
+volumes:
+  n8n_data:
+    name: radar_n8n_data
+  caddy_data:
+  caddy_config:
