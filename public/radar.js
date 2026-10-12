@@ -3528,7 +3528,10 @@ async function loadLomadeeResource(resource){
 }
 async function connectMagaluAccount(){
   try{var result=await operationRequest('/api/integrations/magalu-connect');if(!result.authorizationUrl)throw Error('A Magalu não retornou a URL de autorização.');window.location.href=result.authorizationUrl;}
-  catch(error){toast(error.message||'Não foi possível iniciar a conexão Magalu. Confira as credenciais OAuth do aplicativo.');}
+  catch(error){
+    var message=error.message||'Não foi possível iniciar a conexão Magalu.';
+    openModal('Conectar Magalu · etapa 1 de 3','O cadastro das chaves API não conecta a conta. Siga esta sequência antes de testar a API.', '<div class="callout"><b>1. Credenciais OAuth do aplicativo</b><p>Configure MAGALU_CLIENT_ID e MAGALU_CLIENT_SECRET nos segredos do projeto Hatchable. Não cole o Client Secret em mensagens nem no código.</p><p><b>2. URL de retorno autorizada</b><br>https://radar-promo-brasil.hatchable.site/api/integrations/magalu-callback</p><p><b>3. Autorizar e validar</b><br>Depois de salvar os segredos e registrar exatamente a URL de retorno no portal Magalu, volte aqui, clique em Conectar conta e autorize. Por fim, use Testar OAuth + API seller.</p><p><b>Diagnóstico retornado:</b> '+esc(message)+'</p><p><a href="https://developers.magalu.com/docs/first-steps/create-an-application/authentication-authorization/index.html" target="_blank" rel="noopener noreferrer">Abrir documentação oficial OAuth ↗</a></p></div>',function(e){e.preventDefault();closeModal();});
+  }
 }
 async function testMagaluApi(){
   try{
