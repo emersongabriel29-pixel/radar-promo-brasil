@@ -3505,7 +3505,7 @@ async function loadMarketplaceStatus(){
     hasFields?'Próximo: executar o teste oficial disponível; credenciais salvas não provam conexão.':'Próximo: abrir o portal oficial e obter as credenciais do produto correto.';
    if(item.status==='ERROR'&&item.lastError)nextStep='Corrigir a falha informada abaixo e repetir o teste oficial.';
    var fields=(item.credentialFields||[]).map(esc).join(', ');
-   var lomadeeActions=item.id==='LOMADEE'&&item.status==='VALIDATED'?'<button class="btn secondary" type="button" data-action="importLomadeeProducts()">Importar ofertas</button> <button class="btn secondary" type="button" data-action="loadLomadeeCommissions()">Ver campanhas</button> <button class="btn secondary" type="button" data-action="loadLomadeeOffers()">Ver ofertas</button> <button class="btn secondary" type="button" data-action="loadLomadeeOrders()">Ver pedidos e comissões</button> <button class="btn secondary" type="button" data-action="loadLomadeeChannels()">Ver canais</button>':'';
+   var lomadeeActions=item.id==='LOMADEE'&&item.status==='VALIDATED'?'<button class="btn secondary" type="button" data-action="importLomadeeProducts()">Importar ofertas</button> <button class="btn secondary" type="button" data-action="loadLomadeeCommissions()">Ver campanhas</button> <button class="btn secondary" type="button" data-action="loadLomadeeOffers()">Ver ofertas</button> <button class="btn secondary" type="button" data-action="loadLomadeeShortUrls()">Ver links encurtados</button> <button class="btn secondary" type="button" data-action="loadLomadeeOrders()">Ver pedidos e comissões</button> <button class="btn secondary" type="button" data-action="loadLomadeeChannels()">Ver canais</button>':'';
    var shopeeActions=item.id==='SHOPEE'&&(item.credentialFields||[]).indexOf('appId')!==-1&&(item.credentialFields||[]).indexOf('apiSecret')!==-1?'<button class="btn secondary" type="button" data-action="openShopeeTools()">Ferramentas Shopee</button>':'';
    var amazonActions=item.id==='AMAZON'&&(item.credentialFields||[]).indexOf('clientId')!==-1&&(item.credentialFields||[]).indexOf('clientSecret')!==-1?'<button class="btn secondary" type="button" data-action="openAmazonTools()">Ferramentas Amazon</button>':'';
    var sheinActions=item.id==='SHEIN'?'<button class="btn secondary" type="button" data-action="openSheinTools()">Ferramentas SHEIN</button>':'';
@@ -3620,6 +3620,40 @@ async function loadLomadeeCampaign(campaignId){
     var item=(result.items||[])[0];if(!item)throw Error('A API não retornou essa campanha.');
     var details=[item.type,item.offerType,item.status,item.startAt?'Início: '+item.startAt:'',item.endAt?'Fim: '+item.endAt:'',item.organizationId?'Marca: '+item.organizationId:'',item.categories&&item.categories.length?'Categorias: '+item.categories.join(', '):'',item.code?'Cupom: '+item.code:''].filter(Boolean).join(' · ');
     panel.innerHTML='<h3>Detalhes da campanha</h3><div class="integration"><div class="grow"><b>'+esc(item.title||item.id)+'</b><div class="muted">'+esc(details)+'</div><p>'+esc(item.description||'Sem descrição fornecida pela API.')+'</p>'+(item.url?'<a href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">Abrir oferta oficial ↗</a>':'')+'</div></div>';
+  }catch(error){panel.innerHTML='<div class="empty" role="alert">'+esc(error.message||'Consulta indisponível.')+'</div>';}
+}
+var lomadeeShortUrlSearch='';
+async function searchLomadeeShortUrls(){
+  var value=window.prompt('Pesquisar em URL original ou URL curta (deixe vazio para listar tudo):',lomadeeShortUrlSearch);
+  if(value===null)return;
+  lomadeeShortUrlSearch=String(value).trim();
+  return loadLomadeeShortUrls(1);
+}
+async function loadLomadeeShortUrls(page){
+  var panel=document.getElementById('lomadeeDataPanel');if(!panel)return;
+  page=Math.max(1,Math.floor(Number(page)||1));
+  panel.innerHTML='<div class="empty">Consultando links encurtados da Lomadee...</div>';
+  try{
+    var query=new URLSearchParams({resource:'shortener',page:String(page),limit:'20',active:'true'});
+    if(lomadeeShortUrlSearch)query.set('search',lomadeeShortUrlSearch);
+    var result=await operationRequest('/api/integrations/lomadee?'+query.toString());
+    var rows=result.items||[];
+    panel.innerHTML='<h3>Links encurtados</h3><p class="muted">Consulta somente leitura · '+Number(result.total||rows.length)+' link(s) no total · página '+Number(result.page||page)+' de '+Number(result.totalPages||1)+'.</p><div class="actions"><button class="btn secondary" type="button" data-action="searchLomadeeShortUrls()">Pesquisar links</button><button class="btn secondary" type="button" data-action="loadLomadeeShortUrls(1)">Voltar ao início</button></div>'+
+      (rows.length?rows.map(function(item){
+        var details=[item.linkType||'Tipo não informado',item.active===true?'Ativo':item.active===false?'Inativo':'Status não informado','Cliques: '+(item.count===null?'—':item.count),item.organizationId?'Marca: '+item.organizationId:''].filter(Boolean).join(' · ');
+        return '<div class="integration"><div class="grow"><b>'+esc(item.shortUrl||item.urlCode||'URL encurtada')+'</b><div class="muted">'+esc(details)+'</div>'+(item.originalUrl?'<div class="muted">Original: <a href="'+esc(item.originalUrl)+'" target="_blank" rel="noopener noreferrer">'+esc(item.originalUrl)+'</a></div>':'')+(item.shortUrl?'<div><a href="'+esc(item.shortUrl)+'" target="_blank" rel="noopener noreferrer">Abrir link curto ↗</a></div>':'')+'<button class="btn secondary" type="button" data-action="loadLomadeeShortUrl(\''+esc(item.urlCode)+'\')">Ver detalhes</button></div></div>';
+      }).join(''):'<div class="empty">Nenhum link encontrado com este filtro.</div>')+
+      '<div class="actions">'+(page>1?'<button class="btn secondary" type="button" data-action="loadLomadeeShortUrls('+(page-1)+')">Página anterior</button>':'')+(Number(result.totalPages||1)>page?'<button class="btn secondary" type="button" data-action="loadLomadeeShortUrls('+(page+1)+')">Próxima página</button>':'')+'</div>';
+  }catch(error){panel.innerHTML='<div class="empty" role="alert">'+esc(error.message||'Consulta indisponível.')+'</div>';}
+}
+async function loadLomadeeShortUrl(urlCode){
+  var panel=document.getElementById('lomadeeDataPanel');if(!panel)return;
+  panel.innerHTML='<div class="empty">Consultando detalhes do link encurtado...</div>';
+  try{
+    var result=await operationRequest('/api/integrations/lomadee?resource=shortener&urlCode='+encodeURIComponent(urlCode));
+    var item=(result.items||[])[0];if(!item)throw Error('A API não retornou esse link encurtado.');
+    var details=['Código: '+item.urlCode,item.linkType?'Tipo: '+item.linkType:'',item.active===true?'Ativo':item.active===false?'Inativo':'Status não informado','Cliques: '+(item.count===null?'—':item.count),item.organizationId?'Marca: '+item.organizationId:''].filter(Boolean).join(' · ');
+    panel.innerHTML='<h3>Detalhes do link encurtado</h3><div class="integration"><div class="grow"><b>'+esc(item.shortUrl||item.urlCode)+'</b><div class="muted">'+esc(details)+'</div>'+(item.originalUrl?'<p>URL original: <a href="'+esc(item.originalUrl)+'" target="_blank" rel="noopener noreferrer">'+esc(item.originalUrl)+'</a></p>':'')+(item.shortUrl?'<p><a href="'+esc(item.shortUrl)+'" target="_blank" rel="noopener noreferrer">Abrir link curto ↗</a></p>':'')+'<button class="btn secondary" type="button" data-action="loadLomadeeShortUrls(1)">Voltar à lista</button></div></div>';
   }catch(error){panel.innerHTML='<div class="empty" role="alert">'+esc(error.message||'Consulta indisponível.')+'</div>';}
 }
 async function loadLomadeeChannel(channelId){
