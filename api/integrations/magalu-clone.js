@@ -121,7 +121,11 @@ function collectProductLinks(html, base) {
   return out;
 }
 async function readLimited(response) {
-  if (!response.body) return '';
+  if (!response.body) {
+    const text = await response.text();
+    if (new TextEncoder().encode(text).byteLength > MAX_BYTES) throw Object.assign(new Error('A página excede o limite seguro de leitura (1 MB).'), { status: 413 });
+    return text;
+  }
   const reader = response.body.getReader(), chunks = [];
   let total = 0;
   while (true) {
