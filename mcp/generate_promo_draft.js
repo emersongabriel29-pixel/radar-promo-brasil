@@ -25,6 +25,7 @@ export default {
     if (factsJson.length > 5000) throw new Error('Os fatos fornecidos excedem 5.000 caracteres.');
     const result = await ctx.ai.generateText({
       purpose: 'mcp-promo-draft',
+      model: 'gemini',
       maxTokens: 700,
       system: 'Escreva em português brasileiro um rascunho promocional para afiliados. Use somente os fatos fornecidos. Nunca invente nem estime preço, desconto, frete, estoque, cupom, prazo, comissão, avaliação ou urgência. Preserve links exatamente. Se um dado estiver ausente, omita-o. Inclua transparência de link afiliado quando houver link. Não afirme que publicou ou verificou externamente a oferta. Retorne apenas o texto do rascunho.',
       prompt: JSON.stringify({ product: title, channel, tone: String(args.tone || 'claro, confiável e objetivo').slice(0, 80), verifiedFacts: facts }),
