@@ -40,11 +40,23 @@ function numberPrice(value) {
   const parsed = Number(String(value).replace(',', '.'));
   return Number.isFinite(parsed) && parsed > 0 && parsed < 100000000 ? parsed : null;
 }
+function storefrontProductUrl(value, base) {
+  const parsed = absolutePageUrl(value, base);
+  if (!parsed) return '';
+  try {
+    const baseUrl = new URL(String(base));
+    const product = new URL(parsed);
+    const slug = baseUrl.pathname.split('/').filter(Boolean)[0] || '';
+    const parts = product.pathname.split('/').filter(Boolean);
+    if (baseUrl.hostname.toLowerCase().endsWith('magazinevoce.com.br') && slug && slug !== 'l' && parts[0] !== slug) product.pathname = '/' + [slug].concat(parts).join('/');
+    return product.toString();
+  } catch { return parsed; }
+}
 function productRecord(value, base) {
   if (!value || typeof value !== 'object') return null;
   const offers = Array.isArray(value.offers) ? value.offers[0] : value.offers;
   const image = Array.isArray(value.images) ? value.images[0] : (Array.isArray(value.image) ? value.image[0] : (value.image || value.images));
-  const productUrl = absolutePageUrl(value.url || value.link || value['@id'], base);
+  const productUrl = storefrontProductUrl(value.url || value.link || value['@id'], base);
   let rawImage = typeof image === 'string' ? image : image?.url;
   if (rawImage) rawImage = String(rawImage).replace(/\{width\}x\{height\}/g, '600x600');
   const imageUrl = safePublicUrl(rawImage, base);
@@ -168,19 +180,19 @@ export default async function handler(req, res) {
     const currentPrice = numberPrice(meta(html, 'product:price:amount') || meta(html, 'og:price:amount') || (html.match(/"price"\s*:\s*"?([\d]+(?:[.,][\d]{1,2})?)"?/i) || [])[1]);
     const host = finalUrl.hostname.toLowerCase();
     const affiliateCandidate = '';
-    const isStorefront = /magazinevoce\.com\.br/i.test(finalUrl.hostname) && !/\/produto\//i.test(finalUrl.pathname);
+    const isStorefront = finalUrl.hostname.toLowerCase().endsWith('magazinevoce.com.br') && !finalUrl.pathname.includes('/p/');
     let products = collectJsonProducts(html, finalUrl);
     if (isStorefront) products = products.concat(collectProductLinks(html, finalUrl));
     const seen = new Set();
     products = products.filter(p => { const key = p.productUrl || p.title; if (seen.has(key)) return false; seen.add(key); return true; }).slice(0, MAX_PRODUCTS);
     if (!products.length && title) products = [{ title, description, currentPrice, imageUrl, productUrl: finalUrl.toString() }];
-    products = products.map(p => ({ ...p, affiliateLinkCandidate: '', affiliateTrackingVerified: false }));
+    products = products.map(p => ({ ...p, affiliateLinkCandidate: isStorefront ? p.productUrl : '', affiliateTrackingVerified: false }));
     return res.json({
       ok: true, source: 'PUBLIC_PAGE_METADATA', pageTitle: String(title || '').slice(0, 220),
       description: String(description || '').slice(0, 1000), imageUrl, currentPrice,
       productUrl: finalUrl.toString(), affiliateLinkCandidate: '', affiliateTrackingVerified: false,
       isStorefront, products, productCount: products.length, maxProducts: MAX_PRODUCTS,
-      diagnostics: { htmlBytes: html.length, hasShowcaseProducts: html.includes('showcaseProducts:'), showcaseItemsDetected: extractArrayAfter(html, 'showcaseProducts:').length, sampleTitle: String(extractArrayAfter(html, 'showcaseProducts:')[0]?.title || '').slice(0, 80), sampleLink: String(extractArrayAfter(html, 'showcaseProducts:')[0]?.link || '').slice(0, 160), sampleResolvedHost: (() => { try { return new URL(String(extractArrayAfter(html, 'showcaseProducts:')[0]?.link || ''), String(finalUrl)).hostname; } catch { return 'invalid'; } })(), sampleImageHost: (() => { try { return new URL(String(extractArrayAfter(html, 'showcaseProducts:')[0]?.images?.[0]?.url || '').replace(/\\{width\\}x\\{height\\}/g, '600x600'), String(finalUrl)).hostname; } catch { return 'invalid'; } })(), sampleProductUrlValid: Boolean(absolutePageUrl(extractArrayAfter(html, 'showcaseProducts:')[0]?.link, finalUrl)), sampleImageUrlValid: Boolean(safePublicUrl(String(extractArrayAfter(html, 'showcaseProducts:')[0]?.images?.[0]?.url || '').replace(/\\{width\\}x\\{height\\}/g, '600x600'), finalUrl)), samplePrice: numberPrice(extractArrayAfter(html, 'showcaseProducts:')[0]?.price?.cash) },
+      extractionSummary: { htmlBytes: html.length, storefrontProductsDetected: extractArrayAfter(html, 'showcaseProducts:').length },
       fieldsNeedReview: ['title', 'currentPrice', 'imageUrl', 'affiliateUrl'],
       note: 'Importação limitada a metadados e links presentes no HTML público (máximo de 24 itens). Páginas que carregam produtos via JavaScript podem não expor todos os itens. Preços e links de comissão precisam de confirmação no Parceiro Magalu.'
     });
