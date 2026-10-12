@@ -28,8 +28,9 @@ async function getAccount(member) {
   return (await db.query("SELECT id FROM accounts WHERE owner_member_id=$1 AND status='ACTIVE' LIMIT 1", [String(member.id)])).rows[0];
 }
 async function encryptionKey(accountId, marketplace) {
-  const raw = String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '');
-  if (raw.length < 32) throw Object.assign(new Error('Configure CONNECTOR_ENCRYPTION_KEY nos segredos do projeto.'), { status: 412 });
+  let raw = String(await config.get('API_CREDENTIALS_MASTER_KEY') || '');
+  if (raw.length < 32) raw = String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '');
+  if (raw.length < 32) throw Object.assign(new Error('Configure API_CREDENTIALS_MASTER_KEY ou CONNECTOR_ENCRYPTION_KEY com pelo menos 32 caracteres.'), { status: 412 });
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw + '|radar-marketplace-credentials|' + accountId + '|' + marketplace));
   return crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }
