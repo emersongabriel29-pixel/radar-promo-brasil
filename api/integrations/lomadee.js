@@ -164,6 +164,32 @@ export default async function handler(req, res) {
           return res.status(code === 401 || code === 403 ? code : 502).json({ error: error?.message || 'Não foi possível alcançar a API oficial da Lomadee.', status: 'ERROR' });
         }
       }
+      if (action === 'shorten_url') {
+        if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'Valide a conexão Lomadee antes de gerar links.' });
+        const organizationId = clean(req.body?.organizationId, 80);
+        const type = clean(req.body?.type, 30);
+        const featureId = clean(req.body?.featureId, 120);
+        const rawUrl = clean(req.body?.url, 2000);
+        const mdasc = clean(req.body?.mdasc, 100);
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(organizationId)) return res.status(400).json({ error: 'organizationId deve ser um UUID válido da marca Lomadee.' });
+        if (!['Coupon','Offer','BrandPage','Custom','Home'].includes(type)) return res.status(400).json({ error: 'type deve ser Coupon, Offer, BrandPage, Custom ou Home.' });
+        if (['Coupon','Offer'].includes(type) && !/^[A-Za-z0-9_-]{1,120}$/.test(featureId)) return res.status(400).json({ error: 'Coupon e Offer exigem featureId válido da campanha Lomadee.' });
+        if (!['Coupon','Offer'].includes(type) && featureId) return res.status(400).json({ error: 'featureId só pode ser enviado para Coupon ou Offer.' });
+        if (type === 'Custom') {
+          let parsed;
+          try { parsed = new URL(rawUrl); } catch { parsed = null; }
+          if (!parsed || parsed.protocol !== 'https:' || !parsed.hostname || parsed.username || parsed.password) return res.status(400).json({ error: 'Custom exige uma URL HTTPS válida, sem usuário ou senha embutidos.' });
+        } else if (rawUrl) return res.status(400).json({ error: 'url só pode ser enviado quando type=Custom.' });
+        const payload = { organizationId, type, ...(featureId ? { featureId } : {}), ...(type === 'Custom' ? { url: rawUrl } : {}), ...(mdasc ? { mdasc } : {}) };
+        const body = await apiRequest('/affiliate/shortener/url', apiKey, {}, 'POST', payload);
+        const rows = (Array.isArray(body) ? body : listFrom(body)).map(row => ({
+          id: clean(row?.id, 120), name: clean(row?.name, 200),
+          availableChannel: { id: clean(row?.availableChannel?.id, 120), name: clean(row?.availableChannel?.name, 200) },
+          shortUrls: (Array.isArray(row?.shortUrls) ? row.shortUrls : []).filter(url => typeof url === 'string' && /^https:\/\//i.test(url)).map(url => url.slice(0, 2000)),
+          message: clean(row?.message, 300)
+        }));
+        return res.json({ ok: true, resource: 'shortener', type, organizationId, channels: rows, generatedCount: rows.reduce((sum, row) => sum + row.shortUrls.length, 0), created: true, published: false });
+      }
       if (action === 'import_products') {
         if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'Valide a conexão Lomadee antes de importar produtos.' });
         const search = clean(req.body?.search, 100);
@@ -222,7 +248,25 @@ export default async function handler(req, res) {
       if (!['products','campaigns','brands','channels','orders','shortener'].includes(resource)) return res.status(400).json({ error: 'Recurso somente leitura não suportado.' });
       const limit = Math.min(resource === 'products' || resource === 'orders' || resource === 'shortener' ? 100 : 20, Math.max(1, Math.floor(Number(req.query?.limit) || 10)));
       const params = { page: Math.max(1, Math.floor(Number(req.query?.page) || 1)), limit };
-      if (resource === 'products') { if (req.query?.search) params.search = clean(req.query.search, 100); params.isAvailable = true; }
+      if (resource === 'products') {
+        if (req.query?.search) params.search = clean(req.query.search, 100);
+        if (req.query?.price !== undefined && req.query?.price !== '') {
+          const price = clean(req.query.price, 40);
+          const match = price.match(/^([0-9]+):([0-9]+)$/);
+          if (!match || Number(match[1]) > Number(match[2])) return res.status(400).json({ error: 'price deve seguir o formato min:max em centavos, com mínimo menor ou igual ao máximo.' });
+          params.price = price;
+        }
+        if (req.query?.organizationIds) {
+          const ids = clean(req.query.organizationIds, 1000).split(',').map(x => x.trim());
+          if (!ids.length || ids.some(id => !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))) return res.status(400).json({ error: 'organizationIds deve conter UUIDs separados por vírgula.' });
+          params.organizationIds = ids.join(',');
+        }
+        if (req.query?.isAvailable !== undefined) {
+          const available = String(req.query.isAvailable).toLowerCase();
+          if (!['true','false'].includes(available)) return res.status(400).json({ error: 'isAvailable deve ser true ou false.' });
+          params.isAvailable = available;
+        } else params.isAvailable = true;
+      }
       if (resource === 'campaigns') {
         params.status = clean(req.query?.status || 'onTime,scheduled', 80);
         if (req.query?.types) params.types = clean(req.query.types, 80);
