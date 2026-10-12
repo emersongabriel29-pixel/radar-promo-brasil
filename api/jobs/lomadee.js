@@ -9,8 +9,9 @@ const fromB64 = value => Uint8Array.from(atob(value), char => char.charCodeAt(0)
 const list = body => Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
 
 async function readCredentials(row) {
-  const raw = String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '');
-  if (raw.length < 32) throw new Error('CONNECTOR_ENCRYPTION_KEY ausente');
+  let raw = String(await config.get('API_CREDENTIALS_MASTER_KEY') || '');
+  if (raw.length < 32) raw = String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '');
+  if (raw.length < 32) throw new Error('Chave mestra de credenciais ausente');
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw + '|radar-marketplace-credentials|' + row.account_id + '|LOMADEE'));
   const key = await crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['decrypt']);
   const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(row.nonce) }, key, fromB64(row.credentials_enc));
