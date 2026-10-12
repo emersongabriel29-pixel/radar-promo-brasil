@@ -3505,7 +3505,7 @@ async function loadMarketplaceStatus(){
     hasFields?'Próximo: executar o teste oficial disponível; credenciais salvas não provam conexão.':'Próximo: abrir o portal oficial e obter as credenciais do produto correto.';
    if(item.status==='ERROR'&&item.lastError)nextStep='Corrigir a falha informada abaixo e repetir o teste oficial.';
    var fields=(item.credentialFields||[]).map(esc).join(', ');
-   var lomadeeActions=item.id==='LOMADEE'&&item.status==='VALIDATED'?'<button class="btn secondary" type="button" data-action="importLomadeeProducts()">Importar ofertas</button> <button class="btn secondary" type="button" data-action="loadLomadeeCommissions()">Ver campanhas</button> <button class="btn secondary" type="button" data-action="loadLomadeeOrders()">Ver pedidos e comissões</button>':'';
+   var lomadeeActions=item.id==='LOMADEE'&&item.status==='VALIDATED'?'<button class="btn secondary" type="button" data-action="importLomadeeProducts()">Importar ofertas</button> <button class="btn secondary" type="button" data-action="loadLomadeeCommissions()">Ver campanhas</button> <button class="btn secondary" type="button" data-action="loadLomadeeOrders()">Ver pedidos e comissões</button> <button class="btn secondary" type="button" data-action="loadLomadeeChannels()">Ver canais</button>':'';
    var shopeeActions=item.id==='SHOPEE'&&(item.credentialFields||[]).indexOf('appId')!==-1&&(item.credentialFields||[]).indexOf('apiSecret')!==-1?'<button class="btn secondary" type="button" data-action="openShopeeTools()">Ferramentas Shopee</button>':'';
    var amazonActions=item.id==='AMAZON'&&(item.credentialFields||[]).indexOf('clientId')!==-1&&(item.credentialFields||[]).indexOf('clientSecret')!==-1?'<button class="btn secondary" type="button" data-action="openAmazonTools()">Ferramentas Amazon</button>':'';
    var sheinActions=item.id==='SHEIN'?'<button class="btn secondary" type="button" data-action="openSheinTools()">Ferramentas SHEIN</button>':'';
@@ -3608,6 +3608,16 @@ async function importLomadeeProducts(){
 async function loadLomadeeContents(){return loadLomadeeResource('products');}
 async function loadLomadeeCommissions(){return loadLomadeeResource('campaigns');}
 async function loadLomadeeOrders(){return loadLomadeeResource('orders');}
+async function loadLomadeeChannels(){return loadLomadeeResource('channels');}
+async function loadLomadeeChannel(channelId){
+  var panel=document.getElementById('lomadeeDataPanel');if(!panel)return;
+  panel.innerHTML='<div class="empty">Consultando canal da Lomadee...</div>';
+  try{
+    var result=await operationRequest('/api/integrations/lomadee?resource=channels&channelId='+encodeURIComponent(channelId));
+    var item=(result.items||[])[0];if(!item)throw Error('A API não retornou esse canal.');
+    panel.innerHTML='<h3>Detalhes do canal</h3><div class="integration"><div class="grow"><b>'+esc(item.name||item.id)+'</b><div class="muted">ID: '+esc(item.id)+' · '+(item.active===true?'Ativo':item.active===false?'Inativo':'Status não informado')+' · Criado em '+esc(item.createdAt||'não informado')+'</div></div></div>';
+  }catch(error){panel.innerHTML='<div class="empty" role="alert">'+esc(error.message||'Consulta indisponível.')+'</div>';}
+}
 async function loadLomadeeResource(resource){
   var panel=document.getElementById('lomadeeDataPanel');if(!panel)return;
   panel.innerHTML='<div class="empty">Consultando dados da Lomadee...</div>';
@@ -3620,8 +3630,8 @@ async function loadLomadeeResource(resource){
         var heading=item.title||item.name||item.id||'Registro';
         var details=resource==='products'?[item.seller,item.currentPrice===null?'':'R$ '+(item.currentPrice/100).toFixed(2),item.available?'Disponível':'Indisponível'].filter(Boolean).join(' · '):
           resource==='campaigns'?[item.type,item.status,item.offerType,item.startAt,item.endAt].filter(Boolean).join(' · '):
-          resource==='brands'?[item.status].filter(Boolean).join(' · '):resource==='orders'?['Pedido '+(item.orderId||item.id),item.status?'Status: '+item.status:'',item.value===null?'':'Venda R$ '+Number(item.value).toFixed(2),item.commission===null?'':'Comissão R$ '+Number(item.commission).toFixed(2),item.commissionStatus?'Comissão: '+item.commissionStatus:'',item.createdAt].filter(Boolean).join(' · '):[item.type].filter(Boolean).join(' · ');
-        return '<div class="integration"><div class="grow"><b>'+esc(heading)+'</b><div class="muted">'+esc(details)+'</div>'+(item.url?'<a href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">Abrir conteúdo oficial ↗</a>':'')+'</div></div>';
+          resource==='brands'?[item.status].filter(Boolean).join(' · '):resource==='orders'?['Pedido '+(item.orderId||item.id),item.status?'Status: '+item.status:'',item.value===null?'':'Venda R$ '+Number(item.value).toFixed(2),item.commission===null?'':'Comissão R$ '+Number(item.commission).toFixed(2),item.commissionStatus?'Comissão: '+item.commissionStatus:'',item.createdAt].filter(Boolean).join(' · '):resource==='channels'?['ID: '+item.id,item.active===true?'Ativo':item.active===false?'Inativo':'Status não informado',item.createdAt?'Criado em '+item.createdAt:''].filter(Boolean).join(' · '):[item.type].filter(Boolean).join(' · ');
+        return '<div class="integration"><div class="grow"><b>'+esc(heading)+'</b><div class="muted">'+esc(details)+'</div>'+(resource==='channels'?'<button class="btn secondary" type="button" data-action="loadLomadeeChannel(\''+esc(item.id)+'\')">Ver detalhes</button> ':'')+(item.url?'<a href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">Abrir conteúdo oficial ↗</a>':'')+'</div></div>';
       }).join(''):'<div class="empty">A API não retornou registros para esta consulta.</div>');
   }catch(error){panel.innerHTML='<div class="empty" role="alert">'+esc(error.message||'Consulta indisponível.')+'</div>';}
 }
