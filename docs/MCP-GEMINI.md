@@ -1,47 +1,55 @@
-# MCP local do Radar Promo Brasil
+# MCP remoto do Radar Promo Brasil (Hatchable)
 
-Este servidor expõe ferramentas de IA via Model Context Protocol (MCP), usando a chave Gemini já suportada pelo projeto. Ele não usa OpenAI API nem Anthropic API e não publica ofertas, envia mensagens ou altera o banco.
+O Radar Promo Brasil expõe um servidor MCP remoto nativo pelo Hatchable. A configuração `[mcp] enabled = true` e os arquivos em `mcp/*.js` são publicados junto com a aplicação. O endpoint é:
 
-## Ferramentas disponíveis
-
-- `categorize_product`: escolhe uma categoria apenas entre as categorias fornecidas.
-- `generate_promo_text`: gera texto para WhatsApp, Telegram ou uso geral a partir de fatos verificados.
-
-As ferramentas são somente de geração de conteúdo. O texto resultante deve continuar passando pela validação e aprovação existentes antes de ser enfileirado ou publicado.
-
-## Requisitos e execução local
-
-Requer Node.js 22+, dependências instaladas e uma chave Gemini permitida para uso na API.
-
-PowerShell:
-```powershell
-$env:GEMINI_API_KEY="SUA_CHAVE_GEMINI"
-$env:GEMINI_TEXT_MODEL="gemini-2.5-flash"
-npm run mcp
+```text
+https://radar-promo-brasil.hatchable.site/mcp
 ```
 
-Linux/macOS:
+O endpoint usa o fluxo OAuth do Hatchable; não crie nem compartilhe tokens manualmente. No cliente MCP, adicione a URL acima e conclua a autorização no navegador com a conta que tem papel de proprietária ou administradora do projeto. A autorização é revogável na aba MCP do console do Hatchable.
+
+## Ferramentas expostas
+
+- `categorize_product`: classifica produto apenas dentro da lista de categorias fornecida. Usa o modelo Gemini configurado no Hatchable.
+- `generate_promo_draft`: gera um rascunho a partir de fatos fornecidos. Usa Gemini e não publica ofertas nem envia mensagens.
+- `validate_offer_facts`: valida a estrutura básica de uma oferta e o formato HTTPS do link. Não verifica preço, estoque, frete ou validade em tempo real.
+
+As ferramentas estão restritas a `admin` (proprietária/administradora). Não há ferramentas MCP para publicar ofertas, enviar mensagens, comprar produtos, alterar credenciais ou modificar integrações.
+
+## Conectar clientes
+
+### Claude Desktop / Claude Code
+
+Adicione um servidor MCP remoto pela URL `https://radar-promo-brasil.hatchable.site/mcp` e conclua o OAuth. No Claude Code, a configuração pode ser iniciada com:
+
 ```bash
-GEMINI_API_KEY="SUA_CHAVE_GEMINI" GEMINI_TEXT_MODEL="gemini-2.5-flash" npm run mcp
+claude mcp add --transport http radar-promo-brasil https://radar-promo-brasil.hatchable.site/mcp
 ```
 
-A chave deve ficar apenas no ambiente local/gerenciador de segredos; nunca a grave no Git, no prompt de uma ferramenta ou em arquivos públicos. Sem chave, o servidor responde com erro legível e não tenta outro provedor.
+Se o cliente solicitar autorização, abra o navegador e aprove o acesso ao projeto.
 
-## Cliente MCP por stdio
+### OpenAI / ChatGPT via API
 
-Configure um cliente MCP local para iniciar o processo no diretório do projeto com comando `node` e argumento `mcp/server.js`. Passe `GEMINI_API_KEY` e, opcionalmente, `GEMINI_TEXT_MODEL` no ambiente do processo. O transporte usa JSON-RPC por stdin/stdout; logs não devem ser escritos em stdout.
+Na Responses API, configure um MCP remoto com `server_url` igual à URL acima e permita somente as ferramentas necessárias. O cliente deve completar o fluxo de autorização suportado pelo ambiente; não copie tokens de sessão ou cookies. Para usar MCP em um produto ChatGPT específico, confira a disponibilidade de conectores/MCP no plano e nas configurações da conta.
 
-## Limitações importantes
+### Outros clientes compatíveis
 
-- Este é um servidor MCP local por stdio. Um cliente hospedado na nuvem, incluindo uma aplicação que use a OpenAI Responses API com MCP remoto, não consegue acessar o processo local diretamente.
-- Para a OpenAI Responses API, seria necessário hospedar um endpoint MCP remoto com HTTPS, autenticação, controle de acesso e limites de uso. Isso não é criado por este servidor local e não deve ser exposto publicamente sem esses controles.
-- MCP é o protocolo de ferramentas, não um modelo de IA nem uma forma de contornar cobrança de tokens. Este servidor usa Gemini e está sujeito aos limites e termos da conta Google.
-- Não há execução de ferramentas de publicação, compra, alteração de credenciais, edição de código ou mutação de banco. Essas ações precisam de ferramentas dedicadas, autorização e confirmação.
-- O limite gratuito do Gemini depende do modelo, quota e regras atuais do Google. Não há garantia de disponibilidade ilimitada ou de custo zero.
+Use a mesma URL MCP e conclua o OAuth do Hatchable. O protocolo é independente do modelo; o cliente pode usar Claude, OpenAI ou outro modelo compatível. A geração de texto feita dentro das ferramentas deste projeto usa Gemini.
 
-## Verificações antes de usar
+## Custos e limites
 
-1. Execute `npm run build` e `npm test`.
-2. Conecte um cliente MCP local e confirme que `tools/list` mostra as duas ferramentas.
-3. Faça uma chamada de teste com dados fictícios; não publique o resultado.
-4. Confirme os limites de API na conta Google AI Studio.
+- O MCP e o endpoint não substituem o modelo de IA.
+- A classificação e a geração de texto chamam o alias `gemini` pelo gateway do Hatchable; o custo/quota depende da chave Google configurada, do plano e das condições atuais do Google/Hatchable.
+- A validação estrutural não chama IA.
+- Nenhuma ferramenta publica nem envia mensagens; o resultado de geração é apenas rascunho.
+- A disponibilidade do Gemini em modalidade gratuita não é ilimitada e deve ser conferida na conta do provedor e no painel de uso do Hatchable.
+
+## Verificação operacional
+
+1. Confirmar no Hatchable que o projeto está na versão publicada atual e que a aba MCP lista as três ferramentas.
+2. Adicionar a URL no cliente e concluir o OAuth.
+3. Testar `validate_offer_facts` com dados fictícios.
+4. Testar `categorize_product` e `generate_promo_draft` com dados fictícios, confirmando os registros no painel de uso de IA.
+5. Não enviar os rascunhos a canais reais sem aprovação humana e conferência dos dados oficiais.
+
+Segredos, tokens e cookies não devem ser colocados no GitHub nem em prompts.
