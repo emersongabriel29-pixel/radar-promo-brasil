@@ -28,7 +28,7 @@ async function getCredentials(accountId) {
   return { credentials, status: row.status };
 }
 async function apiRequest(path, apiKey, params = {}, method = 'GET', payload = null) {
-  if (!['/affiliate/products','/affiliate/brands','/affiliate/campaigns','/affiliate/channels','/affiliate/shortener/url'].includes(path)) {
+  if (!['/affiliate/products','/affiliate/brands','/affiliate/campaigns','/affiliate/channels','/affiliate/orders','/affiliate/shortener/url'].includes(path) && !(path.startsWith('/affiliate/brands/') && path.slice('/affiliate/brands/'.length).length > 0 && !path.slice('/affiliate/brands/'.length).includes('/')) && !(path.startsWith('/affiliate/orders/') && path.slice('/affiliate/orders/'.length).length > 0 && !path.slice('/affiliate/orders/'.length).includes('/'))) {
     throw Object.assign(new Error('Recurso Lomadee não permitido.'), { status: 400 });
   }
   const url = new URL(BASE_URL + path);
@@ -89,6 +89,21 @@ function safeRows(resource, body) {
     id: clean(x.id, 120), name: clean(x.name, 200),
     type: clean(x.availableChannel?.name || x.type, 100)
   }));
+  if (resource === 'orders') return rows.map(row => {
+    const x = row?.data && typeof row.data === 'object' ? row.data : row;
+    const items = Array.isArray(x.items) ? x.items : Array.isArray(x['items  ']) ? x['items  '] : [];
+    return {
+      id: clean(x.id, 120), orderId: clean(x.orderId || x.id, 120),
+      status: clean(x.status, 40), value: Number.isFinite(Number(x.value)) ? Number(x.value) : null,
+      createdAt: clean(x.createdAt, 60), commission: Number.isFinite(Number(x.commission)) ? Number(x.commission) : null,
+      commissionStatus: clean(x.commissionStatus, 40), organizationId: clean(x.organizationId, 120),
+      mdasc: clean(x.mdasc, 120), items: items.slice(0, 50).map(item => ({
+        id: clean(item.id, 120), name: clean(item.name, 220),
+        quantity: Number.isFinite(Number(item.quantity)) ? Number(item.quantity) : null,
+        price: Number.isFinite(Number(item.price)) ? Number(item.price) : null
+      }))
+    };
+  });
   return rows.map(x => ({ id: clean(x.id, 120), status: clean(x.status, 40) }));
 }
 export default async function handler(req, res) {
@@ -102,7 +117,7 @@ export default async function handler(req, res) {
       marketplace: 'LOMADEE', status: saved?.status || 'NOT_CONFIGURED',
       configured: Boolean(saved), apiStatus: saved?.status === 'VALIDATED' ? 'VALIDATED' : saved ? 'PENDING_VALIDATION' : 'NOT_CONFIGURED',
       publicationEnabled: saved?.status === 'VALIDATED',
-      capabilities: ['products:read','campaigns:read','brands:read','channels:read','shortener:write'],
+      capabilities: ['products:read','campaigns:read','brands:read','channels:read','orders:read','shortener:write'],
       portalUrl: 'https://www.lomadee.com.br/pt-br/afiliados',
       docsUrl: 'https://docs.lomadee.com.br/llms.txt'
     });
@@ -114,16 +129,17 @@ export default async function handler(req, res) {
       const action = clean(req.body?.action, 40);
       if (action === 'validate') {
         try {
-          const [products, campaigns, channels] = await Promise.all([
+          const [products, campaigns, channels, orders] = await Promise.all([
             apiRequest('/affiliate/products', apiKey, { page: 1, limit: 1 }),
             apiRequest('/affiliate/campaigns', apiKey, { page: 1, limit: 1, status: 'onTime' }),
-            apiRequest('/affiliate/channels', apiKey, {})
+            apiRequest('/affiliate/channels', apiKey, {}),
+            apiRequest('/affiliate/orders', apiKey, { page: 1, limit: 1 })
           ]);
           await db.query(
             "UPDATE marketplace_api_credentials SET status='VALIDATED',last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='LOMADEE'",
             [account.id]
           );
-          return res.json({ ok: true, status: 'VALIDATED', checks: { products: listFrom(products).length, campaigns: listFrom(campaigns).length, channels: listFrom(channels).length }, capabilities: ['products:read','campaigns:read','brands:read','channels:read','shortener:write'], note: 'Consultas de leitura validadas. O escopo shortener:write será confirmado na primeira geração real de link; nenhum link foi criado neste teste.' });
+          return res.json({ ok: true, status: 'VALIDATED', checks: { products: listFrom(products).length, campaigns: listFrom(campaigns).length, channels: listFrom(channels).length, orders: listFrom(orders).length }, capabilities: ['products:read','campaigns:read','brands:read','channels:read','orders:read','shortener:write'], note: 'Consultas de leitura de produtos, campanhas, canais e pedidos validadas. O escopo shortener:write será confirmado na primeira geração real de link; nenhum link foi criado neste teste.' });
         } catch (error) {
           const code = Number(error?.status) || 0;
           await db.query(
@@ -188,14 +204,35 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      if (!['products','campaigns','brands','channels'].includes(resource)) return res.status(400).json({ error: 'Recurso somente leitura não suportado.' });
-      const limit = Math.min(resource === 'products' ? 100 : 20, Math.max(1, Math.floor(Number(req.query?.limit) || 10)));
+      if (!['products','campaigns','brands','channels','orders'].includes(resource)) return res.status(400).json({ error: 'Recurso somente leitura não suportado.' });
+      const limit = Math.min(resource === 'products' || resource === 'orders' ? 100 : 20, Math.max(1, Math.floor(Number(req.query?.limit) || 10)));
       const params = { page: Math.max(1, Math.floor(Number(req.query?.page) || 1)), limit };
       if (resource === 'products') { if (req.query?.search) params.search = clean(req.query.search, 100); params.isAvailable = true; }
       if (resource === 'campaigns') { params.status = clean(req.query?.status || 'onTime', 40); if (req.query?.types) params.types = clean(req.query.types, 80); }
+      if (resource === 'orders') {
+        if (req.query?.organizationId) params.organizationId = clean(req.query.organizationId, 120);
+        if (req.query?.organizationIds) params.organizationIds = clean(req.query.organizationIds, 1000);
+        if (req.query?.mdasc !== undefined) params.mdasc = String(req.query.mdasc).toLowerCase() === 'true';
+        if (req.query?.from && req.query?.to) { params.from = clean(req.query.from, 10); params.to = clean(req.query.to, 10); }
+        else if (req.query?.from || req.query?.to) return res.status(400).json({ error: 'Informe from e to juntos no formato YYYY-MM-DD.' });
+      }
+      if (resource === 'brands' && req.query?.brandId) {
+        const brandId = clean(req.query.brandId, 120);
+        if (!/^[A-Za-z0-9_-]+$/.test(brandId)) return res.status(400).json({ error: 'ID de marca inválido.' });
+        const body = await apiRequest('/affiliate/brands/' + encodeURIComponent(brandId), apiKey);
+        const rows = safeRows('brands', [body?.data || body]);
+        return res.json({ resource, items: rows, count: rows.length, total: rows.length, readOnly: true });
+      }
+      if (resource === 'orders' && req.query?.orderId) {
+        const orderId = clean(req.query.orderId, 120);
+        if (!/^[A-Za-z0-9_-]+$/.test(orderId)) return res.status(400).json({ error: 'ID do pedido inválido.' });
+        const body = await apiRequest('/affiliate/orders/' + encodeURIComponent(orderId), apiKey, req.query?.mdasc !== undefined ? { mdasc: String(req.query.mdasc).toLowerCase() === 'true' } : {});
+        const rows = safeRows('orders', body?.data && !Array.isArray(body.data) ? [body.data] : body);
+        return res.json({ resource, items: rows, count: rows.length, total: rows.length, readOnly: true });
+      }
       const body = await apiRequest('/affiliate/' + resource, apiKey, params);
       const rows = safeRows(resource, body);
-      return res.json({ resource, items: rows, count: rows.length, total: Number(body?.count ?? body?.meta?.total ?? body?.pagination?.total ?? rows.length), readOnly: true });
+      return res.json({ resource, items: rows, count: rows.length, total: Number(body?.count ?? body?.meta?.total ?? body?.pagination?.total ?? rows.length), page: Number(body?.meta?.page ?? body?.pagination?.page ?? params.page), totalPages: Number(body?.meta?.totalPages ?? body?.pagination?.totalPages ?? 1), readOnly: true });
     }
     return res.status(405).json({ error: 'Método não permitido.' });
   } catch (error) {
