@@ -59,7 +59,18 @@ export default async function handler(req, res) {
           const connectionId = id === 'MAGALU' ? 'MAGALU' : id === 'MERCADOLIVRE' ? 'MERCADOLIVRE' : '';
           const connection = connectionId ? connectedById.get(connectionId) : null;
           const connected = connection?.status === 'ACTIVE';
-          return { id, ...store, status: connected ? 'CONNECTED' : (row?.status || 'NOT_CONFIGURED'), credentialFields: row?.credentialFields || [], keyLast4: row?.keyLast4 || '', lastCheckedAt: connected ? connection.updatedAt : (row?.lastCheckedAt || null), lastError: connected ? (connection.lastError || '') : (row?.lastError || ''), updatedAt: connected ? connection.updatedAt : (row?.updatedAt || null) };
+          const apiError = connected && Boolean(connection?.lastError);
+          const status = apiError ? 'ERROR' : connected ? 'CONNECTED' : (row?.status || 'NOT_CONFIGURED');
+          return {
+            id, ...store, status,
+            connectionStatus: connected ? 'CONNECTED' : (connection?.status || 'NOT_CONNECTED'),
+            apiStatus: connected ? (apiError ? 'ERROR' : 'NOT_CONFIRMED') : 'NOT_TESTED',
+            credentialFields: row?.credentialFields || [],
+            keyLast4: row?.keyLast4 || '',
+            lastCheckedAt: connected ? connection.updatedAt : (row?.lastCheckedAt || null),
+            lastError: connection ? (connection.lastError || '') : (row?.lastError || ''),
+            updatedAt: connected ? connection.updatedAt : (row?.updatedAt || null)
+          };
         }),
         note: 'Salvar credenciais não equivale a validar a API. O estado só muda para VALIDATED depois de uma verificação oficial implementada e aprovada.'
       });
