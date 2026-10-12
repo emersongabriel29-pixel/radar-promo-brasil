@@ -28,7 +28,7 @@ async function getCredentials(accountId) {
   return { credentials, status: row.status };
 }
 async function apiRequest(path, apiKey, params = {}, method = 'GET', payload = null) {
-  if (!['/affiliate/products','/affiliate/brands','/affiliate/campaigns','/affiliate/channels','/affiliate/orders','/affiliate/shortener/url'].includes(path) && !(path.startsWith('/affiliate/brands/') && path.slice('/affiliate/brands/'.length).length > 0 && !path.slice('/affiliate/brands/'.length).includes('/')) && !(path.startsWith('/affiliate/orders/') && path.slice('/affiliate/orders/'.length).length > 0 && !path.slice('/affiliate/orders/'.length).includes('/'))) {
+  if (!['/affiliate/products','/affiliate/brands','/affiliate/campaigns','/affiliate/channels','/affiliate/orders','/affiliate/shortener/url'].includes(path) && !(path.startsWith('/affiliate/brands/') && path.slice('/affiliate/brands/'.length).length > 0 && !path.slice('/affiliate/brands/'.length).includes('/')) && !(path.startsWith('/affiliate/orders/') && path.slice('/affiliate/orders/'.length).length > 0 && !path.slice('/affiliate/orders/'.length).includes('/')) && !(path.startsWith('/affiliate/channels/') && path.slice('/affiliate/channels/'.length).length > 0 && !path.slice('/affiliate/channels/'.length).includes('/'))) {
     throw Object.assign(new Error('Recurso Lomadee não permitido.'), { status: 400 });
   }
   const url = new URL(BASE_URL + path);
@@ -87,6 +87,8 @@ function safeRows(resource, body) {
   }));
   if (resource === 'channels') return rows.map(x => ({
     id: clean(x.id, 120), name: clean(x.name, 200),
+    active: typeof x.active === 'boolean' ? x.active : null,
+    createdAt: clean(x.createdAt, 50),
     type: clean(x.availableChannel?.name || x.type, 100)
   }));
   if (resource === 'orders') return rows.map(row => {
@@ -215,6 +217,13 @@ export default async function handler(req, res) {
         if (req.query?.mdasc !== undefined) params.mdasc = String(req.query.mdasc).toLowerCase() === 'true';
         if (req.query?.from && req.query?.to) { params.from = clean(req.query.from, 10); params.to = clean(req.query.to, 10); }
         else if (req.query?.from || req.query?.to) return res.status(400).json({ error: 'Informe from e to juntos no formato YYYY-MM-DD.' });
+      }
+      if (resource === 'channels' && req.query?.channelId) {
+        const channelId = clean(req.query.channelId, 120);
+        if (!/^[A-Za-z0-9_-]+$/.test(channelId)) return res.status(400).json({ error: 'ID do canal inválido.' });
+        const body = await apiRequest('/affiliate/channels/' + encodeURIComponent(channelId), apiKey);
+        const rows = safeRows('channels', [body?.data || body]);
+        return res.json({ resource, items: rows, count: rows.length, total: rows.length, readOnly: true });
       }
       if (resource === 'brands' && req.query?.brandId) {
         const brandId = clean(req.query.brandId, 120);
