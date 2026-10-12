@@ -4,6 +4,9 @@ auth = "none"
 base_url = "https://api.mercadolibre.com"
 description = "Mercado Livre via conector direto do Radar Promo Brasil."
 
+[mcp]
+enabled = true
+
 [ai]
 required = true
 description = "Categorizar produtos e criar mensagens de promoções sem inventar preço, estoque ou frete."
