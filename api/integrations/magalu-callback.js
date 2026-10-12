@@ -15,7 +15,7 @@ export default async function handler(req,res){
     const clientId=String(await config.get('MAGALU_CLIENT_ID')||''),clientSecret=String(await config.get('MAGALU_CLIENT_SECRET')||'');
     const redirectUri=String(await config.get('magalu_redirect_uri')||'https://radar-promo-brasil.hatchable.site/api/integrations/magalu-callback');
     if(!clientId||!clientSecret)throw new Error('As credenciais OAuth do aplicativo Magalu não estão configuradas no servidor.');
-    const response=await fetch('https://id.magalu.com/oauth/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},body:new URLSearchParams({grant_type:'authorization_code',client_id:clientId,client_secret:clientSecret,redirect_uri:redirectUri,code}).toString(),signal:AbortSignal.timeout(15000)});
+    const response=await fetch('https://id.magalu.com/oauth/token',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({grant_type:'authorization_code',client_id:clientId,client_secret:clientSecret,redirect_uri:redirectUri,code}),signal:AbortSignal.timeout(15000)});
     const token=await response.json().catch(()=>({}));
     if(!response.ok||!token.access_token)throw new Error('O ID Magalu não aceitou a troca do código por token. Confira Client ID, Client Secret, URL de callback e permissões.');
     const expiry=new Date(Date.now()+Math.max(60,Number(token.expires_in)||7200)*1000).toISOString();
