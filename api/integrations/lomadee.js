@@ -3,11 +3,8 @@ import { config, db } from 'hatchable';
 export const access = 'member';
 export const methods = ['GET', 'POST'];
 
-const BASES = {
-  contents: 'https://dashboard-api.lomadee.com.br',
-  commissions: 'https://commissions.lomadee.com.br',
-  orders: 'https://orders.lomadee.com.br'
-};
+// No public affiliate API contract for these resources has been verified.
+const BASES = {};
 const clean = (value, max = 100) => String(value ?? '').trim().slice(0, max);
 const fromB64 = value => Uint8Array.from(atob(value), char => char.charCodeAt(0));
 
@@ -29,6 +26,7 @@ async function getCredentials(accountId) {
   return { credentials, status: row.status };
 }
 async function apiRequest(resource, apiKey, params = {}) {
+  throw Object.assign(new Error('A API pública da Lomadee para este recurso não foi confirmada por documentação oficial. Não será chamado endpoint presumido.'), { status: 409 });
   const url = new URL(BASES[resource] + ({ contents: '/api/contents', commissions: '/api/commissions', orders: '/api/orders' })[resource]);
   for (const [key, value] of Object.entries(params)) if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value));
   const response = await fetch(url.toString(), {
@@ -75,6 +73,7 @@ export default async function handler(req, res) {
   try {
     const account = await getAccount(req.member);
     if (!account) return res.status(412).json({ error: 'Abra o painel uma vez para criar sua conta.' });
+    if (req.method === 'GET' && clean(req.query?.resource || 'status', 40).toLowerCase() === 'status') return res.json({ marketplace: 'LOMADEE', status: 'MANUAL_LINK_WORKFLOW', apiStatus: 'NOT_DOCUMENTED', publicationEnabled: false, portalUrl: 'https://www.lomadee.com.br/pt-br/afiliados', brandsUrl: 'https://www.lomadee.com.br/pt-br/marcas', note: 'Use links gerados no portal oficial. Nenhuma API pública oficial para descoberta de produtos e deeplinks foi confirmada; endpoints presumidos não serão chamados.' });
     const saved = await getCredentials(account.id);
     if (!saved) return res.status(412).json({ error: 'Cadastre a chave de autenticação da API Lomadee antes de testar.' });
     const apiKey = clean(saved.credentials.apiKey, 4096);
