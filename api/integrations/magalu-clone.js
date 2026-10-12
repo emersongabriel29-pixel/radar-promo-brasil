@@ -141,7 +141,7 @@ export default async function handler(req, res) {
     return res.json({
       ok: true, source: 'PUBLIC_PAGE_METADATA', pageTitle: String(title || '').slice(0, 220),
       description: String(description || '').slice(0, 1000), imageUrl, currentPrice,
-      productUrl: finalUrl.toString(), affiliateLinkCandidate, affiliateTrackingVerified: false,
+      productUrl: finalUrl.toString(), affiliateLinkCandidate: '', affiliateTrackingVerified: false,
       isStorefront, products, productCount: products.length, maxProducts: MAX_PRODUCTS,
       fieldsNeedReview: ['title', 'currentPrice', 'imageUrl', 'affiliateUrl'],
       note: 'Importação limitada a metadados e links presentes no HTML público (máximo de 24 itens). Páginas que carregam produtos via JavaScript podem não expor todos os itens. Preços e links de comissão precisam de confirmação no Parceiro Magalu.'
