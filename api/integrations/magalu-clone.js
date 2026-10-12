@@ -13,7 +13,7 @@ function parseInput(value) {
   return url;
 }
 function safePublicUrl(value, base) {
-  try { const url = new URL(String(value || ''), String(base)); const host = url.hostname.toLowerCase(); const allowed = ALLOWED_HOSTS.has(host) || host === 'a-static.mlcdn.com.br' || host.endsWith('.a-static.mlcdn.com.br') || host === 'mvc.mlcdn.com.br' || host.endsWith('.mvc.mlcdn.com.br'); if (url.protocol !== 'https:' || url.username || url.password || url.port || !allowed) return ''; return url.toString(); } catch { return ''; }
+  try { const raw = String(value || '').trim(); const url = /^https:\/\//i.test(raw) ? new URL(raw) : new URL(raw, String(base)); const host = url.hostname.toLowerCase(); const allowed = ALLOWED_HOSTS.has(host) || host === 'a-static.mlcdn.com.br' || host.endsWith('.a-static.mlcdn.com.br') || host === 'mvc.mlcdn.com.br' || host.endsWith('.mvc.mlcdn.com.br'); if (url.protocol !== 'https:' || url.username || url.password || url.port || !allowed) return ''; return url.toString(); } catch { return ''; }
 }
 function decodeHtml(value) {
   return String(value || '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&#x([\da-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16))).trim();
@@ -28,7 +28,8 @@ function meta(html, key) {
 }
 function absolutePageUrl(value, base) {
   try {
-    const url = new URL(String(value || ''), String(base));
+    const raw = String(value || '').trim();
+    const url = /^https:\/\//i.test(raw) ? new URL(raw) : new URL(raw, String(base));
     if (url.protocol !== 'https:' || url.username || url.password || url.port || !ALLOWED_HOSTS.has(url.hostname.toLowerCase())) return '';
     url.hash = '';
     return url.toString();
