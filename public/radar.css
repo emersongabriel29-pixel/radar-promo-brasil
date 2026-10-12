@@ -1373,6 +1373,8 @@ body{font-family:Manrope,system-ui,sans-serif}.login-layout{min-height:100vh;dis
 .csp-grid-template-columns-1fr-1fr{grid-template-columns:1fr 1fr}
 .csp-white-space-pre-wrap{white-space:pre-wrap}
 .csp-margin-top-15px{margin-top:15px}
+.csp-margin-top-0{margin-top:0}
+.csp-flex-center-10{display:flex;gap:10px;align-items:center}
 
 
 /* CSP migration batch 4: presentational styles moved from markup to classes. */
