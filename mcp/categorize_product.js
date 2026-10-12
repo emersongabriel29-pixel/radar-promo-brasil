@@ -22,6 +22,7 @@ export default {
     if (!title || !categories.length) throw new Error('Informe o título e ao menos uma categoria permitida.');
     const result = await ctx.ai.generateText({
       purpose: 'mcp-categorize-product',
+      model: 'gemini',
       maxTokens: 300,
       system: 'Você classifica produtos de marketplace. Escolha EXATAMENTE uma categoria da lista fornecida. Não crie categorias e não infira fatos não presentes. Retorne JSON válido com category e reason. Se houver incerteza, diga isso em reason.',
       prompt: JSON.stringify({ title, description, allowedCategories: categories }),
