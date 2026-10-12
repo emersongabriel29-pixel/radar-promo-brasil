@@ -13,7 +13,7 @@ function parseInput(value) {
   return url;
 }
 function safePublicUrl(value, base) {
-  try { const url = new URL(String(value || ''), base); const host = url.hostname.toLowerCase(); const allowed = ALLOWED_HOSTS.has(host) || host === 'a-static.mlcdn.com.br' || host.endsWith('.a-static.mlcdn.com.br'); if (url.protocol !== 'https:' || url.username || url.password || url.port || !allowed) return ''; return url.toString(); } catch { return ''; }
+  try { const url = new URL(String(value || ''), base); const host = url.hostname.toLowerCase(); const allowed = ALLOWED_HOSTS.has(host) || host === 'a-static.mlcdn.com.br' || host.endsWith('.a-static.mlcdn.com.br') || host === 'mvc.mlcdn.com.br' || host.endsWith('.mvc.mlcdn.com.br'); if (url.protocol !== 'https:' || url.username || url.password || url.port || !allowed) return ''; return url.toString(); } catch { return ''; }
 }
 function decodeHtml(value) {
   return String(value || '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&#x([\da-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16))).trim();
@@ -107,7 +107,7 @@ async function readLimited(response) {
 async function fetchPage(initial) {
   let url = initial;
   for (let hop = 0; hop < 5; hop++) {
-    const response = await fetch(url.toString(), { method: 'GET', redirect: 'manual', headers: { 'User-Agent': 'RadarPromoBrasil/1.0 (+public product preview)', Accept: 'text/html,application/xhtml+xml' }, signal: AbortSignal.timeout(10000) });
+    const response = await fetch(url.toString(), { method: 'GET', redirect: 'manual', headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RadarPromoBrasil/1.0; +https://radar-promo-brasil.hatchable.site)', Accept: 'text/html,application/xhtml+xml' }, signal: AbortSignal.timeout(10000) });
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       const location = response.headers.get('location');
       if (response.body) { try { await response.body.cancel(); } catch {} }
