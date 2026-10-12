@@ -524,19 +524,78 @@ function monitoring() {
 function cloneView() {
   return (
     section(
-      "Modo clone",
-      "Preserva o conteúdo e envia para revisão quando não consegue validar o link de afiliado.",
+      "Modo clone · Magalu",
+      "Importe metadados de uma página pública da Magalu ou da sua vitrine Parceiro Magalu. O Radar não burla login nem gera comissão por conta própria.",
     ) +
-    '<div class="grid two"><div class="card"><h3>Fluxo protegido</h3><div class="steps">' +
-    ["Captura", "Identifica links", "Converte", "Mantém mídia", "Enfileira"]
+    '<div class="grid two"><div class="card"><h3>Importar página pública</h3><p class="muted">Cole o link de um produto ou de uma página pública da sua vitrine. O Radar tentará ler título, imagem e preço publicado nos metadados; revise tudo antes de criar o rascunho.</p><div class="field"><label for="magaluCloneUrl">URL pública do produto ou da vitrine</label><input class="input" id="magaluCloneUrl" type="url" maxlength="2000" placeholder="https://www.magazinevoce.com.br/..."></div><button class="btn csp-margin-top-12px" type="button" data-action="inspectMagaluClone()">Ler página pública</button><div id="magaluCloneResult" class="callout csp-hidden csp-margin-top-12px" role="status"></div></div><div class="card"><h3>O que o modo clone faz</h3><div class="steps">' +
+    ["Lê metadados públicos", "Preserva a URL original", "Pede o link de afiliado", "Cria rascunho pendente", "Aguarda revisão"]
       .map(function (x, i) {
-        return (
-          '<div class="step"><i>0' + (i + 1) + "</i><b>" + x + "</b></div>"
-        );
-      })
-      .join("") +
-    '</div><div class="callout csp-margin-top-15px" >Mensagens com vários produtos ficam para revisão. O sistema não altera preço, cupom ou frete sem confirmação da fonte.</div></div><div class="card"><h3>Regras do clone</h3><p class="muted">✓ Preservar formatação e imagem<br>✓ Substituir somente links com conversão oficial validada<br>✓ Preservar links de cupom confirmados<br>✓ Bloquear duplicações<br>✓ Enviar à categoria compatível</p><button class="btn" data-action="openMonitor()">Adicionar origem</button></div></div>'
+        return '<div class="step"><i>0' + (i + 1) + "</i><b>" + x + "</b></div>";
+      }).join("") +
+    '</div><div class="callout csp-margin-top-15px">O link de afiliado e a comissão não são validados pela simples leitura da página. Para comissão, cole o link gerado no Parceiro Magalu. Nada será publicado automaticamente.</div><p><a href="https://www.magazinevoce.com.br/" target="_blank" rel="noopener noreferrer">Abrir Magazine Você ↗</a></p></div></div>'
   );
+}
+var lastMagaluCloneInspection = null;
+async function inspectMagaluClone(button) {
+  var input = document.getElementById("magaluCloneUrl");
+  var box = document.getElementById("magaluCloneResult");
+  if (!input || !box) return;
+  var url = input.value.trim();
+  if (!url) { toast("Cole a URL pública da Magalu ou da sua vitrine."); return; }
+  if (button) button.disabled = true;
+  box.classList.remove("csp-hidden");
+  box.textContent = "Lendo metadados públicos da página...";
+  try {
+    var response = await fetch("/api/integrations/magalu-clone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: url })
+    });
+    var data = await response.json();
+    if (!response.ok) throw Error(data.error || "Não foi possível importar a página.");
+    lastMagaluCloneInspection = data;
+    box.innerHTML = '<b>Prévia importada · confirme os dados</b><p class="muted">' + esc(data.note || "") + '</p>' +
+      '<div class="field"><label for="magaluCloneTitle">Nome do produto</label><input class="input" id="magaluCloneTitle" maxlength="220" value="' + esc(data.title || "") + '"></div>' +
+      '<div class="formgrid"><div class="field"><label for="magaluClonePrice">Preço atual (R$)</label><input class="input" id="magaluClonePrice" type="number" min="0.01" step="0.01" value="' + (data.currentPrice == null ? "" : esc(data.currentPrice)) + '" placeholder="Confirme o preço"></div><div class="field"><label for="magaluCloneOriginal">Preço anterior (opcional)</label><input class="input" id="magaluCloneOriginal" type="number" min="0.01" step="0.01" placeholder="Preço anterior"></div></div>' +
+      '<div class="field"><label for="magaluCloneImage">URL HTTPS da imagem</label><input class="input" id="magaluCloneImage" type="url" value="' + esc(data.imageUrl || "") + '" placeholder="URL pública da imagem"></div>' +
+      '<div class="field"><label for="magaluCloneAffiliate">Link oficial de afiliado (obrigatório)</label><input class="input" id="magaluCloneAffiliate" type="url" maxlength="2000" value="' + esc(data.affiliateLinkCandidate || "") + '" placeholder="Cole o link gerado no Parceiro Magalu"></div>' +
+      '<div class="field"><label><input id="magaluCloneConfirmed" type="checkbox"> Confirmei que o link foi gerado no meu Parceiro Magalu e revisei preço e imagem.</label></div>' +
+      '<button class="btn csp-margin-top-12px" type="button" data-action="createMagaluCloneDraft()">Criar rascunho para revisão</button>' +
+      '<p class="muted">Página de origem: <a target="_blank" rel="noopener noreferrer" href="' + esc(data.productUrl || url) + '">abrir origem ↗</a>. O preço extraído pode estar ausente ou desatualizado.</p>';
+    labelFields(box);
+  } catch (error) {
+    box.textContent = error.message || "Falha ao ler a página pública.";
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+async function createMagaluCloneDraft(button) {
+  var title = document.getElementById("magaluCloneTitle")?.value.trim();
+  var currentPrice = document.getElementById("magaluClonePrice")?.value;
+  var originalPrice = document.getElementById("magaluCloneOriginal")?.value;
+  var imageUrl = document.getElementById("magaluCloneImage")?.value.trim();
+  var affiliateUrl = document.getElementById("magaluCloneAffiliate")?.value.trim();
+  var confirmed = document.getElementById("magaluCloneConfirmed")?.checked;
+  var productUrl = lastMagaluCloneInspection?.productUrl || document.getElementById("magaluCloneUrl")?.value.trim();
+  if (!title || !currentPrice || !imageUrl || !affiliateUrl) { toast("Preencha título, preço, imagem e link de afiliado."); return; }
+  if (!confirmed) { toast("Confirme o link de afiliado e revise os dados antes de continuar."); return; }
+  if (button) button.disabled = true;
+  try {
+    var response = await fetch("/api/integrations/magalu", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "create_draft", title: title, currentPrice: currentPrice, originalPrice: originalPrice || null, imageUrl: imageUrl, affiliateUrl: affiliateUrl, productUrl: productUrl, affiliateLinkConfirmed: true, description: lastMagaluCloneInspection?.description || "", sourceCategory: "Vitrine Parceiro Magalu" })
+    });
+    var data = await response.json();
+    if (!response.ok) throw Error(data.error || "Não foi possível criar o rascunho.");
+    toast("Rascunho criado e mantido pendente de revisão.");
+    await load();
+    show("offers");
+  } catch (error) {
+    toast(error.message || "Falha ao criar o rascunho.");
+  } finally {
+    if (button) button.disabled = false;
+  }
 }
 function quick() {
   return (
