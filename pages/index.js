@@ -1,4 +1,4 @@
-export const access='member';
+export const access='public';
 export const methods=['GET'];
 export default function(req,res){res.setHeader('Content-Type','text/html; charset=utf-8');res.send(String.raw`<!doctype html>
 <html lang="pt-BR">
