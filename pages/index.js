@@ -8,6 +8,7 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
     <title>Radar Promo Brasil</title>
     <meta name="description" content="Central de operação de afiliados" />
     <meta name="theme-color" content="#152b40" />
+    <meta name="lomadee" content="2324685" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
