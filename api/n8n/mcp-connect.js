@@ -16,7 +16,7 @@ export default async function(req,res){
   if(registrationUrl.origin!==BASE)throw new Error('Endpoint de cadastro OAuth fora do domínio n8n esperado.');
   const rr=await fetch(registrationUrl.toString(),{method:'POST',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({client_name:'Radar Promo Brasil',redirect_uris:[REDIRECT],grant_types:['authorization_code','refresh_token'],response_types:['code'],token_endpoint_auth_method:'client_secret_post',scope:'workflow:read workflow:execute execution:read'}),signal:AbortSignal.timeout(10000)});
   const client=await rr.json().catch(()=>({}));
-  if(!rr.ok||!client.client_id)throw new Error(String(client.error_description||client.message||'Cadastro OAuth dinâmico recusado pelo n8n.').slice(0,180));
+  if(!rr.ok||!client.client_id)throw new Error('Cadastro OAuth recusado (HTTP '+rr.status+', campos: '+Object.keys(client).filter(k=>!k.toLowerCase().includes('secret')&&!k.toLowerCase().includes('token')).join(',')+'): '+String(client.error_description||client.error||client.message||'sem detalhes').slice(0,140));
   const verifier=btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');
   const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier));
   const challenge=btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');
