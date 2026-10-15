@@ -18,7 +18,7 @@ export default async function(req,res){
   if(configuredClientId){
    client={client_id:configuredClientId,client_secret:configuredClientSecret,token_endpoint_auth_method:configuredClientSecret?'client_secret_post':'none'};
   }else{
-   const registrationUrl=new URL(meta.registration_endpoint||BASE+'/mcp-oauth/register',BASE);
+   const registrationUrl=new URL(meta.registration_endpoint||BASE+'/mcp-oauth/register');
    if(registrationUrl.origin!==BASE)throw new Error('Endpoint de cadastro OAuth fora do domínio n8n esperado.');
    const rr=await fetch(registrationUrl.toString(),{method:'POST',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({client_name:'Radar Promo Brasil',redirect_uris:[REDIRECT],grant_types:['authorization_code','refresh_token'],response_types:['code'],token_endpoint_auth_method:'client_secret_post',scope:'workflow:read workflow:execute execution:read'}),signal:AbortSignal.timeout(10000)});
    client=await rr.json().catch(()=>({}));
@@ -29,7 +29,7 @@ export default async function(req,res){
   const challenge=btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');
   const state=crypto.randomUUID();
   await db.query("INSERT INTO marketplace_oauth_states(state,account_id,code_verifier_enc,expires_at) VALUES($1,$2,$3,now()+interval '10 minutes')",[state,account.id,await seal(JSON.stringify({verifier,clientId:client.client_id,clientSecret:client.client_secret||'',tokenEndpoint:meta.token_endpoint,authMethod:client.token_endpoint_auth_method||'client_secret_post'}))]);
-  const authorizationUrl=new URL(meta.authorization_endpoint||BASE+'/mcp-oauth/authorize',BASE);
+  const authorizationUrl=new URL(meta.authorization_endpoint||BASE+'/mcp-oauth/authorize');
   if(authorizationUrl.origin!==BASE)throw new Error('Endpoint de autorização OAuth fora do domínio n8n esperado.');
   const url=authorizationUrl;url.search=new URLSearchParams({response_type:'code',client_id:client.client_id,redirect_uri:REDIRECT,state,scope:'workflow:read workflow:execute execution:read',code_challenge:challenge,code_challenge_method:'S256'}).toString();
   return res.json({ok:true,authorizationUrl:url.toString(),redirectUri:REDIRECT});
