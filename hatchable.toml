@@ -4,6 +4,9 @@ auth = "none"
 base_url = "https://api.mercadolibre.com"
 description = "Mercado Livre via conector direto do Radar Promo Brasil."
 
+[mcp]
+enabled = true
+
 [ai]
 required = true
 description = "Categorizar produtos e criar mensagens de promoções sem inventar preço, estoque ou frete."
@@ -37,6 +40,21 @@ description = "Chave com pelo menos 32 caracteres para proteger tokens OAuth no 
 name = "RUNWAY_API_KEY"
 required = false
 description = "Chave da API do Runway usada pelo conector direto."
+
+[[secret]]
+name = "N8N_MCP_ACCESS_TOKEN"
+required = false
+description = "Token Bearer de acesso ao MCP do n8n; configure em segredo após gerar em Settings > Instance-level MCP."
+
+[[secret]]
+name = "N8N_MCP_CLIENT_ID"
+required = false
+description = "Client ID OAuth do n8n MCP, usado apenas se a instância exigir OAuth."
+
+[[secret]]
+name = "N8N_MCP_CLIENT_SECRET"
+required = false
+description = "Client Secret OAuth do n8n MCP; manter somente no cofre seguro."
 
 [[secret]]
 name = "N8N_WEBHOOK_SECRET"
