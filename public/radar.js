@@ -1108,6 +1108,7 @@ function integrations() {
       "Configurar",
       "openWhatsappPairing()",
     ) +
+    '<div class="integration" data-integration-code="MCP"><div class="intlogo">MCP</div><div class="grow"><b>n8n · Servidor MCP</b><div class="muted">OAuth com PKCE para consultar as ferramentas do servidor. O teste lista ferramentas sem executá-las.</div><button type="button" class="btn secondary csp-margin-top-10px" data-action="connectN8nMcp()">Conectar servidor</button> <button type="button" class="btn secondary csp-margin-top-10px" data-action="testN8nMcp()">Testar conexão</button></div></div>' +
     integration(
       "TG",
       "Telegram",
@@ -3784,6 +3785,24 @@ async function openMagaluTools(){
       openModal('Rascunho Magalu criado','A oferta foi salva como pendente e não foi publicada.','<p><b>ID:</b> '+esc(result.offerId)+'</p><p><b>Status:</b> '+esc(result.status)+'</p><p>'+esc(result.message)+'</p>',function(e){e.preventDefault();closeModal();});var submit2=document.querySelector('#form button[type="submit"]');if(submit2)submit2.textContent='Fechar';
     }catch(error){toast(error.message||'Não foi possível validar ou preparar o rascunho Magalu.');}
   });var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Executar';
+}
+async function connectN8nMcp(){
+  try{
+    var response=await fetch('/api/n8n/mcp-connect',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    var data=await response.json();
+    if(!response.ok||!data.authorizationUrl)throw Error(data.error||'Não foi possível iniciar a conexão OAuth do n8n.');
+    window.location.href=data.authorizationUrl;
+  }catch(error){toast(error.message||'Falha ao conectar o servidor MCP.');}
+}
+async function testN8nMcp(){
+  try{
+    var response=await fetch('/api/n8n/mcp-status',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    var data=await response.json();
+    if(!response.ok)throw Error(data.error||'O teste MCP falhou.');
+    closeModal();
+    openModal('Teste · n8n MCP','Consulta somente leitura. Nenhuma ferramenta remota foi executada.','<div class="callout"><b>Conexão: '+esc(data.status||'—')+'</b><p>Servidor: '+esc(data.server?.name||'n8n')+' · protocolo '+esc(data.protocolVersion||'—')+'</p><p>Ferramentas disponíveis: '+esc(data.toolCount||0)+'</p></div><pre style="white-space:pre-wrap;max-height:45vh;overflow:auto;word-break:break-word">'+esc(JSON.stringify(data.tools||[],null,2))+'</pre>',function(e){e.preventDefault();closeModal();});
+    var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Fechar';
+  }catch(error){toast(error.message||'Não foi possível testar o servidor MCP.');}
 }
 async function openSheinTools(){
   var body='<label for="sheinAction">Operação</label><select id="sheinAction" name="action" required><option value="validate_link">Validar domínio do link (sem salvar)</option><option value="create_draft">Criar rascunho de oferta pendente</option></select>'+
