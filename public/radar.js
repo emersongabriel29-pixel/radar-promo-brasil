@@ -1837,7 +1837,7 @@ function accountView() {
       .join("") +
     '<h3 class="csp-margin-top-22px" >Vitrine pública</h3><div class="callout">/vitrine?loja=' +
     esc(a.slug || "") +
-    '</div><button class="btn csp-margin-top-12px"  data-action="openStorefront()">Editar vitrine</button> <a class="btn secondary" target="_blank" href="/vitrine?loja=' +
+    '</div><div class="callout csp-margin-top-8px">Collshp: ' + (sf.collshp_url ? '<a target="_blank" rel="noopener noreferrer" href="' + esc(sf.collshp_url) + '">Abrir vitrine externa</a>' : 'Salve o link da Collshp em Editar vitrine') + '</div><button class="btn csp-margin-top-12px"  data-action="openStorefront()">Editar vitrine</button> <a class="btn secondary" target="_blank" href="/vitrine?loja=' +
     encodeURIComponent(a.slug || "") +
     '">Visualizar</a></div><div class="card"><h3>Conexões WhatsApp</h3>' +
     whatsappConnectionsMarkup() +
@@ -2838,6 +2838,12 @@ function openStorefront() {
         "primaryColor",
         "color",
         'value="' + esc(s.primaryColor || "#ff6a2a") + '"',
+      ) +
+      field(
+        "Link da vitrine Collshp",
+        "collshpUrl",
+        "url",
+        'placeholder="https://collshp.com/emersongabriel291295?view=storefront" value="' + esc(s.collshp_url || s.collshpUrl || "https://collshp.com/emersongabriel291295?view=storefront") + '"',
       ) +
       select(
         "Publicação",
