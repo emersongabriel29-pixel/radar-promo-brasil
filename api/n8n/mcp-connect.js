@@ -12,11 +12,18 @@ export default async function(req,res){
   const mr=await fetch(BASE+'/.well-known/oauth-authorization-server',{headers:{accept:'application/json'},signal:AbortSignal.timeout(8000)});
   if(!mr.ok)throw new Error('Metadados OAuth do n8n indisponíveis.');
   const meta=await mr.json();
-  const registrationUrl=new URL(meta.registration_endpoint||BASE+'/mcp-oauth/register',BASE);
-  if(registrationUrl.origin!==BASE)throw new Error('Endpoint de cadastro OAuth fora do domínio n8n esperado.');
-  const rr=await fetch(registrationUrl.toString(),{method:'POST',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({client_name:'Radar Promo Brasil',redirect_uris:[REDIRECT],grant_types:['authorization_code','refresh_token'],response_types:['code'],token_endpoint_auth_method:'client_secret_post',scope:'workflow:read workflow:execute execution:read'}),signal:AbortSignal.timeout(10000)});
-  const client=await rr.json().catch(()=>({}));
-  if(!rr.ok||!client.client_id){if(rr.status===404)throw new Error('O n8n anunciou o registro OAuth, mas /mcp-oauth/register retornou HTTP 404. O administrador do n8n precisa habilitar ou corrigir esse endpoint antes da autorização. Nenhum token foi salvo.');throw new Error('Cadastro OAuth recusado (HTTP '+rr.status+'): '+String(client.error_description||client.error||client.message||'sem detalhes').slice(0,140));}
+  const configuredClientId=String(await config.get('N8N_MCP_CLIENT_ID')||'').trim();
+  const configuredClientSecret=String(await config.get('N8N_MCP_CLIENT_SECRET')||'');
+  let client;
+  if(configuredClientId){
+   client={client_id:configuredClientId,client_secret:configuredClientSecret,token_endpoint_auth_method:configuredClientSecret?'client_secret_post':'none'};
+  }else{
+   const registrationUrl=new URL(meta.registration_endpoint||BASE+'/mcp-oauth/register',BASE);
+   if(registrationUrl.origin!==BASE)throw new Error('Endpoint de cadastro OAuth fora do domínio n8n esperado.');
+   const rr=await fetch(registrationUrl.toString(),{method:'POST',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({client_name:'Radar Promo Brasil',redirect_uris:[REDIRECT],grant_types:['authorization_code','refresh_token'],response_types:['code'],token_endpoint_auth_method:'client_secret_post',scope:'workflow:read workflow:execute execution:read'}),signal:AbortSignal.timeout(10000)});
+   client=await rr.json().catch(()=>({}));
+   if(!rr.ok||!client.client_id){if(rr.status===404)throw new Error('O n8n não oferece registro dinâmico neste endpoint. Configure N8N_MCP_CLIENT_ID e, se o cliente OAuth exigir, N8N_MCP_CLIENT_SECRET nas configurações seguras do Hatchable; depois tente novamente. Nenhum token foi salvo.');throw new Error('Cadastro OAuth recusado (HTTP '+rr.status+'): '+String(client.error_description||client.error||client.message||'sem detalhes').slice(0,140));}
+  }
   const verifier=btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');
   const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier));
   const challenge=btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');
