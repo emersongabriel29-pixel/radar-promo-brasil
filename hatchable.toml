@@ -42,6 +42,11 @@ required = false
 description = "Chave da API do Runway usada pelo conector direto."
 
 [[secret]]
+name = "N8N_API_KEY"
+required = false
+description = "Chave da API REST do n8n; usada somente em consultas autenticadas de leitura, separada do MCP."
+
+[[secret]]
 name = "N8N_MCP_ACCESS_TOKEN"
 required = false
 description = "Token Bearer de acesso ao MCP do n8n; configure em segredo após gerar em Settings > Instance-level MCP."
