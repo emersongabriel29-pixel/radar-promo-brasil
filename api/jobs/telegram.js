@@ -18,7 +18,7 @@ export default async function(req,res){
       let providerAccepted=false;
       try{
         const token=await configuredBotToken(connection.secretSlot,item.accountId);
-        const trackingUrl=origin+'/api/r/'+encodeURIComponent(item.id),trackedMessage=item.affiliateUrl?String(item.message||'').split(item.affiliateUrl).join(trackingUrl):String(item.message||'');
+        const trackingUrl=origin+'/api/r/'+encodeURIComponent(item.id),storefrontUrl=(await db.query('SELECT collshp_url FROM storefront_settings WHERE account_id=$1',[item.accountId])).rows[0]?.collshp_url||'',baseMessage=item.affiliateUrl?String(item.message||'').split(item.affiliateUrl).join(trackingUrl):String(item.message||''),trackedMessage=storefrontUrl&&!baseMessage.includes(storefrontUrl)?baseMessage+String.fromCharCode(10,10)+'Veja mais ofertas na minha vitrine: '+storefrontUrl:baseMessage;
         const external=await sendTelegramOffer(token,{...item,imageUrl:item.contentType==='MESSAGE'?null:new URL(await offerImage(item),origin).toString(),message:trackedMessage,affiliateUrl:trackingUrl});
         providerAccepted=true;
         await db.transaction([
