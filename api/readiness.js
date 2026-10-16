@@ -43,7 +43,7 @@ export default async function(req,res){
   ];
   const external=[
     item('ai','IA para conteúdo',aiReady,aiReady?'Provedor testado.':'Faça um teste no Estúdio de IA.','Abra o Estúdio e gere um conteúdo.'),
-    item('marketplaces','Afiliados e marketplaces',marketplaces>0,marketplaces+' marketplace(s) configurado(s); o crédito deve ser conferido na plataforma oficial.','Conecte e valide uma conta oficial de afiliado.'),
+    item('marketplaces','Regras de afiliado',marketplaces>0,marketplaces+' regra(s) de afiliado ativa(s); a conexão oficial com o marketplace é verificada separadamente.','Cadastre uma regra ativa de marketplace com tag de afiliado.'),
     item('telegram','Telegram',telegram>0,telegram+' bot(s) ativo(s).','Configure o token e conecte um bot.'),
     item('whatsapp','WhatsApp/n8n',whatsapp>0,whatsapp+' número(s) validado(s) com acesso a destino ativo.','Pareie o conector, valide os números e os grupos e ative o revezamento.'),
     item('storefront','Vitrine pública',storefront,storefront?'Vitrine publicada.':'Vitrine ainda não publicada.','Publique a vitrine em Conta.')
