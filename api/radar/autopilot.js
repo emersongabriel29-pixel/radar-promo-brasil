@@ -22,24 +22,27 @@ export default async function(req, res) {
         rule_id: rule.id,
         rule_name: rule.name,
         min_score: rule.min_score,
+        score_informational: true,
+        score_gate_enabled: false,
         min_discount: rule.min_discount,
-        score_pass: radar.score >= rule.min_score,
+        score_pass: null,
         discount_pass: discount >= rule.min_discount,
         price_pass: !rule.max_price || offer.current_price <= rule.max_price,
         history_pass: !rule.require_price_history || offer.price_history_count >= 3,
         category_pass: !rule.category_id || rule.category_id === offer.category_id,
-        matched: radar.score >= rule.min_score && discount >= rule.min_discount && (!rule.max_price || offer.current_price <= rule.max_price) && (!rule.require_price_history || offer.price_history_count >= 3) && (!rule.category_id || rule.category_id === offer.category_id)
+        matched: discount >= rule.min_discount && (!rule.max_price || offer.current_price <= rule.max_price) && (!rule.require_price_history || offer.price_history_count >= 3) && (!rule.category_id || rule.category_id === offer.category_id)
       }));
       return { offer_id: offer.id, title: offer.title, source: offer.source, current_price: offer.current_price, original_price: offer.original_price, discount, score: radar.score, radar: classifyRadarScore(radar.score), reasons: radar.reasons, checks, matched: checks.some(check => check.matched) };
     });
     const summary = {
       total: diagnostics.length,
       matched: diagnostics.filter(item => item.matched).length,
-      rejected_score: diagnostics.filter(item => item.checks.length && !item.checks.some(check => check.score_pass)).length,
+      score_is_informational: true,
+      rejected_score: 0,
       rejected_discount: diagnostics.filter(item => item.checks.length && !item.checks.some(check => check.discount_pass)).length,
       no_applicable_rule: diagnostics.filter(item => !item.checks.length).length
     };
-    return res.json({ action, evaluated: result.evaluated, summary, diagnostics, matches: result.matches.map(item => ({ offer_id: item.offer.id, title: item.offer.title, score: item.radar.score, radar: classifyRadarScore(item.radar.score), reasons: item.radar.reasons, rules: item.matchedRules.map(r => r.id) })) });
+    return res.json({ action, evaluated: result.evaluated, scorePolicy: 'INFORMATIONAL_ONLY', summary, diagnostics, matches: result.matches.map(item => ({ offer_id: item.offer.id, title: item.offer.title, score: item.radar.score, radar: classifyRadarScore(item.radar.score), reasons: item.radar.reasons, rules: item.matchedRules.map(r => r.id) })) });
   }
   if (action === 'PUBLISH') return res.json({ action, ...await enqueueMatches(account.id, String(b.offer_id || b.offerId || '').trim()) });
   if (action && action !== 'CREATE') return res.status(400).json({ error: 'Ação inválida.' });
