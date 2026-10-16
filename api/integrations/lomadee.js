@@ -188,7 +188,9 @@ export default async function handler(req, res) {
           shortUrls: (Array.isArray(row?.shortUrls) ? row.shortUrls : []).filter(url => typeof url === 'string' && /^https:\/\//i.test(url)).map(url => url.slice(0, 2000)),
           message: clean(row?.message, 300)
         }));
-        return res.json({ ok: true, resource: 'shortener', type, organizationId, channels: rows, generatedCount: rows.reduce((sum, row) => sum + row.shortUrls.length, 0), created: true, published: false });
+        const generatedCount = rows.reduce((sum, row) => sum + row.shortUrls.length, 0);
+        const approvalRequired = generatedCount === 0 && rows.some(row => /organization approval is required/i.test(row.message || ''));
+        return res.status(approvalRequired ? 409 : 200).json({ ok: !approvalRequired, status: approvalRequired ? 'APPROVAL_REQUIRED' : (generatedCount > 0 ? 'CREATED' : 'NO_LINK_GENERATED'), resource: 'shortener', type, organizationId, channels: rows, generatedCount, created: generatedCount > 0, published: false, ...(approvalRequired ? { error: 'A Lomadee exige aprovação da organização antes de gerar links de afiliado.' } : {}) });
       }
       if (action === 'import_products') {
         if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'Valide a conexão Lomadee antes de importar produtos.' });
