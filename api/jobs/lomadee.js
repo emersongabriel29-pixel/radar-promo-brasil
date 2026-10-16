@@ -6,7 +6,9 @@ export const methods = ['POST'];
 const BASE = 'https://api.lomadee.com.br';
 const clean = (v, max = 300) => String(v ?? '').trim().slice(0, max);
 const fromB64 = value => Uint8Array.from(atob(value), char => char.charCodeAt(0));
-const list = body => Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
+const list = body => Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : Array.isArray(body?.items) ? body.items : Array.isArray(body?.products) ? body.products : [];
+// The API may return prices as decimal reais (e.g. 72.26) or integer cents (e.g. 7226).
+const priceCents = value => { const n = Number(value); return Number.isFinite(n) && n > 0 ? (Number.isInteger(n) ? n : Math.round(n * 100)) : NaN; };
 
 async function readCredentials(row) {
   let raw = String(await config.get('API_CREDENTIALS_MASTER_KEY') || '');
@@ -53,7 +55,7 @@ export default async function handler(req, res) {
         const title = clean(option.name || product.name, 220);
         const productUrl = typeof product.url === 'string' && /^https:\/\//i.test(product.url) ? product.url : '';
         const imageUrl = product.images?.[0]?.url || option.images?.[0]?.url || '';
-        const originalPrice = Number(pricing.listPrice), currentPrice = Number(pricing.price);
+        const originalPrice = priceCents(pricing.listPrice), currentPrice = priceCents(pricing.price);
         if (!product.available || option.available === false || !title || !product.organizationId || !productUrl || !/^https:\/\//i.test(imageUrl) || !Number.isSafeInteger(originalPrice) || !Number.isSafeInteger(currentPrice) || currentPrice <= 0 || originalPrice <= currentPrice) {
           totals.skipped++;
           continue;
