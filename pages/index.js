@@ -33,6 +33,6 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
     </div>
     <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalHint" aria-hidden="true"><div class="dialog"><div class="sectionhead csp-margin-top-0"><div><h2 id="modalTitle"></h2><p id="modalHint"></p></div><button class="btn secondary" data-action="closeModal()">Fechar</button></div><form class="form" id="form"></form></div></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="/radar.js?v=20261016-v6" defer></script>
+    <script src="/radar.js?v=20261016-v7" defer></script>
   </body>
 </html>`);}
