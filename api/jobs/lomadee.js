@@ -81,9 +81,16 @@ export default async function handler(req, res) {
         const fp = await fingerprint({ source: 'LOMADEE', externalId: clean(product.id, 120), productUrl, title });
         const exists = await db.query('SELECT id FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1', [row.account_id, fp]);
         if (exists.rows.length) { totals.duplicates++; continue; }
-        const shortResponse = await request('/affiliate/shortener/url', apiKey, {}, 'POST', {
-          organizationId: String(product.organizationId), type: 'Custom', url: productUrl
-        });
+        let shortResponse;
+        try {
+          shortResponse = await request('/affiliate/shortener/url', apiKey, {}, 'POST', {
+            organizationId: String(product.organizationId), type: 'Custom', url: productUrl
+          });
+        } catch (error) {
+          totals.skipped++; totals.skipReasons.noAffiliateLink++;
+          totals.shortenerFailures = (totals.shortenerFailures || 0) + 1;
+          continue;
+        }
         const affiliateUrl = (Array.isArray(shortResponse) ? shortResponse : list(shortResponse))
           .flatMap(x => Array.isArray(x.shortUrls) ? x.shortUrls : [])
           .find(v => typeof v === 'string' && /^https:\/\//i.test(v));
