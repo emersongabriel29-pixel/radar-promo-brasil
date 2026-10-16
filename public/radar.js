@@ -3351,11 +3351,14 @@ async function loadNow(){
   var sequence=++loadSequence;
   try{
     var data=await readJSON('/api/data');
+    // Serialize dashboard reads to avoid bursts against the project's shared DB query limit.
     var paths=['/api/suite','/api/reports?days='+reportDays,'/api/growth','/api/social/autopilot','/api/compliance/messaging?days=7','/api/readiness'];
-    var results=await Promise.allSettled(paths.map(readJSON));
-    if(sequence!==loadSequence)return;
     var keys=['suite','reportsData','growth','social','compliance','readiness'],failures=[];
-    results.forEach(function(result,index){if(result.status==='fulfilled')data[keys[index]]=result.value;else{data[keys[index]]=D[keys[index]];failures.push(keys[index]);}});
+    for(var index=0;index<paths.length;index++){
+      try{data[keys[index]]=await readJSON(paths[index]);}
+      catch(error){data[keys[index]]=D[keys[index]];failures.push(keys[index]);}
+      if(sequence!==loadSequence)return;
+    }
     D=Object.assign({},D,data);D.loadFailures=failures;
     var hash=decodeURIComponent(location.hash.slice(1));
     if(hash)show(hash);else render();
