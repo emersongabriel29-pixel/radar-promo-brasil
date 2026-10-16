@@ -7,6 +7,7 @@ import { formatPromo } from 'lib/promo-message.js';
 import { hydrateImages } from 'lib/offer-images.js';
 import {setScheduleStatus,validDay} from 'lib/recurrences.js';
 import {canActivateMonitor} from 'lib/monitoring.js';
+import { enqueueMatches } from 'lib/autopilot.js';
 
 export const access='member';
 export const methods=['GET','POST','PUT','DELETE'];
@@ -137,6 +138,15 @@ export default async function(req,res){
       }
       const changed=await db.query('UPDATE '+table+' SET status=$1 WHERE id=$2 AND account_id=$3 RETURNING id',[status,item,a.id]);
       if(!changed.rows.length)return res.status(404).json({error:'Registro não encontrado.'});
+      if(entity==='offer'&&status==='APPROVED'){
+        try {
+          const autoPublication=await enqueueMatches(a.id,item);
+          return res.json({ok:true,autoPublication});
+        } catch(error) {
+          console.error('approved offer auto-publication failed',correlationId,error.code||error.name||'ERROR');
+          return res.json({ok:true,autoPublication:{triggered:false,reason:'A oferta foi aprovada, mas o envio automático não pôde ser enfileirado. Tente novamente pelo piloto automático.'}});
+        }
+      }
     }else if(req.method==='DELETE'){
       const table={category:'categories',group:'promo_groups',offer:'offers',publication:'publications',monitor:'monitors',queue:'queues',schedule:'schedules'}[txt(req.query.entity,30)];
       if(!table)return res.status(400).json({error:'Ação inválida.'});
