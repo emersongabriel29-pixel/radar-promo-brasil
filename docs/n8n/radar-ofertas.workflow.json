@@ -1,0 +1,154 @@
+{
+  "name": "Radar Promo Brasil — Webhook Seguro de Ofertas",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "radar-ofertas",
+        "options": {
+          "rawBody": true
+        },
+        "responseMode": "lastNode",
+        "responseData": "firstEntryJson"
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c11bfa64-306d-486d-aa8d-38ddf080d870",
+      "name": "Webhook",
+      "webhookId": "3777f8e2-271b-4c3e-bc12-0b272e5a6244"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://radar-promo-brasil.hatchable.site/api/n8n/bridge",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.rawBody }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-rpb-timestamp",
+              "value": "={{ $json.timestamp }}"
+            },
+            {
+              "name": "x-rpb-signature",
+              "value": "={{ $json.signature }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "69c339d3-e916-4a4f-bf9f-db25475a0c5f",
+      "name": "HTTP Request",
+      "disabled": false,
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all();\nif (items.length !== 1) throw new Error('Webhook deve receber exatamente um item.');\nconst input = items[0].json || {};\nconst headers = input.headers || {};\nconst ts = String(headers['x-rpb-timestamp'] || '');\nconst suppliedSignature = String(headers['x-rpb-signature'] || '').replace(/^sha256=/i, '').toLowerCase();\nlet rawBody = null;\nconst raw = input.rawBody;\nif (typeof raw === 'string') rawBody = raw;\nelse if (typeof Buffer !== 'undefined' && Buffer.isBuffer(raw)) rawBody = raw.toString('utf8');\nelse if (raw && raw.type === 'Buffer' && Array.isArray(raw.data) && typeof Buffer !== 'undefined') rawBody = Buffer.from(raw.data).toString('utf8');\nif (!rawBody && items[0].binary?.data?.data && typeof Buffer !== 'undefined') rawBody = Buffer.from(items[0].binary.data.data, 'base64').toString('utf8');\nif (!rawBody) throw new Error('Bloqueado: corpo HTTP bruto ausente. Confira rawBody/binary.data no Webhook; não assine JSON.stringify(body).');\nif (!ts || !/^\\d{10}$/.test(ts)) throw new Error('Bloqueado: x-rpb-timestamp deve ser Unix time em segundos.');\nif (!/^[a-f0-9]{64}$/.test(suppliedSignature)) throw new Error('Bloqueado: x-rpb-signature ausente ou formato inválido.');\nconst nowSeconds = Math.floor(Date.now() / 1000);\nif (Math.abs(nowSeconds - Number(ts)) > 300) throw new Error('Bloqueado: timestamp expirado; tolerância máxima de 300 segundos.');\nlet body;\ntry { body = JSON.parse(rawBody); } catch { throw new Error('Bloqueado: o corpo bruto não é JSON válido.'); }\nif (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('Bloqueado: o corpo deve ser um objeto JSON.');\nconst accountId = String(body.accountId || '').trim();\nconst eventId = String(body.eventId || '').trim();\nconst action = String(body.action || '').trim();\nif (!accountId || accountId.length > 100) throw new Error('Bloqueado: accountId ausente ou inválido.');\nif (!eventId || eventId.length > 160) throw new Error('Bloqueado: eventId ausente ou inválido.');\nif (!['ingest','pull','result','lead','sale','connection','connections','ping'].includes(action)) throw new Error('Bloqueado: action não permitida.');\nlet master;\ntry { master = typeof $env !== 'undefined' ? $env.N8N_WEBHOOK_SECRET : undefined; } catch { master = undefined; }\nif (typeof master !== 'string' || master.length === 0) throw new Error('Bloqueado: N8N_WEBHOOK_SECRET não está acessível ao Code node. Confirme N8N_BLOCK_ENV_ACCESS_IN_NODE=false e reinicie o n8n.');\nlet crypto;\ntry { crypto = require('crypto'); } catch { throw new Error('Bloqueado: módulo crypto indisponível no Code node. Configure NODE_FUNCTION_ALLOW_BUILTIN=crypto e reinicie o n8n.'); }\nconst accountSecret = crypto.createHmac('sha256', master).update(accountId).digest('hex');\nconst expected = crypto.createHmac('sha256', accountSecret).update(ts + '.' + rawBody).digest('hex');\nconst a = Buffer.from(expected, 'hex');\nconst b = Buffer.from(suppliedSignature, 'hex');\nif (a.length !== b.length || !crypto.timingSafeEqual(a, b)) throw new Error('Bloqueado: assinatura HMAC inválida.');\nreturn [{ json: { rawBody, timestamp: ts, signature: 'sha256=' + expected, eventId, action, accountId, authenticated: true } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "9ccd542a-4e72-4f00-b4c4-d6367f9364e2",
+      "name": "Code in JavaScript"
+    },
+    {
+      "id": "3f712c5e-de27-4690-b3d1-7b93e40446df",
+      "name": "Resposta Simples",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Reaching this node means the preceding HTTP Request completed with a 2xx response.\nreturn [{ json: { ok: true, bridge: 'rpb.v2', checkedAt: new Date().toISOString() } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Resposta Simples",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "timezone": "America/Sao_Paulo",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "none"
+  },
+  "versionId": "bcf2fcf3-c910-48df-abe5-5d6daa69bae8",
+  "meta": {
+    "source": "Radar Promo Brasil n8n MCP export",
+    "productionWorkflowId": "BldO3MqWULbMGsjs",
+    "exportedAt": "2026-10-16",
+    "note": "Export de referência; active=false intencionalmente para evitar ativação acidental ao importar."
+  },
+  "tags": []
+}
