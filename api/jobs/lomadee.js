@@ -46,9 +46,10 @@ export default async function handler(req, res) {
       const credentials = await readCredentials(row);
       const apiKey = clean(credentials.apiKey, 4096);
       if (!apiKey) throw new Error('Chave API ausente');
-      const response = await request('/affiliate/products', apiKey, { page: 1, limit: 10, isAvailable: true });
+      const response = await request('/affiliate/products', apiKey, { page: 1, limit: 100, isAvailable: true });
       const products = list(response);
       totals.scanned += products.length;
+      totals.skipReasons ||= { unavailable: 0, missingTitle: 0, missingOrganization: 0, missingProductUrl: 0, missingImage: 0, invalidPrice: 0, noDiscount: 0, noAffiliateLink: 0 };
       for (const product of products) {
         const option = (Array.isArray(product.options) ? product.options : []).find(x => x.available) || product.options?.[0] || {};
         const pricing = Array.isArray(option.pricing) ? option.pricing[0] : {};
@@ -56,10 +57,17 @@ export default async function handler(req, res) {
         const productUrl = typeof product.url === 'string' && /^https:\/\//i.test(product.url) ? product.url : '';
         const imageUrl = product.images?.[0]?.url || option.images?.[0]?.url || '';
         const originalPrice = priceCents(pricing.listPrice), currentPrice = priceCents(pricing.price);
-        if (!product.available || option.available === false || !title || !product.organizationId || !productUrl || !/^https:\/\//i.test(imageUrl) || !Number.isSafeInteger(originalPrice) || !Number.isSafeInteger(currentPrice) || currentPrice <= 0 || originalPrice <= currentPrice) {
-          totals.skipped++;
-          continue;
+        if (!product.available || option.available === false) {
+          totals.skipped++; totals.skipReasons.unavailable++; continue;
         }
+        if (!title) { totals.skipped++; totals.skipReasons.missingTitle++; continue; }
+        if (!product.organizationId) { totals.skipped++; totals.skipReasons.missingOrganization++; continue; }
+        if (!productUrl) { totals.skipped++; totals.skipReasons.missingProductUrl++; continue; }
+        if (!/^https:\/\//i.test(imageUrl)) { totals.skipped++; totals.skipReasons.missingImage++; continue; }
+        if (!Number.isSafeInteger(originalPrice) || !Number.isSafeInteger(currentPrice) || currentPrice <= 0) {
+          totals.skipped++; totals.skipReasons.invalidPrice++; continue;
+        }
+        if (originalPrice <= currentPrice) { totals.skipped++; totals.skipReasons.noDiscount++; continue; }
         const fp = await fingerprint({ source: 'LOMADEE', externalId: clean(product.id, 120), productUrl, title });
         const exists = await db.query('SELECT id FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1', [row.account_id, fp]);
         if (exists.rows.length) { totals.duplicates++; continue; }
@@ -69,7 +77,7 @@ export default async function handler(req, res) {
         const affiliateUrl = (Array.isArray(shortResponse) ? shortResponse : list(shortResponse))
           .flatMap(x => Array.isArray(x.shortUrls) ? x.shortUrls : [])
           .find(v => typeof v === 'string' && /^https:\/\//i.test(v));
-        if (!affiliateUrl) { totals.skipped++; continue; }
+        if (!affiliateUrl) { totals.skipped++; totals.skipReasons.noAffiliateLink++; continue; }
         const discount = Math.round((originalPrice - currentPrice) * 100 / originalPrice);
         const score = offerScore({ title, currentPrice, originalPrice });
         const promo = promoMessage({ title, source: 'LOMADEE', currentPrice, originalPrice, affiliateUrl, imageUrl, productUrl });
