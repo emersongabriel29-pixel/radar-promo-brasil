@@ -130,8 +130,9 @@ export default async function handler(req, res) {
     if (req.method === 'GET' && resource === 'status') return res.json({
       marketplace: 'LOMADEE', status: saved?.status || 'NOT_CONFIGURED',
       configured: Boolean(saved), apiStatus: saved?.status === 'VALIDATED' ? 'VALIDATED' : saved ? 'PENDING_VALIDATION' : 'NOT_CONFIGURED',
-      publicationEnabled: saved?.status === 'VALIDATED',
-      capabilities: ['products:read','campaigns:read','brands:read','channels:read','orders:read','shortener:read','shortener:write'],
+      publicationEnabled: false,
+      linkGenerationStatus: 'NOT_VERIFIED',
+      capabilities: ['products:read','campaigns:read','brands:read','channels:read','orders:read','shortener:read'],
       portalUrl: 'https://www.lomadee.com.br/pt-br/afiliados',
       docsUrl: 'https://docs.lomadee.com.br/llms.txt'
     });
@@ -154,7 +155,7 @@ export default async function handler(req, res) {
             "UPDATE marketplace_api_credentials SET status='VALIDATED',last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='LOMADEE'",
             [account.id]
           );
-          return res.json({ ok: true, status: 'VALIDATED', checks: { products: listFrom(products).length, campaigns: listFrom(campaigns).length, channels: listFrom(channels).length, orders: listFrom(orders).length, shortenedUrls: listFrom(shortenedUrls).length }, capabilities: ['products:read','campaigns:read','brands:read','channels:read','orders:read','shortener:read','shortener:write'], note: 'Consultas de leitura de produtos, campanhas, canais, pedidos e links encurtados validadas. O escopo shortener:write será confirmado na primeira geração real de link; nenhum link foi criado neste teste.' });
+          return res.json({ ok: true, status: 'VALIDATED', validationScope: 'READ_ONLY', linkGenerationStatus: 'NOT_TESTED', publicationEnabled: false, checks: { products: listFrom(products).length, campaigns: listFrom(campaigns).length, channels: listFrom(channels).length, orders: listFrom(orders).length, shortenedUrls: listFrom(shortenedUrls).length }, capabilities: ['products:read','campaigns:read','brands:read','channels:read','orders:read','shortener:read'], note: 'Autenticação e consultas somente leitura validadas. A permissão de escrita ainda não foi confirmada; nenhuma oferta foi publicada.' });
         } catch (error) {
           const code = Number(error?.status) || 0;
           await db.query(
@@ -190,7 +191,9 @@ export default async function handler(req, res) {
         }));
         const generatedCount = rows.reduce((sum, row) => sum + row.shortUrls.length, 0);
         const approvalRequired = generatedCount === 0 && rows.some(row => /organization approval is required/i.test(row.message || ''));
-        return res.status(approvalRequired ? 409 : 200).json({ ok: !approvalRequired, status: approvalRequired ? 'APPROVAL_REQUIRED' : (generatedCount > 0 ? 'CREATED' : 'NO_LINK_GENERATED'), resource: 'shortener', type, organizationId, channels: rows, generatedCount, created: generatedCount > 0, published: false, ...(approvalRequired ? { error: 'A Lomadee exige aprovação da organização antes de gerar links de afiliado.' } : {}) });
+        const noLinkGenerated = generatedCount === 0 && !approvalRequired;
+        const status = approvalRequired ? 409 : noLinkGenerated ? 502 : 200;
+        return res.status(status).json({ ok: generatedCount > 0, status: approvalRequired ? 'APPROVAL_REQUIRED' : (generatedCount > 0 ? 'CREATED' : 'NO_LINK_GENERATED'), resource: 'shortener', type, organizationId, channels: rows, generatedCount, created: generatedCount > 0, published: false, ...((approvalRequired || noLinkGenerated) ? { error: approvalRequired ? `A Lomadee exige aprovação comercial para a organização/anunciante ${organizationId}. O canal existe, mas essa organização não está autorizada a gerar links nesta conta.` : 'A Lomadee não retornou nenhum link rastreável. Nenhum link foi criado; verifique a resposta por canal e as permissões da organização.' } : {}) });
       }
       if (action === 'import_products') {
         if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'Valide a conexão Lomadee antes de importar produtos.' });
@@ -270,7 +273,8 @@ export default async function handler(req, res) {
         } else params.isAvailable = true;
       }
       if (resource === 'campaigns') {
-        params.status = clean(req.query?.status || 'onTime,scheduled', 80);
+        params.status = clean(req.query?.status || 'onTime', 80);
+        if (params.status.includes(',')) return res.status(400).json({ error: 'A API Lomadee aceita um status por consulta. Consulte onTime e scheduled separadamente.' });
         if (req.query?.types) params.types = clean(req.query.types, 80);
         if (req.query?.offerType) params.offerType = clean(req.query.offerType, 40);
         if (req.query?.organizationId) params.organizationId = clean(req.query.organizationId, 120);
