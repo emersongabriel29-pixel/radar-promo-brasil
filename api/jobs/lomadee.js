@@ -49,7 +49,8 @@ export default async function handler(req, res) {
       const response = await request('/affiliate/products', apiKey, { page: 1, limit: 100, isAvailable: true });
       const products = list(response);
       totals.scanned += products.length;
-      totals.skipReasons ||= { unavailable: 0, missingTitle: 0, missingOrganization: 0, missingProductUrl: 0, missingImage: 0, invalidPrice: 0, noDiscount: 0, noAffiliateLink: 0 };
+      totals.skipReasons ||= { unavailable: 0, missingTitle: 0, missingOrganization: 0, missingProductUrl: 0, missingImage: 0, invalidPrice: 0, missingPricing: 0, noDiscount: 0, noAffiliateLink: 0 };
+      totals.priceDiagnostics ||= [];
       for (const product of products) {
         const option = (Array.isArray(product.options) ? product.options : []).find(x => x.available) || product.options?.[0] || {};
         const pricing = Array.isArray(option.pricing) ? option.pricing[0] : {};
@@ -65,7 +66,10 @@ export default async function handler(req, res) {
         if (!productUrl) { totals.skipped++; totals.skipReasons.missingProductUrl++; continue; }
         if (!/^https:\/\//i.test(imageUrl)) { totals.skipped++; totals.skipReasons.missingImage++; continue; }
         if (!Number.isSafeInteger(originalPrice) || !Number.isSafeInteger(currentPrice) || currentPrice <= 0) {
-          totals.skipped++; totals.skipReasons.invalidPrice++; continue;
+          totals.skipped++; totals.skipReasons.invalidPrice++;
+          if (!Array.isArray(option.pricing) || !option.pricing.length) totals.skipReasons.missingPricing++;
+          if (totals.priceDiagnostics.length < 5) totals.priceDiagnostics.push({ productId: clean(product.id, 80), optionKeys: Object.keys(option || {}), pricingIsArray: Array.isArray(option.pricing), pricingCount: Array.isArray(option.pricing) ? option.pricing.length : 0, firstPricingKeys: Object.keys(pricing || {}), listPriceType: typeof pricing.listPrice, listPrice: pricing.listPrice ?? null, priceType: typeof pricing.price, price: pricing.price ?? null });
+          continue;
         }
         if (originalPrice <= currentPrice) { totals.skipped++; totals.skipReasons.noDiscount++; continue; }
         const fp = await fingerprint({ source: 'LOMADEE', externalId: clean(product.id, 120), productUrl, title });
