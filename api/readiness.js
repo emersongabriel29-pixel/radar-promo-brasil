@@ -1,10 +1,7 @@
 import { db } from 'hatchable';
-
 export const access='member';
 export const methods=['GET'];
-
 const item=(key,label,ready,detail,action='')=>({key,label,status:ready?'READY':'ACTION_REQUIRED',ready,detail,action:ready?'':action});
-
 export default async function(req,res){
   const account=(await db.query('SELECT id FROM accounts WHERE owner_member_id=$1',[String(req.member.id)])).rows[0];
   if(!account)return res.status(404).json({error:'Conta não encontrada.'});
@@ -30,14 +27,15 @@ export default async function(req,res){
   const aiReady=['TESTED','READY'].includes(health.ai?.status)&&Boolean(health.ai?.lastCheckedAt)&&Date.parse(health.ai.lastCheckedAt)>Date.now()-30*86400000;
   const deliveryProof=q[11].rows[0].n>0;
   const deliveryReady=telegram>0||whatsapp>0;
-  const autopilotReady=rules>0&&offers>0&&groups>0&&marketplaces>0&&deliveryReady;
+  const verifiedPriceCount=(await db.query("SELECT count(DISTINCT offer_id)::int AS n FROM offer_price_history WHERE account_id=$1 AND source_type='OFFICIAL_API' AND verified_at IS NOT NULL AND verified_at>now()-interval '24 hours' AND original_price IS NOT NULL",[a])).rows[0].n;
+  const autopilotReady=rules>0&&offers>0&&groups>0&&marketplaces>0&&deliveryReady&&verifiedPriceCount>0;
   const core=[
     item('database','Banco de dados',true,'Consultas desta conta concluídas nesta verificação.'),
     item('categories','Categorias',categories>0,categories+' categoria(s) cadastrada(s).','Cadastre ao menos uma categoria.'),
     item('offers','Ofertas aprovadas',offers>0,offers+' oferta(s) aprovada(s).','Aprove ao menos uma oferta real.'),
     item('groups','Destinos utilizáveis',groups>0,groups+' grupo(s) com ID oficial ativo.','Informe o ID oficial de um grupo ou canal.'),
     item('queues','Filas ativas',queues>0,queues+' fila(s) ativa(s).','Crie uma fila com horário e intervalo.'),
-    item('autopilot','Piloto automático configurado',autopilotReady,autopilotReady?'Pré-requisitos cadastrados. Valide uma entrega real.':'O fluxo ainda precisa de oferta, regra, marketplace, destino e conector.','Conclua oferta, marketplace, destino e canal de entrega.'),
+    item('autopilot','Piloto automático configurado',autopilotReady,autopilotReady?'Pré-requisitos cadastrados e '+verifiedPriceCount+' oferta(s) com preço oficial verificado nas últimas 24 horas.':'Faltam oferta, regra, marketplace, destino, conector ou preço oficial verificado nas últimas 24 horas ('+verifiedPriceCount+' oferta(s) confirmada(s)).','Conclua oferta, marketplace, destino e canal de entrega e confirme os preços por fonte oficial.'),
     item('deliveryProof','Entrega confirmada',deliveryProof,deliveryProof?'Entrega oficial registrada nos últimos 30 dias.':'Nenhuma confirmação oficial recente nesta conta.','Valide uma publicação autorizada no destino e registre seu identificador oficial.'),
     item('security','Contato de incidentes',incident,incident?'Contato configurado.':'Contato ainda não informado.','Informe um e-mail em Segurança.')
   ];
