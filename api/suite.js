@@ -48,7 +48,9 @@ export default async function(req,res){
       await db.query("UPDATE marketplace_rules SET affiliate_tag=$1,subid_template=$2,conversion_endpoint=$3,status='PENDING',updated_at=now() WHERE account_id=$4 AND marketplace=$5",[text(b.affiliateTag,200),text(b.subidTemplate,200)||'{group}',text(b.conversionEndpoint,1000),a.id,b.marketplace]);
     }else if(req.method==='PUT'&&b.entity==='storefront'){
       if(b.primaryColor&&!colorValue(b.primaryColor))return res.status(400).json({error:'Use uma cor hexadecimal válida.'});
-      await db.query('UPDATE storefront_settings SET title=$1,description=$2,primary_color=$3,published=$4,updated_at=now() WHERE account_id=$5',[text(b.title,120),text(b.description,500),text(b.primaryColor,10)||'#1769e0',booleanValue(b.published),a.id]);
+      const collshpUrl=text(b.collshpUrl,500);
+      if(collshpUrl){let u;try{u=new URL(collshpUrl)}catch{return res.status(400).json({error:'URL da vitrine Collshp inválida.'})}if(u.protocol!=='https:'||u.hostname!=='collshp.com'||u.username||u.password||u.port||u.search!=='?view=storefront'&&u.search!=='')return res.status(400).json({error:'Use uma URL HTTPS válida da collshp.com.'})}
+      await db.query('UPDATE storefront_settings SET title=$1,description=$2,primary_color=$3,published=$4,collshp_url=$5,updated_at=now() WHERE account_id=$6',[text(b.title,120),text(b.description,500),text(b.primaryColor,10)||'#1769e0',booleanValue(b.published),collshpUrl,a.id]);
     }else if(req.method==='PUT'&&b.entity==='account'){
       await db.query('UPDATE accounts SET name=$1,updated_at=now() WHERE id=$2',[text(b.name,100),a.id]);
     }else if(req.method==='PUT'&&b.entity==='telegramConnection'){

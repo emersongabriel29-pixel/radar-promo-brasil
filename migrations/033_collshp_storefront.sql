@@ -1,0 +1,1 @@
+ALTER TABLE storefront_settings ADD COLUMN IF NOT EXISTS collshp_url TEXT NOT NULL DEFAULT '';

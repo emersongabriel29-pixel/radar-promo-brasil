@@ -44,7 +44,7 @@ async function pull(body,eventId,accountId){
   const claimedItems=[];
   for(const item of r.rows){
     const claimed=await claimNextWhatsapp(item.id,accountId);
-    if(claimed)claimedItems.push({...item,...claimed,imageUrl:item.contentType==='MESSAGE'?null:await offerImage(item),attempts:item.attempts+1,deliveryContract:'rpb.v2'});
+    if(claimed){const storefrontUrl=(await db.query('SELECT collshp_url FROM storefront_settings WHERE account_id=$1',[accountId])).rows[0]?.collshp_url||'',baseMessage=String(item.message||''),message=storefrontUrl&&!baseMessage.includes(storefrontUrl)?baseMessage+String.fromCharCode(10,10)+'Veja mais ofertas na minha vitrine: '+storefrontUrl:baseMessage;claimedItems.push({...item,...claimed,message,imageUrl:item.contentType==='MESSAGE'?null:await offerImage(item),attempts:item.attempts+1,deliveryContract:'rpb.v2'});}
   }
   return {items:claimedItems};
 }
