@@ -55,7 +55,12 @@ function listFrom(body) {
   if (Array.isArray(body)) return body;
   if (Array.isArray(body?.data)) return body.data;
   if (Array.isArray(body?.items)) return body.items;
+  if (Array.isArray(body?.products)) return body.products;
   return [];
+}
+function priceCents(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? (Number.isInteger(n) ? n : Math.round(n * 100)) : null;
 }
 function safeRows(resource, body) {
   if (resource === 'shortener' && body?.data && !Array.isArray(body.data) && typeof body.data === 'object') {
@@ -72,8 +77,8 @@ function safeRows(resource, body) {
       title: clean(option.name || x.name, 300), available: Boolean(x.available && (option.available !== false)),
       url: typeof x.url === 'string' && /^https:\/\//i.test(x.url) ? x.url.slice(0, 2000) : '',
       imageUrl: typeof image === 'string' && /^https:\/\//i.test(image) ? image.slice(0, 2000) : '',
-      originalPrice: Number.isFinite(Number(pricing.listPrice)) ? Number(pricing.listPrice) : null,
-      currentPrice: Number.isFinite(Number(pricing.price)) ? Number(pricing.price) : null,
+      originalPrice: priceCents(pricing.listPrice),
+      currentPrice: priceCents(pricing.price),
       seller: clean(option.seller, 150), categories: Array.isArray(option.categories) ? option.categories.map(v => clean(v, 100)).slice(0, 10) : []
     };
   });
@@ -228,7 +233,7 @@ export default async function handler(req, res) {
           const title = clean(option.name || product.name, 220);
           const imageUrl = product.images?.[0]?.url || option.images?.[0]?.url || '';
           const productUrl = typeof product.url === 'string' && /^https:\/\//i.test(product.url) ? product.url : '';
-          const currentPrice = Number(pricing.price), originalPrice = Number(pricing.listPrice);
+          const currentPrice = priceCents(pricing.price), originalPrice = priceCents(pricing.listPrice);
           if (!product.available || option.available === false || !title || !product.organizationId || !productUrl || !/^https:\/\//i.test(imageUrl) || !Number.isSafeInteger(currentPrice) || currentPrice <= 0 || !Number.isSafeInteger(originalPrice) || originalPrice <= currentPrice) {
             skipped.push({ id: clean(product.id, 120), reason: 'Sem desconto verificável, imagem HTTPS, preço ou URL válidos.' });
             continue;
