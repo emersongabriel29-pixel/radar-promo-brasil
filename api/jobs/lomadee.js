@@ -79,8 +79,7 @@ export default async function handler(req, res) {
         }
         if (originalPrice <= currentPrice) { totals.skipped++; totals.skipReasons.noDiscount++; continue; }
         const fp = await fingerprint({ source: 'LOMADEE', externalId: clean(product.id, 120), productUrl, title });
-        const exists = await db.query('SELECT id FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1', [row.account_id, fp]);
-        if (exists.rows.length) { totals.duplicates++; continue; }
+        // Let the unique constraints and INSERT ... ON CONFLICT handle duplicates in one DB round-trip.
         let shortResponse;
         try {
           shortResponse = await request('/affiliate/shortener/url', apiKey, {}, 'POST', {
