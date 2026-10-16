@@ -191,9 +191,18 @@ export default async function handler(req, res) {
         }));
         const generatedCount = rows.reduce((sum, row) => sum + row.shortUrls.length, 0);
         const approvalRequired = generatedCount === 0 && rows.some(row => /organization approval is required/i.test(row.message || ''));
-        const noLinkGenerated = generatedCount === 0 && !approvalRequired;
-        const status = approvalRequired ? 409 : noLinkGenerated ? 502 : 200;
-        return res.status(status).json({ ok: generatedCount > 0, status: approvalRequired ? 'APPROVAL_REQUIRED' : (generatedCount > 0 ? 'CREATED' : 'NO_LINK_GENERATED'), resource: 'shortener', type, organizationId, channels: rows, generatedCount, created: generatedCount > 0, published: false, ...((approvalRequired || noLinkGenerated) ? { error: approvalRequired ? `A Lomadee exige aprovação comercial para a organização/anunciante ${organizationId}. O canal existe, mas essa organização não está autorizada a gerar links nesta conta.` : 'A Lomadee não retornou nenhum link rastreável. Nenhum link foi criado; verifique a resposta por canal e as permissões da organização.' } : {}) });
+        const channelNotAllowed = generatedCount === 0 && rows.some(row => /channel is not allowed by the organization/i.test(row.message || ''));
+        const noLinkGenerated = generatedCount === 0 && !approvalRequired && !channelNotAllowed;
+        const httpStatus = approvalRequired || channelNotAllowed ? 409 : noLinkGenerated ? 502 : 200;
+        const linkStatus = approvalRequired ? 'APPROVAL_REQUIRED' : channelNotAllowed ? 'CHANNEL_NOT_ALLOWED' : generatedCount > 0 ? 'CREATED' : 'NO_LINK_GENERATED';
+        const linkError = approvalRequired
+          ? `A Lomadee exige aprovação comercial para a organização/anunciante ${organizationId}. Nenhum link foi criado.`
+          : channelNotAllowed
+            ? 'A organização não permite o canal de afiliado cadastrado para esta campanha. Nenhum link foi criado; use apenas um canal autorizado pela Lomadee.'
+            : noLinkGenerated
+              ? 'A Lomadee não retornou nenhum link rastreável. Nenhum link foi criado; verifique a resposta por canal e as permissões da organização.'
+              : '';
+        return res.status(httpStatus).json({ ok: generatedCount > 0, status: linkStatus, resource: 'shortener', type, organizationId, channels: rows, generatedCount, created: generatedCount > 0, published: false, ...(linkError ? { error: linkError } : {}) });
       }
       if (action === 'import_products') {
         if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'Valide a conexão Lomadee antes de importar produtos.' });
