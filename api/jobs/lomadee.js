@@ -46,12 +46,18 @@ export default async function handler(req, res) {
       const credentials = await readCredentials(row);
       const apiKey = clean(credentials.apiKey, 4096);
       if (!apiKey) throw new Error('Chave API ausente');
-      const response = await request('/affiliate/products', apiKey, { page: 1, limit: 100, isAvailable: true });
-      const products = list(response);
+      const products = [];
+      for (let page = 1; page <= 10; page++) {
+        const response = await request('/affiliate/products', apiKey, { page, limit: 100, isAvailable: true });
+        const pageProducts = list(response);
+        products.push(...pageProducts);
+        if (pageProducts.length < 100) break;
+      }
       totals.scanned += products.length;
       totals.skipReasons ||= { unavailable: 0, missingTitle: 0, missingOrganization: 0, missingProductUrl: 0, missingImage: 0, invalidPrice: 0, missingPricing: 0, noDiscount: 0, noAffiliateLink: 0 };
       totals.priceDiagnostics ||= [];
       for (const product of products) {
+        if (accountImported >= 20) break;
         const option = (Array.isArray(product.options) ? product.options : []).find(x => x.available) || product.options?.[0] || {};
         const pricing = Array.isArray(option.pricing) ? option.pricing[0] : {};
         const title = clean(option.name || product.name, 220);
