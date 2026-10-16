@@ -90,7 +90,10 @@ export default async function(req,res){
       if(b.scheduledAt&&!Number.isFinite(Date.parse(b.scheduledAt)))return res.status(400).json({error:'Data de agendamento inválida.'});
       if(group.platform==='WHATSAPP'&&group.destinationType!=='GROUP')return res.status(412).json({error:'Este conector ainda não tem suporte verificado para canais ou comunidades WhatsApp.'});
       if(group.status!=='ACTIVE'||!String(group.external_id||'').trim())return res.status(412).json({error:'Ative um destino com ID oficial antes de preparar o envio.'});
-      await db.query('INSERT INTO publications(id,account_id,offer_id,group_id,status,scheduled_at,message,image_url,mode,priority,mention_all,image_storage_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',[uid(),a.id,offerId,groupId,b.scheduledAt?'SCHEDULED':'READY',b.scheduledAt||null,txt(b.message,3000)||found.message,found.image_url,txt(b.mode,30)||'ON_DEMAND',b.priority==='FLASH'?100:0,b.mentionAll==='true',found.image_storage_key]);
+      const contentType=txt(b.contentType,20)||'PROMOTION';
+      if(!['PROMOTION','MESSAGE'].includes(contentType))return res.status(400).json({error:'Tipo de publicação inválido.'});
+      if(contentType==='MESSAGE'&&group.platform!=='TELEGRAM')return res.status(412).json({error:'Mensagem sem imagem está disponível neste fluxo apenas para Telegram.'});
+      await db.query('INSERT INTO publications(id,account_id,offer_id,group_id,status,scheduled_at,message,image_url,mode,priority,mention_all,image_storage_key,content_type) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)',[uid(),a.id,offerId,groupId,b.scheduledAt?'SCHEDULED':'READY',b.scheduledAt||null,txt(b.message,3000)||found.message,contentType==='MESSAGE'?null:found.image_url,txt(b.mode,30)||'ON_DEMAND',b.priority==='FLASH'?100:0,b.mentionAll==='true',contentType==='MESSAGE'?null:found.image_storage_key,contentType]);
       if(group.platform==='TELEGRAM'&&!b.scheduledAt)await scheduler.now('/api/jobs/telegram');
     }else if(req.method==='POST'&&entity==='monitor'){
       if(b.affiliateUrl&&!httpsUrl(b.affiliateUrl))return res.status(400).json({error:'Link oficial de afiliado inválido.'});
