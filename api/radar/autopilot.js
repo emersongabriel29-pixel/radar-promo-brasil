@@ -25,12 +25,13 @@ export default async function(req, res) {
         score_informational: true,
         score_gate_enabled: false,
         min_discount: rule.min_discount,
+        min_discount_applied: Math.max(Number(rule.min_discount) || 0, 15),
         score_pass: null,
-        discount_pass: discount >= rule.min_discount,
+        discount_pass: discount >= Math.max(Number(rule.min_discount) || 0, 15),
         price_pass: !rule.max_price || offer.current_price <= rule.max_price,
         history_pass: !rule.require_price_history || offer.price_history_count >= 3,
         category_pass: !rule.category_id || rule.category_id === offer.category_id,
-        matched: discount >= rule.min_discount && (!rule.max_price || offer.current_price <= rule.max_price) && (!rule.require_price_history || offer.price_history_count >= 3) && (!rule.category_id || rule.category_id === offer.category_id)
+        matched: discount >= Math.max(Number(rule.min_discount) || 0, 15) && (!rule.max_price || offer.current_price <= rule.max_price) && (!rule.require_price_history || offer.price_history_count >= 3) && (!rule.category_id || rule.category_id === offer.category_id)
       }));
       return { offer_id: offer.id, title: offer.title, source: offer.source, current_price: offer.current_price, original_price: offer.original_price, discount, score: radar.score, radar: classifyRadarScore(radar.score), reasons: radar.reasons, checks, matched: checks.some(check => check.matched) };
     });
