@@ -127,17 +127,28 @@ export default async function handler(req, res) {
     if (!account) return res.status(412).json({ error: 'Abra o painel uma vez para criar sua conta.' });
     const saved = await getCredentials(account.id);
     const resource = clean(req.query?.resource || 'status', 40).toLowerCase();
-    if (req.method === 'GET' && resource === 'status') return res.json({
-      marketplace: 'LOMADEE', status: saved?.status || 'NOT_CONFIGURED',
-      configured: Boolean(saved), apiStatus: saved?.status === 'VALIDATED' ? 'VALIDATED' : saved ? 'PENDING_VALIDATION' : 'NOT_CONFIGURED',
-      publicationEnabled: false,
-      linkGenerationStatus: 'NOT_VERIFIED',
-      capabilities: ['products:read','campaigns:read','brands:read','channels:read','orders:read','shortener:read'],
-      portalUrl: 'https://www.lomadee.com.br/pt-br/afiliados',
-      docsUrl: 'https://docs.lomadee.com.br/llms.txt'
-    });
+    const apiKey = clean(saved?.credentials?.apiKey, 4096);
+    if (req.method === 'GET' && resource === 'status') {
+      let linkGenerationStatus = 'NOT_VERIFIED';
+      if (saved && apiKey && saved.status === 'VALIDATED') {
+        try {
+          const existingLinks = await apiRequest('/affiliate/shortener/urls', apiKey, { page: 1, limit: 1, active: true });
+          linkGenerationStatus = listFrom(existingLinks).length > 0 ? 'VERIFIED' : 'NOT_VERIFIED';
+        } catch {
+          linkGenerationStatus = 'READ_CHECK_FAILED';
+        }
+      }
+      return res.json({
+        marketplace: 'LOMADEE', status: saved?.status || 'NOT_CONFIGURED',
+        configured: Boolean(saved), apiStatus: saved?.status === 'VALIDATED' ? 'VALIDATED' : saved ? 'PENDING_VALIDATION' : 'NOT_CONFIGURED',
+        publicationEnabled: false,
+        linkGenerationStatus,
+        capabilities: ['products:read','campaigns:read','brands:read','channels:read','orders:read','shortener:read'],
+        portalUrl: 'https://www.lomadee.com.br/pt-br/afiliados',
+        docsUrl: 'https://docs.lomadee.com.br/llms.txt'
+      });
+    }
     if (!saved) return res.status(412).json({ error: 'Cadastre a chave API oficial da Lomadee no painel antes de testar ou importar ofertas.' });
-    const apiKey = clean(saved.credentials.apiKey, 4096);
     if (!apiKey) return res.status(412).json({ error: 'A credencial salva não contém a chave x-api-key da API Lomadee.' });
 
     if (req.method === 'POST') {
