@@ -31,7 +31,8 @@ async function signed(body){
 }
 async function publication(id,account=a.id){
  await db.query("INSERT INTO promo_groups(id,account_id,name,platform,external_id,status) VALUES($1,$2,'Teste isolado','WHATSAPP',$3,'ACTIVE') ON CONFLICT DO NOTHING",['group-'+id,account,'audit-group@g.us']);
- await db.query("INSERT INTO offers(id,account_id,title,source,current_price,affiliate_url,image_url,status) VALUES($1,$2,'Produto','AMAZON',4990,'https://amazon.com.br/dp/test?tag=test','https://example.com/test.png','APPROVED') ON CONFLICT DO NOTHING",['offer-'+id,account]);
+ await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,affiliate_url,image_url,status) VALUES($1,$2,'Produto','AMAZON',5990,4990,'https://amazon.com.br/dp/test?tag=test','https://example.com/test.png','APPROVED') ON CONFLICT DO NOTHING",['offer-'+id,account]);
+ await db.query("INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,4990,5990,'OFFICIAL_API','test-fixture',now()) ON CONFLICT DO NOTHING",['price-'+id,account,'offer-'+id]);
  await db.query("INSERT INTO publications(id,account_id,offer_id,group_id,status,message,image_url) VALUES($1,$2,$3,$4,'READY','Promoção verificada','https://example.com/test.png')",[id,account,'offer-'+id,'group-'+id]);
 }
 async function resetDispatch(){await db.query("UPDATE publications SET status='PUBLISHED',published_at=now() WHERE account_id=$1 AND status='DISPATCHING'",[a.id]);await db.query('UPDATE whatsapp_connections SET last_dispatched_at=NULL WHERE account_id=$1',[a.id]);}
