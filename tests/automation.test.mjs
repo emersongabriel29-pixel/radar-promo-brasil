@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateOffer,categoryHint,discount,fingerprint,message } from '../lib/automation.js';
 import { validBotToken,buildTelegramCaption } from '../lib/telegram-core.js';
+import { telegramHtml } from '../lib/telegram.js';
 import { mediaRatio,isRateLimit,isSetupRequired,safePublicUrl } from '../lib/media.js';
 import { formatPromo,resolveTemplate } from '../lib/promo-message.js';
+import { directImageUrl } from '../lib/validation.js';
 
 const valid={title:'Air Fryer 4L',source:'Mercado Livre',currentPrice:299.9,originalPrice:399.9,imageUrl:'https://cdn.example.com/item.jpg',affiliateUrl:'https://mercadolivre.com.br/item',productUrl:'https://mercadolivre.com.br/item'};
 
@@ -17,6 +19,12 @@ test('aceita oferta completa e converte valores para centavos',()=>{
 test('rejeita imagem ou afiliado sem HTTPS',()=>{
   assert.equal(validateOffer({...valid,imageUrl:'http://example.com/a.jpg'}).ok,false);
   assert.equal(validateOffer({...valid,affiliateUrl:'javascript:alert(1)'}).ok,false);
+});
+
+test('distingue uma imagem direta de uma página de produto',()=>{
+  assert.equal(directImageUrl('https://www.catran.com.br/perfumaria/produto.html?codbar=123'),'');
+  assert.match(directImageUrl('https://cdn.example.com/product.png?size=800'),/^https:\/\//);
+  assert.equal(directImageUrl('/uploads/products/account/item.webp'),'/uploads/products/account/item.webp');
 });
 
 test('classifica categorias conhecidas',()=>{
@@ -42,6 +50,15 @@ test('fingerprint é estável e muda entre origens',async()=>{
 test('valida formato do token do Telegram sem armazená-lo em claro',()=>{
   assert.equal(validBotToken('123456789:AAExample_bot_token_1234567890'),true);
   assert.equal(validBotToken('token-incompleto'),false);
+});
+
+test('formata negrito e tachado do Telegram sem deixar marcadores literais',()=>{
+  const html=telegramHtml('*CHEGOU PROMOÇÃO!*\n*45% OFF*\nDe: ~R$ 45,14~\n*POR: R$ 24,75*');
+  assert.match(html,/<b>CHEGOU PROMOÇÃO!<\/b>/);
+  assert.match(html,/<b>45% OFF<\/b>/);
+  assert.match(html,/<s>R\$ 45,14<\/s>/);
+  assert.match(html,/<b>POR: R\$ 24,75<\/b>/);
+  assert.doesNotMatch(html,/\*CHEGOU PROMOÇÃO!\*|\*45% OFF\*|~R\$ 45,14~/);
 });
 
 test('legenda do Telegram sempre preserva o link e respeita 1024 caracteres',()=>{

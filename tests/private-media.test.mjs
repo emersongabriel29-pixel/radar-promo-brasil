@@ -7,7 +7,7 @@ test('stored offer images use an authenticated media route by default',()=>{
 });
 
 test('stored offer images use a gated public route only when explicitly requested',()=>{
-  assert.equal(offerImage({id:'offer-1',imageStorageKey:'products/member-1/abc.jpg'},{publicAccess:true}),'/api/public/media/offer/offer-1');
+  assert.equal(offerImage({id:'offer-1',imageStorageKey:'products/member-1/abc.jpg'},{publicAccess:true}),'/api/public/media/offer-1');
 });
 
 test('external image URLs remain unchanged',()=>{
