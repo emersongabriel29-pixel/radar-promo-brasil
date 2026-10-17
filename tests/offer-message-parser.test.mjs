@@ -45,3 +45,16 @@ test('não confia em URL oculta fora da lista de marketplaces permitidos',()=>{
   assert.equal(result.ok,false);
   assert.equal(result.affiliateLinkDetected,false);
 });
+
+test('não interpreta percentual de desconto como preço quando a mensagem não informa valor',()=>{
+  const result=parseOfferMessage('Fone Bluetooth JBL\\n50% OFF\\nhttps://www.amazon.com.br/dp/B0TEST?tag=radarpromo-20');
+  assert.equal(result.ok,false);
+  assert.equal(result.currentPrice,null);
+  assert.equal(result.needsAffiliateLink,false);
+});
+
+test('não aceita URL HTTP como link de produto',()=>{
+  const result=parseOfferMessage('Fone Bluetooth JBL\\nPor R$ 99,90\\nhttp://www.amazon.com.br/dp/B0TEST?tag=radarpromo-20');
+  assert.equal(result.ok,false);
+  assert.equal(result.marketplace,'');
+});
