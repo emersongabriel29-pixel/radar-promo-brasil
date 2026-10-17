@@ -72,6 +72,11 @@ required = true
 description = "Chave aleatória forte com pelo menos 32 caracteres para criptografar chaves de API cadastradas por conta."
 
 [[secret]]
+name = "TELEGRAM_WEBHOOK_SECRET"
+required = false
+description = "Segredo exclusivo para validar webhooks de entrada do Telegram; use 32–256 caracteres alfanuméricos, hífen ou sublinhado. Não reutilize tokens de bot."
+
+[[secret]]
 name = "TELEGRAM_BOT_TOKEN_1"
 required = false
 description = "Token do bot principal criado no @BotFather."
