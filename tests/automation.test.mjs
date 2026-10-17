@@ -4,6 +4,7 @@ import { validateOffer,categoryHint,discount,fingerprint,message } from '../lib/
 import { validBotToken,buildTelegramCaption } from '../lib/telegram-core.js';
 import { mediaRatio,isRateLimit,isSetupRequired,safePublicUrl } from '../lib/media.js';
 import { formatPromo,resolveTemplate } from '../lib/promo-message.js';
+import { directImageUrl } from '../lib/validation.js';
 
 const valid={title:'Air Fryer 4L',source:'Mercado Livre',currentPrice:299.9,originalPrice:399.9,imageUrl:'https://cdn.example.com/item.jpg',affiliateUrl:'https://mercadolivre.com.br/item',productUrl:'https://mercadolivre.com.br/item'};
 
@@ -17,6 +18,12 @@ test('aceita oferta completa e converte valores para centavos',()=>{
 test('rejeita imagem ou afiliado sem HTTPS',()=>{
   assert.equal(validateOffer({...valid,imageUrl:'http://example.com/a.jpg'}).ok,false);
   assert.equal(validateOffer({...valid,affiliateUrl:'javascript:alert(1)'}).ok,false);
+});
+
+test('distingue uma imagem direta de uma página de produto',()=>{
+  assert.equal(directImageUrl('https://www.catran.com.br/perfumaria/produto.html?codbar=123'),'');
+  assert.match(directImageUrl('https://cdn.example.com/product.png?size=800'),/^https:\/\//);
+  assert.equal(directImageUrl('/uploads/products/account/item.webp'),'/uploads/products/account/item.webp');
 });
 
 test('classifica categorias conhecidas',()=>{
