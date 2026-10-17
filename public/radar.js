@@ -548,35 +548,35 @@ function parseCopierMessage() {
     raw = input ? input.value.trim() : "",
     affiliateUrl = affiliateInput ? affiliateInput.value.trim() : "";
   if (!raw) { toast("Cole a mensagem da oferta antes de analisar."); return; }
-  var urls = (raw.match(/https?:\\/\\/[^\\s<>"']+/gi) || []).map(function (u) {
+  var urls = (raw.match(/https?:\/\/[^\s<>"']+/gi) || []).map(function (u) {
     return u.replace(/[),.;]+$/, "");
   });
   var prices = [];
-  raw.replace(/R\\$\\s*([\\d.]+(?:,\\d{1,2})?)/gi, function (_, value) {
-    var amount = Number(value.replace(/\\./g, "").replace(",", "."));
+  raw.replace(/R\$\s*([\d.]+(?:,\d{1,2})?)/gi, function (_, value) {
+    var amount = Number(value.replace(/\./g, "").replace(",", "."));
     if (Number.isFinite(amount) && amount > 0) prices.push(amount.toFixed(2));
     return _;
   });
-  var lines = raw.split(/\\r?\\n/).map(function (line) { return line.trim(); }).filter(Boolean);
+  var lines = raw.split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
   var candidates = lines.filter(function (line) {
-    return !/https?:\\/\\/|R\\$\\s*[\\d.]|cupom\\s*[:\\-]?|frete|compre aqui|clique aqui|link de afiliado|desconto de|oferta por tempo|válida até/i.test(line);
+    return !/https?:\/\/|R\$\s*[\d.]|cupom\s*[:\-]?|frete|compre aqui|clique aqui|link de afiliado|desconto de|oferta por tempo|válida até/i.test(line);
   });
   var title = (candidates.find(function (line) {
     return !/^(super oferta|oferta do dia|imperdível|aproveite|promoção|promoção imperdível)[! .🔥✨🎉]*$/i.test(line);
   }) || candidates[0] || "").replace(/^[^A-Za-zÀ-ÿ0-9]+/, "").slice(0, 220);
-  var couponMatch = raw.match(/cupom\\s*[:\\-]?\\s*([A-Z0-9_-]{3,24})/i);
+  var couponMatch = raw.match(/cupom\s*[:\-]?\s*([A-Z0-9_-]{3,24})/i);
   var currentPrice = prices.length ? prices[prices.length - 1] : "";
   var originalPrice = prices.length > 1 && Number(prices[0]) > Number(currentPrice) ? prices[0] : "";
   var productUrl = urls.find(function (u) { return u !== affiliateUrl; }) || "";
   var sourceUrl = productUrl || affiliateUrl, host = "";
   try { host = new URL(sourceUrl).hostname.toLowerCase(); } catch {}
-  var source = /(^|\\.)amazon\\.com\\.br$/.test(host) ? "AMAZON"
-    : /(^|\\.)shopee\\.com\\.br$/.test(host) ? "SHOPEE"
-    : /(^|\\.)(mercadolivre\\.com\\.br|mercadolivre\\.com)$/.test(host) ? "MERCADO_LIVRE"
-    : /(^|\\.)shein\\.com(\\.br)?$/.test(host) ? "SHEIN"
-    : /(^|\\.)aliexpress\\.com$/.test(host) ? "ALIEXPRESS"
-    : /(^|\\.)(magazineluiza\\.com\\.br|magalu\\.com)$/.test(host) ? "MAGALU"
-    : /(^|\\.)casasbahia\\.com\\.br$/.test(host) ? "CASAS_BAHIA" : "";
+  var source = /(^|\.)amazon\.com\.br$/.test(host) ? "AMAZON"
+    : /(^|\.)shopee\.com\.br$/.test(host) ? "SHOPEE"
+    : /(^|\.)(mercadolivre\.com\.br|mercadolivre\.com)$/.test(host) ? "MERCADO_LIVRE"
+    : /(^|\.)shein\.com(\.br)?$/.test(host) ? "SHEIN"
+    : /(^|\.)aliexpress\.com$/.test(host) ? "ALIEXPRESS"
+    : /(^|\.)(magazineluiza\.com\.br|magalu\.com)$/.test(host) ? "MAGALU"
+    : /(^|\.)casasbahia\.com\.br$/.test(host) ? "CASAS_BAHIA" : "";
   if (!title || !currentPrice) {
     if (box) {
       box.classList.remove("csp-hidden");
