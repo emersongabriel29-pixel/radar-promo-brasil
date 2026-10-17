@@ -1,5 +1,6 @@
 import { config, db } from 'hatchable';
 import { signTopParams } from 'lib/top-signature.js';
+import { createAliExpressAffiliateUrl } from 'lib/afilimax-aliexpress-provider.js';
 
 export const access = 'member';
 export const methods = ['GET', 'POST'];
@@ -148,6 +149,11 @@ export default async function handler(req,res){
     if(req.method!=='POST')return res.status(405).json({error:'Método não permitido.'});
     if(!saved) return res.status(412).json({error:'Cadastre App Key, App Secret e Tracking ID no painel antes de usar a API.'});
     const c=saved.credentials||{},action=clean(req.body?.action,40);
+    if(action==='generateLinkAfilimax'){
+      if(c.legacyApiAcknowledged!=='true')return res.status(412).json({error:'Confirme no cadastro que entende que a Affiliate API do AliExpress é legada antes de testar este provider.'});
+      const affiliateUrl=await createAliExpressAffiliateUrl({appKey:c.appId,appSecret:c.apiSecret,trackingId:clean(req.body?.trackingId||c.trackingId,200),productUrl:req.body?.productUrl});
+      return res.json({ok:true,provider:'@afilimax/aliexpress-provider',providerVersion:'0.1.0',license:'MIT',experimental:true,affiliateUrl,trackingId:clean(req.body?.trackingId||c.trackingId,200),created:true,published:false,publicationEnabled:false,note:'Provider de terceiros adaptado; API não validada com esta conta. Nenhuma oferta foi publicada.'});
+    }
     if(action==='test'){
       try{
         const spec=build('test',req.body||{},c),data=await topRequest(c,spec.api,spec.params),result=unwrap(data,spec.api),items=normalize(listOf(result));
