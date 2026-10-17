@@ -1466,17 +1466,18 @@ async function runCurator() {
     box.innerHTML =
       '<div class="metrics">' +
       metric("Avaliadas", Number(data.summary && data.summary.total || items.length), "ofertas aprovadas") +
-      metric("Compatíveis", Number(data.summary && data.summary.matched || 0), "regras atuais") +
+      metric("Regras correspondentes", Number(data.summary && data.summary.matched || 0), "não é aprovação de publicação") +
       metric("Pontuação", "0–100", "apenas informativa") +
-      '</div><div class="tablewrap"><table class="table"><thead><tr><th>Oferta</th><th>Preço atual</th><th>Desconto</th><th>Regra</th><th>Score</th><th>Motivos</th></tr></thead><tbody>' +
+      '</div><div class="tablewrap"><table class="table"><thead><tr><th>Oferta</th><th>Preço atual</th><th>Desconto</th><th>Regras</th><th>Score Radar</th><th>Ação do Radar</th><th>Motivos</th></tr></thead><tbody>' +
       items.slice(0, 30).map(function (item) {
         var reasons = Array.isArray(item.reasons) ? item.reasons.join(" · ") : "";
         return '<tr><td><b>' + esc(item.title || "Oferta sem título") + '</b><div class="muted">' + esc(item.source || "") + '</div></td><td>' +
           brl(Number(item.current_price || 0)) + '</td><td>' + Number(item.discount || 0) + '%</td><td><span class="pill ' +
-          (item.matched ? "live" : "warn") + '">' + (item.matched ? "Compatível" : "Revisar") +
-          '</span></td><td>' + Number(item.score || 0) + '/100</td><td>' + esc(reasons || "Sem motivo detalhado") + '</td></tr>';
+          (item.matched ? "live" : "warn") + '">' + (item.matched ? "Regra OK" : "Sem regra") +
+          '</span></td><td>' + Number(item.score || 0) + '/100 · ' + esc(item.radar && item.radar.label || "Sem classificação") +
+          '</td><td>' + esc(item.radar && item.radar.action || "REVISAR") + '</td><td>' + esc(reasons || "Sem motivo detalhado") + '</td></tr>';
       }).join("") +
-      '</tbody></table></div><p class="muted">A análise só calcula recomendações e atualiza o score interno do Radar. Nenhuma oferta foi aprovada, agendada ou publicada por esta ação.</p>';
+      '</tbody></table></div><p class="muted">A análise atualiza o score interno do Radar. Regras correspondentes não significam que o score recomende publicar; confira a ação informativa, o preço, a imagem e o link oficial. Nenhuma oferta foi aprovada, agendada ou publicada por esta ação.</p>';
   } catch (error) {
     box.textContent = error.message || "Falha ao analisar ofertas.";
   }
