@@ -14,7 +14,7 @@ async function loadPreview(accountId,categoryId,groupId){
   const botConnected=Boolean((await db.query("SELECT id FROM telegram_connections WHERE account_id=$1 AND status='ACTIVE' LIMIT 1",[accountId])).rows[0]);
   const chosen=groupId?groups.filter(g=>g.id===groupId):groups.filter(g=>g.status==='ACTIVE'&&String(g.externalId||'').trim());
   if(groupId&&!chosen.length)throw Object.assign(new Error('Destino Telegram não encontrado nesta conta.'),{status:400});
-  const offers=(await db.query("SELECT id,title,source,category_id AS \"categoryId\",current_price AS \"currentPrice\",original_price AS \"originalPrice\",affiliate_url AS \"affiliateUrl\",image_url AS \"imageUrl\",image_storage_key AS \"imageStorageKey\",message,status,storefront_visible AS \"storefrontVisible\" FROM offers WHERE account_id=$1 AND status IN ('APPROVED','PUBLISHED') AND image_url IS NOT NULL AND affiliate_url LIKE 'https://%' AND ($2::text IS NULL OR category_id=$2) ORDER BY created_at DESC LIMIT 100",[accountId,categoryId||null])).rows;
+  const offers=(await db.query("SELECT id,title,source,category_id AS \"categoryId\",current_price AS \"currentPrice\",original_price AS \"originalPrice\",affiliate_url AS \"affiliateUrl\",image_url AS \"imageUrl\",image_storage_key AS \"imageStorageKey\",message,status,storefront_visible AS \"storefrontVisible\" FROM offers o WHERE account_id=$1 AND status IN ('APPROVED','PUBLISHED') AND image_url IS NOT NULL AND affiliate_url LIKE 'https://%' AND current_price>0 AND original_price>current_price AND EXISTS(SELECT 1 FROM offer_price_history ph WHERE ph.account_id=o.account_id AND ph.offer_id=o.id AND ph.source_type='OFFICIAL_API' AND ph.verified_at>now()-interval '24 hours' AND ph.original_price IS NOT NULL AND ph.price=o.current_price AND ph.original_price=o.original_price AND ph.verified_at=(SELECT MAX(ph2.verified_at) FROM offer_price_history ph2 WHERE ph2.account_id=o.account_id AND ph2.offer_id=o.id AND ph2.source_type='OFFICIAL_API')) AND ($2::text IS NULL OR category_id=$2) ORDER BY created_at DESC LIMIT 100",[accountId,categoryId||null])).rows;
   const validOffers=offers.filter(o=>httpsUrl(o.affiliateUrl)&&Boolean(o.imageUrl));
   const eligible=validOffers;
   const routes=chosen.map(g=>{
@@ -38,7 +38,7 @@ export default async function(req,res){
   if(action==='PREVIEW')return res.json({ok:true,...preview,note:'Prévia somente leitura; nenhum envio foi feito.'});
   const group=preview.routes.find(g=>g.groupId===groupId);
   if(!group||!group.ready)return res.status(412).json({error:'Ative um destino Telegram e informe o ID oficial antes de enviar.'});
-  if(!group.count)return res.status(412).json({error:'Não há ofertas aprovadas, com imagem e link individual HTTPS válido para este lote.'});
+  if(!group.count)return res.status(412).json({error:'Não há ofertas elegíveis: é necessário preço original maior que o atual, confirmação recente pela API oficial, imagem e link HTTPS válido.'});
   if(body.confirmSend!==true)return res.status(400).json({error:'Confirmação explícita necessária para publicar ofertas reais.'});
   const batchId=id();
   const candidates=preview.routes[0].offers;
