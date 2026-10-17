@@ -1,0 +1,69 @@
+# Auditoria de repositórios públicos para links de afiliados
+
+**Data:** 2026-10-17  
+**Projeto auditado:** Radar Promo Brasil  
+**Escopo:** geração/conversão de links, dados de produto, rastreabilidade de afiliados e possíveis conectores.
+
+## Conclusão executiva
+
+A revisão não encontrou um pacote que deva ser copiado diretamente para produção neste momento. O Radar já possui validação de URLs, regras de afiliados por marketplace, bloqueio do autopilot quando não há método de afiliado validado, histórico de preço oficial e importação Lomadee usando endpoints próprios do provedor. O ganho mais seguro é preservar essas barreiras e adotar, quando houver uma integração aprovada, adaptadores isolados por provedor com testes de contrato.
+
+**Nenhum código dos repositórios externos listados abaixo foi copiado ou instalado por esta auditoria.** Isso evita introduzir dependências, licenças ou fluxos de autenticação não validados. A documentação registra a decisão e os próximos passos para que a escolha seja rastreável.
+
+## Comparação
+
+### 1. Garimpei API RESTful
+
+- Repositório: https://github.com/jglucian0/garimpei-api-rest
+- O README descreve extração de preço, título, imagem e link, roteamento por marketplace, links curtos, armazenamento de cookies e API protegida por chave.
+- **Risco relevante:** o README anuncia técnicas de evasão de anti-bot e coleta de cookies/sessões de marketplace. Isso exige uma análise jurídica/de termos e de segurança independente; não é adequado importar ou operar esses mecanismos sem autorização explícita da plataforma.
+- **Decisão:** não incorporar scraping, bypass anti-bot, extensão coletora de cookies nem encurtador desse projeto. Reutilizar apenas o conceito geral de normalizar os dados de produto e separar conectores por marketplace, já compatível com a arquitetura atual.
+
+### 2. Afilimax Mercado Livre Provider
+
+- Repositório: https://github.com/Afilimax/mercado-livre-provider
+- O README descreve um provider para gerar links curtos do Mercado Livre, com dependência peer de `@afilimax/core`, tag de afiliado e cookies de sessão.
+- **Riscos/pendências:** depende de cookies de sessão e de um pacote peer separado; não foi demonstrado nesta auditoria que o fluxo é compatível com as credenciais e permissões atuais da conta Radar, nem que o pacote está aprovado para uso em produção. Uma descrição no README não comprova autorização oficial ou funcionamento atual.
+- **Decisão:** não instalar nem enviar cookies da conta para esse provider. Antes de considerar integração, exigir documentação oficial atual, licença, revisão de dependências, teste isolado e confirmação de que o método de geração é permitido pela plataforma. Preferir OAuth/API oficial disponível à conta.
+
+### 3. AffiliateLinksGenerator
+
+- Repositório consultado: https://github.com/viniferp/AffiliateLinksGenerator
+- A API do GitHub retornou que o repositório está vazio, portanto não há código para avaliar ou integrar.
+- **Decisão:** descartado até que exista código, licença e documentação verificáveis.
+
+### 4. BridgeAPI
+
+- Repositório: https://github.com/EvandroSchechtel/BridgeAPI
+- O README apresenta um monorepo de conectores MCP, incluindo WhatsApp Business API e Mercado Livre, além de gateway e dashboard. Os pacotes são apresentados como v0.1.0; o README também informa que os hooks de confiança ainda são no-op na primeira fase e lista itens do roadmap não concluídos.
+- **Risco/limitação:** um conector MCP não é automaticamente um adaptador compatível com o backend/n8n do Radar. Antes de uso, é necessário verificar publicação e integridade do pacote, licença, endpoints, permissões, tratamento de erros, limites, testes e credenciais. Para WhatsApp, deve-se priorizar a Cloud API oficial e as regras do canal.
+- **Decisão:** não adicionar o monorepo inteiro ao Radar. Pode ser reavaliado como serviço/conector separado somente após prova de funcionamento em sandbox e análise de segurança. Não substitui a configuração pendente do canal WhatsApp no Radar.
+
+## Estado encontrado no Radar Promo Brasil
+
+Arquivos e documentação verificados nesta revisão:
+
+- `lib/validation.js`: valida URLs HTTPS e diferencia URLs de imagem direta; normaliza nomes de marketplaces.
+- `lib/autopilot.js`: exige preço verificado por fonte oficial recente, URL de afiliado HTTPS e método de afiliado ativo antes de enfileirar ofertas automaticamente; impede duplicidade por destino/oferta e respeita cooldown/limite diário.
+- `api/jobs/lomadee.js`: consulta a API da Lomadee, valida campos do produto, gera URL curta pela rota do provedor e registra ofertas sem duplicar fingerprints.
+- `lib/offer-images.js`: resolve imagens armazenadas por rotas próprias do Radar.
+- `README.md`: documenta que uma tag/sub-ID isolada não transforma um link comum em link afiliado e que Amazon/Mercado Livre não garantem comissão apenas pela montagem de parâmetros.
+
+Isso significa que o principal gap não é simplesmente “gerar uma URL”: é validar a atribuição de comissão por rede, comprovar a fonte oficial do preço e testar o link de ponta a ponta sem publicar uma oferta real.
+
+## Recomendações priorizadas
+
+1. **Manter a barreira de publicação existente.** Não liberar autopilot por haver apenas uma URL de produto ou um parâmetro `sub_id`.
+2. **Criar adaptadores isolados por provedor apenas quando houver acesso aprovado.** Interface sugerida: validar credencial, converter URL de produto em link rastreável, consultar estado/expiração quando suportado e devolver diagnóstico sem registrar segredos.
+3. **Mercado Livre:** usar OAuth/API oficial e os endpoints autorizados para a conta. Testar em ambiente controlado a conversão, redirecionamento final, parâmetros de atribuição e retorno de erros. Não usar cookies copiados de navegador como atalho.
+4. **Amazon:** só montar links com o identificador de associado confirmado e dentro das regras vigentes do programa. A preferência de identificador digitada no cadastro não prova aprovação nem habilitação.
+5. **Shopee e demais redes:** exigir link gerado ou validado pela própria rede de afiliados; guardar o SubID por campanha/canal sem inventar tags.
+6. **WhatsApp:** manter a integração separada da geração de links. Validar a Cloud API oficial ou outro provedor expressamente escolhido, credenciais armazenadas em cofre/n8n, destino autorizado e entrega em sandbox antes de habilitar envios reais.
+7. **Testes de contrato:** para cada provedor, cobrir URL válida/inválida, produto sem imagem, link não afiliado, credencial inválida, timeout, rate limit, duplicidade e preservação do SubID. Testes não devem publicar mensagens nem consumir operações pagas.
+8. **Licença e cadeia de suprimentos:** antes de reutilizar código externo, confirmar arquivo LICENSE, dependências, atividade/manutenção, avisos de segurança e compatibilidade de licença. A existência pública de um repositório não autoriza automaticamente copiar seu código.
+
+## Resultado desta auditoria
+
+- **Código externo instalado/copied:** não.
+- **Mudança funcional de produção nesta auditoria:** nenhuma; esta alteração é documentação e não modifica a lógica do serviço.
+- **Próximo trabalho técnico recomendado:** revisar a implementação e os contratos atuais de cada rede (começando por Mercado Livre), implementar somente o adaptador para o qual existam credenciais oficiais e permissões verificáveis e testar em sandbox antes de liberar a fila.
