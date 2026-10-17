@@ -1438,11 +1438,13 @@ function curatorView() {
     "Analisar agora",
     "runCurator()",
   ) +
+    '<div class="actions csp-margin-top-12px"><button class="btn secondary" type="button" data-action="runAiCurator()">Curadoria com IA</button></div>' +
     '<div class="metrics">' +
     metric("Ofertas aprovadas", approved, "disponíveis para análise") +
     metric("Ofertas carregadas", D.offers.length, "na conta atual") +
     '</div><div class="callout">A pontuação é um sinal de apoio, não uma garantia de preço, comissão ou conversão. Confira as fontes oficiais e a elegibilidade antes de publicar.</div>' +
-    '<div id="curatorResult" class="csp-margin-top-14px" aria-live="polite"><p class="muted">Clique em Analisar agora para classificar as ofertas aprovadas pelas regras existentes.</p></div>';
+    '<div id="curatorResult" class="csp-margin-top-14px" aria-live="polite"><p class="muted">Clique em Analisar agora para classificar as ofertas aprovadas pelas regras existentes.</p></div>' +
+    '<div id="curatorAiResult" class="csp-margin-top-14px" aria-live="polite"></div>';
 }
 async function runCurator() {
   var box = document.getElementById("curatorResult");
@@ -1480,6 +1482,41 @@ async function runCurator() {
       '</tbody></table></div><p class="muted">A análise atualiza o score interno do Radar. Regras correspondentes não significam que o score recomende publicar; confira a ação informativa, o preço, a imagem e o link oficial. Nenhuma oferta foi aprovada, agendada ou publicada por esta ação.</p>';
   } catch (error) {
     box.textContent = error.message || "Falha ao analisar ofertas.";
+  }
+}
+async function runAiCurator() {
+  var box = document.getElementById("curatorAiResult");
+  if (!box) return;
+  box.innerHTML = '<div class="callout">A IA está analisando somente as ofertas aprovadas...</div>';
+  try {
+    var response = await fetch("/api/radar/curator-ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "ANALYZE" })
+    });
+    var data = await response.json();
+    if (!response.ok) throw new Error(data.error || "A curadoria com IA falhou.");
+    var items = Array.isArray(data.recommendations) ? data.recommendations : [];
+    if (!items.length) {
+      box.innerHTML = '<div class="empty">' + esc(data.notice || "Nenhuma oferta aprovada para analisar.") + '</div>';
+      return;
+    }
+    var priorityLabel = { HIGH: "Alta", MEDIUM: "Média", LOW: "Baixa" };
+    var actionLabel = { REVIEW: "Revisar", HOLD: "Bloqueada · falta validar dados", IGNORE: "Ignorar" };
+    box.innerHTML =
+      '<div class="callout">' + esc(data.notice || "Análise consultiva; nada foi publicado.") + '</div>' +
+      '<p class="muted">Motor: ' + esc(data.model || "IA") + ' · Ofertas analisadas: ' + Number(data.count || items.length) + '</p>' +
+      '<div class="tablewrap"><table class="table"><thead><tr><th>Oferta</th><th>Preço</th><th>Score Radar</th><th>Prioridade IA</th><th>Próxima ação</th><th>Justificativa</th></tr></thead><tbody>' +
+      items.map(function (item) {
+        return '<tr><td><b>' + esc(item.title || "Oferta sem título") + '</b><div class="muted">' + esc(item.store || "") + '</div></td><td>' +
+          brl(Number(item.currentPriceCents || 0)) + '</td><td>' + Number(item.radarScore || 0) + '/100</td><td>' +
+          esc(priorityLabel[item.priority] || "Baixa") + '</td><td><span class="pill ' +
+          (item.action === "HOLD" || item.action === "IGNORE" ? "warn" : "live") + '">' + esc(actionLabel[item.action] || "Revisar") +
+          '</span></td><td>' + esc(item.reason || "Revise manualmente.") + '</td></tr>';
+      }).join("") +
+      '</tbody></table></div>';
+  } catch (error) {
+    box.textContent = error.message || "A curadoria com IA falhou. Nenhuma oferta foi alterada.";
   }
 }
 function growth() {
