@@ -538,8 +538,71 @@ function cloneView() {
     '<div class="card"><h3>Validar links SHEIN em lote</h3><p class="muted">Cole uma mensagem e valide os links sem salvar; se desejar, crie rascunhos pendentes para revisão.</p><button class="btn secondary" type="button" data-action="openSheinTools()">Abrir ferramentas SHEIN</button></div>' +
     '<div class="card"><h3>Importar vitrine Collshp</h3><p class="muted">Lê os produtos públicos da sua vitrine. Os links retornados são candidatos e não têm comissão verificada.</p><label for="collshpCloneUrl">URL pública da vitrine</label><input class="input" id="collshpCloneUrl" type="url" maxlength="500" value="https://collshp.com/emersongabriel291295?view=storefront" placeholder="https://collshp.com/sua-vitrine"><button class="btn secondary csp-margin-top-12px" type="button" data-action="inspectCollshpClone(this)">Ler vitrine</button><div id="collshpCloneResult" class="callout csp-hidden csp-margin-top-12px" role="status"></div></div>' +
     '<div class="card"><h3>Clone sob demanda</h3><p class="muted">Analise um link, revise os dados e prepare uma oferta manualmente. A conversão só é considerada afiliada quando confirmada pelo programa oficial.</p><button class="btn secondary" type="button" data-action="show(\'quick\')">Abrir criação rápida</button></div>' +
-    '<div class="card"><h3>Fila e agendamento</h3><p class="muted">Organize rascunhos aprovados, horários, intervalos e prioridade. O envio real depende do conector e do destino validados.</p><button class="btn secondary" type="button" data-action="show(\'publishing\')">Abrir filas e agendamento</button></div></div></section>'
+    '<div class="card"><h3>Modo Copiador de mensagens</h3><p class="muted">Cole uma mensagem de oferta para extrair título, preços, cupom e link de origem. O Radar prepara um rascunho para revisão; não publica nada automaticamente.</p><div class="field"><label for="copierText">Mensagem copiada</label><textarea class="input" id="copierText" rows="7" maxlength="6000" placeholder="Cole aqui o texto da oferta, incluindo preços e links..."></textarea></div><div class="field"><label for="copierAffiliateUrl">Link oficial de afiliado</label><input class="input" id="copierAffiliateUrl" type="url" maxlength="1200" placeholder="Cole o link gerado pelo programa oficial"></div><button class="btn csp-margin-top-12px" type="button" data-action="parseCopierMessage()">Analisar e preparar rascunho</button><div id="copierResult" class="callout csp-hidden csp-margin-top-12px" role="status"></div></div><div class="card"><h3>Fila e agendamento</h3><p class="muted">Organize rascunhos aprovados, horários, intervalos e prioridade. O envio real depende do conector e do destino validados.</p><button class="btn secondary" type="button" data-action="show(\'publishing\')">Abrir filas e agendamento</button></div></div></section>'
   );
+}
+function parseCopierMessage() {
+  var input = document.getElementById("copierText"),
+    affiliateInput = document.getElementById("copierAffiliateUrl"),
+    box = document.getElementById("copierResult"),
+    raw = input ? input.value.trim() : "",
+    affiliateUrl = affiliateInput ? affiliateInput.value.trim() : "";
+  if (!raw) { toast("Cole a mensagem da oferta antes de analisar."); return; }
+  var urls = (raw.match(/https?:\/\/[^\s<>"']+/gi) || []).map(function (u) {
+    return u.replace(/[),.;]+$/, "");
+  });
+  var prices = [];
+  raw.replace(/R\$\s*([\d.]+(?:,\d{1,2})?)/gi, function (_, value) {
+    var amount = Number(value.replace(/\./g, "").replace(",", "."));
+    if (Number.isFinite(amount) && amount > 0) prices.push(amount.toFixed(2));
+    return _;
+  });
+  var lines = raw.split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
+  var candidates = lines.filter(function (line) {
+    return !/https?:\/\/|R\$\s*[\d.]|cupom\s*[:\-]?|frete|compre aqui|clique aqui|link de afiliado|desconto de|oferta por tempo|válida até/i.test(line);
+  });
+  var title = (candidates.find(function (line) {
+    return !/^(super oferta|oferta do dia|imperdível|aproveite|promoção|promoção imperdível)[! .🔥✨🎉]*$/i.test(line);
+  }) || candidates[0] || "").replace(/^[^A-Za-zÀ-ÿ0-9]+/, "").slice(0, 220);
+  var couponMatch = raw.match(/cupom\s*[:\-]?\s*([A-Z0-9_-]{3,24})/i);
+  var currentPrice = prices.length ? prices[prices.length - 1] : "";
+  var originalPrice = prices.length > 1 && Number(prices[0]) > Number(currentPrice) ? prices[0] : "";
+  var productUrl = urls.find(function (u) { return u !== affiliateUrl; }) || "";
+  var sourceUrl = productUrl || affiliateUrl, host = "";
+  try { host = new URL(sourceUrl).hostname.toLowerCase(); } catch {}
+  var source = /(^|\.)amazon\.com\.br$/.test(host) ? "AMAZON"
+    : /(^|\.)shopee\.com\.br$/.test(host) ? "SHOPEE"
+    : /(^|\.)(mercadolivre\.com\.br|mercadolivre\.com)$/.test(host) ? "MERCADO_LIVRE"
+    : /(^|\.)shein\.com(\.br)?$/.test(host) ? "SHEIN"
+    : /(^|\.)aliexpress\.com$/.test(host) ? "ALIEXPRESS"
+    : /(^|\.)(magazineluiza\.com\.br|magalu\.com)$/.test(host) ? "MAGALU"
+    : /(^|\.)casasbahia\.com\.br$/.test(host) ? "CASAS_BAHIA" : "";
+  if (!title || !currentPrice) {
+    if (box) {
+      box.classList.remove("csp-hidden");
+      box.textContent = "Não consegui identificar título e preço atual com segurança. Revise a mensagem e inclua o preço no formato R$ 99,90.";
+    }
+    toast("Faltam título ou preço legíveis; nada foi salvo.");
+    return;
+  }
+  var prefill = {
+    title: title,
+    source: source,
+    currentPrice: currentPrice,
+    originalPrice: originalPrice,
+    productUrl: productUrl,
+    affiliateUrl: affiliateUrl,
+    couponCode: couponMatch ? couponMatch[1].toUpperCase() : "",
+    message: raw
+  };
+  if (box) {
+    box.classList.remove("csp-hidden");
+    box.textContent = "Dados identificados: " + title + " · preço atual R$ " + currentPrice.replace(".", ",") +
+      (originalPrice ? " · preço anterior R$ " + originalPrice.replace(".", ",") : "") +
+      (prefill.couponCode ? " · cupom " + prefill.couponCode : "") +
+      ". Confira os dados, adicione a imagem e confirme o link oficial de afiliado no formulário.";
+  }
+  openOffer(prefill);
 }
 async function inspectCollshpClone(button) {
   var input = document.getElementById("collshpCloneUrl");
@@ -2456,20 +2519,21 @@ function openPrivacyRequest() {
     },
   );
 }
-function storeOptions() {
+function storeOptions(selected) {
   return (D.suite.marketplaces || [])
     .map(function (x) {
       return (
         '<option value="' +
         x.marketplace +
-        '">' +
+        '"' + (x.marketplace === selected ? ' selected' : '') + '>' +
         esc(x.marketplace.replaceAll("_", " ")) +
         "</option>"
       );
     })
     .join("");
 }
-function openOffer() {
+function openOffer(prefill) {
+  prefill = prefill || {};
   openModal(
     "Nova oferta",
     "A imagem será enviada junto com texto, cupom e link.",
@@ -2479,28 +2543,28 @@ function openOffer() {
       "file",
       'accept="image/jpeg,image/png,image/webp" required',
     ) +
-      field("Nome do produto", "title", "text", "required") +
+      field("Nome do produto", "title", "text", 'required value="' + esc(prefill.title || "") + '"') +
       '<div class="formgrid">' +
-      select("Loja", "source", storeOptions()) +
+      select("Loja", "source", storeOptions(prefill.source)) +
       select("Categoria", "categoryId", catOpts()) +
       '</div><div class="formgrid">' +
       field(
         "Preço atual",
         "currentPrice",
         "number",
-        'step=".01" min=".01" required',
+        'step=".01" min=".01" required value="' + esc(prefill.currentPrice || "") + '"',
       ) +
-      field("Preço anterior", "originalPrice", "number", 'step=".01" min="0"') +
+      field("Preço anterior", "originalPrice", "number", 'step=".01" min="0" value="' + esc(prefill.originalPrice || "") + '"') +
       "</div>" +
-      field("Link original", "productUrl", "url", 'placeholder="https://..."') +
+      field("Link original", "productUrl", "url", 'placeholder="https://..." value="' + esc(prefill.productUrl || "") + '"') +
       field(
         "Link oficial de afiliado",
         "affiliateUrl",
         "url",
-        'required placeholder="https://..."',
+        'required placeholder="https://..." value="' + esc(prefill.affiliateUrl || "") + '"',
       ) +
       '<div class="formgrid">' +
-      field("Código do cupom", "couponCode", "text", 'placeholder="CASA20"') +
+      field("Código do cupom", "couponCode", "text", 'placeholder="CASA20" value="' + esc(prefill.couponCode || "") + '"') +
       field("Link do cupom", "couponUrl", "url", 'placeholder="https://..."') +
       "</div>" +
       select(
@@ -2508,7 +2572,7 @@ function openOffer() {
         "messageTemplate",
         '<option value="AUTO">Automático pela categoria</option><option value="IMPACT">Impactante</option><option value="COMPLETE">Oferta completa</option><option value="BABY">Bebês e família</option><option value="IMPORTED">Produtos importados</option><option value="CLEAN">Direto e limpo</option>',
       ) +
-      '<div class="field"><div class="csp-field-heading"><label>Mensagem da promoção</label><div class="actions"><button type="button" class="btn secondary" data-action="previewMessage()">Montar modelo</button><button type="button" class="btn secondary" data-action="generateAI()">Melhorar com IA</button></div></div><textarea class="input" name="message" rows="12" placeholder="Clique em Montar modelo ou Melhorar com IA."></textarea></div>',
+      '<div class="field"><div class="csp-field-heading"><label>Mensagem da promoção</label><div class="actions"><button type="button" class="btn secondary" data-action="previewMessage()">Montar modelo</button><button type="button" class="btn secondary" data-action="generateAI()">Melhorar com IA</button></div></div><textarea class="input" name="message" rows="12" placeholder="Clique em Montar modelo ou Melhorar com IA.">' + esc(prefill.message || "") + '</textarea></div>',
     async function (e) {
       e.preventDefault();
       try {
