@@ -32,7 +32,7 @@ test('sete áreas acessíveis, conteúdo preservado, modal por teclado e oferta 
  await page.getByRole('button',{name:'Salvar',exact:true}).click();await expect(page.getByRole('dialog')).not.toBeVisible();await expect(page.locator('#content')).toContainText('Oferta auditada no navegador');await accessibility(page);
  const data=await (await request.get('/api/data')).json();const offer=data.offers.find(o=>o.title==='Oferta auditada no navegador');expect(offer.currentPrice).toBe(4990);expect(offer.imageUrl).toMatch(/^\/api\/media\/offer\//);expect(offer.couponCode).toBe('REAL10');
  expect((await request.put('/api/data',{data:{entity:'offer',id:offer.id,status:'APPROVED'}})).status()).toBe(200);
- expect((await request.post('/api/radar/price',{data:{offerId:offer.id,price:5990}})).status()).toBe(201);
+ const priceObservation=await request.post('/api/radar/price',{data:{offerId:offer.id,price:5990}});expect(priceObservation.status()).toBe(202);expect((await priceObservation.json()).status).toBe('UNVERIFIED');
  expect((await request.post('/api/jobs/telegram',{data:{}})).status()).toBe(404);
  expect((await request.post('/api/data',{data:{entity:'queue',name:'Inválida',startTime:'99:99'}})).status()).toBe(400);
  expect(errors).toEqual([]);
