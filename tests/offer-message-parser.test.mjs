@@ -33,7 +33,7 @@ test('recusa mensagem vazia',()=>{
 
 
 test('reconhece link de produto escondido em entidade text_link do Telegram',()=>{
-  const result=parseOfferMessage('Fone Bluetooth JBL\\nPor R$ 99,90',{urls:['https://www.amazon.com.br/dp/B0TEST?tag=radarpromo-20']});
+  const result=parseOfferMessage('Fone Bluetooth JBL\nPor R$ 99,90',{urls:['https://www.amazon.com.br/dp/B0TEST?tag=radarpromo-20']});
   assert.equal(result.ok,true);
   assert.equal(result.marketplace,'AMAZON');
   assert.equal(result.affiliateLinkDetected,true);
@@ -41,7 +41,7 @@ test('reconhece link de produto escondido em entidade text_link do Telegram',()=
 });
 
 test('não confia em URL oculta fora da lista de marketplaces permitidos',()=>{
-  const result=parseOfferMessage('Fone Bluetooth JBL\\nPor R$ 99,90',{urls:['https://evil.example/redirect?to=amazon']});
+  const result=parseOfferMessage('Fone Bluetooth JBL\nPor R$ 99,90',{urls:['https://evil.example/redirect?to=amazon']});
   assert.equal(result.ok,false);
   assert.equal(result.affiliateLinkDetected,false);
 });
