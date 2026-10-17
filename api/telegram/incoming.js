@@ -20,6 +20,7 @@ export default async function(req,res){
   if(!text.trim())return res.json({ok:true,ignored:true,reason:'Mensagem sem texto/caption.'});
   const groups=(await db.query("SELECT id,account_id AS \"accountId\",name FROM promo_groups WHERE platform='TELEGRAM' AND status='ACTIVE' AND external_id=$1",[groupId])).rows;
   if(!groups.length)return res.json({ok:true,ignored:true,reason:'O canal/grupo não está cadastrado como destino Telegram ativo no Radar.'});
+  if(groups.length>1)return res.status(409).json({ok:false,ignored:true,reason:'O destino Telegram está associado a mais de uma conta; importação bloqueada para evitar cruzamento de dados entre contas.'});
   const parsed=parseOfferMessage(text);
   if(!parsed.ok)return res.json({ok:true,ignored:true,reason:parsed.reason,parsed:{title:parsed.title,currentPrice:parsed.currentPrice,marketplace:parsed.marketplace}});
   let imported=0,duplicates=0,needsAffiliate=0;
@@ -27,7 +28,7 @@ export default async function(req,res){
    const fp=await fingerprint([group.accountId,parsed.marketplace,parsed.productUrl,parsed.title.toLowerCase(),parsed.currentPrice].join('|'));
    const existing=(await db.query('SELECT id FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1',[group.accountId,fp])).rows[0];
    if(existing){duplicates++;continue;}
-   const category=classifyProduct({title:parsed.title,sourceCategory:parsed.marketplace});
+   const category=classifyProduct({title:parsed.title});
    const automatic=formatPromo({title:parsed.title,source:parsed.marketplace,currentPrice:parsed.currentPrice,originalPrice:parsed.originalPrice||0,affiliateUrl:parsed.affiliateUrl||parsed.productUrl,couponUrl:parsed.couponUrl,couponCode:parsed.couponCode});
    const result=await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,affiliate_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,subcategory,classification_tags,classification_confidence,classification_status,classification_reason,source_category) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'PENDING',$13,$14,$15,'TELEGRAM_INCOMING',false,$16,$17::jsonb,$18,'REVIEW',$19,$20) ON CONFLICT DO NOTHING RETURNING id",[uid(),group.accountId,parsed.title,parsed.marketplace,parsed.originalPrice||null,parsed.currentPrice,parsed.affiliateUrl||parsed.productUrl,parsed.productUrl,parsed.couponUrl||null,parsed.couponCode||null,parsed.discountPercent,Math.max(35,Math.min(98,45+parsed.discountPercent)),automatic.message,fp,parsed.affiliateLinkDetected?'PENDING':'NEEDS_AFFILIATE_LINK',category.subcategory,JSON.stringify(category.tags||[]),category.confidence||0,parsed.affiliateLinkDetected?'awaiting_official_price_and_manual_review':'missing_verified_affiliate_link',parsed.marketplace]);
    if(result.rows.length){imported++;if(!parsed.affiliateLinkDetected)needsAffiliate++;}else duplicates++;
