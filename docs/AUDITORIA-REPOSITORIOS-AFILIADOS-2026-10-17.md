@@ -128,3 +128,64 @@ Testes de leitura/diagnóstico executados no Hatchable, sem publicar ofertas nem
 4. Validar WhatsApp/n8n e a vitrine apenas quando forem configurados. O autopilot permanece bloqueado enquanto não houver regra de afiliado ativa e preço oficial verificado recentemente.
 
 Esses bloqueios dependem de credenciais/permissões da conta e não devem ser simulados com valores fictícios. O deploy não alterou filas, não aprovou ofertas e não ativou publicação automática.
+
+
+## Comparação técnica complementar dos seis repositórios (17/10/2026)
+
+Esta seção complementa as avaliações anteriores e registra a leitura dos arquivos de implementação principais. Não significa que o código externo tenha sido instalado no Radar.
+
+### Vadilonga/example-amazon-affiliate-telegram-bot
+- Arquivos analisados: `amazon_api.py`, `bot.py`, `create_messages.py`.
+- Busca detalhes de produto via Amazon PA-API e formata mensagens para Telegram. O exemplo fixa o marketplace italiano e euros; há TODO sobre autenticação do remetente e um caminho onde `old_price` pode não ser inicializado.
+- **Uso seguro:** referência para enriquecer produtos e compor mensagens; não copiar o bot completo nem os pressupostos de marketplace/moeda.
+- Código: https://github.com/Vadilonga/example-amazon-affiliate-telegram-bot/blob/main/amazon_api.py
+
+### iseshu/affiliate-bot
+- Arquivos analisados: `plugins/check.py`, `heplers/convert.py`.
+- O handler apresentado depende de foto, link e canais pré-configurados; reescreve links Amazon, encurta URLs e usa serviço externo de conversão com token/cookie.
+- **Uso seguro:** referência para preservar foto/legenda e filtrar origens autorizadas. Não adotar sessão pessoal ou serviço externo com token como dependência central.
+- Código: https://github.com/iseshu/affiliate-bot/blob/main/plugins/check.py
+
+### affiliates-hub/TelegramBot
+- Arquivos analisados: `bot.py`, `amazon_api.py`, `response_parser.py`.
+- Pesquisa produtos por palavras-chave/categorias via PA-API e agenda posts. O estado em memória não garante deduplicação durável; há ramos frágeis para ofertas ausentes e possíveis descartes em falhas de envio.
+- **Uso seguro:** referência para descoberta por palavra-chave/categoria. O Radar deve manter revisão manual, persistência e deduplicação no banco.
+- Código: https://github.com/affiliates-hub/TelegramBot/blob/main/amazon_api.py
+
+### Regijur/mercado-livre-api-integration
+- O conteúdo útil consultado é principalmente documentação de OAuth 2.0, autorização, token, refresh e `state`/PKCE; não foi encontrado um conector de produção completo que justifique importar.
+- **Uso seguro:** referência conceitual de OAuth. O Radar já possui fluxo OAuth/PKCE próprio; validar sempre com as credenciais e permissões reais da conta.
+- Código: https://github.com/Regijur/mercado-livre-api-integration/blob/master/readme.md
+
+### Afilimax/mercado-livre-provider
+- Arquivo analisado: `src/index.ts`.
+- Expande links e envia cookies de sessão a um endpoint interno não documentado do programa de afiliados para gerar URL curta.
+- **Risco:** depende de cookies e endpoint não documentado, portanto não é um adaptador estável/oficial verificável.
+- **Uso seguro:** apenas inspiração para normalizar URL e isolar providers; não copiar o fluxo com cookies.
+- Código: https://github.com/Afilimax/mercado-livre-provider/blob/master/src/index.ts
+
+### jglucian0/garimpei-api-rest
+- Arquivos analisados: controller de extração, serviços de Mercado Livre/Amazon, `package.json` e testes.
+- Oferece arquitetura REST e normalização de dados, mas a parte de Mercado Livre depende de cookies e endpoint interno; o projeto também inclui scraping/Puppeteer e stealth. O controller recebe `userId` do corpo, cuja segurança depende de middleware/repositório e não pode ser concluída apenas pelo controller.
+- **Uso seguro:** referência para adapters, payload padronizado, testes e tratamento de erros. Não importar scraping evasivo, cookies ou dependências de stealth.
+- Código: https://github.com/jglucian0/garimpei-api-rest/tree/main/src/services
+
+## Melhorias funcionais aplicadas nesta continuação
+
+- O parser de mensagens agora ignora números imediatamente seguidos de `%` ao calcular preços. Isso evita que uma mensagem como “50% OFF” sem valor de venda seja interpretada como um preço de R$ 50,00.
+- Foram adicionados testes de regressão para esse caso e para links `http://` não seguros.
+- A geração de links de afiliado do Mercado Livre continua bloqueada no endpoint genérico: os exemplos analisados dependem de endpoint interno/cookies e não são uma base segura para simular comissão. Usar links gerados pelo portal oficial até que haja método oficial habilitado e comprovável na conta.
+- A pesquisa e enriquecimento Amazon já existem no endpoint `/api/integrations/amazon`, mas exigem credenciais válidas da Creators API. Não foram inventadas credenciais nem enviados pedidos externos pagos.
+- A importação Telegram já suporta mensagens e legendas, entidades de link oculto, fontes autorizadas e deduplicação; continua bloqueada até configurar o segredo do webhook.
+
+## Smoke tests adicionais em 17/10/2026
+
+Executados no endpoint publicado, sem envio real:
+- Amazon fictícia com preço anterior e atual: HTTP 200; R$ 199,90 → R$ 99,90, desconto de 50%, revisão manual mantida.
+- URL comum do Mercado Livre: HTTP 200 no parser; `affiliateLinkDetected=false` e `needsAffiliateLink=true`.
+- Conversão automática Mercado Livre: HTTP 412, intencionalmente bloqueada por falta de método oficial de geração validado.
+- Amazon Creators API: HTTP 412, credenciais ainda não cadastradas.
+- Readiness: HTTP 200 com estado `SETUP_REQUIRED`; identifica como pendentes o segredo de ingestão Telegram, credenciais Amazon, regra de afiliado, WhatsApp e vitrine.
+- Validador de deploy: 0 erros e 0 avisos antes da correção do parser; a validação será repetida após o patch.
+
+Nenhum código dos seis repositórios foi copiado para produção; a melhoria aplicada é do parser próprio do Radar e tem testes de regressão correspondentes.
