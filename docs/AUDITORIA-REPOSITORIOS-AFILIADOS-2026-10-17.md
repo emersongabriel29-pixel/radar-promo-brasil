@@ -92,3 +92,17 @@ Isso significa que o principal gap não é simplesmente “gerar uma URL”: é 
 - Repositório: https://github.com/Afilimax/message-text-parser
 - O README descreve parser de mensagens de ofertas de canais Telegram específicos, com extração de título, preço, URL e cupom; declara licença MIT.
 - **Decisão:** não adicionar a dependência ao caminho de publicação sem testes. O projeto é orientado a formatos de canais específicos e pode falhar em mensagens de outros grupos. Se a ingestão de mensagens recebidas virar requisito, primeiro criar fixtures anonimizadas e testar precisão, falsos positivos, URLs maliciosas, preços e cupons; então comparar com um parser próprio pequeno.
+
+
+## Integração de código de terceiro (PR de avaliação)
+
+Foi adicionado um adaptador experimental inspirado em `@afilimax/aliexpress-provider@0.1.0`, sob licença MIT, com atribuição e cópia da licença em `licenses/AFILIMAX-ALIEXPRESS-PROVIDER-MIT.txt`.
+
+- Código adaptado: `lib/afilimax-aliexpress-provider.js`.
+- Ação explícita: `generateLinkAfilimax` em `api/integrations/aliexpress.js`.
+- Testes sem rede: `tests/afilimax-aliexpress-provider.test.mjs`.
+- O adapter não é chamado pelo autopilot, não publica ofertas e exige a confirmação `legacyApiAcknowledged=true` já prevista no fluxo de credenciais.
+- Valida a URL de entrada e o host do link retornado, aplica timeout e não imprime segredos nem o corpo bruto de erros.
+- **Limitação importante:** o provider externo declara HMAC-SHA256 e o endpoint `api-sg.aliexpress.com/sync`, mas a documentação pública da Affiliate API está marcada como descontinuada. Os testes de unidade não provam que a conta do usuário ainda tem permissão ou que o contrato da API funciona em produção. A ação deve continuar experimental até um teste real, autorizado e sem publicação.
+
+A implementação foi adaptada, não instalada como dependência npm: isso evita introduzir uma cadeia de dependências e mantém o código compatível com o runtime V8 do Hatchable. O provider oficial legado já existente permanece inalterado.
