@@ -81,6 +81,7 @@ var GROUPS = {
   ],
   offers: [
     ["offers", "Ofertas e cupons", "OF", "offers"],
+    ["curator", "Curador de ofertas", "IA", "curatorView"],
     ["studio", "Estúdio de IA", "AI", "studio"],
     ["growth", "Tráfego e redes sociais", "AD", "growth"],
     ["socialagent", "Agente Radar Social", "RS", "socialAgent"],
@@ -1428,6 +1429,57 @@ function studio() {
       : empty("Nenhum conteúdo gerado")) +
     "</div>"
   );
+}
+function curatorView() {
+  var approved = D.offers.filter(function (offer) { return offer.status === "APPROVED"; }).length;
+  return section(
+    "Curador de ofertas",
+    "Avalie ofertas aprovadas usando pontuação, histórico e regras comerciais do Radar. A análise não publica nem envia mensagens.",
+    "Analisar agora",
+    "runCurator()",
+  ) +
+    '<div class="metrics">' +
+    metric("Ofertas aprovadas", approved, "disponíveis para análise") +
+    metric("Ofertas carregadas", D.offers.length, "na conta atual") +
+    '</div><div class="callout">A pontuação é um sinal de apoio, não uma garantia de preço, comissão ou conversão. Confira as fontes oficiais e a elegibilidade antes de publicar.</div>' +
+    '<div id="curatorResult" class="csp-margin-top-14px" aria-live="polite"><p class="muted">Clique em Analisar agora para classificar as ofertas aprovadas pelas regras existentes.</p></div>';
+}
+async function runCurator() {
+  var box = document.getElementById("curatorResult");
+  if (!box) return;
+  box.innerHTML = '<div class="callout">Analisando ofertas aprovadas e verificando regras...</div>';
+  try {
+    var response = await fetch("/api/radar/autopilot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "EVALUATE" })
+    });
+    var data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Não foi possível analisar as ofertas.");
+    var items = (Array.isArray(data.diagnostics) ? data.diagnostics : []).slice().sort(function (a, b) {
+      return Number(b.score || 0) - Number(a.score || 0);
+    });
+    if (!items.length) {
+      box.innerHTML = '<div class="empty">Nenhuma oferta aprovada para avaliar. Aprove primeiro as ofertas que já foram revisadas.</div>';
+      return;
+    }
+    box.innerHTML =
+      '<div class="metrics">' +
+      metric("Avaliadas", Number(data.summary && data.summary.total || items.length), "ofertas aprovadas") +
+      metric("Compatíveis", Number(data.summary && data.summary.matched || 0), "regras atuais") +
+      metric("Pontuação", "0–100", "apenas informativa") +
+      '</div><div class="tablewrap"><table class="table"><thead><tr><th>Oferta</th><th>Preço atual</th><th>Desconto</th><th>Regra</th><th>Score</th><th>Motivos</th></tr></thead><tbody>' +
+      items.slice(0, 30).map(function (item) {
+        var reasons = Array.isArray(item.reasons) ? item.reasons.join(" · ") : "";
+        return '<tr><td><b>' + esc(item.title || "Oferta sem título") + '</b><div class="muted">' + esc(item.source || "") + '</div></td><td>' +
+          brl(Number(item.current_price || 0)) + '</td><td>' + Number(item.discount || 0) + '%</td><td><span class="pill ' +
+          (item.matched ? "live" : "warn") + '">' + (item.matched ? "Compatível" : "Revisar") +
+          '</span></td><td>' + Number(item.score || 0) + '/100</td><td>' + esc(reasons || "Sem motivo detalhado") + '</td></tr>';
+      }).join("") +
+      '</tbody></table></div><p class="muted">A análise só calcula recomendações e atualiza o score interno do Radar. Nenhuma oferta foi aprovada, agendada ou publicada por esta ação.</p>';
+  } catch (error) {
+    box.textContent = error.message || "Falha ao analisar ofertas.";
+  }
 }
 function growth() {
   var g = D.growth || {},
