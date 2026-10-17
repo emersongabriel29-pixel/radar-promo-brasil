@@ -1,5 +1,6 @@
 import { config, db, scheduler } from 'hatchable';
 import { fingerprint, message as promoMessage, offerScore } from 'lib/automation.js';
+import { directImageUrl } from 'lib/validation.js';
 
 export const access = 'scheduler';
 export const methods = ['POST'];
@@ -70,7 +71,7 @@ export default async function handler(req, res) {
         if (!title) { totals.skipped++; totals.skipReasons.missingTitle++; continue; }
         if (!product.organizationId) { totals.skipped++; totals.skipReasons.missingOrganization++; continue; }
         if (!productUrl) { totals.skipped++; totals.skipReasons.missingProductUrl++; continue; }
-        if (!/^https:\/\//i.test(imageUrl)) { totals.skipped++; totals.skipReasons.missingImage++; continue; }
+        if (!directImageUrl(imageUrl)) { totals.skipped++; totals.skipReasons.missingImage++; continue; }
         if (!Number.isSafeInteger(originalPrice) || !Number.isSafeInteger(currentPrice) || currentPrice <= 0) {
           totals.skipped++; totals.skipReasons.invalidPrice++;
           if (!Array.isArray(option.pricing) || !option.pricing.length) totals.skipReasons.missingPricing++;
