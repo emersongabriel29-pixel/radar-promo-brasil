@@ -96,7 +96,7 @@ Isso significa que o principal gap não é simplesmente “gerar uma URL”: é 
 
 ## Integração de código de terceiro (PR de avaliação)
 
-Foi adicionado um adaptador experimental inspirado em `@afilimax/aliexpress-provider@0.1.0`, sob licença MIT, com atribuição e cópia da licença em `licenses/AFILIMAX-ALIEXPRESS-PROVIDER-MIT.txt`.
+Foi adicionado um adaptador experimental inspirado em `@afilimax/aliexpress-provider@0.1.0`, sob licença MIT, com atribuição e cópia da licença em `public/licenses/AFILIMAX-ALIEXPRESS-PROVIDER-MIT.txt`.
 
 - Código adaptado: `lib/afilimax-aliexpress-provider.js`.
 - Ação explícita: `generateLinkAfilimax` em `api/integrations/aliexpress.js`.
