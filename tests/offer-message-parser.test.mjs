@@ -30,3 +30,18 @@ test('ignora domínio arbitrário mesmo que a mensagem tenha preço',()=>{
 test('recusa mensagem vazia',()=>{
   assert.equal(parseOfferMessage('   ').ok,false);
 });
+
+
+test('reconhece link de produto escondido em entidade text_link do Telegram',()=>{
+  const result=parseOfferMessage('Fone Bluetooth JBL\nPor R$ 99,90',{urls:['https://www.amazon.com.br/dp/B0TEST?tag=radarpromo-20']});
+  assert.equal(result.ok,true);
+  assert.equal(result.marketplace,'AMAZON');
+  assert.equal(result.affiliateLinkDetected,true);
+  assert.ok(result.affiliateUrl.includes('amazon.com.br'));
+});
+
+test('não confia em URL oculta fora da lista de marketplaces permitidos',()=>{
+  const result=parseOfferMessage('Fone Bluetooth JBL\nPor R$ 99,90',{urls:['https://evil.example/redirect?to=amazon']});
+  assert.equal(result.ok,false);
+  assert.equal(result.affiliateLinkDetected,false);
+});
