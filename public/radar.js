@@ -532,8 +532,49 @@ function cloneView() {
       .map(function (x, i) {
         return '<div class="step"><i>0' + (i + 1) + "</i><b>" + x + "</b></div>";
       }).join("") +
-    '</div><div class="callout csp-margin-top-15px">O link de afiliado e a comissão não são validados pela simples leitura da página. Para comissão, cole o link gerado no Parceiro Magalu. Nada será publicado automaticamente.</div><p><a href="https://www.magazinevoce.com.br/" target="_blank" rel="noopener noreferrer">Abrir Magazine Você ↗</a></p></div></div>'
+    '</div><div class="callout csp-margin-top-15px">O link de afiliado e a comissão não são validados pela simples leitura da página. Para comissão, cole o link gerado no Parceiro Magalu. Nada será publicado automaticamente.</div><p><a href="https://www.magazinevoce.com.br/" target="_blank" rel="noopener noreferrer">Abrir Magazine Você ↗</a></p></div></div>' +
+    '<section class="section"><div class="sectionhead"><div><h2>Outras opções do Modo Clone</h2><p>Atalhos para os fluxos existentes. Testes não publicam ofertas.</p></div></div><div class="grid two">' +
+    '<div class="card"><h3>Espelhamento inteligente 24h</h3><p class="muted">Abra os monitores e confira fontes, status e captura. A captura depende da fonte e das permissões configuradas.</p><button class="btn secondary" type="button" data-action="show(\'monitoring\')">Abrir monitoramento</button></div>' +
+    '<div class="card"><h3>Validar links SHEIN em lote</h3><p class="muted">Cole uma mensagem e valide os links sem salvar; se desejar, crie rascunhos pendentes para revisão.</p><button class="btn secondary" type="button" data-action="openSheinTools()">Abrir ferramentas SHEIN</button></div>' +
+    '<div class="card"><h3>Importar vitrine Collshp</h3><p class="muted">Lê os produtos públicos da sua vitrine. Os links retornados são candidatos e não têm comissão verificada.</p><label for="collshpCloneUrl">URL pública da vitrine</label><input class="input" id="collshpCloneUrl" type="url" maxlength="500" value="https://collshp.com/emersongabriel291295?view=storefront" placeholder="https://collshp.com/sua-vitrine"><button class="btn secondary csp-margin-top-12px" type="button" data-action="inspectCollshpClone(this)">Ler vitrine</button><div id="collshpCloneResult" class="callout csp-hidden csp-margin-top-12px" role="status"></div></div>' +
+    '<div class="card"><h3>Clone sob demanda</h3><p class="muted">Analise um link, revise os dados e prepare uma oferta manualmente. A conversão só é considerada afiliada quando confirmada pelo programa oficial.</p><button class="btn secondary" type="button" data-action="show(\'quick\')">Abrir criação rápida</button></div>' +
+    '<div class="card"><h3>Fila e agendamento</h3><p class="muted">Organize rascunhos aprovados, horários, intervalos e prioridade. O envio real depende do conector e do destino validados.</p><button class="btn secondary" type="button" data-action="show(\'publishing\')">Abrir filas e agendamento</button></div></div></section>'
   );
+}
+async function inspectCollshpClone(button) {
+  var input = document.getElementById("collshpCloneUrl");
+  var box = document.getElementById("collshpCloneResult");
+  if (!input || !box) return;
+  var url = input.value.trim();
+  if (!url) { toast("Cole a URL pública da vitrine Collshp."); return; }
+  if (button) button.disabled = true;
+  box.classList.remove("csp-hidden");
+  box.textContent = "Consultando a vitrine pública; nenhum produto será salvo ou publicado...";
+  try {
+    var response = await fetch("/api/integrations/collshp-import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: url })
+    });
+    var data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || "Não foi possível consultar a vitrine.");
+    var products = Array.isArray(data.products) ? data.products : [];
+    box.innerHTML = '<b>' + esc(data.storefront?.name || "Vitrine Collshp") + '</b><p>' +
+      products.length + ' produto(s) retornado(s) nesta página; ' + Number(data.totalCount || 0) +
+      ' no total informado pela fonte.</p>' +
+      '<div class="callout">Somente leitura: nenhum rascunho foi criado. Os links são candidatos e o rastreamento de comissão não foi verificado. Revise cada item antes de usar.</div>' +
+      (products.length ? '<div class="list csp-margin-top-12px">' + products.map(function(p) {
+        return '<div class="listrow">' +
+          (p.imageUrl ? '<img src="' + esc(p.imageUrl) + '" alt="" loading="lazy" width="64" height="64" style="object-fit:contain;border-radius:8px">' : '') +
+          '<div><b>' + esc(p.title || "Produto sem título") + '</b><p class="muted">' +
+          '<a href="' + esc(p.productUrl || "#") + '" target="_blank" rel="noopener noreferrer">Abrir link de origem ↗</a></p></div></div>';
+      }).join("") + '</div>' : '<p>Nenhum produto retornado pela fonte.</p>');
+    labelFields(box);
+  } catch (error) {
+    box.textContent = error.message || "Falha ao consultar a vitrine.";
+  } finally {
+    if (button) button.disabled = false;
+  }
 }
 var lastMagaluCloneInspection = null;
 async function inspectMagaluClone(button) {
@@ -554,12 +595,12 @@ async function inspectMagaluClone(button) {
     var data = await response.json();
     if (!response.ok) throw Error(data.error || "Não foi possível importar a página.");
     lastMagaluCloneInspection = data;
-    var products = Array.isArray(data.products) && data.products.length ? data.products : [{
-      title: data.title || data.pageTitle || "", description: data.description || "",
-      currentPrice: data.currentPrice, imageUrl: data.imageUrl || "",
-      productUrl: data.productUrl || url, affiliateLinkCandidate: data.affiliateLinkCandidate || ""
-    }];
-    box.innerHTML = '<b>' + products.length + ' item(ns) identificado(s) · revise antes de cadastrar</b><p class="muted">' + esc(data.note || "") + '</p>' +
+    var products = Array.isArray(data.products) ? data.products : [];
+    if (!products.length) throw Error("A página foi lida, mas nenhum produto foi identificado. Cole o link direto de um produto ou preencha os dados manualmente.");
+    var needsManual = products.some(function (p) { return !p.title || p.currentPrice == null || !p.imageUrl; });
+    var readStatus = needsManual ? 'Leitura automática parcial — complete e confira os campos abaixo' : products.length + ' item(ns) identificado(s) — confira os dados antes de cadastrar';
+    var manualNotice = needsManual ? '<div class="callout">A loja bloqueou ou não forneceu todos os metadados. O Radar não vai inventar preço nem imagem. Preencha os campos faltantes com os dados visíveis na loja e use o link de afiliado gerado no Parceiro Magalu.</div>' : '';
+    box.innerHTML = '<b>' + esc(readStatus) + '</b>' + manualNotice + '<p class="muted">' + esc(data.note || "") + '</p>' +
       products.map(function (p, i) {
         return '<div class="card csp-margin-top-12px"><h4>Produto ' + (i + 1) + '</h4>' +
           '<div class="field"><label for="magaluCloneTitle' + i + '">Nome do produto</label><input class="input" id="magaluCloneTitle' + i + '" maxlength="220" value="' + esc(p.title || "") + '"></div>' +
@@ -588,7 +629,7 @@ async function createMagaluCloneProductDraft(index, button) {
   var products = lastMagaluCloneInspection?.products || [];
   var item = products[index] || {};
   var productUrl = item.productUrl || lastMagaluCloneInspection?.productUrl || document.getElementById("magaluCloneUrl")?.value.trim();
-  if (!title || !currentPrice || !imageUrl || !affiliateUrl) { toast("Preencha título, preço, imagem e link de afiliado."); return; }
+  if (!title || !currentPrice || !affiliateUrl) { toast("Preencha título, preço atual confirmado e link de afiliado."); return; }
   if (!confirmed) { toast("Confirme o link gerado no Parceiro Magalu e revise os dados."); return; }
   if (button) button.disabled = true;
   try {
@@ -3497,7 +3538,7 @@ async function loadMarketplaceStatus(){
   root.innerHTML=(data.items||[]).map(function(item){
    var fieldsArray=item.credentialFields||[],hasFields=fieldsArray.length>0;
    var manualOnly=['SHEIN','CASAS_BAHIA','HOTMART','KABUM','AMERICANAS'].indexOf(item.id)!==-1;
-   var status=item.status==='CONNECTED'?'Conta autorizada':item.status==='VALIDATED'?'API testada com sucesso':item.status==='ERROR'?'Falha na última validação':item.status==='PENDING_VALIDATION'?'Credenciais salvas · falta testar':item.id==='SHEIN'?'Fluxo manual · sem API pública confirmada':manualOnly?'API de afiliados não confirmada':hasFields?'Credenciais salvas · conexão não comprovada':'Não configurada';
+   var status=item.status==='CONNECTED'?'Conta autorizada':item.status==='VALIDATED'?'API testada com sucesso':item.status==='READ_ONLY_VALIDATED'?'Leitura validada · automação bloqueada':item.status==='ERROR'?'Falha na última validação':item.status==='PENDING_VALIDATION'?'Credenciais salvas · falta testar':item.id==='SHEIN'?'Fluxo manual · sem API pública confirmada':manualOnly?'API de afiliados não confirmada':hasFields?'Credenciais salvas · conexão não comprovada':'Não configurada';
    var cls=(item.status==='VALIDATED'||item.status==='CONNECTED')?'live':item.status==='ERROR'?'danger':'warn';
    var nextStep=item.id==='MAGALU'?(item.status==='CONNECTED'?'Próximo: executar Testar OAuth + API seller.': 'Próximo: configurar Client ID/Secret OAuth, cadastrar callback, autorizar a conta e testar API seller.'):
     item.id==='MERCADOLIVRE'?(item.status==='CONNECTED'?'Próximo: testar endpoint de leitura e confirmar permissões de afiliado.':'Próximo: iniciar OAuth no portal e concluir o retorno de autorização.'):
@@ -3506,7 +3547,8 @@ async function loadMarketplaceStatus(){
     item.id==='HOTMART'?'Próximo: identificar API/escopo oficial compatível com ofertas de afiliados antes de configurar.':
     item.id==='AMERICANAS'?'Próximo: confirmar a rede de afiliados e sua documentação oficial.':
     item.id==='ALIEXPRESS'?'Próximo: confirmar que o portal ainda habilita a API legada; depois executar teste somente leitura.':
-    item.id==='LOMADEE'?'Próximo: escolher uma marca no portal Lomadee e gerar um link rastreável; API pública de produtos não confirmada.':
+    item.id==='LOMADEE'&&item.status==='READ_ONLY_VALIDATED'?'Próximo: leitura oficial validada; testar geração de link e aprovação comercial separadamente.':
+    item.id==='LOMADEE'?'Próximo: escolher uma marca no portal Lomadee e testar um link rastreável autorizado.':
     item.id==='RAKUTEN'?'Próximo: salvar Client ID, Client Secret e Account ID Publisher; executar teste oficial.':
     item.id==='ADMITAD'?'Próximo: conferir Website ID e escopos OAuth; depois testar campanhas de leitura.':
     item.id==='AWIN'?'Próximo: conferir Publisher ID e token; testar programas joined em leitura.':
@@ -3515,7 +3557,7 @@ async function loadMarketplaceStatus(){
     hasFields?'Próximo: executar o teste oficial disponível; credenciais salvas não provam conexão.':'Próximo: abrir o portal oficial e obter as credenciais do produto correto.';
    if(item.status==='ERROR'&&item.lastError)nextStep='Corrigir a falha informada abaixo e repetir o teste oficial.';
    var fields=(item.credentialFields||[]).map(esc).join(', ');
-   var lomadeeActions=item.id==='LOMADEE'&&item.status==='VALIDATED'?'<button class="btn secondary" type="button" data-action="importLomadeeProducts()">Importar ofertas</button> <button class="btn secondary" type="button" data-action="searchLomadeeProducts()">Pesquisar produtos</button> <button class="btn secondary" type="button" data-action="shortenLomadeeUrl()">Gerar link rastreável</button> <button class="btn secondary" type="button" data-action="loadLomadeeCommissions()">Ver campanhas</button> <button class="btn secondary" type="button" data-action="loadLomadeeOffers()">Ver ofertas</button> <button class="btn secondary" type="button" data-action="loadLomadeeShortUrls()">Ver links encurtados</button> <button class="btn secondary" type="button" data-action="loadLomadeeOrders()">Ver pedidos e comissões</button> <button class="btn secondary" type="button" data-action="loadLomadeeChannels()">Ver canais</button>':'';
+   var lomadeeActions=item.id==='LOMADEE'&&['VALIDATED','READ_ONLY_VALIDATED'].indexOf(item.status)!==-1?'<button class="btn secondary" type="button" data-action="importLomadeeProducts()">Importar ofertas</button> <button class="btn secondary" type="button" data-action="searchLomadeeProducts()">Pesquisar produtos</button> <button class="btn secondary" type="button" data-action="shortenLomadeeUrl()">Gerar link rastreável</button> <button class="btn secondary" type="button" data-action="loadLomadeeCommissions()">Ver campanhas</button> <button class="btn secondary" type="button" data-action="loadLomadeeOffers()">Ver ofertas</button> <button class="btn secondary" type="button" data-action="loadLomadeeShortUrls()">Ver links encurtados</button> <button class="btn secondary" type="button" data-action="loadLomadeeOrders()">Ver pedidos e comissões</button> <button class="btn secondary" type="button" data-action="loadLomadeeChannels()">Ver canais</button>':'';
    var shopeeActions=item.id==='SHOPEE'&&(item.credentialFields||[]).indexOf('appId')!==-1&&(item.credentialFields||[]).indexOf('apiSecret')!==-1?'<button class="btn secondary" type="button" data-action="openShopeeTools()">Ferramentas Shopee</button>':'';
    var amazonActions=item.id==='AMAZON'&&(item.credentialFields||[]).indexOf('clientId')!==-1&&(item.credentialFields||[]).indexOf('clientSecret')!==-1?'<button class="btn secondary" type="button" data-action="openAmazonTools()">Ferramentas Amazon</button>':'';
    var sheinActions=item.id==='SHEIN'?'<button class="btn secondary" type="button" data-action="openSheinTools()">Ferramentas SHEIN</button>':'';
@@ -3523,13 +3565,13 @@ async function loadMarketplaceStatus(){
    var awinActions=item.id==='AWIN'&&(item.credentialFields||[]).indexOf('accessToken')!==-1&&(item.credentialFields||[]).indexOf('affiliateId')!==-1?'<button class="btn secondary" type="button" data-action="openAwinTools()">Ferramentas Awin</button>':'';
    var rakutenActions=item.id==='RAKUTEN'&&(item.credentialFields||[]).indexOf('accessToken')!==-1?'<button class="btn secondary" type="button" data-action="openRakutenTools()">Ferramentas Rakuten</button>':'';
    var admitadActions=item.id==='ADMITAD'&&(item.credentialFields||[]).indexOf('clientId')!==-1&&(item.credentialFields||[]).indexOf('clientSecret')!==-1?'<button class="btn secondary" type="button" data-action="openAdmitadTools()">Ferramentas Admitad</button>':'';
-   return '<div class="integration"><div class="grow"><b>'+esc(item.name)+'</b><div class="muted">'+(item.id==='SHEIN'?'Importe links gerados no Centro de Afiliados.':item.id==='MAGALU'?(fields.indexOf('apiKey')!==-1&&fields.indexOf('apiKeyId')!==-1&&fields.indexOf('apiKeySecret')!==-1?'API Magalu: três chaves salvas; autenticação e teste oficial ainda pendentes.':'API Key, API Key ID e API Key Secret ainda não cadastradas. Links de afiliado são um fluxo separado.'):(fields?'Campos cadastrados: '+fields:'Nenhuma credencial cadastrada.'))+'</div>'+ '<div class="muted csp-margin-top-10px"><b>Próxima etapa:</b> '+esc(nextStep)+'</div>'+(item.lastError?'<div class="muted" role="status"><b>Último erro:</b> '+esc(item.lastError)+'</div>':'')+(item.updatedAt?'<small class="muted">Atualizado em '+esc(new Date(item.updatedAt).toLocaleDateString('pt-BR'))+'</small>':'')+'<div class="csp-margin-top-10px"><a class="btn secondary" href="'+esc(item.portalUrl)+'" target="_blank" rel="noopener noreferrer">Abrir portal ↗</a> <button class="btn secondary" type="button" data-action="'+(item.id==='MAGALU'?'connectMagaluAccount()':item.id==='MERCADOLIVRE'?'connectMercadoLivre()':'openMarketplaceSetup(\''+esc(item.id)+'\')')+'">'+((item.id==='MAGALU'||item.id==='MERCADOLIVRE')?'Conectar conta':['CASAS_BAHIA','HOTMART','KABUM','AMERICANAS'].indexOf(item.id)!==-1?'Ver situação':item.id==='SHEIN'?'Preparar oferta':(fields?'Atualizar chaves':'Conectar conta'))+'</button> '+(item.id==='MAGALU'?'<button class="btn secondary" type="button" data-action="openMagaluApiCredentials()">Atualizar chaves API</button> <button class="btn secondary" type="button" data-action="testMagaluApi()">Testar OAuth + API seller</button> <button class="btn secondary" type="button" data-action="openMagaluTools()">Importar link de afiliado</button>':'')+' '+lomadeeActions+' '+shopeeActions+' '+amazonActions+' '+sheinActions+' '+aliexpressActions+' '+awinActions+' '+rakutenActions+' '+admitadActions+'</div></div><span class="pill '+cls+'">'+status+'</span></div>';
+   return '<div class="integration"><div class="grow"><b>'+esc(item.name)+'</b><div class="muted">'+(item.id==='SHEIN'?'Importe links gerados no Centro de Afiliados.':item.id==='MAGALU'?(fields.indexOf('apiKey')!==-1&&fields.indexOf('apiKeyId')!==-1&&fields.indexOf('apiKeySecret')!==-1?'API Magalu: três chaves salvas; autenticação e teste oficial ainda pendentes.':'API Key, API Key ID e API Key Secret ainda não cadastradas. Links de afiliado são um fluxo separado.'):(fields?'Campos cadastrados: '+fields:'Nenhuma credencial cadastrada.'))+'</div>'+ '<div class="muted csp-margin-top-10px"><b>Próxima etapa:</b> '+esc(nextStep)+'</div>'+(item.lastError?'<div class="muted" role="status"><b>Último erro:</b> '+esc(item.lastError)+'</div>':'')+(item.updatedAt?'<small class="muted">Atualizado em '+esc(new Date(item.updatedAt).toLocaleDateString('pt-BR'))+'</small>':'')+'<div class="csp-margin-top-10px"><a class="btn secondary" href="'+esc(item.portalUrl)+'" target="_blank" rel="noopener noreferrer">'+(item.id==='SHEIN'?'Acessar conta de afiliados ↗':'Abrir portal ↗')+'</a> <button class="btn secondary" type="button" data-action="'+(item.id==='MAGALU'?'connectMagaluAccount()':item.id==='MERCADOLIVRE'?'connectMercadoLivre()':'openMarketplaceSetup(\''+esc(item.id)+'\')')+'">'+((item.id==='MAGALU'||item.id==='MERCADOLIVRE')?'Conectar conta':['CASAS_BAHIA','HOTMART','KABUM','AMERICANAS'].indexOf(item.id)!==-1?'Ver situação':item.id==='SHEIN'?'Preparar oferta':(fields?'Atualizar chaves':'Conectar conta'))+'</button> '+(item.id==='MAGALU'?'<button class="btn secondary" type="button" data-action="openMagaluApiCredentials()">Atualizar chaves API</button> <button class="btn secondary" type="button" data-action="testMagaluApi()">Testar OAuth + API seller</button> <button class="btn secondary" type="button" data-action="openMagaluTools()">Importar link de afiliado</button>':'')+' '+lomadeeActions+' '+shopeeActions+' '+amazonActions+' '+sheinActions+' '+aliexpressActions+' '+awinActions+' '+rakutenActions+' '+admitadActions+'</div></div><span class="pill '+cls+'">'+status+'</span></div>';
   }).join('')||'<div class="empty">Nenhuma loja disponível.</div>';
   var overviewCode={MERCADOLIVRE:'ML',SHOPEE:'SH',AMAZON:'AMZ',ALIEXPRESS:'ALI',SHEIN:'SHN',MAGALU:'MAG',CASAS_BAHIA:'CB',HOTMART:'HOT',KABUM:'KB',AMERICANAS:'AME',LOMADEE:'LOM',AWIN:'AWIN',RAKUTEN:'RAK',ADMITAD:'ADM'};
   (data.items||[]).forEach(function(item){
    var code=overviewCode[item.id],card=code?document.querySelector('.integration[data-integration-code="'+code+'"]'):null,pill=card&&card.querySelector('.pill');
    if(!pill)return;
-   var label=item.id==='SHEIN'?'Fluxo manual':item.id==='MAGALU'&&item.status==='CONNECTED'?'Conta conectada':item.id==='MAGALU'?(item.credentialFields||[]).indexOf('apiKey')!==-1&&(item.credentialFields||[]).indexOf('apiKeyId')!==-1&&(item.credentialFields||[]).indexOf('apiKeySecret')!==-1?'Conecte a conta':'Chaves pendentes':['CASAS_BAHIA','HOTMART','KABUM','AMERICANAS'].indexOf(item.id)!==-1&&item.status!=='NOT_CONFIGURED'?'Sem teste automático':item.status==='CONNECTED'?'Conta conectada':item.status==='VALIDATED'?'Validada':item.status==='ERROR'?'Erro':item.status==='PENDING_VALIDATION'?'Validação pendente':item.status==='NOT_CONFIGURED'?'Não configurada':item.status;
+   var label=item.id==='SHEIN'?'Fluxo manual':item.id==='MAGALU'&&item.status==='CONNECTED'?'Conta conectada':item.id==='MAGALU'?(item.credentialFields||[]).indexOf('apiKey')!==-1&&(item.credentialFields||[]).indexOf('apiKeyId')!==-1&&(item.credentialFields||[]).indexOf('apiKeySecret')!==-1?'Conecte a conta':'Chaves pendentes':['CASAS_BAHIA','HOTMART','KABUM','AMERICANAS'].indexOf(item.id)!==-1&&item.status!=='NOT_CONFIGURED'?'Sem teste automático':item.status==='CONNECTED'?'Conta conectada':item.status==='VALIDATED'?'Validada':item.status==='READ_ONLY_VALIDATED'?'Leitura validada':item.status==='ERROR'?'Erro':item.status==='PENDING_VALIDATION'?'Validação pendente':item.status==='NOT_CONFIGURED'?'Não configurada':item.status;
    pill.textContent=label;pill.className='pill '+((item.status==='VALIDATED'||item.status==='CONNECTED')?'live':'warn');
   });
  }catch(error){root.innerHTML='<div class="empty" role="alert">'+esc(error.message)+'</div>';}
@@ -3581,7 +3623,7 @@ async function openMarketplaceSetup(provider){
       field('Tracking ID / SubID padrão (opcional)','trackingId','text','autocomplete="off" maxlength="4096"')+
       field('Outro campo oficial (opcional)','extra','text','placeholder="Ex.: campo=valor; não inclua senha de login nem cookies" maxlength="4096"')+
       '<div class="callout">As credenciais serão criptografadas no servidor. O sistema não testa nem declara a conta conectada nesta etapa. A ativação só poderá ocorrer após validar o endpoint oficial e as permissões da conta.</div>';
-    if(provider==='LOMADEE') body=field('API Key de afiliado (x-api-key)','apiKey','password','autocomplete="new-password" maxlength="4096" required')+'<div class="callout">Gere uma chave do tipo affiliate no painel de desenvolvedores Lomadee. Autorize products:read, campaigns:read, brands:read, channels:read, orders:read e shortener:write. O teste consulta produtos, campanhas, canais e pedidos sem criar links nem publicar ofertas. A importação cria links rastreáveis pelo endpoint oficial.</div>';
+    if(provider==='LOMADEE') body=field('API Key de afiliado (x-api-key)','apiKey','password','autocomplete="new-password" maxlength="4096" required')+'<div class="callout">Gere uma chave do tipo affiliate no painel de desenvolvedores Lomadee. Autorize products:read, campaigns:read, brands:read, channels:read, orders:read e shortener:write. O teste inicial consulta apenas produtos. Campanhas, canais, pedidos e geração de links precisam de testes separados; a aprovação comercial depende da Lomadee. Nenhuma oferta é publicada automaticamente.</div>';
     if(provider==='ALIEXPRESS') body=field('App Key (App ID)','appId','text','autocomplete="off" maxlength="200" required')+field('App Secret','apiSecret','password','autocomplete="new-password" maxlength="4096" required')+field('Tracking ID','trackingId','text','autocomplete="off" maxlength="200" required')+field('App Signature (se exigida pelo portal)','appSignature','password','autocomplete="new-password" maxlength="300"')+'<label class="csp-margin-top-10px"><input type="checkbox" name="legacyApiAcknowledged" value="true" required> Entendo que a documentação pública da Affiliate API está marcada como descontinuada e confirmo que o portal ainda habilita esse acesso para minha conta.</label><div class="callout">As credenciais serão criptografadas no servidor. O teste faz uma consulta somente leitura; não cria links nem publica ofertas. A API só será considerada funcional depois de responder à consulta real.</div>';
     if(provider==='AWIN') body=field('Token Bearer da API Awin','accessToken','password','autocomplete="new-password" maxlength="4096" required')+field('Publisher ID numérico','affiliateId','text','inputmode="numeric" pattern="[0-9]{1,20}" maxlength="20" required')+'<div class="callout">Gere o token na interface oficial Awin. Não use senha de login nem chave de feed de produto neste campo. O teste consulta os programas joined em modo somente leitura. A consulta de feed exige o ID de anunciante e um locale autorizado. Nenhuma oferta será publicada.</div>';
     if(provider==='RAKUTEN') body=field('Client ID da aplicação Rakuten','clientId','text','autocomplete="off" maxlength="500" required')+field('Client Secret da aplicação Rakuten','clientSecret','password','autocomplete="new-password" maxlength="4096" required')+field('Account ID da conta Publisher','accountId','text','autocomplete="off" maxlength="100" required')+'<div class="callout">A API oficial emite o token em /token usando Client ID, Client Secret e Account ID. O Radar armazena access/refresh tokens criptografados e renova o acesso antes de expirar. Se sua conta só recebeu um Bearer temporário, solicite no Developer Portal a aplicação e as credenciais necessárias para renovação. O teste consulta anunciantes em modo somente leitura; busca de produtos e deeplinks dependem das permissões e parcerias. Nenhuma oferta será publicada.</div>';
@@ -3596,7 +3638,7 @@ async function openMarketplaceSetup(provider){
       closeModal();
       var testRoutes={AMAZON:{path:'/api/integrations/amazon',body:{action:'test'}},SHOPEE:{path:'/api/integrations/shopee',body:{action:'test'}},ALIEXPRESS:{path:'/api/integrations/aliexpress',body:{action:'test'}},AWIN:{path:'/api/integrations/awin',body:{action:'test'}},RAKUTEN:{path:'/api/integrations/rakuten',body:{action:'test'}},ADMITAD:{path:'/api/integrations/admitad',body:{action:'test'}},LOMADEE:{path:'/api/integrations/lomadee',body:{action:'validate'}}};
       var testRoute=testRoutes[provider];
-      if(testRoute){try{var testResult=await operationRequest(testRoute.path,testRoute.body);await loadMarketplaceStatus();toast(testResult.status==='VALIDATED'||testResult.ok?'Credenciais salvas e conexão validada pela API oficial.':'Teste concluído; confira o estado da integração.');}catch(testError){await loadMarketplaceStatus();toast('Credenciais salvas, mas a validação falhou: '+(testError.message||'verifique credenciais, escopos e acesso ao programa.'));}}
+      if(testRoute){try{var testResult=await operationRequest(testRoute.path,testRoute.body);await loadMarketplaceStatus();toast(testResult.status==='VALIDATED'?'Credenciais e escopos validados pela API oficial.':testResult.status==='READ_ONLY_VALIDATED'?'Leitura de produtos validada; geração de links e aprovação comercial exigem testes separados.':testResult.ok?'Consulta oficial respondeu; confira os escopos ainda pendentes.':'Teste concluído; confira o estado da integração.');}catch(testError){await loadMarketplaceStatus();toast('Credenciais salvas, mas a validação falhou: '+(testError.message||'verifique credenciais, escopos e acesso ao programa.'));}}
       else{await loadMarketplaceStatus();toast(result.message||'Credenciais salvas. Este provedor ainda exige confirmação manual ou outro fluxo oficial; não foi marcado como conectado.');}
     });
   }catch(error){toast(error.message||'Não foi possível abrir o cadastro de credenciais.');}
@@ -3612,7 +3654,7 @@ async function importLomadeeProducts(){
   try{
     var result=await operationRequest('/api/integrations/lomadee',{action:'import_products',limit:5});
     await load();await loadMarketplaceStatus();
-    openModal('Importação Lomadee concluída','A API oficial foi consultada e os links rastreáveis foram gerados quando disponíveis. A publicação depende das regras e destinos ativos.','<div class="callout"><b>Importadas:</b> '+esc(result.imported||0)+'<br><b>Ignoradas:</b> '+esc(result.skipped||0)+'<br><b>Disparo do piloto automático:</b> '+(result.autopilotTriggered?'solicitado':'não necessário')+'</div>'+(result.items&&result.items.length?'<ul>'+result.items.map(function(x){return '<li>'+esc(x.title)+' · '+esc(x.discount)+'% de desconto</li>';}).join('')+'</ul>':'<p>Nenhum produto com desconto verificável e link rastreável foi importado nesta consulta.</p>'),function(e){e.preventDefault();closeModal();});
+    openModal('Importação Lomadee concluída','Os produtos com preço oficial e link rastreável foram importados como rascunhos para revisão. Nenhuma oferta foi publicada e o piloto automático não foi disparado.','<div class="callout"><b>Rascunhos criados:</b> '+esc(result.imported||0)+'<br><b>Ignorados:</b> '+esc(result.skipped||0)+'<br><b>Publicação automática:</b> desativada nesta importação</div>'+(result.items&&result.items.length?'<ul>'+result.items.map(function(x){return '<li>'+esc(x.title)+' · '+esc(x.discount)+'% OFF · preço oficial verificado · revisão pendente</li>';}).join('')+'</ul>':'<p>Nenhum produto com desconto verificável e link rastreável foi importado nesta consulta.</p>'),function(e){e.preventDefault();closeModal();});
   }catch(error){toast(error.message||'Não foi possível importar ofertas da Lomadee.');}
 }
 var lomadeeProductFilters={};
@@ -3814,7 +3856,7 @@ async function testN8nMcp(){
   }catch(error){toast(error.message||'Não foi possível testar o servidor MCP.');}
 }
 async function openSheinTools(){
-  var body='<label for="sheinAction">Operação</label><select id="sheinAction" name="action" required><option value="validate_link">Validar domínio do link (sem salvar)</option><option value="create_draft">Criar rascunho de oferta pendente</option></select>'+
+  var body='<label for="sheinAction">Operação</label><select id="sheinAction" name="action" required><option value="validate_link">Validar um link (sem salvar)</option><option value="validate_batch">Importar mensagem e validar todos os links (sem salvar)</option><option value="create_draft">Criar rascunho de oferta pendente</option></select>'+'<label for="sheinBulkText">Mensagem promocional ou lista de links (opcional)</label><textarea id="sheinBulkText" name="bulkText" rows="4" maxlength="12000" placeholder="Cole aqui o texto copiado da SHEIN; o Radar extrairá os links encontrados."></textarea>'+
     field('Título do produto','title','text','maxlength="220" placeholder="Nome do produto"')+
     field('Link de afiliado gerado no Centro de Afiliados','affiliateUrl','url','maxlength="2000" placeholder="https://onelink.shein.com/..."')+
     field('Link normal do produto (opcional)','productUrl','url','maxlength="2000" placeholder="https://br.shein.com/..."')+
@@ -3828,6 +3870,24 @@ async function openSheinTools(){
     var fd=new FormData(event.target),action=String(fd.get('action')||'validate_link');
     var payload={action:action,affiliateUrl:String(fd.get('affiliateUrl')||'').trim(),productUrl:String(fd.get('productUrl')||'').trim()};
     try{
+      if(action==='validate_batch'){
+        var pasted=String(fd.get('bulkText')||'');
+        var found=(pasted.match(/https?:\/\/[^\s<>"'\]]+/gi)||[]).map(function(url){return url.replace(/[),.;!?]+$/,'');});
+        if(payload.affiliateUrl)found.push(payload.affiliateUrl);
+        if(payload.productUrl)found.push(payload.productUrl);
+        found=Array.from(new Set(found)).slice(0,30);
+        if(!found.length)throw Error('Cole uma mensagem ou pelo menos um link HTTPS para validar.');
+        var results=[];
+        for(var i=0;i<found.length;i++){
+          try{results.push({url:found[i],result:await operationRequest('/api/integrations/shein',{action:'validate_link',affiliateUrl:found[i]})});}
+          catch(err){results.push({url:found[i],error:err.message||'Falha na validação'});}
+        }
+        closeModal();
+        var rows=results.map(function(item){var r=item.result||{},a=r.affiliateLink||{};return '<div class="callout"><b>'+esc(a.valid?'Domínio reconhecido':'Não validado')+'</b><p style="word-break:break-all">'+esc(item.url)+'</p><p>'+esc(item.error||r.message||r.note||'A validação não confirma rastreamento ou comissão.')+'</p><small>Rastreamento: não verificado · Publicação: desativada</small></div>';}).join('');
+        openModal('Importação SHEIN · resultado','Links extraídos da mensagem e conferidos individualmente. Nenhuma oferta foi criada ou publicada.',rows,function(e){e.preventDefault();closeModal();});
+        var submitBatch=document.querySelector('#form button[type="submit"]');if(submitBatch)submitBatch.textContent='Fechar';
+        return;
+      }
       if(action==='validate_link'){
         var check=await operationRequest('/api/integrations/shein',payload);
         closeModal();
@@ -3839,6 +3899,15 @@ async function openSheinTools(){
       payload.currentPrice=String(fd.get('currentPrice')||'').trim();
       payload.originalPrice=String(fd.get('originalPrice')||'').trim();
       payload.imageUrl=String(fd.get('imageUrl')||'').trim();
+      var sourceText=String(fd.get('bulkText')||'');
+      if(sourceText){
+        var sourceUrls=(sourceText.match(/https?:\/\/[^\s<>"'\]]+/gi)||[]).map(function(url){return url.replace(/[),.;!?]+$/,'');});
+        if(!payload.affiliateUrl){var affiliateCandidate=sourceUrls.find(function(url){return /(^https:\/\/)?(www\.)?onelink\.shein\.com\//i.test(url);});if(affiliateCandidate)payload.affiliateUrl=affiliateCandidate;}
+        if(!payload.productUrl){var productCandidate=sourceUrls.find(function(url){return /(^https:\/\/)?(www\.)?br\.shein\.com\//i.test(url);});if(productCandidate)payload.productUrl=productCandidate;}
+        if(!payload.title){var titleLine=sourceText.split(/\r?\n/).map(function(line){return line.trim();}).find(function(line){return line&&!/^https?:\/\//i.test(line)&&!/descubra minhas escolhas|cupom|off para|novo usu|novo usu|desconto exclusivo/i.test(line)&&line.length>8;});if(titleLine)payload.title=titleLine.slice(0,220);}
+        if(!payload.currentPrice){var priceMatch=sourceText.match(/(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*,\d{2})/);if(priceMatch)payload.currentPrice=priceMatch[1].replace(/\./g,'').replace(',','.');}
+        if(!payload.originalPrice){var originalMatch=sourceText.match(/(?:de|antes|preço original)\s*:?[\sR$]*([\d.]+,\d{2})/i);if(originalMatch)payload.originalPrice=originalMatch[1].replace(/\./g,'').replace(',','.');}
+      }
       payload.affiliateLinkConfirmed=fd.get('affiliateLinkConfirmed')==='true';
       var result=await operationRequest('/api/integrations/shein',payload);
       closeModal();
@@ -4015,12 +4084,14 @@ document.addEventListener('change',function(event){
   fn.call(window,el.value,el);
 });
 document.addEventListener('click',function(event){
-  var el=event.target.closest('[data-action]');if(!el)return;
+  var target=event.target;if(target&&target.nodeType!==1)target=target.parentElement;if(!target||typeof target.closest!=='function')return;var el=target.closest('[data-action]');if(!el)return;
   var source=el.getAttribute('data-action')||'';
   var match=source.match(/^([A-Za-z_$][\w$]*)\((.*)\)$/s);if(!match)return;
   var fn=window[match[1]];if(typeof fn!=='function')return;
-  event.preventDefault();fn.apply(window,parseActionArgs(match[2],el));
-});
+  event.preventDefault();
+  try{var result=fn.apply(window,parseActionArgs(match[2],el));if(result&&typeof result.catch==='function')result.catch(function(error){toast(error.message||'Não foi possível concluir a ação.');});}
+  catch(error){toast(error.message||'Não foi possível concluir a ação.');}
+},true);
 
 var whatsappPairing=null;
 async function openWhatsappPairing(){
