@@ -1,5 +1,6 @@
 import { config, db, scheduler } from 'hatchable';
 import { fingerprint, message as promoMessage, offerScore } from 'lib/automation.js';
+import { directImageUrl } from 'lib/validation.js';
 
 export const access = 'member';
 export const methods = ['GET', 'POST'];
@@ -234,7 +235,7 @@ export default async function handler(req, res) {
           const imageUrl = product.images?.[0]?.url || option.images?.[0]?.url || '';
           const productUrl = typeof product.url === 'string' && /^https:\/\//i.test(product.url) ? product.url : '';
           const currentPrice = priceCents(pricing.price), originalPrice = priceCents(pricing.listPrice);
-          if (!product.available || option.available === false || !title || !product.organizationId || !productUrl || !/^https:\/\//i.test(imageUrl) || !Number.isSafeInteger(currentPrice) || currentPrice <= 0 || !Number.isSafeInteger(originalPrice) || originalPrice <= currentPrice) {
+          if (!product.available || option.available === false || !title || !product.organizationId || !productUrl || !directImageUrl(imageUrl) || !Number.isSafeInteger(currentPrice) || currentPrice <= 0 || !Number.isSafeInteger(originalPrice) || originalPrice <= currentPrice) {
             skipped.push({ id: clean(product.id, 120), reason: 'Sem desconto verificável, imagem HTTPS, preço ou URL válidos.' });
             continue;
           }
