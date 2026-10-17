@@ -27,7 +27,7 @@ async function request(path, apiKey, params = {}, method = 'GET', payload = null
     method,
     headers: { 'x-api-key': apiKey, accept: 'application/json', ...(method === 'POST' ? { 'content-type': 'application/json' } : {}) },
     ...(method === 'POST' ? { body: JSON.stringify(payload || {}) } : {}),
-    signal: AbortSignal.timeout(20000)
+    signal: AbortSignal.timeout(12000)
   });
   const bodyText = await response.text();
   let body = {};
@@ -47,18 +47,15 @@ export default async function handler(req, res) {
       const credentials = await readCredentials(row);
       const apiKey = clean(credentials.apiKey, 4096);
       if (!apiKey) throw new Error('Chave API ausente');
-      const products = [];
-      for (let page = 1; page <= 10; page++) {
-        const response = await request('/affiliate/products', apiKey, { page, limit: 100, isAvailable: true });
-        const pageProducts = list(response);
-        products.push(...pageProducts);
-        if (pageProducts.length < 100) break;
-      }
+      // Rotate through a small page per hourly run; never crawl up to 1,000 products in one invocation.
+      const page = (Math.floor(Date.now() / 3600000) % 25) + 1;
+      const response = await request('/affiliate/products', apiKey, { page, limit: 5, isAvailable: true });
+      const products = list(response).slice(0, 5);
       totals.scanned += products.length;
       totals.skipReasons ||= { unavailable: 0, missingTitle: 0, missingOrganization: 0, missingProductUrl: 0, missingImage: 0, invalidPrice: 0, missingPricing: 0, noDiscount: 0, noAffiliateLink: 0 };
       totals.priceDiagnostics ||= [];
       for (const product of products) {
-        if (accountImported >= 20) break;
+        if (accountImported >= 2) break;
         const option = (Array.isArray(product.options) ? product.options : []).find(x => x.available) || product.options?.[0] || {};
         const pricing = Array.isArray(option.pricing) ? option.pricing[0] : {};
         const title = clean(option.name || product.name, 220);
