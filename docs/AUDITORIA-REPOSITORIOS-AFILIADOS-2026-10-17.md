@@ -67,3 +67,28 @@ Isso significa que o principal gap não é simplesmente “gerar uma URL”: é 
 - **Código externo instalado/copied:** não.
 - **Mudança funcional de produção nesta auditoria:** nenhuma; esta alteração é documentação e não modifica a lógica do serviço.
 - **Próximo trabalho técnico recomendado:** revisar a implementação e os contratos atuais de cada rede (começando por Mercado Livre), implementar somente o adaptador para o qual existam credenciais oficiais e permissões verificáveis e testar em sandbox antes de liberar a fila.
+
+
+### 5. Afilimax CLI
+
+- Repositório: https://github.com/Afilimax/afilimax-cli
+- O README descreve uma CLI modular com provedores para Amazon, Mercado Livre, Shopee, AliExpress e Magalu. Para Amazon e Mercado Livre, depende de cookies/sessões; para Shopee e AliExpress, declara credenciais de desenvolvedor/afiliado.
+- **Decisão:** não instalar a CLI no servidor de produção como solução pronta. É uma ferramenta interativa local, e a parte baseada em cookies/navegador não é adequada para execução confiável em backend. Os provedores que declaram API oficial podem servir como referência para desenhar testes de contrato, após validação da documentação e da licença de cada pacote.
+
+### 6. Afilimax Amazon Browser Provider
+
+- Repositório: https://github.com/Afilimax/amazon-browser-provider
+- O README usa Puppeteer, cookies de sessão, SiteStripe, stealth e declara resolução de CAPTCHA.
+- **Decisão:** não incorporar. Automação de navegador, stealth e tratamento de CAPTCHA elevam o risco operacional e de conformidade; preferir as ferramentas oficiais do programa Amazon Associates e validar a tag aprovada.
+
+### 7. Afilimax AliExpress Provider
+
+- Repositório: https://github.com/Afilimax/aliexpress-provider
+- O README declara integração com AliExpress Open Platform por `appKey`, `appSecret` e `trackingId`, com assinatura HMAC-SHA256, dependendo de `@afilimax/core`.
+- **Decisão:** é o candidato mais promissor do conjunto para uma avaliação técnica futura porque declara usar a Open Platform em vez de cookies de navegador. Ainda não foi integrado: é necessário confirmar licença e código, verificar que o endpoint e as permissões correspondem ao acesso concedido à conta Radar, testar credenciais em sandbox e auditar armazenamento/rotação de segredos e respostas da API. Não colocar segredos em código ou testes versionados.
+
+### 8. Afilimax Message Text Parser
+
+- Repositório: https://github.com/Afilimax/message-text-parser
+- O README descreve parser de mensagens de ofertas de canais Telegram específicos, com extração de título, preço, URL e cupom; declara licença MIT.
+- **Decisão:** não adicionar a dependência ao caminho de publicação sem testes. O projeto é orientado a formatos de canais específicos e pode falhar em mensagens de outros grupos. Se a ingestão de mensagens recebidas virar requisito, primeiro criar fixtures anonimizadas e testar precisão, falsos positivos, URLs maliciosas, preços e cupons; então comparar com um parser próprio pequeno.
