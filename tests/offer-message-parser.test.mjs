@@ -37,7 +37,7 @@ test('reconhece link de produto escondido em entidade text_link do Telegram',()=
   assert.equal(result.ok,true);
   assert.equal(result.marketplace,'AMAZON');
   assert.equal(result.affiliateLinkDetected,true);
-  assert.match(result.affiliateUrl,/amazon\\.com\\.br/);
+  assert.match(result.affiliateUrl,/amazon\.com\.br/);
 });
 
 test('não confia em URL oculta fora da lista de marketplaces permitidos',()=>{
