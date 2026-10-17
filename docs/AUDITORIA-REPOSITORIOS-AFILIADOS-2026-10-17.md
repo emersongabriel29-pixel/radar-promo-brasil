@@ -189,3 +189,12 @@ Executados no endpoint publicado, sem envio real:
 - Validador de deploy: 0 erros e 0 avisos antes da correção do parser; a validação será repetida após o patch.
 
 Nenhum código dos seis repositórios foi copiado para produção; a melhoria aplicada é do parser próprio do Radar e tem testes de regressão correspondentes.
+
+
+### Correção confirmada no deploy v299
+
+- **Causa encontrada:** o parser extraía números de URLs (por exemplo, o `20` da tag `radarpromo-20`) e podia usá-los como preço quando a mensagem não informava preço algum.
+- **Correção:** a extração agora remove URLs do texto usado para localizar valores e ignora números seguidos de `%`.
+- **Teste real após deploy v299:** “Fone Bluetooth JBL / 50% OFF / URL Amazon com tag” retornou `currentPrice: null` e `canImport: false`. Uma oferta fictícia com `De R$ 199,90 / Por R$ 99,90` continuou retornando os dois preços corretos e desconto de 50%. Uma mensagem sem preço, cujo link contém números, também retornou `currentPrice: null`.
+- **Validação de publicação:** dry-run Hatchable após a correção: **0 erros e 0 avisos**; versão ativa: **v299**.
+- **CI do GitHub:** a consulta de status dos commits não retornou status checks; portanto, os testes de regressão foram adicionados ao repositório, mas não declaro que a suíte Node tenha sido executada por CI. Os testes funcionais acima foram executados no endpoint publicado.
