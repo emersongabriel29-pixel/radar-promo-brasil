@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { config, db } from 'hatchable';
 
 export const access='member';
 export const methods=['GET'];
@@ -21,10 +21,16 @@ export default async function(req,res){
     db.query('SELECT published FROM storefront_settings WHERE account_id=$1',[a]),
     db.query('SELECT incident_email AS email FROM account_security_settings WHERE account_id=$1',[a]),
     db.query('SELECT name,status,details,last_checked_at AS "lastCheckedAt" FROM account_integration_health WHERE account_id=$1 ORDER BY name',[a]),
-    db.query("SELECT count(*)::int AS n FROM publications WHERE account_id=$1 AND status='PUBLISHED' AND NULLIF(external_message_id,'') IS NOT NULL AND published_at>now()-interval '30 days'",[a])
+    db.query("SELECT count(*)::int AS n FROM publications WHERE account_id=$1 AND status='PUBLISHED' AND NULLIF(external_message_id,'') IS NOT NULL AND published_at>now()-interval '30 days'",[a]),
+    db.query("SELECT status,last_checked_at AS \"lastCheckedAt\" FROM marketplace_api_credentials WHERE account_id=$1 AND marketplace='AMAZON' LIMIT 1",[a])
   ]);
   const categories=q[0].rows[0].n,offers=q[1].rows[0].n,groups=q[2].rows[0].n,queues=q[3].rows[0].n;
   const marketplaces=q[4].rows[0].n,telegram=q[5].rows[0].n,whatsapp=q[6].rows[0].n,rules=q[7].rows[0].n;
+  let telegramWebhookSecret='';
+  try { telegramWebhookSecret=String(await config.get('TELEGRAM_WEBHOOK_SECRET')||''); } catch {}
+  const telegramIngestionReady=telegram>0&&/^[A-Za-z0-9_-]{32,256}$/.test(telegramWebhookSecret);
+  const amazonCredential=q[12].rows[0]||null;
+  const amazonCreatorsReady=amazonCredential?.status==='VALIDATED';
   const storefront=Boolean(q[8].rows[0]?.published),incident=Boolean(q[9].rows[0]?.email);
   const health=Object.fromEntries(q[10].rows.map(x=>[x.name,x]));
   const aiReady=['TESTED','READY'].includes(health.ai?.status)&&Boolean(health.ai?.lastCheckedAt)&&Date.parse(health.ai.lastCheckedAt)>Date.now()-30*86400000;
@@ -45,7 +51,9 @@ export default async function(req,res){
   const external=[
     item('ai','IA para conteúdo',aiReady,aiReady?'Provedor testado.':'Faça um teste no Estúdio de IA.','Abra o Estúdio e gere um conteúdo.'),
     item('marketplaces','Regras de afiliado',marketplaces>0,marketplaces+' regra(s) de afiliado ativa(s); a conexão oficial com o marketplace é verificada separadamente.','Cadastre uma regra ativa de marketplace com tag de afiliado.'),
-    item('telegram','Telegram',telegram>0,telegram+' bot(s) ativo(s).','Configure o token e conecte um bot.'),
+    item('telegram','Telegram (envio)',telegram>0,telegram+' bot(s) ativo(s) para os fluxos de envio.','Configure o token e conecte um bot.'),
+    item('telegramIngestion','Importação recebida do Telegram',telegramIngestionReady,telegramIngestionReady?'Bot ativo e segredo do webhook configurado.':(telegram>0?'Bot ativo, mas o segredo TELEGRAM_WEBHOOK_SECRET está ausente ou inválido; o endpoint de entrada permanece bloqueado.':'Conecte um bot e configure TELEGRAM_WEBHOOK_SECRET.'),'Defina TELEGRAM_WEBHOOK_SECRET nos segredos do projeto com 32–256 caracteres (letras, números, hífen ou sublinhado) e configure o webhook.'),
+    item('amazonCreators','Amazon Creators API',amazonCreatorsReady,amazonCreatorsReady?'Credenciais cadastradas e API validada em teste anterior.':(amazonCredential?'Credenciais cadastradas, mas ainda não validadas com sucesso.':'Credenciais da Amazon Creators API ainda não cadastradas.'),'Cadastre Credential ID, Credential Secret e Partner Tag aprovados e execute o teste somente leitura.'),
     item('whatsapp','WhatsApp/n8n',whatsapp>0,whatsapp+' número(s) validado(s) com acesso a destino ativo.','Pareie o conector, valide os números e os grupos e ative o revezamento.'),
     item('storefront','Vitrine pública',storefront,storefront?'Vitrine publicada.':'Vitrine ainda não publicada.','Publique a vitrine em Conta.')
   ];
