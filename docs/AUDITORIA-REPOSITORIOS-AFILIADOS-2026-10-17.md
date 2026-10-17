@@ -106,3 +106,25 @@ Foi adicionado um adaptador experimental inspirado em `@afilimax/aliexpress-prov
 - **Limitação importante:** o provider externo declara HMAC-SHA256 e o endpoint `api-sg.aliexpress.com/sync`, mas a documentação pública da Affiliate API está marcada como descontinuada. Os testes de unidade não provam que a conta do usuário ainda tem permissão ou que o contrato da API funciona em produção. A ação deve continuar experimental até um teste real, autorizado e sem publicação.
 
 A implementação foi adaptada, não instalada como dependência npm: isso evita introduzir uma cadeia de dependências e mantém o código compatível com o runtime V8 do Hatchable. O provider oficial legado já existente permanece inalterado.
+
+
+## Verificação operacional em 2026-10-17 (após auditoria)
+
+Testes de leitura/diagnóstico executados no Hatchable, sem publicar ofertas nem enviar mensagens reais:
+
+- `POST /api/messages/parse-preview` com texto fictício de oferta Amazon: **HTTP 200**; reconheceu marketplace, preços e URL; manteve `requiresManualReview=true` e `autoPublish=false`.
+- `POST /api/messages/parse-preview` com URL comum do Mercado Livre: **HTTP 200**; identificou que não havia evidência suficiente de link de afiliado e manteve revisão manual.
+- `GET /api/mercadolivre/products?q=fone%20bluetooth`: **HTTP 200**; catálogo retornou resultados de descoberta, mas sem preços/IDs de anúncios individuais confiáveis em todos os resultados. O próprio endpoint alerta que busca de anúncios retornou 403 nessa conexão. Não tratar resultados de catálogo como ofertas prontas para publicação.
+- `GET /api/integrations/amazon`: **HTTP 412** porque não há credenciais da Amazon Creators API cadastradas na conta.
+- `POST /api/telegram/incoming` com payload fictício: **HTTP 503** porque falta `TELEGRAM_WEBHOOK_SECRET`. Nenhuma mensagem foi enviada nem importada pelo teste.
+- `GET /api/readiness`: **HTTP 200**, estado `SETUP_REQUIRED`. Antes da correção, o painel confundia um bot de envio ativo com ingestão de mensagens Telegram pronta. A rota agora mostra separadamente **Telegram (envio)**, **Importação recebida do Telegram** e **Amazon Creators API**, com ações específicas para os bloqueios.
+- Validação Hatchable antes do deploy: **0 erros e 0 avisos**. Publicado como versão **v291**.
+
+### Próximas ações externas necessárias
+
+1. Configurar `TELEGRAM_WEBHOOK_SECRET` no cofre de segredos do Hatchable e então registrar/verificar o webhook do bot.
+2. Inserir as credenciais aprovadas da Amazon Creators API (Credential ID, Credential Secret e Partner Tag) na integração segura e executar o teste somente leitura.
+3. Para Mercado Livre, concluir a regra de afiliado e validar link oficial de afiliado e anúncio individual; a saúde OAuth/API não significa que a regra de atribuição esteja ativa.
+4. Validar WhatsApp/n8n e a vitrine apenas quando forem configurados. O autopilot permanece bloqueado enquanto não houver regra de afiliado ativa e preço oficial verificado recentemente.
+
+Esses bloqueios dependem de credenciais/permissões da conta e não devem ser simulados com valores fictícios. O deploy não alterou filas, não aprovou ofertas e não ativou publicação automática.
