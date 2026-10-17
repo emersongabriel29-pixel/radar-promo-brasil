@@ -36,15 +36,34 @@ async function apiRequest(path, apiKey, params = {}, method = 'GET', payload = n
   if (method === 'GET') {
     for (const [key, value] of Object.entries(params)) if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value));
   }
-  const response = await fetch(url.toString(), {
-    method,
-    headers: { 'x-api-key': apiKey, 'accept': 'application/json', ...(method === 'POST' ? { 'content-type': 'application/json' } : {}) },
-    ...(method === 'POST' ? { body: JSON.stringify(payload || {}) } : {}),
-    signal: AbortSignal.timeout(20000)
-  });
-  const raw = await response.text();
-  let body = {};
-  try { body = raw ? JSON.parse(raw) : {}; } catch { body = {}; }
+  let timeoutId;
+  let response;
+  let body;
+  try {
+    // Enforce a wall-clock deadline around both fetch and body reading. Some runtimes
+    // do not reliably abort a stalled upstream response with AbortSignal.timeout alone.
+    const result = await Promise.race([
+      (async () => {
+        const upstream = await fetch(url.toString(), {
+          method,
+          headers: { 'x-api-key': apiKey, 'accept': 'application/json', ...(method === 'POST' ? { 'content-type': 'application/json' } : {}) },
+          ...(method === 'POST' ? { body: JSON.stringify(payload || {}) } : {}),
+          signal: AbortSignal.timeout(7000)
+        });
+        const raw = await upstream.text();
+        let parsed = {};
+        try { parsed = raw ? JSON.parse(raw) : {}; } catch { parsed = {}; }
+        return { upstream, parsed };
+      })(),
+      new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(Object.assign(new Error('Tempo limite de 8 segundos ao consultar a API Lomadee.'), { status: 504 })), 8000);
+      })
+    ]);
+    response = result.upstream;
+    body = result.parsed;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
   if (!response.ok) {
     const status = response.status;
     const error = Object.assign(new Error(status === 401 ? 'Chave Lomadee inválida ou ausente.' : status === 403 ? 'A chave Lomadee não possui o escopo necessário para este recurso.' : status === 429 ? 'Limite da API Lomadee atingido; tente novamente mais tarde.' : 'A API Lomadee respondeu HTTP ' + status + '.'), { status });
@@ -135,21 +154,16 @@ export default async function handler(req, res) {
     const resource = clean(req.query?.resource || 'status', 40).toLowerCase();
     const apiKey = clean(saved?.credentials?.apiKey, 4096);
     if (req.method === 'GET' && resource === 'status') {
-      let linkGenerationStatus = 'NOT_VERIFIED';
-      if (saved && apiKey && saved.status === 'VALIDATED') {
-        try {
-          const existingLinks = await apiRequest('/affiliate/shortener/urls', apiKey, { page: 1, limit: 1, active: true });
-          linkGenerationStatus = listFrom(existingLinks).length > 0 ? 'VERIFIED' : 'NOT_VERIFIED';
-        } catch {
-          linkGenerationStatus = 'READ_CHECK_FAILED';
-        }
-      }
+      // Keep the status panel fast and read-only. Link generation is tested only by the explicit validation action, not every status refresh.
+      const linkGenerationStatus = saved?.status === 'VALIDATED' ? 'NOT_TESTED' : 'NOT_VERIFIED';
       return res.json({
         marketplace: 'LOMADEE', status: saved?.status || 'NOT_CONFIGURED',
-        configured: Boolean(saved), apiStatus: saved?.status === 'VALIDATED' ? 'VALIDATED' : saved ? 'PENDING_VALIDATION' : 'NOT_CONFIGURED',
+        configured: Boolean(saved), apiStatus: saved?.status === 'VALIDATED' ? 'VALIDATED' : saved?.status === 'READ_ONLY_VALIDATED' ? 'READ_ONLY_VALIDATED' : saved?.status === 'ERROR' ? 'ERROR' : saved ? 'PENDING_VALIDATION' : 'NOT_CONFIGURED',
         publicationEnabled: false,
         linkGenerationStatus,
-        capabilities: ['products:read','campaigns:read','brands:read','channels:read','orders:read','shortener:read'],
+        capabilities: saved?.status === 'READ_ONLY_VALIDATED' ? ['products:read'] : saved?.status === 'VALIDATED' ? ['products:read','campaigns:read','brands:read','channels:read','orders:read','shortener:read'] : [],
+        availableResources: ['products:read','campaigns:read','brands:read','channels:read','orders:read','shortener:read'],
+        writeCapabilitiesConfirmed: false,
         portalUrl: 'https://www.lomadee.com.br/pt-br/afiliados',
         docsUrl: 'https://docs.lomadee.com.br/llms.txt'
       });
@@ -161,18 +175,14 @@ export default async function handler(req, res) {
       const action = clean(req.body?.action, 40);
       if (action === 'validate') {
         try {
-          const [products, campaigns, channels, orders, shortenedUrls] = await Promise.all([
-            apiRequest('/affiliate/products', apiKey, { page: 1, limit: 1 }),
-            apiRequest('/affiliate/campaigns', apiKey, { page: 1, limit: 1, status: 'onTime' }),
-            apiRequest('/affiliate/channels', apiKey, {}),
-            apiRequest('/affiliate/orders', apiKey, { page: 1, limit: 1 }),
-            apiRequest('/affiliate/shortener/urls', apiKey, { page: 1, limit: 1, active: true })
-          ]);
+          // Keep credential validation bounded: one read-only request only. A full multi-endpoint check
+          // can exceed the function wall-clock limit when the provider is slow.
+          const products = await apiRequest('/affiliate/products', apiKey, { page: 1, limit: 1 });
           await db.query(
-            "UPDATE marketplace_api_credentials SET status='VALIDATED',last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='LOMADEE'",
+            "UPDATE marketplace_api_credentials SET status='READ_ONLY_VALIDATED',last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='LOMADEE'",
             [account.id]
           );
-          return res.json({ ok: true, status: 'VALIDATED', validationScope: 'READ_ONLY', linkGenerationStatus: 'NOT_TESTED', publicationEnabled: false, checks: { products: listFrom(products).length, campaigns: listFrom(campaigns).length, channels: listFrom(channels).length, orders: listFrom(orders).length, shortenedUrls: listFrom(shortenedUrls).length }, capabilities: ['products:read','campaigns:read','brands:read','channels:read','orders:read','shortener:read'], note: 'Autenticação e consultas somente leitura validadas. A permissão de escrita ainda não foi confirmada; nenhuma oferta foi publicada.' });
+          return res.json({ ok: true, status: 'READ_ONLY_VALIDATED', validationScope: 'PRODUCTS_READ_ONLY', linkGenerationStatus: 'NOT_TESTED', publicationEnabled: false, checks: { products: listFrom(products).length }, capabilities: ['products:read'], note: 'A chave autenticou uma consulta somente leitura de produtos. Campanhas, canais, pedidos e geração de links ainda precisam de testes separados. A ingestão automática permanece bloqueada e nenhuma oferta foi publicada.' });
         } catch (error) {
           const code = Number(error?.status) || 0;
           await db.query(
@@ -183,7 +193,7 @@ export default async function handler(req, res) {
         }
       }
       if (action === 'shorten_url') {
-        if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'Valide a conexão Lomadee antes de gerar links.' });
+        if (!['VALIDATED','READ_ONLY_VALIDATED'].includes(saved.status)) return res.status(412).json({ error: 'Valide primeiro a leitura da API Lomadee. A geração de links será testada separadamente e depende de permissão comercial e escopo oficial.' });
         const organizationId = clean(req.body?.organizationId, 80);
         const type = clean(req.body?.type, 30);
         const featureId = clean(req.body?.featureId, 120);
@@ -222,7 +232,7 @@ export default async function handler(req, res) {
         return res.status(httpStatus).json({ ok: generatedCount > 0, status: linkStatus, resource: 'shortener', type, organizationId, channels: rows, generatedCount, created: generatedCount > 0, published: false, ...(linkError ? { error: linkError } : {}) });
       }
       if (action === 'import_products') {
-        if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'Valide a conexão Lomadee antes de importar produtos.' });
+        if (!['VALIDATED','READ_ONLY_VALIDATED'].includes(saved.status)) return res.status(412).json({ error: 'Valide primeiro a leitura da API Lomadee. A importação só será aprovada se a API também gerar um link rastreável autorizado.' });
         const search = clean(req.body?.search, 100);
         const limit = Math.min(10, Math.max(1, Math.floor(Number(req.body?.limit) || 5)));
         const productBody = await apiRequest('/affiliate/products', apiKey, { page: 1, limit, isAvailable: true, ...(search ? { search } : {}) });
@@ -259,18 +269,17 @@ export default async function handler(req, res) {
           const score = offerScore({ title, currentPrice: currentReais, originalPrice: originalReais });
           const message = promoMessage({ title, source: 'LOMADEE', currentPrice: currentReais, originalPrice: originalReais, affiliateUrl, imageUrl, productUrl });
           const inserted = await db.query(
-            "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible) VALUES($1,$2,$3,'LOMADEE',$4,$5,NULL,$6,$7,$8,NULL,NULL,$9,$10,'APPROVED',$11,$12,'VALIDATED','AUTO',false) ON CONFLICT DO NOTHING RETURNING id",
+            "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible) VALUES($1,$2,$3,'LOMADEE',$4,$5,NULL,$6,$7,$8,NULL,NULL,$9,$10,'PENDING',$11,$12,'VALIDATED','AUTO',false) ON CONFLICT DO NOTHING RETURNING id",
             [crypto.randomUUID(), account.id, title, originalReais, currentReais, affiliateUrl, imageUrl, productUrl, discount, score, message, fp]
           );
-          if (inserted.rows.length) imported.push({ id: inserted.rows[0].id, title, currentPrice: currentReais / 100, originalPrice: originalReais / 100, discount, affiliateUrl });
+          if (inserted.rows.length) {
+            const offerId = inserted.rows[0].id;
+            await db.query("INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,$4,$5,'OFFICIAL_API',$6,now())", [crypto.randomUUID(), account.id, offerId, currentReais, originalReais, 'LOMADEE:' + clean(product.id, 120)]);
+            imported.push({ id: offerId, title, currentPrice: currentReais / 100, originalPrice: originalReais / 100, discount, affiliateUrl, status: 'DRAFT', priceVerified: true });
+          }
           else skipped.push({ id: clean(product.id, 120), reason: 'Duplicada; não foi inserida novamente.' });
         }
-        let autopilot = null;
-        if (imported.length) {
-          try { autopilot = await scheduler.now('/api/jobs/autopilot'); }
-          catch (error) { console.error('lomadee autopilot trigger failed', String(error?.code || error?.name || 'ERROR').slice(0, 60)); }
-        }
-        return res.json({ ok: true, imported: imported.length, skipped: skipped.length, items: imported, skippedItems: skipped, autopilotTriggered: Boolean(autopilot), note: 'Somente produtos disponíveis, com desconto verificável, imagem e link rastreável foram aprovados. A publicação depende das regras ativas, destino Telegram e limites configurados.' });
+        return res.json({ ok: true, imported: imported.length, skipped: skipped.length, items: imported, skippedItems: skipped, autopilotTriggered: false, publicationTriggered: false, note: 'Produtos importados como rascunhos para revisão humana. Preço e link foram verificados na API oficial; nenhuma oferta foi aprovada para publicação nem foi disparado o piloto automático.' });
       }
       return res.status(400).json({ error: 'Ação não suportada. Use validate ou import_products.' });
     }

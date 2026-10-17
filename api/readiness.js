@@ -1,7 +1,10 @@
 import { db } from 'hatchable';
+
 export const access='member';
 export const methods=['GET'];
+
 const item=(key,label,ready,detail,action='')=>({key,label,status:ready?'READY':'ACTION_REQUIRED',ready,detail,action:ready?'':action});
+
 export default async function(req,res){
   const account=(await db.query('SELECT id FROM accounts WHERE owner_member_id=$1',[String(req.member.id)])).rows[0];
   if(!account)return res.status(404).json({error:'Conta não encontrada.'});
@@ -27,7 +30,7 @@ export default async function(req,res){
   const aiReady=['TESTED','READY'].includes(health.ai?.status)&&Boolean(health.ai?.lastCheckedAt)&&Date.parse(health.ai.lastCheckedAt)>Date.now()-30*86400000;
   const deliveryProof=q[11].rows[0].n>0;
   const deliveryReady=telegram>0||whatsapp>0;
-  const verifiedPriceCount=(await db.query("SELECT count(DISTINCT offer_id)::int AS n FROM offer_price_history WHERE account_id=$1 AND source_type='OFFICIAL_API' AND verified_at IS NOT NULL AND verified_at>now()-interval '24 hours' AND original_price IS NOT NULL",[a])).rows[0].n;
+  const verifiedPriceCount=(await db.query("SELECT count(DISTINCT ph.offer_id)::int AS n FROM offer_price_history ph JOIN offers o ON o.id=ph.offer_id AND o.account_id=ph.account_id WHERE ph.account_id=$1 AND ph.source_type='OFFICIAL_API' AND ph.verified_at IS NOT NULL AND ph.verified_at>now()-interval '24 hours' AND ph.original_price IS NOT NULL AND ph.price=o.current_price AND ph.original_price=o.original_price AND ph.verified_at=(SELECT MAX(ph2.verified_at) FROM offer_price_history ph2 WHERE ph2.account_id=ph.account_id AND ph2.offer_id=ph.offer_id AND ph2.source_type='OFFICIAL_API')",[a])).rows[0].n;
   const autopilotReady=rules>0&&offers>0&&groups>0&&marketplaces>0&&deliveryReady&&verifiedPriceCount>0;
   const core=[
     item('database','Banco de dados',true,'Consultas desta conta concluídas nesta verificação.'),
