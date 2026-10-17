@@ -2532,7 +2532,8 @@ function storeOptions(selected) {
     })
     .join("");
 }
-function openOffer(prefill) {\n  prefill = prefill || {};
+function openOffer(prefill) {
+  prefill = prefill || {};
   openModal(
     "Nova oferta",
     "A imagem será enviada junto com texto, cupom e link.",
