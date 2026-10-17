@@ -99,8 +99,27 @@ export default async function handler(req, res) {
           "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible) VALUES($1,$2,$3,'LOMADEE',$4,$5,NULL,$6,$7,$8,NULL,NULL,$9,$10,'APPROVED',$11,$12,'VALIDATED','AUTO',false) ON CONFLICT DO NOTHING RETURNING id",
           [crypto.randomUUID(), row.account_id, title, originalPrice, currentPrice, affiliateUrl, imageUrl, productUrl, discount, score, promo, fp]
         );
-        if (inserted.rows.length) { totals.imported++; accountImported++; }
-        else totals.duplicates++;
+        if (inserted.rows.length) {
+          const offerId = inserted.rows[0].id;
+          try {
+            // Only record prices returned by this successful official API response.
+            // Publication remains blocked unless this fresh history matches the offer's stored prices.
+            await db.query(
+              "INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,$4,$5,'OFFICIAL_API',$6,now())",
+              [crypto.randomUUID(), row.account_id, offerId, currentPrice, originalPrice, 'LOMADEE:' + clean(product.id, 120)]
+            );
+            totals.imported++;
+            accountImported++;
+          } catch (historyError) {
+            // Fail closed: never leave an automatically imported offer approved without its verified price record.
+            await db.query(
+              "UPDATE offers SET status='PENDING',validation_status='NEEDS_REVIEW' WHERE id=$1 AND account_id=$2",
+              [offerId, row.account_id]
+            );
+            totals.failed++;
+            console.error('lomadee price history failed', String(historyError?.code || historyError?.name || 'ERROR').slice(0, 60));
+          }
+        } else totals.duplicates++;
       }
       await db.query("UPDATE marketplace_api_credentials SET last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='LOMADEE'", [row.account_id]);
       if (accountImported) {
