@@ -1546,6 +1546,9 @@ function growth() {
               esc(x.marketplace) +
               " · " +
               esc(x.discountText || "condição informada pela loja") +
+              (x.discountType === "PERCENT" ? " · " + esc(x.discountValue) + "% de desconto" : x.discountType === "FIXED" ? " · R$ " + (Number(x.discountValue || 0) / 100).toFixed(2).replace(".", ",") + " de desconto" : "") +
+              (Number(x.minPurchaseCents || 0) > 0 ? " · mínimo R$ " + (Number(x.minPurchaseCents) / 100).toFixed(2).replace(".", ",") : "") +
+              (Number(x.maxDiscountCents || 0) > 0 ? " · limite R$ " + (Number(x.maxDiscountCents) / 100).toFixed(2).replace(".", ",") : "") +
               '</div></div><span class="pill live">' +
               esc(x.status) +
               "</span></div>"
@@ -2383,6 +2386,12 @@ function openCoupon() {
         "text",
         'placeholder="20% em itens selecionados"',
       ) +
+      select("Tipo de benefício", "discountType", '<option value="TEXT">Somente descrição (sem cálculo automático)</option><option value="PERCENT">Percentual</option><option value="FIXED">Valor fixo em reais</option>') +
+      field("Valor do benefício", "discountValue", "number", 'step="0.01" min="0" placeholder="Ex.: 20 para 20% ou 15 para R$ 15,00"') +
+      '<div class="formgrid">' +
+      field("Compra mínima (R$)", "minPurchase", "number", 'step="0.01" min="0" value="0"') +
+      field("Desconto máximo (R$)", "maxDiscount", "number", 'step="0.01" min="0" value="0" placeholder="0 = sem limite"') +
+      "</div>" +
       field(
         "Link oficial do cupom",
         "url",
@@ -2650,6 +2659,7 @@ function openOffer(prefill) {
       field("Código do cupom", "couponCode", "text", 'placeholder="CASA20" value="' + esc(prefill.couponCode || "") + '"') +
       field("Link do cupom", "couponUrl", "url", 'placeholder="https://..."') +
       "</div>" +
+      '<div class="field"><label><input type="checkbox" name="useBestCoupon" checked> Aplicar automaticamente o melhor cupom ativo da loja que atende ao preço mínimo e à validade</label></div>' +
       select(
         "Modelo da mensagem",
         "messageTemplate",
@@ -2779,6 +2789,7 @@ function offerMessageData() {
     link: f.elements.affiliateUrl.value,
     couponCode: f.elements.couponCode.value,
     couponUrl: f.elements.couponUrl.value,
+    useBestCoupon: Boolean(f.elements.useBestCoupon && f.elements.useBestCoupon.checked),
     template: f.elements.messageTemplate.value,
   };
 }
@@ -2796,7 +2807,7 @@ async function previewMessage() {
       b = await r.json();
     if (!r.ok) throw Error(b.error);
     f.elements.message.value = b.message;
-    toast("Modelo " + b.templateName + " montado e validado");
+    toast(b.appliedCoupon ? "Modelo validado com o cupom " + b.appliedCoupon.code : "Modelo " + b.templateName + " montado e validado");
   } catch (e) {
     toast(e.message);
   }

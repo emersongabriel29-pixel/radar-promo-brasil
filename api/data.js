@@ -4,6 +4,7 @@ import { moneyCents,timeValue,colorValue,booleanValue,httpsUrl,mediaUrl } from '
 import { fingerprint as makeFingerprint } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 import { formatPromo } from 'lib/promo-message.js';
+import {findBestApplicableCoupon} from 'lib/coupon-rules.js';
 import { hydrateImages } from 'lib/offer-images.js';
 import {setScheduleStatus,validDay} from 'lib/recurrences.js';
 import {canActivateMonitor} from 'lib/monitoring.js';
@@ -70,6 +71,10 @@ export default async function(req,res){
       const title=txt(b.title,220),affiliate=txt(b.affiliateUrl,1200),image=txt(b.imageUrl,1200),product=txt(b.productUrl,1200),coupon=txt(b.couponUrl,1200),couponCode=txt(b.couponCode,100),current=cents(b.currentPrice),original=b.originalPrice?cents(b.originalPrice):null;
       if(!title||!Number.isFinite(current)||current<=0||original!==null&&(!Number.isFinite(original)||original<current)||!url(affiliate)||!mediaUrl(image)||product&&!url(product)||coupon&&!url(coupon))return res.status(400).json({error:'Informe produto, preços válidos, link HTTPS de afiliado e uma imagem válida.'});
       const source=txt(b.source,50)||'Outro',fp=await makeFingerprint({title,source,productUrl:product||affiliate,affiliateUrl:affiliate});
+      const applicableCoupon=!couponCode&&b.useBestCoupon?await findBestApplicableCoupon(db,a.id,source,current):null;
+      const finalCouponCode=couponCode||applicableCoupon?.code||'';
+      const finalCouponUrl=coupon||applicableCoupon?.url||'';
+      const couponSavingsCents=applicableCoupon?.savingsCents||0;
       const classified=classifyProduct({title,description:b.description,sourceCategory:b.sourceCategory});
       if(!categoryId){
         const matched=(await db.query('SELECT id FROM categories WHERE account_id=$1 AND lower(name)=lower($2) LIMIT 1',[a.id,classified.category])).rows[0];
@@ -77,8 +82,10 @@ export default async function(req,res){
         categoryId=fallback?.id||null;
       }
       const categoryName=categoryId?(await db.query('SELECT name FROM categories WHERE id=$1 AND account_id=$2',[categoryId,a.id])).rows[0]?.name:'';
-      const automatic=formatPromo({title,source,category:categoryName,currentPrice:current,originalPrice:original,affiliateUrl:affiliate,couponUrl:coupon,couponCode,template:txt(b.messageTemplate,30)}).message;
-      const created=await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'PENDING',$15,$16,'APPROVED','MANUAL',$17) ON CONFLICT DO NOTHING RETURNING id",[uid(),a.id,title,source,original,current,categoryId,affiliate,image,product||null,coupon||null,couponCode||null,percent(current,original),score(title,current,original),txt(b.message,3000)||automatic,fp,booleanValue(b.storefrontVisible)]);
+      const automatic=formatPromo({title,source,category:categoryName,currentPrice:current,originalPrice:original,affiliateUrl:affiliate,couponUrl:finalCouponUrl,couponCode:finalCouponCode,couponSavingsCents,template:txt(b.messageTemplate,30)}).message;
+      const customMessage=txt(b.message,3000);
+      const couponNote=applicableCoupon&&!customMessage.toLowerCase().includes(finalCouponCode.toLowerCase())?'\n\n🏷️ Use o cupom *'+finalCouponCode+'*'+(couponSavingsCents>0?'\n💰 *COM CUPOM: '+cash(current-couponSavingsCents)+'*':'')+(finalCouponUrl?'\n🎟️ '+finalCouponUrl:''):'';
+      const created=await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'PENDING',$15,$16,'APPROVED','MANUAL',$17) ON CONFLICT DO NOTHING RETURNING id",[uid(),a.id,title,source,original,current,categoryId,affiliate,image,product||null,finalCouponUrl||null,finalCouponCode||null,percent(current,original),score(title,current,original),customMessage?customMessage+couponNote:automatic,fp,booleanValue(b.storefrontVisible)]);
       if(!created.rows.length)return res.status(409).json({error:'Esta oferta já está cadastrada.'});
       const classificationStatus=txt(b.categoryId,80)?'MANUAL':classified.needsReview?'REVIEW':'AUTO';
       await db.query('UPDATE offers SET subcategory=$1,classification_tags=$2::jsonb,classification_confidence=$3,classification_status=$4,classification_reason=$5,source_category=$6 WHERE id=$7 AND account_id=$8',[classified.subcategory,JSON.stringify(classified.tags),classified.confidence,classificationStatus,txt(b.categoryId,80)?'manual_override':classified.reason,txt(b.sourceCategory,200)||null,created.rows[0].id,a.id]);
