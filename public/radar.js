@@ -348,8 +348,8 @@ function dashboard() {
     ) +
     mode(
       "MODO 02",
-      "Clone fiel",
-      "Preserva texto e imagem; substitui somente links e cupons.",
+      "Copiar e importar",
+      "Cole uma mensagem ou link, revise os dados e salve um rascunho pendente.",
       "clone",
     ) +
     mode(
@@ -525,9 +525,10 @@ function monitoring() {
 function cloneView() {
   return (
     section(
-      "Modo clone · Magalu",
-      "Importe metadados de uma página pública da Magalu ou da sua vitrine Parceiro Magalu. O Radar não burla login nem gera comissão por conta própria.",
+      "Copiar e importar ofertas",
+      "Cole uma mensagem promocional ou importe dados públicos. Revise preço, imagem e link oficial; toda oferta começa pendente e nada é publicado automaticamente.",
     ) +
+    '<div class="card csp-margin-top-12px"><h3>Fluxo recomendado</h3><div class="steps"><div class="step"><i>01</i><b>Cole a mensagem ou link</b></div><div class="step"><i>02</i><b>Revise preço, imagem e afiliado</b></div><div class="step"><i>03</i><b>Aprove e confirme preço oficial</b></div><div class="step"><i>04</i><b>Escolha o destino e o horário</b></div></div><div class="actions csp-margin-top-12px"><button class="btn secondary" type="button" data-action="show(\'offers\')">Revisar ofertas</button><button class="btn secondary" type="button" data-action="show(\'publishing\')">Abrir filas e horários</button></div></div>' +
     '<div class="grid two"><div class="card"><h3>Importar página pública</h3><p class="muted">Cole o link de um produto ou de uma página pública da sua vitrine. O Radar tentará ler título, imagem e preço publicado nos metadados; revise tudo antes de criar o rascunho.</p><div class="field"><label for="magaluCloneUrl">URL pública do produto ou da vitrine</label><input class="input" id="magaluCloneUrl" type="url" maxlength="2000" placeholder="https://www.magazinevoce.com.br/..."></div><button class="btn csp-margin-top-12px" type="button" data-action="inspectMagaluClone()">Ler página pública</button><div id="magaluCloneResult" class="callout csp-hidden csp-margin-top-12px" role="status"></div></div><div class="card"><h3>O que o modo clone faz</h3><div class="steps">' +
     ["Lê metadados públicos", "Preserva a URL original", "Pede o link de afiliado", "Cria rascunho pendente", "Aguarda revisão"]
       .map(function (x, i) {
@@ -542,68 +543,58 @@ function cloneView() {
     '<div class="card"><h3>Modo Copiador de mensagens</h3><p class="muted">Cole uma mensagem de oferta para extrair título, preços, cupom e link de origem. O Radar prepara um rascunho para revisão; não publica nada automaticamente.</p><div class="field"><label for="copierText">Mensagem copiada</label><textarea class="input" id="copierText" rows="7" maxlength="6000" placeholder="Cole aqui o texto da oferta, incluindo preços e links..."></textarea></div><div class="field"><label for="copierAffiliateUrl">Link oficial de afiliado</label><input class="input" id="copierAffiliateUrl" type="url" maxlength="1200" placeholder="Cole o link gerado pelo programa oficial"></div><button class="btn csp-margin-top-12px" type="button" data-action="parseCopierMessage()">Analisar e preparar rascunho</button><div id="copierResult" class="callout csp-hidden csp-margin-top-12px" role="status"></div></div><div class="card"><h3>Fila e agendamento</h3><p class="muted">Organize rascunhos aprovados, horários, intervalos e prioridade. O envio real depende do conector e do destino validados.</p><button class="btn secondary" type="button" data-action="show(\'publishing\')">Abrir filas e agendamento</button></div></div></section>'
   );
 }
-function parseCopierMessage() {
+async function parseCopierMessage() {
   var input = document.getElementById("copierText"),
     affiliateInput = document.getElementById("copierAffiliateUrl"),
     box = document.getElementById("copierResult"),
     raw = input ? input.value.trim() : "",
     affiliateUrl = affiliateInput ? affiliateInput.value.trim() : "";
   if (!raw) { toast("Cole a mensagem da oferta antes de analisar."); return; }
-  var urls = (raw.match(/https?:\/\/[^\s<>"']+/gi) || []).map(function (u) {
-    return u.replace(/[),.;]+$/, "");
-  });
-  var prices = [];
-  raw.replace(/R\$\s*([\d.]+(?:,\d{1,2})?)/gi, function (_, value) {
-    var amount = Number(value.replace(/\./g, "").replace(",", "."));
-    if (Number.isFinite(amount) && amount > 0) prices.push(amount.toFixed(2));
-    return _;
-  });
-  var lines = raw.split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
-  var candidates = lines.filter(function (line) {
-    return !/https?:\/\/|R\$\s*[\d.]|cupom\s*[:\-]?|frete|compre aqui|clique aqui|link de afiliado|desconto de|oferta por tempo|válida até/i.test(line);
-  });
-  var title = (candidates.find(function (line) {
-    return !/^(super oferta|oferta do dia|imperdível|aproveite|promoção|promoção imperdível)[! .🔥✨🎉]*$/i.test(line);
-  }) || candidates[0] || "").replace(/^[^A-Za-zÀ-ÿ0-9]+/, "").slice(0, 220);
-  var couponMatch = raw.match(/cupom\s*[:\-]?\s*([A-Z0-9_-]{3,24})/i);
-  var currentPrice = prices.length ? prices[prices.length - 1] : "";
-  var originalPrice = prices.length > 1 && Number(prices[0]) > Number(currentPrice) ? prices[0] : "";
-  var productUrl = urls.find(function (u) { return u !== affiliateUrl; }) || "";
-  var sourceUrl = productUrl || affiliateUrl, host = "";
-  try { host = new URL(sourceUrl).hostname.toLowerCase(); } catch {}
-  var source = /(^|\.)amazon\.com\.br$/.test(host) ? "AMAZON"
-    : /(^|\.)shopee\.com\.br$/.test(host) ? "SHOPEE"
-    : /(^|\.)(mercadolivre\.com\.br|mercadolivre\.com)$/.test(host) ? "MERCADO_LIVRE"
-    : /(^|\.)shein\.com(\.br)?$/.test(host) ? "SHEIN"
-    : /(^|\.)aliexpress\.com$/.test(host) ? "ALIEXPRESS"
-    : /(^|\.)(magazineluiza\.com\.br|magalu\.com)$/.test(host) ? "MAGALU"
-    : /(^|\.)casasbahia\.com\.br$/.test(host) ? "CASAS_BAHIA" : "";
-  if (!title || !currentPrice) {
-    if (box) {
-      box.classList.remove("csp-hidden");
-      box.textContent = "Não consegui identificar título e preço atual com segurança. Revise a mensagem e inclua o preço no formato R$ 99,90.";
-    }
-    toast("Faltam título ou preço legíveis; nada foi salvo.");
-    return;
-  }
-  var prefill = {
-    title: title,
-    source: source,
-    currentPrice: currentPrice,
-    originalPrice: originalPrice,
-    productUrl: productUrl,
-    affiliateUrl: affiliateUrl,
-    couponCode: couponMatch ? couponMatch[1].toUpperCase() : "",
-    message: raw
-  };
   if (box) {
     box.classList.remove("csp-hidden");
-    box.textContent = "Dados identificados: " + title + " · preço atual R$ " + currentPrice.replace(".", ",") +
-      (originalPrice ? " · preço anterior R$ " + originalPrice.replace(".", ",") : "") +
-      (prefill.couponCode ? " · cupom " + prefill.couponCode : "") +
-      ". Confira os dados, adicione a imagem e confirme o link oficial de afiliado no formulário.";
+    box.textContent = "Interpretando a mensagem. Os campos serão sugestões para sua revisão.";
   }
-  openOffer(prefill);
+  try {
+    var parseText = raw + (affiliateUrl ? "\n" + affiliateUrl : ""),
+      response = await fetch("/api/messages/parse-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: parseText }),
+      }),
+      data = await response.json();
+    if (!response.ok || !data.ok) {
+      throw Error(data.reason || data.error || "Não consegui interpretar esta oferta.");
+    }
+    var currentPrice = Number(data.currentPrice || 0) / 100,
+      originalPrice = data.originalPrice ? Number(data.originalPrice) / 100 : 0,
+      productUrl = String(data.productUrl || "");
+    if (!data.title || !currentPrice || !productUrl) {
+      throw Error("Confira se a mensagem inclui o nome, o preço e o link do produto.");
+    }
+    var prefill = {
+      title: data.title,
+      source: data.marketplace || "",
+      currentPrice: currentPrice.toFixed(2),
+      originalPrice: originalPrice ? originalPrice.toFixed(2) : "",
+      productUrl: productUrl,
+      affiliateUrl: affiliateUrl || data.affiliateUrl || "",
+      couponCode: data.couponCode || "",
+      couponUrl: data.couponUrl || "",
+      message: raw,
+    };
+    if (box) {
+      box.textContent = "Sugestão extraída: " + prefill.title +
+        " · preço sugerido R$ " + prefill.currentPrice.replace(".", ",") +
+        (prefill.originalPrice ? " · preço anterior sugerido R$ " + prefill.originalPrice.replace(".", ",") : "") +
+        (prefill.couponCode ? " · cupom " + prefill.couponCode : "") +
+        (data.needsAffiliateLink && !affiliateUrl ? " · falta informar seu link afiliado" : "") +
+        ". " + String(data.notice || "Revise todos os campos; nada será publicado automaticamente.");
+    }
+    openOffer(prefill);
+  } catch (error) {
+    if (box) box.textContent = error.message || "Não foi possível interpretar a mensagem.";
+    toast(error.message || "Não foi possível interpretar a mensagem.");
+  }
 }
 async function inspectCollshpClone(button) {
   var input = document.getElementById("collshpCloneUrl");
@@ -2626,7 +2617,7 @@ function openOffer(prefill) {
   prefill = prefill || {};
   openModal(
     "Nova oferta",
-    "A imagem será enviada junto com texto, cupom e link.",
+    "O cadastro cria um rascunho pendente. Confira os dados; o envio exige validação oficial de preço.",
     field(
       "Imagem do produto",
       "image",
@@ -2653,6 +2644,8 @@ function openOffer(prefill) {
         "url",
         'required placeholder="https://..." value="' + esc(prefill.affiliateUrl || "") + '"',
       ) +
+      '<div class="callout csp-margin-top-12px">O Radar não considera o link afiliado só por ele estar preenchido. Confirme que foi gerado na sua conta do programa e revise preço, imagem e cupom; a oferta continuará pendente até aprovação.</div>' +
+      '<div class="field"><label><input type="checkbox" name="offerDetailsConfirmed" required> Confirmo que revisei os dados e que este é meu link oficial de afiliado.</label></div>' +
       '<div class="formgrid">' +
       field("Código do cupom", "couponCode", "text", 'placeholder="CASA20" value="' + esc(prefill.couponCode || "") + '"') +
       field("Link do cupom", "couponUrl", "url", 'placeholder="https://..."') +
@@ -2680,7 +2673,7 @@ function openOffer(prefill) {
         );
         closeModal();
         show("offers");
-        toast("Oferta validada e salva");
+        toast("Oferta salva como pendente. Aprove e confirme o preço oficial antes de enviar.");
       } catch (err) {
         toast(err.message);
       }
@@ -3012,11 +3005,17 @@ function openMarketplace(store) {
   openMarketplaceSetup(store);
 }
 function openStorefront() {
-  var s = D.suite.storefront || {};
+  var s = D.suite.storefront || {},
+    publicUrl = D.account && D.account.slug
+      ? location.origin + "/vitrine?loja=" + encodeURIComponent(D.account.slug)
+      : "";
   openModal(
     "Vitrine pública",
-    "Escolha os dados apresentados aos visitantes.",
-    field(
+    "Edite sua página pública do Radar e escolha quais ofertas aprovadas aparecem para visitantes.",
+    '<div class="callout">Esta é a vitrine própria do Radar Promo. Marque ofertas aprovadas como visíveis para incluí-las.' +
+      (publicUrl ? '<p><a href="' + esc(publicUrl) + '" target="_blank" rel="noopener noreferrer">Abrir vitrine pública ↗</a></p>' : '') +
+      '</div>' +
+      field(
       "Título",
       "title",
       "text",
@@ -3730,11 +3729,139 @@ async function loadMarketplaceStatus(){
   });
  }catch(error){root.innerHTML='<div class="empty" role="alert">'+esc(error.message)+'</div>';}
 }
+var apiHealthSnapshot = null;
+function apiHealthPanel(snapshot) {
+  var data = snapshot === undefined ? apiHealthSnapshot : snapshot;
+  var busy = Boolean(data && data.loading);
+  var pct = data && data.percent != null ? data.percent : null;
+  var color = data && data.errors ? '#d94841' : pct === 100 ? '#138a62' : '#b7791f';
+  var button = '<button type="button" class="btn secondary" data-action="refreshApiHealth()"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Verificando…' : 'Verificar agora') + '</button>';
+  var html = '<section class="card csp-margin-bottom-16px" id="api-health-card"><div class="sectionhead"><div><h2>Saúde de APIs e integrações</h2><p class="muted">Testes somente de leitura para n8n, MCP e credenciais de IA compatíveis.</p></div>' + button + '</div>';
+  if (!data || data.loading) {
+    html += '<p class="muted">' + (busy ? 'Consultando conexões e endpoints oficiais…' : 'Ainda não há uma verificação recente. Clique em “Verificar agora” para testar as conexões.') + '</p></section>';
+    return html;
+  }
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0">';
+  html += '<div style="border:1px solid var(--line);border-radius:12px;padding:14px"><div class="muted">Saúde confirmada</div><div style="font-size:28px;font-weight:800;color:' + color + '">' + (pct == null ? '—' : pct + '%') + '</div><div class="muted">' + data.checked + ' teste(s) concluído(s)</div></div>';
+  html += '<div style="border:1px solid var(--line);border-radius:12px;padding:14px"><div class="muted">Com falha</div><div style="font-size:28px;font-weight:800;color:' + (data.errors ? '#d94841' : '#138a62') + '">' + data.errors + '</div><div class="muted">Testes com erro</div></div>';
+  html += '<div style="border:1px solid var(--line);border-radius:12px;padding:14px"><div class="muted">Pendente de configuração</div><div style="font-size:28px;font-weight:800">' + data.notConfigured + '</div><div class="muted">Não entram no percentual</div></div></div>';
+  if (pct != null) html += '<div style="height:9px;background:var(--line);border-radius:999px;overflow:hidden;margin:0 0 8px"><div role="progressbar" aria-label="Saúde confirmada das APIs" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '" style="height:100%;width:' + pct + '%;background:' + color + ';transition:width .25s"></div></div>';
+  html += '<p class="muted">Última verificação manual: ' + esc(data.checkedAt || '—') + '. O percentual considera apenas testes realmente executados; credenciais ausentes e integrações sem teste automático ficam fora do cálculo.</p>';
+  if (data.autoHealth) { var ah=data.autoHealth.items||[]; var ae=data.autoHealth.alert||ah.some(function(x){return x.status==='ERROR';}); var at=ah.length?ah.map(function(x){return (x.name==='n8n_mcp'?'MCP':'API REST')+': '+(x.status==='CONNECTED'?'OK':x.status==='ERROR'?'FALHA':'configuração pendente')+(x.lastCheckedAt?' ('+x.lastCheckedAt+')':'');}).join(' · '):'Aguardando a primeira execução automática.'; html += '<p class="muted" style="padding:10px;border:1px solid '+(ae?'#d94841':'var(--line)')+';border-radius:10px">'+(ae?'<b>ALERTA: monitoramento automático detectou falha.</b> ':'<b>Monitoramento automático (horário):</b> ')+esc(at)+'</p>'; }
+  html += '<h3 class="csp-margin-top-16px">Serviços verificados</h3><div style="display:grid;gap:8px">';
+  (data.checks || []).forEach(function(item) {
+    var good = item.status === 'UP';
+    var bad = item.status === 'ERROR';
+    var bg = good ? '#e7f7ef' : bad ? '#fff0ef' : '#fff7df';
+    var fg = good ? '#116b46' : bad ? '#a52a25' : '#805b00';
+    html += '<div style="display:flex;gap:12px;align-items:flex-start;justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:12px"><div style="min-width:0;flex:1"><b>' + esc(item.name) + '</b><div class="muted" style="margin-top:4px;overflow-wrap:anywhere">' + esc(item.detail || '') + '</div></div><span style="flex-shrink:0;border-radius:999px;padding:4px 8px;background:' + bg + ';color:' + fg + ';font-size:12px;font-weight:700">' + esc(item.label) + '</span></div>';
+  });
+  html += '</div>';
+  if (data.marketplaces && data.marketplaces.length) {
+    html += '<details class="csp-margin-top-16px"><summary><b>Estado das integrações comerciais (' + data.marketplaces.length + ')</b><p class="muted">Estado cadastrado no Radar; “conectado” não significa que a API de afiliados foi testada agora.</p></summary><div style="display:grid;gap:8px;margin-top:12px">';
+    data.marketplaces.forEach(function(item) {
+      var good = item.state === 'UP';
+      var bad = item.state === 'ERROR';
+      var bg = good ? '#e7f7ef' : bad ? '#fff0ef' : '#fff7df';
+      var fg = good ? '#116b46' : bad ? '#a52a25' : '#805b00';
+      html += '<div style="display:flex;gap:10px;align-items:flex-start;justify-content:space-between;border-bottom:1px solid var(--line);padding:9px 0"><div><b>' + esc(item.name) + '</b><div class="muted">' + esc(item.detail || '') + '</div></div><span style="flex-shrink:0;border-radius:999px;padding:4px 8px;background:' + bg + ';color:' + fg + ';font-size:12px;font-weight:700">' + esc(item.label) + '</span></div>';
+    });
+    html += '</div></details>';
+  }
+  html += '<p class="muted csp-margin-top-12px">Os testes não executam workflows, não publicam ofertas e não revelam chaves ou tokens.</p></section>';
+  return html;
+}
+async function healthRequest(path, method, body) {
+  var response = await fetch(path, { method: method || 'GET', headers: body ? {'Content-Type':'application/json'} : {}, body: body ? JSON.stringify(body) : undefined });
+  var data = await response.json().catch(function(){ return {}; });
+  if (!response.ok) throw Object.assign(new Error(data.error || ('HTTP ' + response.status)), { code: response.status, payload: data });
+  return data;
+}
+async function refreshApiHealth() {
+  var root = document.getElementById('api-health-card');
+  if (!root) return;
+  apiHealthSnapshot = {loading:true};
+  root.outerHTML = apiHealthPanel(apiHealthSnapshot);
+  var settled = await Promise.allSettled([
+    healthRequest('/api/n8n/api-status','POST',{}),
+    healthRequest('/api/n8n/mcp-status','POST',{}),
+    healthRequest('/api/integrations/apis','GET'),
+    healthRequest('/api/integrations/marketplaces','GET'),
+    healthRequest('/api/integrations/health-summary','GET')
+  ]);
+  function result(index) { return settled[index].status === 'fulfilled' ? settled[index].value : null; }
+  function failure(index) { return settled[index].status === 'rejected' ? settled[index].reason : null; }
+  function connectionCheck(name, index, service) {
+    var value = result(index), error = failure(index);
+    if (value && value.ok) return {name:name,status:'UP',label:'Operacional',detail:service === 'mcp' ? 'Handshake e listagem de ferramentas concluídos (' + (value.toolCount || 0) + ' ferramentas). Nenhuma ferramenta executada.' : 'API REST autenticada respondeu a uma consulta somente de leitura.'};
+    var status = error && error.payload && error.payload.status || '';
+    if (status === 'NOT_CONFIGURED' || status === 'NOT_CONNECTED' || status === 'REAUTH_REQUIRED' || status === 'UNAUTHENTICATED' || (error && error.code === 412)) return {name:name,status:'NOT_CONFIGURED',label:'Configuração pendente',detail:(error && error.message) || 'Conexão ainda não configurada.'};
+    return {name:name,status:'ERROR',label:'Falha',detail:(error && error.message) || (value && value.error) || 'O serviço não confirmou a conexão.'};
+  }
+  var checks = [
+    connectionCheck('n8n · API REST',0,'rest'),
+    connectionCheck('n8n · Servidor MCP',1,'mcp')
+  ];
+  var apiData = result(2), marketplaceData = result(3);
+  if (apiData) {
+    var apiItems = apiData.items || [];
+    var testable = ['OPENAI','GEMINI','ANTHROPIC'];
+    for (var i=0;i<testable.length;i++) {
+      var provider = testable[i];
+      var saved = apiItems.find(function(item){return String(item.provider||'').toUpperCase()===provider;});
+      if (!saved) {
+        checks.push({name:provider==='OPENAI'?'OpenAI API':provider==='GEMINI'?'Google Gemini API':'Anthropic Claude API',status:'NOT_CONFIGURED',label:'Não configurada',detail:'Nenhuma credencial cadastrada para este provedor.'});
+        continue;
+      }
+      try {
+        var tested = await healthRequest('/api/integrations/apis','POST',{action:'test',provider:provider});
+        checks.push({name:saved.label || (provider==='OPENAI'?'OpenAI API':provider==='GEMINI'?'Google Gemini API':'Anthropic Claude API'),status:'UP',label:'Operacional',detail:'Endpoint oficial respondeu com sucesso em teste somente de leitura.'});
+      } catch (e) {
+        checks.push({name:saved.label || provider,status:'ERROR',label:'Falha',detail:e.message || 'O provedor não aceitou a consulta de validação.'});
+      }
+    }
+  } else {
+    checks.push({name:'Inventário de APIs de IA',status:'ERROR',label:'Falha',detail:(failure(2) && failure(2).message) || 'Não foi possível ler o estado das credenciais.',healthEligible:false});
+  }
+  var inventory = [
+    {name:'Inventário de integrações comerciais',status:marketplaceData?'UP':'ERROR',label:marketplaceData?'Disponível':'Falha',detail:marketplaceData?'O Radar conseguiu consultar os estados cadastrados.':'Não foi possível carregar os estados comerciais.',healthEligible:false}
+  ];
+  checks = checks.concat(inventory);
+  var checked = checks.filter(function(item){return item.healthEligible!==false&&(item.status==='UP'||item.status==='ERROR');});
+  var errors = checked.filter(function(item){return item.status==='ERROR';}).length;
+  var notConfigured = checks.filter(function(item){return item.status==='NOT_CONFIGURED';}).length;
+  var marketplaces = (marketplaceData && marketplaceData.items || []).filter(function(item){
+    return item.status !== 'NOT_CONFIGURED' || (item.credentialFields || []).length || item.lastError;
+  }).map(function(item){
+    var state='NOT_TESTED',label='Ainda não testada',detail='Há configuração cadastrada, mas o endpoint comercial não foi testado por esta verificação.';
+    if(item.status==='ERROR'||item.apiStatus==='ERROR'){state='ERROR';label='Falha registrada';detail=item.lastError || 'A conexão registrada apresenta erro.';}
+    else if(item.status==='VALIDATED'||item.status==='READ_ONLY_VALIDATED'){state='UP';label='Validada anteriormente';detail='Última validação registrada: '+(item.lastCheckedAt || 'data não informada')+'.';}
+    else if(item.status==='CONNECTED'){state='NOT_TESTED';label='Conectada · API não confirmada';detail='Conta conectada, mas a API comercial não foi testada agora.';}
+    else if(item.status==='NOT_CONFIGURED'){state='NOT_CONFIGURED';label='Não configurada';detail='Nenhuma credencial reconhecida para esta integração.';}
+    else if(item.status==='PENDING_VALIDATION'||item.status==='MANUAL_REVIEW'){state='NOT_TESTED';label='Pendente de teste';detail='Credenciais cadastradas; teste oficial ainda pendente.';}
+    else {state='NOT_TESTED';label='Não testada';detail='Não há teste automático disponível para este fluxo.';}
+    return {name:item.name || item.id, state:state,label:label,detail:detail};
+  });
+  apiHealthSnapshot = {
+    loading:false,
+    checks:checks,
+    marketplaces:marketplaces,
+    checked:checked.length,
+    errors:errors,
+    notConfigured:notConfigured,
+    percent:checked.length ? Math.round((checked.length-errors)*100/checked.length) : null,
+    checkedAt:new Date().toLocaleString('pt-BR'),
+    autoHealth:result(4)
+  };
+  var current = document.getElementById('api-health-card');
+  if (current) current.outerHTML = apiHealthPanel(apiHealthSnapshot);
+}
+
 var originalIntegrations=integrations;
 integrations=function(){
   var readiness=D.readiness;
   var panel=readiness?'<div class="card csp-margin-bottom-16px" ><h2>Prontidão da operação</h2><p>Configuração: '+readiness.operationalPercent+'%. '+(readiness.productionReady?'Entrega recente confirmada.':'Há etapas pendentes antes de ativar a operação.')+'</p>'+readiness.core.filter(function(item){return !item.ready;}).map(function(item){return '<p><strong>'+esc(item.label)+':</strong> '+esc(item.action)+'</p>';}).join('')+'</div>':'';
-  return panel+originalIntegrations()+
+  return panel+apiHealthPanel()+originalIntegrations()+
     '<details class="card csp-margin-bottom-16px integration-details"><summary><b>Credenciais das lojas</b><p class="muted">Chaves e IDs de marketplaces e redes de afiliados. Abra somente para cadastrar ou validar credenciais.</p></summary><div class="csp-margin-top-16px">'+marketplaceCredentialsPanel()+'</div></details>'+
     '<details class="card csp-margin-bottom-16px integration-details"><summary><b>Chaves de IA e serviços técnicos</b><p class="muted">OpenAI, Gemini, Claude, Runway ou outra API técnica. Não use para credenciais de lojas.</p></summary><div class="csp-margin-top-16px">'+apiCredentialsPanel()+'</div></details>';
 };
