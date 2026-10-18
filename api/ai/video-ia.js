@@ -115,6 +115,7 @@ export default async function(req,res){
     console.error('ai/video-ia',JSON.stringify({status:Number(e?.status)||0,code:clean(e?.code||e?.message,80)}));
     if(e?.code==='MELI_NOT_CONNECTED')return res.status(412).json({error:'Conecte o Mercado Livre pela conexão oficial do Radar antes de analisar produtos.'});
     if(e?.message==='LINK_HOST_NOT_ALLOWED')return res.status(400).json({error:'O link redirecionou para um domínio não permitido. Nenhuma página foi processada.'});
+    if(String(e?.message||'').startsWith('LINK_FETCH_404'))return res.status(424).json({error:'O link curto retornou 404. Cole o link direto do perfil de afiliado do Mercado Livre ou copie um link individual do produto.'});
     return res.status(502).json({error:'Falha ao resolver o link, consultar a fonte ou gerar o roteiro. Nenhum dado ausente foi presumido.'});
   }
 }
