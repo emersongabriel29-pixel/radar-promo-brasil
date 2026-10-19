@@ -1620,6 +1620,8 @@ function socialAgent() {
     c = so.counts || {},
     channels = s.channels || [],
     connections = so.connections || [];
+  var socialOffers=(D.offers||[]).filter(function(x){return ['APPROVED','READY'].includes(x.status)&&x.affiliateUrl&&x.imageUrl;}),
+    socialImages=(D.growth&&D.growth.mediaJobs||[]).filter(function(x){return x.kind==='IMAGE'&&['COMPLETED','FALLBACK_COMPLETED'].includes(x.status);});
   function connection(n) {
     return (
       connections.find(function (x) {
@@ -1757,7 +1759,9 @@ function socialAgent() {
       "time",
       'value="' + esc(s.endTime || "22:00") + '"',
     ) +
-    '</div><div class="actions"><button class="btn" data-action="saveSocialSettings()">Salvar e ativar</button><button class="btn secondary" data-action="generateSocialQueue()">Gerar mensagens agora</button><button class="btn dark" data-action="runSocialQueue()">Executar fila</button></div><div class="callout csp-margin-top-14px" >A IA não inventa preço, desconto, cupom, frete ou urgência. Cada link aponta para o rastreador do Radar e depois redireciona ao link de afiliado cadastrado.</div></div><div class="card"><h3>Conexões oficiais Meta</h3>' +
+    '</div>' + select("Oferta para publicar", "socialOffer", '<option value="">Todas as ofertas elegíveis</option>'+socialOffers.map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.title)+'</option>'}).join("")) +
+    select("Imagem gerada por IA", "socialImageJob", '<option value="">Usar imagem da oferta</option>'+socialImages.map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.title)+' · '+esc(x.provider||"IA")+'</option>'}).join("")) +
+    '<div class="callout">Gere uma arte no Estúdio de IA, volte aqui e selecione-a. Ela será anexada aos rascunhos do Instagram/Facebook; revise legenda e imagem antes de aprovar. Publicar exige uma conexão Meta ativa.</div><div class="actions"><button class="btn" data-action="saveSocialSettings()">Salvar e ativar</button><button class="btn secondary" data-action="generateSocialQueue()">Gerar posts e legendas</button><button class="btn dark" data-action="runSocialQueue()">Executar fila</button></div><div class="callout csp-margin-top-14px" >A IA não inventa preço, desconto, cupom, frete ou urgência. Cada link aponta para o rastreador do Radar e depois redireciona ao link de afiliado cadastrado.</div></div><div class="card"><h3>Conexões oficiais Meta</h3>' +
     ["INSTAGRAM", "FACEBOOK"]
       .map(function (n) {
         var x = connection(n);
@@ -2176,12 +2180,12 @@ async function saveSocialSettings() {
 }
 async function generateSocialQueue() {
   try {
-    var b = await socialCall("POST", { action: "GENERATE", limit: 6 });
+    var b = await socialCall("POST", { action: "GENERATE", limit: 6, offerId:document.querySelector('[name="socialOffer"]').value, imageJobId:document.querySelector('[name="socialImageJob"]').value });
     show("socialagent");
     toast(
       b.generated
-        ? b.generated + " mensagem(ns) criada(s)"
-        : "Nenhuma oferta elegível nova",
+        ? b.generated + " post(s) com legenda criados para revisão"
+        : b.reason==="IMAGE_NOT_READY" ? "A imagem selecionada ainda não está pronta" : "Nenhuma oferta elegível nova",
     );
   } catch (e) {
     toast(e.message);

@@ -13,7 +13,7 @@ export default async function(req,res){
   try{
     if(req.method==='GET')return res.json({ok:true,...await socialSnapshot(a.id)});
     const b=req.body||{},action=clean(b.action,40).toUpperCase();
-    if(req.method==='POST'&&action==='GENERATE')return res.json({ok:true,...await prepareSocialPosts(a.id,{limit:b.limit||4,offerId:clean(b.offerId,100),manual:true}),...await socialSnapshot(a.id)});
+    if(req.method==='POST'&&action==='GENERATE')return res.json({ok:true,...await prepareSocialPosts(a.id,{limit:b.limit||4,offerId:clean(b.offerId,100),imageJobId:clean(b.imageJobId,100),manual:true}),...await socialSnapshot(a.id)});
     if(req.method==='POST'&&action==='RUN'){const result=await dispatchSocialPosts(a.id,10);return res.json({ok:true,...result,...await socialSnapshot(a.id)})}
     if(req.method==='POST'&&action==='TEST_META')return res.json({...await verifyMeta(a.id),...await socialSnapshot(a.id)});
     if(req.method==='PUT'&&action==='SETTINGS'){
