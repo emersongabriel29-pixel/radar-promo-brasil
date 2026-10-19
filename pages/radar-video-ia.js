@@ -41,12 +41,11 @@ main{max-width:1000px;margin:auto;padding:32px 18px 60px}a{color:var(--accent)}.
 <h2 style="margin-top:28px">3. Roteiro para revisão</h2><div id="script" class="script">O roteiro aparecerá aqui após a análise. Nada será publicado automaticamente.</div>
 <button id="copy" type="button" style="display:none">Copiar roteiro</button>
 <h2 style="margin-top:28px">4. Composição visual</h2><p>Prévia animada usando a imagem original como camada. A composição não redesenha o produto.</p>
-<p id="videoSetup" class="small" role="status" aria-live="polite">Verificando se a conexão Runway está configurada…</p>
+<p class="small" role="status" aria-live="polite">Modo sem serviços pagos: roteiro, prévia e exportação local funcionam no próprio navegador.</p>
 <canvas id="videoCanvas" width="720" height="1280" style="width:100%;max-width:360px;border-radius:12px;background:#101a2a;display:block;margin:12px auto"></canvas>
-<div style="display:flex;gap:8px;flex-wrap:wrap"><button id="preview" type="button" disabled>Pré-visualizar</button><button id="render" type="button" disabled>Exportar prévia local</button><button id="aiRender" type="button" disabled>Gerar vídeo com IA</button></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button id="preview" type="button" disabled>Pré-visualizar</button><button id="render" type="button" disabled>Exportar prévia local</button><button type="button" disabled title="Este projeto não usa serviços pagos">Renderização externa desativada</button></div>
 <div id="renderStatus" class="small" aria-live="polite"></div>
-<video id="aiVideo" controls playsinline hidden style="width:100%;max-width:360px;border-radius:12px;margin:12px auto" aria-label="Vídeo gerado pelo Runway"></video><a id="aiDownload" hidden download>Baixar vídeo gerado</a>
-<p class="small">A geração com IA usa a conexão Runway configurada no Radar e pode consumir créditos do provedor. Gera um clipe vertical de até 10 segundos; não publica. Confira produto, embalagem e alegações antes de usar. A exportação local é uma prévia simples e pode gerar WebM conforme o navegador.</p>
+<p class="small">A exportação local cria um vídeo simples e pode gerar WebM conforme o navegador. Nenhum serviço externo de geração é chamado. Confira produto e informações antes de publicar.</p>
 </section></div>
 <p class="small" style="margin-top:22px">Ainda não incluídos: extração automática em Shopee/Amazon/Magalu, avatar, tendências verificadas e publicação por API oficial. Nenhum dos botões publica ou executa workflows do n8n.</p>
 </main>
@@ -54,7 +53,7 @@ main{max-width:1000px;margin:auto;padding:32px 18px 60px}a{color:var(--accent)}.
 const form=document.getElementById('form'),statusEl=document.getElementById('status'),submit=document.getElementById('submit'),candidateBox=document.getElementById('candidateBox'),candidateSelect=document.getElementById('candidateSelect');
 form.addEventListener('submit',async e=>{
  e.preventDefault();submit.disabled=true;statusEl.textContent='Resolvendo link e analisando produto…';
- document.getElementById('product').style.display='none';document.getElementById('script').textContent='Aguardando resultado…';document.getElementById('copy').style.display='none';aiRenderBtn.disabled=true;scriptReady=false;document.getElementById('aiVideo').hidden=true;document.getElementById('aiDownload').hidden=true;currentAiJobId='';
+ document.getElementById('product').style.display='none';document.getElementById('script').textContent='Aguardando resultado…';document.getElementById('copy').style.display='none';
  try{
   const selectedItemId=candidateSelect.value||'';
   const r=await fetch('/api/ai/video-ia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:document.getElementById('url').value,selectedItemId,style:document.getElementById('style').value,duration:Number(document.getElementById('duration').value),voice:document.getElementById('voice').value,destination:document.getElementById('dest').value,notes:document.getElementById('notes').value})});
@@ -68,25 +67,14 @@ form.addEventListener('submit',async e=>{
   const p=data.product;document.getElementById('image').src=p.imageUrl;document.getElementById('title').textContent=p.title;
   document.getElementById('facts').textContent='Preço informado pela fonte: '+(p.price==null?'não disponível':new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(p.price))+'\nFonte dos dados: '+(p.dataSource==='official_api'?'API oficial':'cartão do perfil de afiliado; preço e especificações não confirmados')+'\nO link abaixo preserva o rastreamento de afiliado.';
   document.getElementById('source').href=p.productUrl;document.getElementById('source').textContent='Abrir link de afiliado do produto';document.getElementById('product').style.display='block';
-  document.getElementById('script').textContent=data.script;document.getElementById('copy').style.display='inline-block';scriptReady=true;aiRenderBtn.disabled=!(runwayReady&&scriptReady);statusEl.textContent='Roteiro gerado para revisão. '+(data.notice||'')+' Nenhuma publicação foi feita.';
-  if(!runwayReady)renderStatus.textContent='Roteiro pronto. '+runwayAction+' A prévia local continua disponível.';
+  document.getElementById('script').textContent=data.script;document.getElementById('copy').style.display='inline-block';statusEl.textContent='Roteiro gerado para revisão. '+(data.notice||'')+' Nenhuma publicação foi feita.';
+  renderStatus.textContent='Roteiro pronto. Prévia e exportação local disponíveis sem serviços pagos.';
  }catch(err){statusEl.textContent=err.message;document.getElementById('script').textContent='Roteiro não gerado.'}
  finally{submit.disabled=false}
 });
 document.getElementById('copy').addEventListener('click',async()=>{await navigator.clipboard.writeText(document.getElementById('script').textContent);statusEl.textContent='Roteiro copiado.'});
-const canvas=document.getElementById('videoCanvas'),ctx=canvas.getContext('2d'),previewBtn=document.getElementById('preview'),renderBtn=document.getElementById('render'),renderStatus=document.getElementById('renderStatus'),aiRenderBtn=document.getElementById('aiRender');
-let videoProductImage=null,animationFrame=0,recording=false,currentAiJobId='',runwayReady=false,runwayAction='',scriptReady=false;
-async function checkVideoReadiness(){
- const message=document.getElementById('videoSetup');
- try{
-  const response=await fetch('/api/readiness',{headers:{Accept:'application/json'}}),data=await response.json();
-  if(!response.ok)throw new Error(data.error||'Falha ao consultar a configuração.');
-  const status=(data.external||[]).find(item=>item.key==='runway');runwayReady=Boolean(status?.ready);runwayAction=status?.action||'Confira as conexões do projeto.';
-  message.textContent=runwayReady?'Conexão Runway configurada. A geração real pode consumir créditos.':(status?.detail||'Não foi possível confirmar a conexão Runway.')+' '+runwayAction;
- }catch(error){runwayReady=false;runwayAction='Atualize a página ou confira as conexões do projeto.';message.textContent='Não foi possível verificar o Runway. A geração com IA ficará desabilitada até confirmar a conexão.'}
- aiRenderBtn.disabled=!(runwayReady&&scriptReady);
-}
-checkVideoReadiness();
+const canvas=document.getElementById('videoCanvas'),ctx=canvas.getContext('2d'),previewBtn=document.getElementById('preview'),renderBtn=document.getElementById('render'),renderStatus=document.getElementById('renderStatus');
+let videoProductImage=null,animationFrame=0,recording=false;
 function drawFrame(t){
  const W=canvas.width,H=canvas.height,sec=t/1000;ctx.fillStyle='#101a2a';ctx.fillRect(0,0,W,H);
  const grad=ctx.createLinearGradient(0,0,W,H);grad.addColorStop(0,'#142b43');grad.addColorStop(1,'#0b1320');ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
@@ -117,40 +105,5 @@ renderBtn.addEventListener('click',()=>{
  }catch(err){recording=false;renderBtn.disabled=false;previewBtn.disabled=false;renderStatus.textContent='Não foi possível exportar neste navegador: '+err.message}
 });
 document.getElementById('image').addEventListener('load',productImageReady);
-function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
-async function pollAiJob(jobId){
- aiRenderBtn.disabled=true;renderStatus.textContent='Vídeo em processamento no Runway. O Radar vai consultar o andamento automaticamente…';
- for(let attempt=0;attempt<80;attempt++){
-  await wait(15000);
-  let response,job;
-  try{
-   response=await fetch('/api/ai/media?id='+encodeURIComponent(jobId),{headers:{Accept:'application/json'}});job=await response.json();
-  }catch(error){
-   if(attempt===79){renderStatus.textContent='A renderização ainda está sendo processada. Use “Verificar vídeo em andamento” para consultar novamente.';aiRenderBtn.disabled=false;aiRenderBtn.textContent='Verificar vídeo em andamento';return}
-   renderStatus.textContent='Ainda não foi possível consultar o andamento; o Radar tentará novamente…';continue;
-  }
-  if(!response.ok){currentAiJobId='';aiRenderBtn.disabled=false;aiRenderBtn.textContent='Gerar vídeo com IA';renderStatus.textContent=job.error||'Não foi possível consultar a renderização.';return}
-  if(job.status==='COMPLETED'||job.status==='FALLBACK_COMPLETED'){
-   if(!job.url){currentAiJobId='';aiRenderBtn.disabled=false;aiRenderBtn.textContent='Gerar vídeo com IA';renderStatus.textContent='A renderização terminou sem arquivo de vídeo disponível.';return}
-   const video=document.getElementById('aiVideo'),download=document.getElementById('aiDownload');video.src=job.url;video.hidden=false;video.load();download.href=job.url;download.download='radar-video-ia-'+jobId+'.mp4';download.hidden=false;currentAiJobId='';aiRenderBtn.disabled=false;aiRenderBtn.textContent='Gerar vídeo com IA';renderStatus.textContent='Vídeo pronto. Revise se produto, embalagem e texto visual correspondem ao roteiro antes de publicar.';return;
-  }
-  if(job.status==='FAILED'){currentAiJobId='';aiRenderBtn.disabled=false;aiRenderBtn.textContent='Gerar vídeo com IA';renderStatus.textContent=job.lastError||'O provedor não concluiu o vídeo.';return}
-  renderStatus.textContent='Runway: '+(job.status||'PROCESSING')+'. Verificação '+(attempt+1)+' de 80.';
- }
-}
-aiRenderBtn.addEventListener('click',async()=>{
- if(aiRenderBtn.disabled)return;
- if(currentAiJobId){await pollAiJob(currentAiJobId);return}
- const image=document.getElementById('image').src,title=document.getElementById('title').textContent,scriptText=document.getElementById('script').textContent;
- if(!image||!title||!scriptText||scriptText==='Roteiro não gerado.'){renderStatus.textContent='Gere e revise um roteiro antes de solicitar o vídeo.';return}
- aiRenderBtn.disabled=true;renderStatus.textContent='Enviando o roteiro e a imagem do produto para o Runway…';
- const style=document.getElementById('style').value,excerpt=scriptText.replace(/\s+/g,' ').slice(0,700),prompt=('Create a 10-second vertical 9:16 product showcase using the supplied product image as the first frame. Preserve product identity, packaging, labels, logos and colors; animate camera and background only. Do not invent product claims, prices, discounts or text. Visual style: '+style+'. Script excerpt: '+excerpt).slice(0,1380);
- try{
-  const response=await fetch('/api/ai/media',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({kind:'VIDEO',title,prompt,imageUrl:image,ratio:'9:16',duration:10,style})}),data=await response.json();
-  if(!response.ok)throw new Error(data.error||'Não foi possível iniciar o vídeo.');
-  if(!data.jobId)throw new Error('O Radar não recebeu o identificador da renderização.');
-  currentAiJobId=data.jobId;await pollAiJob(currentAiJobId);
- }catch(error){aiRenderBtn.disabled=false;aiRenderBtn.textContent='Gerar vídeo com IA';renderStatus.textContent=error.message}
-});
 </script></body></html>`);
 }
