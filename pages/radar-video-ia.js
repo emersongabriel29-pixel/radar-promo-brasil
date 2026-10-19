@@ -31,6 +31,8 @@ main{max-width:1000px;margin:auto;padding:32px 18px 60px}a{color:var(--accent)}.
 <label for="voice">Narração</label><select id="voice"><option value="voz feminina PT-BR">Voz feminina (PT-BR)</option><option value="voz masculina PT-BR">Voz masculina (PT-BR)</option><option value="sem narração, somente textos na tela">Sem narração</option></select>
 <label for="dest">Destino pretendido</label><select id="dest"><option>Shopee Vídeo</option><option>Mercado Livre Vídeos</option><option>TikTok</option><option>Kwai</option><option>Todos (preparar versões separadas)</option></select>
 <label for="notes">Orientações extras (opcional)</label><textarea id="notes" rows="3" maxlength="500" placeholder="Ex.: destacar apenas características confirmadas"></textarea>
+<label for="scriptProvider">Como gerar o roteiro</label><select id="scriptProvider"><option value="local" selected>Modelo local gratuito (padrão)</option><option value="openai">OpenAI (pode consumir créditos configurados)</option><option value="gemini">Gemini (pode consumir créditos configurados)</option></select>
+<p class="small">OpenAI e Gemini permanecem disponíveis. Só são chamados quando você os seleciona; não há troca automática de provedor.</p>
 <button id="submit" type="submit">Analisar link e gerar roteiro</button>
 <div id="status" class="status" role="status" aria-live="polite"></div>
 </form>
@@ -41,7 +43,7 @@ main{max-width:1000px;margin:auto;padding:32px 18px 60px}a{color:var(--accent)}.
 <h2 style="margin-top:28px">3. Roteiro para revisão</h2><div id="script" class="script">O roteiro aparecerá aqui após a análise. Nada será publicado automaticamente.</div>
 <button id="copy" type="button" style="display:none">Copiar roteiro</button>
 <h2 style="margin-top:28px">4. Composição visual</h2><p>Prévia animada usando a imagem original como camada. A composição não redesenha o produto.</p>
-<p class="small" role="status" aria-live="polite">Modo sem serviços pagos: roteiro, prévia e exportação local funcionam no próprio navegador.</p>
+<p class="small" role="status" aria-live="polite">O modelo local é o padrão sem chamadas externas. OpenAI e Gemini são opcionais e só rodam quando selecionados.</p>
 <canvas id="videoCanvas" width="720" height="1280" style="width:100%;max-width:360px;border-radius:12px;background:#101a2a;display:block;margin:12px auto"></canvas>
 <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="preview" type="button" disabled>Pré-visualizar</button><button id="render" type="button" disabled>Exportar prévia local</button><button type="button" disabled title="Este projeto não usa serviços pagos">Renderização externa desativada</button></div>
 <div id="renderStatus" class="small" aria-live="polite"></div>
@@ -56,7 +58,7 @@ form.addEventListener('submit',async e=>{
  document.getElementById('product').style.display='none';document.getElementById('script').textContent='Aguardando resultado…';document.getElementById('copy').style.display='none';
  try{
   const selectedItemId=candidateSelect.value||'';
-  const r=await fetch('/api/ai/video-ia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:document.getElementById('url').value,selectedItemId,style:document.getElementById('style').value,duration:Number(document.getElementById('duration').value),voice:document.getElementById('voice').value,destination:document.getElementById('dest').value,notes:document.getElementById('notes').value})});
+  const r=await fetch('/api/ai/video-ia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:document.getElementById('url').value,selectedItemId,style:document.getElementById('style').value,duration:Number(document.getElementById('duration').value),voice:document.getElementById('voice').value,destination:document.getElementById('dest').value,notes:document.getElementById('notes').value,scriptProvider:document.getElementById('scriptProvider').value})});
   const data=await r.json();if(!r.ok)throw new Error(data.error||'Não foi possível analisar o link.');
   if(data.selectionRequired){
    candidateSelect.innerHTML='<option value="">Selecione um produto…</option>';
