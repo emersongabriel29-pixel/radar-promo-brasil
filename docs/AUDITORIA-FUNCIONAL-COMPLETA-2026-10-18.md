@@ -87,3 +87,37 @@ Hatchable v319 está live e possui os mesmos nomes de arquivos, mas os hashes de
 ## 6. Definição de “100%” usada nesta auditoria
 
 “100%” significa que cada capacidade anunciada tem: implementação identificada; pré-requisitos e limitações explícitos; verificação por teste apropriado; autenticação/isolamento verificados; evidência de integração externa quando aplicável; nenhuma ação reportada como sucesso sem comprovante. Capacidades que dependem de aprovação de terceiros ou credenciais do titular ficam em estado bloqueado até a prova real; não serão marcadas 100% só porque existe um formulário ou endpoint.
+
+## 7. Correções e verificação após o baseline — 19/10/2026
+
+### Corrigido e publicado
+
+- **Telegram com imagem:** os despachantes `/api/jobs/telegram` e `/api/n8n/telegram-tick` montavam URLs de imagem privadas para a Bot API. Ambos agora solicitam a URL pública temporária da publicação aprovada. A rota de mídia continua verificando o estado da publicação; não libera imagens privadas em geral.
+- **Inventário de testes Lomadee:** substituídos testes antigos que exigiam endpoints/cabeçalhos diferentes do conector implementado. A nova cobertura verifica o host e `x-api-key`, limita recursos/ações suportados e exige projeção allowlist sem dados pessoais em pedidos.
+- **Contrato de despacho Telegram:** adicionada cobertura para a URL pública nos dois despachantes e para manter mídia privada como padrão fora de uma publicação autorizada.
+- **Implantação Hatchable v320:** publicada em 19/10/2026 às 03:03 UTC após dry-run sem erros. Manifesto v320 confirmado como live. Não foram alterados dados de ofertas, credenciais ou destinatários e nenhum envio manual de teste foi disparado.
+
+### Verificações executadas
+
+- `node --test`: **119/119 aprovados**.
+- Playwright E2E: **3/3 aprovados**, incluindo páginas/fluxos acessíveis, responsividade em 375/768/880/1024/1440 px, controles de WhatsApp e oferta com upload.
+- `node scripts/check-source.mjs`: **123 arquivos JavaScript verificados**.
+- `git diff --check`: sem erros de whitespace.
+- Dry-run Hatchable: **0 erros**, 3 avisos preexistentes no streaming de `/api/jobs/api-health.js` (SSE é bufferizado pelo runtime); esses avisos não fazem parte do fluxo Telegram.
+- Depois da v320: `/api/readiness` e `/api/admin/telegram-diagnostics` responderam HTTP 200 no contexto administrativo; os 5 cron jobs (`telegram`, `hourly`, `autopilot`, `social`, `api-health`) estavam ativos e com zero erros nos últimos 7 dias.
+- Diagnóstico agregado do Telegram: uma conexão ativa, um destino, 29 entregas `PUBLISHED`, uma entrega `WAITING_CONFIRMATION` e 144 eventos n8n processados nas últimas 24h. O item incerto não foi reenviado.
+
+### Estado operacional ainda pendente
+
+O produto está **funcionando parcialmente**, não em 100% operacional. A readiness administrativa continua `SETUP_REQUIRED` (88% interna; 63% operacional). Os bloqueios que impedem a publicação automática de novas ofertas no Telegram são:
+
+1. **0 ofertas com preço oficial validado nas últimas 24h**;
+2. **0 regras de afiliado ativas**, sem marketplace/tag operacional para transformar a oferta em publicação elegível;
+3. a leitura de produtos da **Lomadee retorna 504 após cerca de 8 segundos**; não tratamos timeout como autenticação válida nem como falha local resolvida;
+4. faltam configurações externas adicionais para recursos opcionais: Runway API, Amazon Creators e números WhatsApp validados. O estado destes conectores não deve desativar Gemini ou OpenAI; são integrações independentes.
+
+O Telegram está configurado e tem prova histórica de envio; os cron jobs estão ativos. Porém, a execução observada do autopilot avaliou 49 ofertas e enfileirou zero. Portanto, esta implantação corrige o caminho de imagem mas não transforma ofertas antigas/sem preço atual ou sem afiliado válido em mensagens. Isso preserva a checagem de preço e a rastreabilidade do link.
+
+### Limites da conclusão
+
+Os testes locais e as verificações administrativas comprovam contratos e estado da conta naquele instante; não provam aprovação de APIs de terceiros nem entregas futuras. Não foram disparadas ofertas artificiais para o canal real. A publicação externa automática só pode ser declarada operacional depois que existir uma oferta elegível com preço recente, regra de afiliado ativa e recibo oficial de mensagem. Também permanecem para rodadas específicas: auditoria de permissões/isolamento em todas as 82 funções, validação de cada marketplace e Meta/TikTok/Kwai com contas autorizadas, e confirmação do registro `WAITING_CONFIRMATION` antes de qualquer reenvio.
