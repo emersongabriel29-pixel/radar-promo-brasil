@@ -99,6 +99,7 @@ Hatchable v319 está live e possui os mesmos nomes de arquivos, mas os hashes de
 - **Configuração de IA:** o detector de credencial ausente agora considera o código e a mensagem retornados pelo gateway, para que uma resposta de setup 412 não seja mascarada como falha genérica 502. OpenAI, Gemini e modo local permanecem disponíveis; nenhum foi removido.
 - **Implantação Hatchable v321:** publicada em 19/10/2026. O gate do endpoint de vídeo foi verificado sem gerar conteúdo pago: chamada pública recebeu 401 e membro com entrada inválida recebeu 400 antes de qualquer chamada de provedor.
 - **Monitor n8n/MCP preservado no GitHub:** encontrado em produção, mas ausente no branch. O arquivo completo foi copiado de Hatchable para o branch e o cron `30 * * * *` foi restaurado no `hatchable.toml`; a rotina é somente de leitura (`GET /workflows?limit=1`, handshake e `tools/list`) e não executa workflow/ferramenta remota. A resposta dizia `hourly` apesar do cron de 30 minutos; corrigida para `every 30 minutes` e publicada na Hatchable v322.
+- **Lomadee, Hatchable v323/v324:** a documentação oficial confirma `https://api.lomadee.com.br`, autenticação `x-api-key` e limite do provedor de até 60s ([API reference](https://docs.lomadee.com.br/api-reference/introduction)). O host sem chave responde 401 rapidamente; chamadas autenticadas de leitura de marcas e de produtos devolveram HTTP 504 do provedor após aproximadamente 30s, mesmo depois de ampliar os prazos locais para 55/57s. A ação de validação existente registrou o resultado como `ERROR`/`NOT_CONNECTED`; não foram importados produtos, gerados links nem publicadas ofertas.
 - **Catálogo de rotas:** inventário de todos os arquivos API, níveis de acesso e métodos permitidos está em `docs/RADAR-API-ROUTE-CATALOG-2026-10-19.md`.
 
 ### Verificações executadas
@@ -111,7 +112,7 @@ Hatchable v319 está live e possui os mesmos nomes de arquivos, mas os hashes de
 - Depois da v322: `/api/readiness` e `/api/admin/telegram-diagnostics` responderam HTTP 200 no contexto administrativo; os 5 cron jobs (`telegram`, `hourly`, `autopilot`, `social`, `api-health`) estavam ativos e com zero erros nos últimos 7 dias. `/api/jobs/api-health` como anônimo recebeu 404 pelo gate `scheduler`.
 - Catálogo branch ↔ produção: **76 rotas API** e 6 endpoints de página = 82 funções Hatchable ativas. Todas as 76 rotas do branch declaram acesso e allowlist de métodos: 12 `public`, 55 `member`, 9 `scheduler`; teste automatizado verifica esse contrato. Três gates tiveram smoke real (`/api/data` 401, Telegram scheduler 404, vídeo IA 401). A matriz ampla foi limitada pelo 429 do console Hatchable; a verificação individual dos demais gates segue pendente.
 - Diagnóstico agregado do Telegram: uma conexão ativa, um destino, 29 entregas `PUBLISHED`, uma entrega `WAITING_CONFIRMATION` e 144 eventos n8n processados nas últimas 24h. O item incerto não foi reenviado.
-- Erros das 82 funções nas últimas 24h: dois timeouts Lomadee (504, ~8s), dois 500 sociais `ReferenceError: api is not defined` registrados antes da v319, e um 502 de vídeo IA causado pela chave OpenAI ausente. Na v321 o classificador foi corrigido; uma nova chamada inválida ao endpoint retornou 400 sem invocar IA. O GET social atual responde 200; seus rascunhos continuam bloqueados por autorização Meta ausente.
+- Erros das 82 funções nas últimas 24h: 6 falhas Lomadee (5 respostas 504 e 1 resposta 502 do provedor, entre 8 e 30s), dois 500 sociais `ReferenceError: api is not defined` registrados antes da v319, e um 502 de vídeo IA causado pela chave OpenAI ausente. Na v321 o classificador foi corrigido; uma nova chamada inválida ao endpoint retornou 400 sem invocar IA. O GET social atual responde 200; seus rascunhos continuam bloqueados por autorização Meta ausente.
 - Smoke de autorização em produção: `/api/data` como anônimo recebeu 401; `/api/jobs/telegram` como anônimo recebeu 404 (scheduler-only); `/api/ai/video-ia` como anônimo recebeu 401. A matriz automatizada maior foi limitada pelo controle de chamadas do Hatchable (429 `Too Many Attempts`) e não foi considerada uma validação bem-sucedida; os outros gates ainda precisam de execução por lotes menores.
 
 ### Estado operacional ainda pendente
@@ -120,7 +121,7 @@ O produto está **funcionando parcialmente**, não em 100% operacional. A readin
 
 1. **0 ofertas com preço oficial validado nas últimas 24h**;
 2. **0 regras de afiliado ativas**, sem marketplace/tag operacional para transformar a oferta em publicação elegível;
-3. a leitura de produtos da **Lomadee retorna 504 após cerca de 8 segundos**; não tratamos timeout como autenticação válida nem como falha local resolvida;
+3. as consultas autenticadas da **Lomadee retornam HTTP 504 do provedor após cerca de 30 segundos**; a credencial passou a `ERROR`/`NOT_CONNECTED`, e a origem externa ainda precisa normalizar o serviço;
 4. a publicação social segue bloqueada até a autorização oficial Meta; dois erros de GET por referência indefinida foram registrados antes da v319 e o GET voltou a responder 200;
 5. faltam configurações externas adicionais para recursos opcionais: chave OpenAI na configuração do projeto, Runway API, Amazon Creators e números WhatsApp validados. Gemini/OpenAI continuam selecionáveis; a correção de IA deixa a falta de chave visível como setup pendente.
 
@@ -134,13 +135,14 @@ Os testes locais e as verificações administrativas comprovam contratos e estad
 
 ## 8. Conferência da alteração publicada com o branch
 
-A v322 está live. Os quatro arquivos listados foram comparados com o branch `5102e52`; os três componentes Telegram/IA têm divergências de arquivo completas, mas os trechos corrigidos coincidem semanticamente. O arquivo `api-health.js` é equivalente depois de normalizar CRLF.
+A v324 está live. Os arquivos listados foram comparados com o branch atual; os componentes Telegram/IA/Lomadee têm divergências de arquivo completas, mas os trechos corrigidos coincidem semanticamente. O arquivo `api-health.js` é equivalente depois de normalizar CRLF.
 
-| Arquivo | GitHub/worktree (`5102e52`) | Hatchable v322 | Estado do trecho corrigido |
+| Arquivo | GitHub/worktree (commit final desta rodada) | Hatchable v324 | Estado do trecho corrigido |
 |---|---|---|---|
 | `api/jobs/telegram.js` | `b0937d0440e2f3c8c2f556de317ad9c210253d8532f8de0eaf4152281d3953fc` | `e61419ffea7ddfbc971745c64acf18cd7d2e80c3e2988260c49bb99de4495352` | Ambos pedem URL pública temporária para mídia aprovada |
 | `api/n8n/telegram-tick.js` | `69148d060d5ce5c72e456870c6e2401dba353e7c03df48b78381f4984c81694b` | `40ef25107e0fc5cb4476f0ebe373ccfe68028a116a85dac9bd9cc8ae92ad944c` | Ambos pedem URL pública temporária para mídia aprovada |
 | `lib/media.js` | `7007c45ae69a87fc52dcc4c5821bd54eceefeebe0e42366e623cd9f07bfb3170` | `bb467771de0f8d385c818b6127f1bf51956edcff02c4eb90798e4c4e72b8c07a` | Ambos detectam falta de chave na mensagem/código e respondem estado de setup |
+| `api/integrations/lomadee.js` | `01bd591818a58792af56da269f04a022350ba27deefee5ca396ae1192883c64f` | `22b759c3b801be60391c79b919346c474e41ef28d7f0953394fba01c07b6efee` | Ambos usam host, `x-api-key` e deadline 55/57s; o upstream ainda responde 504 |
 | `api/jobs/api-health.js` | `6084348e0bb4f3f0d45d9f42971e80016ef5f55c8d3d4c463be5ff5eb366b54f` | `930cd755c98c6e8b901fd23a2fa446f98c7d022175a4be31246bb05010919070` | Conteúdo equivalente após normalizar CRLF; presente nos dois lados com cron `30 * * * *` |
 
-**Observação:** o hash GitHub do arquivo `lib/media.js` deve ser relido antes da próxima atualização; mudanças futuras no branch o invalidam. A divergência integral dos arquivos Telegram/IA já existia no baseline; esta rodada conciliou somente os trechos necessários e não apagou divergências preexistentes. O monitor `api-health.js` foi reconciliado integralmente. O projeto segue sem sincronização global Hatchable ↔ GitHub.
+**Observação:** os hashes devem ser relidos antes de futuras alterações. Os arquivos completos Telegram/IA/Lomadee ainda divergem do Hatchable; os trechos corrigidos estão em ambos, sem sincronização integral. O monitor `api-health.js` foi reconciliado integralmente. O projeto segue sem sincronização global Hatchable ↔ GitHub.

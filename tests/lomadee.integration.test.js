@@ -7,6 +7,8 @@ const source = await readFile('api/integrations/lomadee.js', 'utf8');
 test('Lomadee uses the documented API host and x-api-key authentication', () => {
   assert.match(source, /const BASE_URL = 'https:\/\/api\.lomadee\.com\.br'/);
   assert.match(source, /'x-api-key': apiKey/);
+  assert.match(source, /const UPSTREAM_TIMEOUT_MS = 55000/);
+  assert.match(source, /const REQUEST_DEADLINE_MS = 57000/);
   assert.doesNotMatch(source, /x-auth-key|dashboard-api\.lomadee|commissions\.lomadee|orders\.lomadee/);
 });
 
