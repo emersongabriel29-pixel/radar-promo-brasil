@@ -48,7 +48,7 @@
 | 29 | Custos | Parcial | Estúdio mostra Gemini, OpenAI e Claude; n8n Gateway informa indisponível. Não foram feitas chamadas que gerem cobrança. Falta registrar limite e confirmação de custo. |
 | 30 | Privacidade e conformidade | Parcial | Avisos e controles de consentimento existem; falta exercitar exclusão/exportação/retention em conta isolada e revisar todas as plataformas. |
 | 31 | Deploy e configuração | Divergente | v324 está live; funções e cron ativos. Arquivos de UI entre Hatchable e GitHub divergem; não fazer deploy até reconciliar. |
-| 32 | Recuperação de desastre | Pendente | Há rotas de backup/restore, mas não foi feito restore verificado em base isolada. |
+| 32 | Recuperação de desastre | Parcial | Teste automatizado isolado restaurou 36 tabelas e rejeitou backup adulterado/de outra conta; restore de backup de produção em base Hatchable isolada ainda não foi feito. |
 
 ## Evidência visual e teste de navegação no Hatchable
 
