@@ -28,6 +28,8 @@ export default async function(req,res){
   const marketplaces=q[4].rows[0].n,telegram=q[5].rows[0].n,whatsapp=q[6].rows[0].n,rules=q[7].rows[0].n;
   let telegramWebhookSecret='';
   try { telegramWebhookSecret=String(await config.get('TELEGRAM_WEBHOOK_SECRET')||''); } catch {}
+  let runwayConfigured=false;
+  try { runwayConfigured=Boolean(await config.get('RUNWAY_API_KEY')); } catch {}
   const telegramIngestionReady=telegram>0&&/^[A-Za-z0-9_-]{32,256}$/.test(telegramWebhookSecret);
   const amazonCredential=q[12].rows[0]||null;
   const amazonCreatorsReady=amazonCredential?.status==='VALIDATED';
@@ -50,6 +52,7 @@ export default async function(req,res){
   ];
   const external=[
     item('ai','IA para conteúdo',aiReady,aiReady?'Provedor testado.':'Faça um teste no Estúdio de IA.','Abra o Estúdio e gere um conteúdo.'),
+    item('runway','Geração de vídeo Runway',runwayConfigured,runwayConfigured?'Chave Runway configurada.':'Chave RUNWAY_API_KEY ausente.','Cadastre a chave da API Runway em Configurações do projeto → APIs.'),
     item('marketplaces','Regras de afiliado',marketplaces>0,marketplaces+' regra(s) de afiliado ativa(s); a conexão oficial com o marketplace é verificada separadamente.','Cadastre uma regra ativa de marketplace com tag de afiliado.'),
     item('telegram','Telegram (envio)',telegram>0,telegram+' bot(s) ativo(s) para os fluxos de envio.','Configure o token e conecte um bot.'),
     item('telegramIngestion','Importação recebida do Telegram',telegramIngestionReady,telegramIngestionReady?'Bot ativo e segredo do webhook configurado.':(telegram>0?'Bot ativo, mas o segredo TELEGRAM_WEBHOOK_SECRET está ausente ou inválido; o endpoint de entrada permanece bloqueado.':'Conecte um bot e configure TELEGRAM_WEBHOOK_SECRET.'),'Defina TELEGRAM_WEBHOOK_SECRET nos segredos do projeto com 32–256 caracteres (letras, números, hífen ou sublinhado) e configure o webhook.'),

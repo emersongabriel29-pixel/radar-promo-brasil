@@ -12,8 +12,8 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/radar.css?v=20261016-v6" />
-    <link rel="stylesheet" href="/radar-theme-v5.css?v=20261016-v6" />
+    <link rel="stylesheet" href="/radar.css?v=20261018-v7" />
+    <link rel="stylesheet" href="/radar-theme-v5.css?v=20261019-offers-workspace-v1" />
   </head>
   <body><a class="skip-link" href="#content">Ir para o conteúdo</a>
     <div class="app">
@@ -26,13 +26,13 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
       <main class="main" id="main">
         <header class="top">
           <div class="csp-flex-center-10"><button class="btn secondary menu" aria-controls="side" aria-expanded="false" data-action="menu(true)">Menu</button><div><div class="eyebrow">Radar Promo Brasil</div><h1 id="title">Central de operação</h1></div></div>
-          <div class="topactions"><button class="btn secondary" data-action="show('integrations')">Conexões</button><button class="btn" data-action="openOffer()">+ Nova oferta</button></div>
+          <div class="topactions"><button class="btn secondary" data-action="show('integrations')">Conexões</button><button id="global-create-offer" class="btn" data-action="openOffer()">+ Nova oferta</button></div>
         </header>
         <div class="content" id="content" tabindex="-1"><div class="empty">Carregando sua operação...</div></div>
       </main>
     </div>
     <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalHint" aria-hidden="true"><div class="dialog"><div class="sectionhead csp-margin-top-0"><div><h2 id="modalTitle"></h2><p id="modalHint"></p></div><button class="btn secondary" data-action="closeModal()">Fechar</button></div><form class="form" id="form"></form></div></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="/radar.js?v=20261016-v7" defer></script>
+    <script src="/radar.js?v=20261019-offers-workspace-v1" defer></script>
   </body>
 </html>`);}

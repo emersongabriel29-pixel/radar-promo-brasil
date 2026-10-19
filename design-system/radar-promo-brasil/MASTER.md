@@ -23,13 +23,9 @@ A pesquisa `analytics dashboard dense` sustenta o estilo Data-Dense Dashboard. A
 
 | Área | Recursos |
 | --- | --- |
-| Central | métricas e próximos passos |
-| Radar | monitoramento, clone e criação rápida |
-| Ofertas | ofertas/cupons, Estúdio de IA, tráfego, Agente Radar Social |
-| Publicações | filas e planejamento |
-| Canais | grupos, canais e leads |
-| Relatórios | cliques, vendas e comissões |
-| Configurações | segurança, integrações, conta e vitrine |
+| Operação | Central (métricas e próximos passos), Radar (monitoramento, clone e criação rápida), Ofertas (workspace separada em Ofertas, IA, Redes e campanhas), Publicações (filas e planejamento) |
+| Análise | Canais (grupos, canais e leads), Relatórios (cliques, vendas e comissões) |
+| Gestão | Configurações (segurança, integrações, conta e vitrine) |
 
 ## Interação
 
@@ -40,6 +36,9 @@ A pesquisa `analytics dashboard dense` sustenta o estilo Data-Dense Dashboard. A
 - Exibir falhas parciais de carregamento e integração pendente. Não apresentar ausência de dados como sucesso.
 - Respeitar `prefers-reduced-motion` e áreas seguras de dispositivos móveis.
 - Não usar a abertura do compartilhamento do navegador como prova de entrega.
+- A identidade usa azul como ação/foco; verde fica reservado a sucesso/estado positivo. Navegação principal fica agrupada visualmente em Operação, Análise e Gestão sem remover ou renomear ids de tela.
+- A área Ofertas usa uma navegação interna por categoria no desktop e seleção responsiva em telas menores. Ofertas agrupa catálogo e Curador; IA agrupa Estúdio e acesso ao Radar Vídeo IA; Redes e campanhas agrupa campanhas/conexões e Agente Radar Social. Publicações continua como área separada.
+- A composição da workspace, estados, tokens auxiliares e critérios de aceite estão em `design-system/radar-promo-brasil/pages/ofertas-workspace.md`.
 
 ## Uso local
 
