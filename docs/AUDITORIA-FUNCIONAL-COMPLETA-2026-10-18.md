@@ -98,15 +98,18 @@ Hatchable v319 está live e possui os mesmos nomes de arquivos, mas os hashes de
 - **Implantação Hatchable v320:** publicada em 19/10/2026 às 03:03 UTC após dry-run sem erros. Manifesto v320 confirmado como live. Não foram alterados dados de ofertas, credenciais ou destinatários e nenhum envio manual de teste foi disparado.
 - **Configuração de IA:** o detector de credencial ausente agora considera o código e a mensagem retornados pelo gateway, para que uma resposta de setup 412 não seja mascarada como falha genérica 502. OpenAI, Gemini e modo local permanecem disponíveis; nenhum foi removido.
 - **Implantação Hatchable v321:** publicada em 19/10/2026. O gate do endpoint de vídeo foi verificado sem gerar conteúdo pago: chamada pública recebeu 401 e membro com entrada inválida recebeu 400 antes de qualquer chamada de provedor.
+- **Monitor n8n/MCP preservado no GitHub:** encontrado em produção, mas ausente no branch. O arquivo completo foi copiado de Hatchable para o branch e o cron `30 * * * *` foi restaurado no `hatchable.toml`; a rotina é somente de leitura (`GET /workflows?limit=1`, handshake e `tools/list`) e não executa workflow/ferramenta remota. A resposta dizia `hourly` apesar do cron de 30 minutos; corrigida para `every 30 minutes` e publicada na Hatchable v322.
+- **Catálogo de rotas:** inventário de todos os arquivos API, níveis de acesso e métodos permitidos está em `docs/RADAR-API-ROUTE-CATALOG-2026-10-19.md`.
 
 ### Verificações executadas
 
-- `node --test`: **119/119 aprovados**.
+- `node --test`: **122/122 aprovados** após incluir testes do monitor e das declarações de acesso/método.
 - Playwright E2E: **3/3 aprovados**, incluindo páginas/fluxos acessíveis, responsividade em 375/768/880/1024/1440 px, controles de WhatsApp e oferta com upload.
-- `node scripts/check-source.mjs`: **123 arquivos JavaScript verificados**.
+- `node scripts/check-source.mjs`: **124 arquivos JavaScript verificados**.
 - `git diff --check`: sem erros de whitespace.
 - Dry-run Hatchable: **0 erros**, 3 avisos preexistentes no streaming de `/api/jobs/api-health.js` (SSE é bufferizado pelo runtime); esses avisos não fazem parte do fluxo Telegram.
-- Depois da v320: `/api/readiness` e `/api/admin/telegram-diagnostics` responderam HTTP 200 no contexto administrativo; os 5 cron jobs (`telegram`, `hourly`, `autopilot`, `social`, `api-health`) estavam ativos e com zero erros nos últimos 7 dias.
+- Depois da v322: `/api/readiness` e `/api/admin/telegram-diagnostics` responderam HTTP 200 no contexto administrativo; os 5 cron jobs (`telegram`, `hourly`, `autopilot`, `social`, `api-health`) estavam ativos e com zero erros nos últimos 7 dias. `/api/jobs/api-health` como anônimo recebeu 404 pelo gate `scheduler`.
+- Catálogo branch ↔ produção: **76 rotas API** e 6 endpoints de página = 82 funções Hatchable ativas. Todas as 76 rotas do branch declaram acesso e allowlist de métodos: 12 `public`, 55 `member`, 9 `scheduler`; teste automatizado verifica esse contrato. Três gates tiveram smoke real (`/api/data` 401, Telegram scheduler 404, vídeo IA 401). A matriz ampla foi limitada pelo 429 do console Hatchable; a verificação individual dos demais gates segue pendente.
 - Diagnóstico agregado do Telegram: uma conexão ativa, um destino, 29 entregas `PUBLISHED`, uma entrega `WAITING_CONFIRMATION` e 144 eventos n8n processados nas últimas 24h. O item incerto não foi reenviado.
 - Erros das 82 funções nas últimas 24h: dois timeouts Lomadee (504, ~8s), dois 500 sociais `ReferenceError: api is not defined` registrados antes da v319, e um 502 de vídeo IA causado pela chave OpenAI ausente. Na v321 o classificador foi corrigido; uma nova chamada inválida ao endpoint retornou 400 sem invocar IA. O GET social atual responde 200; seus rascunhos continuam bloqueados por autorização Meta ausente.
 - Smoke de autorização em produção: `/api/data` como anônimo recebeu 401; `/api/jobs/telegram` como anônimo recebeu 404 (scheduler-only); `/api/ai/video-ia` como anônimo recebeu 401. A matriz automatizada maior foi limitada pelo controle de chamadas do Hatchable (429 `Too Many Attempts`) e não foi considerada uma validação bem-sucedida; os outros gates ainda precisam de execução por lotes menores.
@@ -121,6 +124,8 @@ O produto está **funcionando parcialmente**, não em 100% operacional. A readin
 4. a publicação social segue bloqueada até a autorização oficial Meta; dois erros de GET por referência indefinida foram registrados antes da v319 e o GET voltou a responder 200;
 5. faltam configurações externas adicionais para recursos opcionais: chave OpenAI na configuração do projeto, Runway API, Amazon Creators e números WhatsApp validados. Gemini/OpenAI continuam selecionáveis; a correção de IA deixa a falta de chave visível como setup pendente.
 
+**Publicação social solicitada anteriormente:** o código atual cria rascunhos de imagem/legenda para Instagram e Facebook, mas as publicações da conta retornam `Aguardando autorização Meta`; portanto, elas não foram publicadas. O autopilot está `ACTIVE`, com geração automática ligada e aprovação desligada, mas sem autorização Meta os registros ficam `BLOCKED`. Postagem em grupos do Facebook, Direct em grupos do Instagram, TikTok e Kwai não têm fluxo de publicação implementado neste branch. Vídeo IA prepara roteiro, mas renderização/publicação depende de integração e permissões externas; Runway não está configurado.
+
 O Telegram está configurado e tem prova histórica de envio; os cron jobs estão ativos. Porém, a execução observada do autopilot avaliou 49 ofertas e enfileirou zero. Portanto, esta rodada corrige o caminho de imagem e torna explícito o erro de setup da IA, mas não transforma ofertas antigas/sem preço atual ou sem afiliado válido em mensagens. Isso preserva a checagem de preço e a rastreabilidade do link.
 
 ### Limites da conclusão
@@ -129,12 +134,13 @@ Os testes locais e as verificações administrativas comprovam contratos e estad
 
 ## 8. Conferência da alteração publicada com o branch
 
-A v321 está live e os três arquivos que receberam correção foram comparados por SHA-256 com o worktree após o commit `84e87d3`. Os arquivos completos ainda divergem entre Hatchable e GitHub; não fazer sincronização integral nem substituir nenhum deles em bloco. A lógica específica corrigida está presente nas duas versões, mas existem diferenças anteriores fora desta alteração.
+A v322 está live. Os três arquivos Telegram/IA que receberam correção foram comparados por SHA-256 com o worktree após o commit `84e87d3`. Os arquivos completos ainda divergem entre Hatchable e GitHub; não fazer sincronização integral nem substituir nenhum deles em bloco. A lógica específica corrigida está presente nas duas versões, mas existem diferenças anteriores fora desta alteração.
 
-| Arquivo | GitHub/worktree (`84e87d3`) | Hatchable v321 | Estado do trecho corrigido |
+| Arquivo | GitHub/worktree (`84e87d3`) | Hatchable v322 | Estado do trecho corrigido |
 |---|---|---|---|
 | `api/jobs/telegram.js` | `b0937d0440e2f3c8c2f556de317ad9c210253d8532f8de0eaf4152281d3953fc` | `e61419ffea7ddfbc971745c64acf18cd7d2e80c3e2988260c49bb99de4495352` | Ambos pedem URL pública temporária para mídia aprovada |
 | `api/n8n/telegram-tick.js` | `69148d060d5ce5c72e456870c6e2401dba353e7c03df48b78381f4984c81694b` | `40ef25107e0fc5cb4476f0ebe373ccfe68028a116a85dac9bd9cc8ae92ad944c` | Ambos pedem URL pública temporária para mídia aprovada |
 | `lib/media.js` | `7007c45ae69a87fc52dcc4c5821bd54eceefeebe0e42366e623cd9f07bfb3170` | `bb467771de0f8d385c818b6127f1bf51956edcff02c4eb90798e4c4e72b8c07a` | Ambos detectam falta de chave na mensagem/código e respondem estado de setup |
+| `api/jobs/api-health.js` | `6084348e0bb4f3f0d45d9f42971e80016ef5f55c8d3d4c463be5ff5eb366b54f` | `930cd755c98c6e8b901fd23a2fa446f98c7d022175a4be31246bb05010919070` | Conteúdo equivalente após normalizar CRLF; presente nos dois lados com cron `30 * * * *` |
 
-**Observação:** os hashes de GitHub nessa tabela devem ser relidos antes da próxima atualização, pois mudanças posteriores no branch os invalidam. A diferença integral já existia no baseline; esta rodada conciliou somente os trechos necessários e não apagou divergências preexistentes. O projeto segue sem sincronização global Hatchable ↔ GitHub.
+**Observação:** o hash GitHub do arquivo `lib/media.js` deve ser relido antes da próxima atualização; mudanças futuras no branch o invalidam. A divergência integral dos arquivos Telegram/IA já existia no baseline; esta rodada conciliou somente os trechos necessários e não apagou divergências preexistentes. O monitor `api-health.js` foi reconciliado integralmente. O projeto segue sem sincronização global Hatchable ↔ GitHub.
