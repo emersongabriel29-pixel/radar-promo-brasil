@@ -97,10 +97,11 @@
 
 ## Critérios da auditoria
 
-- Todas as 77 rotas desta branch declaram explicitamente um nível de acesso (`public`, `member` ou `scheduler`) e uma lista de métodos HTTP. A versão Hatchable v324 contém 76 rotas API; compare deployments antes de publicar.
+- Todas as 77 rotas desta branch declaram explicitamente um nível de acesso (`public`, `member` ou `scheduler`) e uma lista de métodos HTTP. A comparação com Hatchable v324 encontrou 76 rotas implantadas, três rotas da branch ausentes (`/api/ai/orchestrator`, `/api/media/offer/:id`, `/api/public/media/:id`) e duas rotas adicionais na produção (`/api/integrations/collshp-import`, `/api/integrations/health-summary`).
 - O nome do arquivo determina a rota: remova o prefixo do arquivo e a extensão `.js`; segmentos `[id]` são parâmetros dinâmicos, por exemplo `api/r/[id].js` → `/api/r/:id`.
 - `public` indica que a chamada chega ao handler sem sessão. Webhooks e callbacks ainda validam assinatura, segredo ou estado próprio; URL pública não significa autorização para executar qualquer ação.
 - `scheduler` é bloqueado para visitantes; teste real anônimo retorna 404 antes do handler.
-- O E2E e os testes unitários verificam contratos selecionados; a verificação online individual de todas as rotas protegidas segue pendente por rate limit do console Hatchable.
+- Em 2026-10-19, os 63 endpoints privados/agendados encontrados em produção retornaram o bloqueio anônimo esperado (401/404). Duas rotas protegidas somente da branch não puderam ser verificadas porque não estão implantadas. Esse teste verifica a borda de autorização, não os handlers autenticados; alguns testes foram reexecutados após limite temporário do MCP.
+- Rotas públicas com efeitos de leitura/escrita (por exemplo, clique rastreado, callback, webhook ou processamento de evento) não são chamadas automaticamente neste teste para evitar alterar dados ou acionar destinos externos.
 - Arquivos completos de algumas funções divergem entre branch e Hatchable. Compare os hashes por deployment antes de sincronizar ou publicar arquivos em lote; consulte `docs/AUDITORIA-FUNCIONAL-COMPLETA-2026-10-18.md`.
 
