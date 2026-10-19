@@ -83,6 +83,7 @@ var GROUPS = {
   offers: [
     ["offers", "Ofertas e cupons", "OF", "offers"],
     ["curator", "Curador de ofertas", "IA", "curatorView"],
+    ["ia-central", "IA Central", "IC", "aiCentralView"],
     ["studio", "Estúdio de IA", "AI", "studio"],
     ["growth", "Tráfego e redes sociais", "AD", "growth"],
     ["socialagent", "Agente Radar Social", "RS", "socialAgent"],
@@ -146,7 +147,7 @@ function off(id) {
 }
 var OFFER_CATEGORIES = [
   { id: "catalog", title: "Ofertas", description: "Catálogo e curadoria", views: ["offers", "curator"] },
-  { id: "ai", title: "IA", description: "Conteúdo, arte e vídeo", views: ["studio"] },
+  { id: "ai", title: "IA", description: "Coordenação, conteúdo, arte e vídeo", views: ["ia-central", "studio"] },
   { id: "social", title: "Redes e campanhas", description: "Canais, anúncios e posts", views: ["growth", "socialagent"] },
 ];
 function offerCategoryForView(view) {
@@ -164,7 +165,7 @@ function offersWorkspace() {
     items = GROUPS.offers || [],
     visibleItems = items.filter(function (item) { return category.views.indexOf(item[0]) !== -1; }),
     active = visibleItems.find(function (item) { return item[0] === selectedGroups.offers; }) || visibleItems[0];
-  return '<div class="offers-workspace"><aside class="offers-rail" aria-label="Organização de Ofertas"><div class="offers-rail-intro"><span class="offers-kicker">ESPAÇO DE TRABALHO</span><h2>Ofertas</h2><p>Escolha uma área para continuar.</p></div><nav class="offers-categories" aria-label="Categorias de Ofertas">' +
+  return '<div class="offers-workspace"><aside class="offers-rail" aria-label="Organização de Ofertas"><div class="offers-rail-intro"><span class="offers-kicker">ACESSO RÁPIDO</span><h2>Explore o Radar</h2><p>Ofertas, inteligência artificial, redes e campanhas em áreas separadas.</p></div><nav class="offers-categories" aria-label="Categorias de Ofertas">' +
     OFFER_CATEGORIES.map(function (item) {
       return '<button class="offers-category category-' + item.id + ' ' + (item.id === category.id ? "on" : "") + '" type="button" aria-pressed="' + (item.id === category.id) + '" data-action="switchOfferCategory(\'' + item.id + '\')"><span class="offers-category-mark" aria-hidden="true">' + (item.id === "catalog" ? "01" : item.id === "ai" ? "02" : "03") + '</span><span class="offers-category-copy"><b>' + item.title + '</b><small>' + item.description + '</small></span><span class="offers-category-arrow" aria-hidden="true">›</span></button>';
     }).join("") +
@@ -203,6 +204,14 @@ function groupPage(key) {
     window[active[3]]() +
     "</div>"
   );
+}
+function aiCentralView() {
+  return section("IA Central", "Uma visão consultiva para priorizar melhorias em todo o Radar. Ela reúne estados agregados e prepara um plano para revisão humana.") +
+    '<div class="grid two ai-central-layout"><div class="card"><h3>Defina o objetivo</h3><div class="field"><label for="motherObjective">Objetivo da análise</label><textarea id="motherObjective" class="input" rows="4" maxlength="500" placeholder="Ex.: reduzir ofertas sem preço verificado e melhorar a fila de publicação"></textarea></div>' +
+    '<div class="formgrid">' + select("Modelo de IA", "motherModel", '<option value="gemini">Google Gemini</option><option value="gpt-mini">OpenAI rápido</option><option value="gpt">OpenAI avançado</option><option value="haiku">Claude rápido</option><option value="sonnet">Claude avançado</option>') + '</div>' +
+    '<div class="callout">A consulta envia apenas contagens e estados agregados desta conta. O modelo escolhido pode consumir cota ou gerar custo. A IA Central prepara recomendações; não altera ofertas, configurações, filas ou publicações.</div><div class="actions"><button class="btn" type="button" data-action="generateMotherPlan()">Analisar panorama e preparar plano</button></div></div>' +
+    '<div class="card"><h3>Como a IA Central trabalha</h3><div class="steps ai-central-steps"><div class="step"><i>01</i><b>Consulta estados agregados</b></div><div class="step"><i>02</i><b>Organiza prioridades</b></div><div class="step"><i>03</i><b>Explica limitações</b></div><div class="step"><i>04</i><b>Entrega para revisão humana</b></div></div><p class="muted csp-margin-top-14px">Curador, Estúdio de IA, Radar Vídeo IA e Agente Radar Social continuam disponíveis como ferramentas especializadas.</p></div></div>' +
+    '<section class="sectionhead"><div><h2>Plano consultivo</h2><p id="motherPlanStatus" role="status" aria-live="polite">Nenhuma consulta executada.</p></div></section><div id="motherPlanResult" class="grid two" aria-live="polite"></div>';
 }
 function switchGroup(key, id) {
   var item = (GROUPS[key] || []).find(function (n) {
@@ -2322,6 +2331,18 @@ async function generateStudioText() {
   } catch (e) {
     box.textContent = e.message;
   }
+}
+async function generateMotherPlan() {
+  var button=document.querySelector('[data-action="generateMotherPlan()"]'),status=document.getElementById('motherPlanStatus'),result=document.getElementById('motherPlanResult');
+  if(!button||!status||!result)return;
+  button.disabled=true;status.textContent='Consultando o panorama e preparando recomendações…';result.innerHTML='';
+  try {
+    var response=await fetch('/api/ai/orchestrator',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({objective:document.getElementById('motherObjective')?.value||'',model:document.getElementById('motherModel')?.value||'gemini'})}),data=await response.json();
+    if(!response.ok)throw Error(data.error||'A IA Central não está disponível.');
+    status.textContent='Plano preparado com '+esc(data.model||'modelo selecionado')+'. Revise antes de executar qualquer ação.';
+    result.innerHTML='<div class="callout mother-plan-summary"><b>'+esc(data.summary)+'</b><p>'+esc(data.notice)+'</p></div>'+((data.recommendations||[]).map(function(item){return '<article class="card mother-plan-item"><span class="pill '+(item.priority==='HIGH'?'warn':'')+'">'+esc(item.priority)+'</span><span class="pill">'+esc(item.area)+'</span><h3>'+esc(item.title)+'</h3><p>'+esc(item.reason)+'</p><ol>'+((item.steps||[]).map(function(step){return '<li>'+esc(step)+'</li>';}).join(''))+'</ol><p class="muted">Revisão humana necessária · nenhuma ação executada</p></article>';}).join('')||'<div class="empty mother-plan-item">A IA não encontrou recomendações suficientes. Revise os estados das integrações e tente novamente.</div>');
+  } catch(error) {status.textContent=error.message||'A IA Central não conseguiu preparar o plano. Nenhum dado foi alterado.';}
+  finally {button.disabled=false;}
 }
 async function generateStudioImage() {
   var x = studioData(),

@@ -1,7 +1,7 @@
 # Catálogo de rotas API do Radar Promo Brasil
 
 **Data:** 19/10/2026  
-**Escopo:** branch auditado, 76 arquivos `api/*.js`. Hatchable v322 lista 82 funções ativas: estas 76 rotas API e seis páginas `__page`.  
+**Escopo:** branch atualizado nesta auditoria, 77 arquivos `api/*.js`. Hatchable v324 ainda lista 82 funções: 76 rotas API e seis páginas `__page`; a IA Central desta branch ainda não está implantada.
 **Uso:** referência de roteamento, autenticação e métodos; presença de código não prova conexão nem entrega externa.
 
 ## Arquivos de endpoint, acesso e métodos declarados
@@ -14,6 +14,7 @@
 | `/api/ai/image.js` | `member` | `POST` |
 | `/api/ai/media.js` | `member` | `GET`, `POST` |
 | `/api/ai/media/file/[id].js` | `member` | `GET` |
+| `/api/ai/orchestrator.js` | `member` | `POST` |
 | `/api/ai/promo.js` | `member` | `POST` |
 | `/api/ai/studio.js` | `member` | `POST` |
 | `/api/ai/video-ia.js` | `member` | `POST` |
@@ -96,7 +97,7 @@
 
 ## Critérios da auditoria
 
-- Todas as 76 rotas declaram explicitamente um nível de acesso (`public`, `member` ou `scheduler`) e uma lista de métodos HTTP.
+- Todas as 77 rotas desta branch declaram explicitamente um nível de acesso (`public`, `member` ou `scheduler`) e uma lista de métodos HTTP. A versão Hatchable v324 contém 76 rotas API; compare deployments antes de publicar.
 - O nome do arquivo determina a rota: remova o prefixo do arquivo e a extensão `.js`; segmentos `[id]` são parâmetros dinâmicos, por exemplo `api/r/[id].js` → `/api/r/:id`.
 - `public` indica que a chamada chega ao handler sem sessão. Webhooks e callbacks ainda validam assinatura, segredo ou estado próprio; URL pública não significa autorização para executar qualquer ação.
 - `scheduler` é bloqueado para visitantes; teste real anônimo retorna 404 antes do handler.

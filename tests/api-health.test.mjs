@@ -31,7 +31,7 @@ test('n8n health probe checks REST and lists MCP tools without running a workflo
 
 test('every API route declares an access tier and allowed methods', async () => {
   const routes = await filesIn('api');
-  assert.equal(routes.length, 76, 'update the documented production route count when routes are added or removed');
+  assert.equal(routes.length, 77, 'update the documented production route count when routes are added or removed');
   for (const path of routes) {
     const route = await readFile(path, 'utf8');
     assert.match(route, /export const access\s*=\s*['"](public|member|admin|scheduler)['"]/, `${path} needs an explicit access tier`);
