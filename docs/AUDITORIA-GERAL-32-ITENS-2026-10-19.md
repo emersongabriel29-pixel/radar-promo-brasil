@@ -2,7 +2,7 @@
 
 **Data:** 2026-10-19  
 **Etapa:** inventário, correções locais e reteste; nenhum fluxo de oferta foi publicado ou enviado.  
-**Commit GitHub auditado:** `c28afe070cee4a72bd1768e2f16e11468cd519a1` (`codex/radar-video-ia-runway-20261018`).  
+**Commit GitHub auditado:** `981337948840b04fba35a06674123fb7f0d8f29c` (`codex/radar-video-ia-runway-20261018`).  
 **`origin/main`:** `575fc2c96b032697e24cb51dd63a38bb444c43a7`.  
 **Hatchable:** projeto `proj_1Xj94QxQmCam`, v324 live em 2026-10-19 03:31 UTC.  
 **Regra:** manter todas as funções, configurações, APIs e ids de navegação; corrigir sem apagar. Mudanças nesta auditoria ficam na branch até revisão e comparação com Hatchable.
@@ -19,8 +19,8 @@
 |---:|---|---|---|
 | 1 | Segurança | Parcial | APIs/gates protegidos e HMAC do n8n constam em testes e código; o app público devolveu `login_required` ao tentar usar a curadoria. Falta repetir a matriz completa de autorização após login. |
 | 2 | GitHub ↔ Hatchable | Divergente | GitHub branch `c28afe0`; `main` `575fc2c`; Hatchable v324. Hashes de UI/API listados abaixo não coincidem entre branch e produção. |
-| 3 | Automações e orquestração | Parcial | Cinco cron jobs do Hatchable ativos; workflow n8n ativo, 7 nós, 2 gatilhos e 25 execuções recentes `success`. Não prova entrega ao destinatário nem trata oferta elegível. |
-| 4 | APIs e afiliados | Pendente | Testes individuais com credenciais válidas não foram executados em todos os provedores. Lomadee retorna HTTP 504 do upstream, documentado na auditoria anterior. |
+| 3 | Automações e orquestração | Parcial | Cinco cron jobs ativos; 0 erros de cron em 7 dias e 23–24 invocações/24 h para os jobs horários. Workflow n8n ativo, 7 nós, 2 gatilhos e 25 execuções recentes `success`. Os números não provam entrega ao destinatário; `next_fire_at` de `/api/jobs/hourly` e `/api/jobs/telegram` ficou fora da expressão cron na captura atual e precisa de observação posterior. |
+| 4 | APIs e afiliados | Pendente | Testes individuais com credenciais válidas não foram executados em todos os provedores. Lomadee acumulou 6 erros HTTP 504 em 11 chamadas nas últimas 24 h (uma chamada POST resultou em 502), com duração de até 30 s; a causa está no upstream/timeout e continua aberta. |
 | 5 | Publicações | Pendente | Não foi feito envio real. Telegram tem cron/execuções, porém não há ofertas elegíveis confirmadas na última checagem; Meta está sem autorização. |
 | 6 | Preços e descontos | Pendente | Estado administrativo anterior: zero ofertas com preço oficial recente. Não foi criada oferta sintética na produção. |
 | 7 | Links de afiliados | Parcial | Contratos/rastreio existem no código; falta testar cada programa com conta aprovada e conferir relatório oficial. |
@@ -31,7 +31,7 @@
 | 12 | Duplicidade | Parcial | A ponte n8n aplica idempotência por evento e estados incertos; falta teste ponta a ponta após reinício em ambiente isolado. |
 | 13 | Aprovação de ofertas | Parcial | Estados/regras estão no código; nenhuma oferta elegível disponível para testar os caminhos de aprovação/rejeição na produção. |
 | 14 | Rastreamento de conversões | Pendente | Não foram comparados resultados com relatórios oficiais de afiliados. |
-| 15 | Telegram | Parcial | Job horário ativo, 23 invocações/24 h e 0 erros reportados pelo Hatchable; o n8n chama a ponte a cada 10 min. Não há recibo de novo envio nesta auditoria. |
+| 15 | Telegram | Parcial | Job horário ativo, 23 invocações/24 h e 0 erros reportados pelo Hatchable; o n8n chama a ponte a cada 10 min. Não há recibo de novo envio nesta auditoria. O próximo horário informado pelo scheduler ficou desalinhado de `0 * * * *`; precisa ser observado novamente. |
 | 16 | WhatsApp | Pendente | Não foi testado provedor/consentimento/entrega nesta rodada. Testes E2E locais cobrem fluxos de interface, não entrega de mensagens. |
 | 17 | n8n | Parcial com divergência | Produção ativa: `BldO3MqWULbMGsjs`, 7 nós, dois gatilhos; 25 execuções recentes bem-sucedidas. JSON local possui 4 nós e `active:false`, portanto é export histórico, não espelho do fluxo ativo. |
 | 18 | MCP | Parcial | Workflow n8n disponível via MCP e execução recente observada; nenhuma ferramenta de publicação foi chamada. Falta testar o ciclo de autorização da aplicação com sessão. |
@@ -39,11 +39,11 @@
 | 20 | Rakuten e Lomadee | Pendente | Rakuten não validada com credencial; Lomadee está em `ERROR/NOT_CONNECTED` por HTTP 504 do provedor. |
 | 21 | Integrações adicionais | Pendente | É necessária prova isolada para cada conector; configuração preenchida não será considerada sucesso. |
 | 22 | Banco de dados | Parcial | Esquema, migrações e isolamento por `account_id` estão documentados; não foi feito restore nem varredura de integridade sobre dados de produção. |
-| 23 | Autenticação e sessões | Parcial | O acesso anônimo à tela/API protegida termina em `login_required`; falta validar cada rota autenticada e o ciclo de sessão após login. |
+| 23 | Autenticação e sessões | Parcial | A chamada `public` à rota `/api/social/autopilot` foi bloqueada com 401 antes do handler; a chamada `member` de leitura retornou 200 com snapshot vazio. O projeto não tem `[auth]` para simular usuário final (`as:'user'` indisponível). Falta validar ciclo de sessão real após login e a matriz de todas as rotas. |
 | 24 | Dependências | Aprovado no audit automatizado | `npm audit --audit-level=moderate`: zero vulnerabilidades reportadas no lockfile instalado. Não prova ausência de risco em APIs externas/segredos. |
 | 25 | Testes automatizados | Aprovado no escopo local | Build passou (125 JS); `npm test` 120/120; 3/3 E2E, incluindo formulários e seis larguras. Sem chamadas pagas nem envios reais. |
 | 26 | Desempenho | Parcial | E2E cobre layout em seis larguras; nenhum perfil de carga/concorrência foi executado. |
-| 27 | Logs e monitoramento | Parcial | Os cinco cron jobs retornam 0 erros em 7 dias; n8n tem 25 execuções recentes `success`. Isso não comprova que cada evento terminou como mensagem entregue. |
+| 27 | Logs e monitoramento | Parcial | Consulta aos logs de 24 h encontrou 9 erros: seis em Lomadee (504), dois históricos em `/api/social/autopilot` com `ReferenceError: api is not defined` (01:51 UTC) e um em `/api/ai/video-ia` (gateway sem chave OpenAI). O reteste de leitura do agente social retornou 200; a origem dos dois erros anteriores não foi reproduzida. Isso não comprova entrega de mensagem. |
 | 28 | Recuperação de falhas | Parcial | Há reintentos/idempotência/estado incerto no código; resta testar falha/reinício com fixtures sem destino externo. |
 | 29 | Custos | Parcial | Estúdio mostra Gemini, OpenAI e Claude; n8n Gateway informa indisponível. Não foram feitas chamadas que gerem cobrança. Falta registrar limite e confirmação de custo. |
 | 30 | Privacidade e conformidade | Parcial | Avisos e controles de consentimento existem; falta exercitar exclusão/exportação/retention em conta isolada e revisar todas as plataformas. |
@@ -67,6 +67,15 @@ Achados antes de alterar a interface:
 9. A tela Radar mostrou fontes vazias; nenhuma fonte foi criada ou ativada.
 
 **Limite de captura:** o navegador não forneceu caminho para salvar localmente a captura inicial do Hatchable. Capturas pós-correção foram geradas no E2E autenticado com banco em memória; elas não substituem validação de produção.
+
+## Verificação adicional do ambiente publicado (19/10/2026)
+
+- Hatchable continuava na v324. O inventário lista 82 funções ao todo (76 APIs e seis páginas); a branch lista 77 endpoints API, incluindo a IA Central ainda não implantada.
+- O teste anônimo de `GET /api/social/autopilot` retornou 401 antes do handler. Um `GET` simulado como membro retornou 200 com configuração padrão `PAUSED`, sem publicações nem conexões; nenhum envio foi solicitado. A tentativa `as:'user'` não é suportada porque o projeto Hatchable não tem `[auth]` de usuário final.
+- Dois erros históricos de `ReferenceError: api is not defined` na rota social foram observados nos logs. O código local e o arquivo publicado lidos não contêm esse identificador como referência executável; o reteste agora retornou 200. A causa não foi reproduzida, portanto o incidente fica em observação e não foi declarado corrigido.
+- O erro de vídeo IA da janela é compatível com a ausência de chave OpenAI reportada pelo gateway. Nenhuma chamada adicional foi feita; configuração do provedor e consumo de créditos permanecem sem validação.
+- O scheduler lista cinco tarefas ativas com 0 erros em 7 dias; para os jobs `hourly` e `telegram`, os próximos horários informados não se alinharam com a expressão `0 * * * *`. A leitura foi pontual e não permite concluir que houve falha de agendamento; acompanhar uma nova execução antes de corrigir.
+- A comparação GitHub↔Hatchable permanece divergente. Foram lidos arquivos publicados de social, vídeo IA e mídia, mas não se substituiu código ou configuração de produção. Nenhum deploy, acionamento de workflow n8n, teste de publicação, chamada paga ou alteração de integração foi executado.
 
 ## n8n e “IA mãe”
 
