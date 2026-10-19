@@ -56,7 +56,7 @@ Os nomes abaixo são derivados dos arquivos `api/` e `lib/` presentes no baselin
 - [x] APIs, permissões, migrações, scheduler e configurações não mudaram na reorganização visual (revisão do diff).
 - [x] Navegação por mouse/teclado, abertura/fechamento do drawer, foco e checagem axe passaram; deep links mantêm os ids existentes.
 - [x] 375, 714, 768, 880, 1024 e 1440 px sem scroll horizontal; ações do cabeçalho não sobrepõem o conteúdo; `prefers-reduced-motion` exercitado. Landscape/zoom máximo não faz parte da suíte atual.
-- [x] Reteste 2026-10-19: build (125 arquivos JavaScript), 117 testes unitários, 3 E2E e axe passaram; `npm audit --audit-level=moderate` encontrou 0 vulnerabilidades. Capturas desktop/móvel e IA Central revistas em `test-results/`.
+- [x] Reteste 2026-10-19: build (125 arquivos JavaScript), 120 testes unitários (inclui `.test.mjs` e `.test.js`), 3 E2E e axe passaram; `npm audit --audit-level=moderate` encontrou 0 vulnerabilidades. Capturas desktop/móvel e IA Central revistas em `test-results/`.
 - [ ] Conferir equivalência final entre arquivos UI do GitHub e Hatchable, registrar novo commit e versão publicada.
 
 ## Estado inicial observado

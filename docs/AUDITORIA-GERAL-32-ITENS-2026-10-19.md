@@ -41,7 +41,7 @@
 | 22 | Banco de dados | Parcial | Esquema, migrações e isolamento por `account_id` estão documentados; não foi feito restore nem varredura de integridade sobre dados de produção. |
 | 23 | Autenticação e sessões | Parcial | O acesso anônimo à tela/API protegida termina em `login_required`; falta validar cada rota autenticada e o ciclo de sessão após login. |
 | 24 | Dependências | Aprovado no audit automatizado | `npm audit --audit-level=moderate`: zero vulnerabilidades reportadas no lockfile instalado. Não prova ausência de risco em APIs externas/segredos. |
-| 25 | Testes automatizados | Aprovado no escopo local | Build passou (125 JS); 117/117 unitários; 3/3 E2E, incluindo formulários e seis larguras. Sem chamadas pagas nem envios reais. |
+| 25 | Testes automatizados | Aprovado no escopo local | Build passou (125 JS); `npm test` 120/120; 3/3 E2E, incluindo formulários e seis larguras. Sem chamadas pagas nem envios reais. |
 | 26 | Desempenho | Parcial | E2E cobre layout em seis larguras; nenhum perfil de carga/concorrência foi executado. |
 | 27 | Logs e monitoramento | Parcial | Os cinco cron jobs retornam 0 erros em 7 dias; n8n tem 25 execuções recentes `success`. Isso não comprova que cada evento terminou como mensagem entregue. |
 | 28 | Recuperação de falhas | Parcial | Há reintentos/idempotência/estado incerto no código; resta testar falha/reinício com fixtures sem destino externo. |
@@ -102,9 +102,10 @@ A referência é `docs/RADAR-FUNCTIONAL-INVENTORY.md`, complementada pelo mapa d
 - Foi adicionada a **IA Central** consultiva em `api/ai/orchestrator.js` e no workspace IA. A rota é autenticada, lê contagens/estados agregados da própria conta, não escreve no banco e força `requiresApproval: true`; o painel avisa que a consulta pode consumir cota ou gerar custo. Nenhum provedor pago foi chamado nos testes.
 - O catálogo de rotas agora registra 77 endpoints da branch. Hatchable v324 segue com 76 APIs mais seis páginas; a IA Central ainda não está publicada.
 - A auditoria n8n detalhada está em `docs/n8n/AUDITORIA-2026-10-19.md`; workflow remoto não foi alterado.
+- `npm run check:release` passou, incluindo build, unitários, E2E e auditoria npm.
 - Build `node scripts/check-source.mjs`: passou, 125 arquivos JavaScript verificados.
 - E2E: 3/3 passaram; IA Central usa resposta interceptada no navegador. Capturas revisadas: `test-results/offers-workspace-375.png`, `test-results/offers-workspace-714.png` e `test-results/ia-central-plan.png`.
-- Unitários: 117/117 passaram após atualizar a contagem para 77 rotas locais.
+- Unitários: `npm test` inclui agora `.test.mjs` e `.test.js`; 120/120 passaram, incluindo os três contratos Lomadee que antes estavam fora do script.
 - Dependências: `npm audit --audit-level=moderate` passou, zero vulnerabilidades reportadas.
 - Divergência GitHub↔Hatchable permanece. Não implantar até reconciliar os arquivos relevantes e preservar o passo de revisão do Modo Copiador já existente na produção.
 
