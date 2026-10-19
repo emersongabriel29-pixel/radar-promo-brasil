@@ -58,6 +58,8 @@ Os endpoints presentes são enumerados pelos arquivos versionados em `api/`; o i
 - `RUNWAY_API_KEY` ausente; Amazon Creators não configurada; WhatsApp/n8n com zero números verificados; vitrine não publicada.
 - `/api/readiness` como `member` usa uma conta de membro simulada neste teste e retornou uma conta diferente, vazia para integrações. **Não usar esse resultado para descrever a conta proprietária.**
 - Diagnóstico somente leitura `/api/admin/telegram-diagnostics` consultado com contexto de administrador retornou agregado: conta ativa; 29 publicações `PUBLISHED`, 1 `WAITING_CONFIRMATION`; uma conexão Telegram ativa, um destino Telegram e 144 eventos n8n processados nas últimas 24h. Não expôs token/ID. Investigar se a publicação pendente tem prova de entrega antes de qualquer reenvio.
+- Os cinco cron jobs do Hatchable aparecem ativos e sem erros recentes: `/api/jobs/telegram` a cada hora (176 execuções/7d, 0 erros), `/api/jobs/hourly` a cada hora (158/7d, 0 erros), `/api/jobs/autopilot` no minuto 5 (170/7d, 0 erros), `/api/jobs/social` no minuto 10 (168/7d, 0 erros), `/api/jobs/api-health` no minuto 30 (30/7d, 0 erros). O scheduler executa; isso, isoladamente, não comprova que uma oferta nova passe pelos filtros e chegue ao grupo.
+- Foram tentados os comandos da suíte no worktree, mas `npm.cmd` não está disponível nesta sessão Windows; `node.exe` está disponível e será usado para localizar o runtime npm / executar os verificadores equivalentes antes da publicação.
 
 ## 4. Divergência de fontes (GitHub ↔ Hatchable) antes de corrigir código
 
