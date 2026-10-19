@@ -28,7 +28,7 @@ A navegação é gerada por `NAV`, `GROUPS`, `groupPage()`, `switchGroup()` e `s
 |---|---|---|---|
 | Ofertas e cupons | Cadastro, revisão e gestão do catálogo da conta; modelos de mensagens | Abrir/editar oferta, preço, cupom, imagem, link oficial, estado e exemplos de mensagem; dados em `/api/data` | **Ofertas** |
 | Curador de ofertas | Avaliação de ofertas aprovadas por regras, pontuação e análise opcional de IA | `runCurator()` em `/api/radar/autopilot`; `runAiCurator()` em `/api/radar/curator-ai`; a primeira avaliação é baseada em regras e score, a segunda usa IA; não aprova/publica | **Ofertas**, com sinal explícito “regras + IA” no item, evitando esconder a ferramenta de quem trabalha no catálogo |
-| Estúdio de IA | Criar texto promocional, cupons, legendas, posts, anúncios, roteiro, carrossel, imagem e vídeo | `/api/ai/studio`, `/api/ai/image`, `/api/ai/promo`, mídia/jobs; modelos Gemini/OpenAI/Claude e Runway conforme configuração; fila de mídia e artefatos | **IA** |
+| Estúdio dFAÇe IA | Criar texto promocional, cupons, legendas, posts, anúncios, roteiro, carrossel, imagem e vídeo | `/api/ai/studio`, `/api/ai/image`, `/api/ai/promo`, mídia/jobs; modelos Gemini/OpenAI/Claude e Runway conforme configuração; fila de mídia e artefatos | **IA** |
 | Tráfego e redes sociais | Campanhas/UTM/orçamento, cupons de campanha e conexões IG/FB/e-mail | `/api/growth`; criar campanha/cupom, configurar OAuth/conexões, testar e-mail; não equivale à fila de posts sociais | **Redes e campanhas** |
 | Agente Radar Social | Configurar posts sociais, revisão humana, fila/ritmo e agente especialista | `/api/social/autopilot`, `/api/agents/social-media.js`, geração de fila e legenda, aprovação/execução; conexão Meta é separada; mantém aprovação obrigatória por padrão | **Redes e campanhas**, agrupado com os fluxos de publicação social; sinalizar IA no título/descrição do agente |
 
@@ -122,3 +122,11 @@ A auditoria anterior não é uma auditoria completa de cada fluxo do produto. A 
 A documentação atual [RADAR-FUNCTIONAL-INVENTORY.md](RADAR-FUNCTIONAL-INVENTORY.md) registra inventário técnico de páginas, domínios, endpoints e invariantes. Este arquivo completa o mapa específico de menu, conteúdo, ações globais, crítica visual, proposta de separação e critérios de aceitação do redesign.
 
 **Gate:** este documento não altera aplicação, CSS, menu nem comportamento. O passo de implementação só começa depois de registrar um protótipo/especificação visual final e executar comparação explícita de toda a matriz acima. A mudança será considerada aditiva: nenhum item listado poderá desaparecer; correções encontradas durante a auditoria serão feitas e revalidadas.
+
+## Resultado da implementação após a documentação prévia
+
+Após o registro e envio da especificação à PR, a implementação criou uma workspace interna em Ofertas com categorias visíveis para **Ofertas**, **IA** e **Redes e campanhas**. O catálogo e a Curadoria permanecem juntos como jornada de ofertas; Estúdio e Radar Vídeo IA ficam em IA; campanhas e Agente Radar Social ficam em redes. Publicações continua como área principal distinta. Conexões permanece acessível no cabeçalho. `+ Nova oferta` usa o mesmo `openOffer()` e aparece no cabeçalho fora do catálogo; no catálogo, a ação contextual é mostrada para evitar duplicidade.
+
+O acesso ao Radar Vídeo IA aponta para a página existente. Seu tema escuro/verde foi alinhado ao sistema azul/claro Manrope/DM Mono e ganhou link de retorno para `/#studio`. Nenhuma lógica de geração, envio, credencial, API ou fila foi alterada.
+
+Build, 110 testes unitários, 3 E2E e `npm audit --audit-level=moderate` passaram; axe não reportou violações nas superfícies E2E. Capturas revisadas: `test-results/offers-workspace.png`, `test-results/offers-workspace-mobile.png` e `test-results/radar-video-ia.png`. A mudança visual é perceptível na hierarquia de Ofertas e na consistência da tela de vídeo; o restante do produto preserva a identidade azul existente.

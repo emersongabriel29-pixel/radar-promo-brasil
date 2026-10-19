@@ -144,7 +144,39 @@ function off(id) {
     return x.id === id;
   });
 }
+var OFFER_CATEGORIES = [
+  { id: "catalog", title: "Ofertas", description: "Catálogo e curadoria", views: ["offers", "curator"] },
+  { id: "ai", title: "IA", description: "Conteúdo, arte e vídeo", views: ["studio"] },
+  { id: "social", title: "Redes e campanhas", description: "Canais, anúncios e posts", views: ["growth", "socialagent"] },
+];
+function offerCategoryForView(view) {
+  var category = OFFER_CATEGORIES.find(function (item) { return item.views.indexOf(view) !== -1; });
+  return category ? category.id : "catalog";
+}
+function switchOfferCategory(categoryId) {
+  var category = OFFER_CATEGORIES.find(function (item) { return item.id === categoryId; });
+  if (!category) return;
+  selectedGroups.offerCategory = category.id;
+  show(category.views[0]);
+}
+function offersWorkspace() {
+  var category = OFFER_CATEGORIES.find(function (item) { return item.id === selectedGroups.offerCategory; }) || OFFER_CATEGORIES[0],
+    items = GROUPS.offers || [],
+    visibleItems = items.filter(function (item) { return category.views.indexOf(item[0]) !== -1; }),
+    active = visibleItems.find(function (item) { return item[0] === selectedGroups.offers; }) || visibleItems[0];
+  return '<div class="offers-workspace"><aside class="offers-rail" aria-label="Organização de Ofertas"><div class="offers-rail-intro"><span class="offers-kicker">ESPAÇO DE TRABALHO</span><h2>Ofertas</h2><p>Escolha uma área para continuar.</p></div><nav class="offers-categories" aria-label="Categorias de Ofertas">' +
+    OFFER_CATEGORIES.map(function (item) {
+      return '<button class="offers-category category-' + item.id + ' ' + (item.id === category.id ? "on" : "") + '" type="button" aria-pressed="' + (item.id === category.id) + '" data-action="switchOfferCategory(\'' + item.id + '\')"><span class="offers-category-mark" aria-hidden="true">' + (item.id === "catalog" ? "01" : item.id === "ai" ? "02" : "03") + '</span><span class="offers-category-copy"><b>' + item.title + '</b><small>' + item.description + '</small></span><span class="offers-category-arrow" aria-hidden="true">›</span></button>';
+    }).join("") +
+    '</nav><div class="offers-rail-divider"></div><div class="offers-destinations" aria-label="Telas de ' + category.title + '"><h3>' + category.title + '</h3>' +
+    visibleItems.map(function (item) {
+      return '<button type="button" class="group-tab offers-view-tab ' + (item[0] === active[0] ? "on" : "") + '" aria-current="' + (item[0] === active[0] ? "page" : "false") + '" data-action="switchGroup(\'offers\',\'' + item[0] + '\')"><span class="ico" aria-hidden="true">' + item[2] + '</span><span>' + item[1] + '</span></button>';
+    }).join("") +
+    (category.id === "ai" ? '<a class="offers-video-link" href="/radar-video-ia"><span class="offers-video-icon" aria-hidden="true">▶</span><span><b>Radar Vídeo IA</b><small>Roteiros e geração de vídeo</small></span><span aria-hidden="true">↗</span></a>' : "") +
+    '</div><div class="offers-rail-foot">Todos os recursos e conexões da conta continuam disponíveis.</div></aside><section class="offers-content" id="group-panel" aria-label="' + active[1] + '">' + window[active[3]]() + '</section></div>';
+}
 function groupPage(key) {
+  if (key === "offers") return offersWorkspace();
   var items = GROUPS[key] || [],
     active = items.find(function(x){return x[0]===selectedGroups[key]}) || items[0],
     tabs = items
@@ -178,6 +210,7 @@ function switchGroup(key, id) {
   });
   if (!item) return;
   selectedGroups[key]=id;
+  if(key==="offers")selectedGroups.offerCategory=offerCategoryForView(id);
   history.replaceState(null,'','#'+id);
   document.querySelectorAll(".group-tab").forEach(function (b) {
     b.classList.toggle("on", b.textContent.trim().includes(item[1]));
@@ -2083,6 +2116,8 @@ function accountView() {
 }
 function render() {
   nav();
+  var globalOfferAction=document.getElementById("global-create-offer");
+  if(globalOfferAction)globalOfferAction.hidden=current==="offers"&&selectedGroups.offers==="offers";
   var f = {
     dashboard: dashboard,
     radar: function () {
@@ -3565,7 +3600,7 @@ function show(view){
   var parent=Object.keys(GROUPS).find(function(key){return key!==view&&GROUPS[key].some(function(item){return item[0]===view;});});
   var target=parent||view;
   if(!NAV.some(function(n){return n[0]===target;}))target='dashboard';
-  if(parent)selectedGroups[parent]=view;else if(GROUPS[target])selectedGroups[target]=GROUPS[target][0][0];
+  if(parent){selectedGroups[parent]=view;if(parent==="offers")selectedGroups.offerCategory=offerCategoryForView(view);}else if(GROUPS[target]){selectedGroups[target]=GROUPS[target][0][0];if(target==="offers")selectedGroups.offerCategory="catalog";}
   current=target;menu(false);nav();
   document.getElementById('title').textContent=NAV.find(function(n){return n[0]===current;})[1];
   render();history.replaceState(null,'','#'+(parent?view:current));
