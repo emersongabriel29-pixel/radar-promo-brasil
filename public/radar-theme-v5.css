@@ -19,6 +19,26 @@ html,body{background:#f4f6f8;color:#172638}
 /* Contraste WCAG para os indicadores numerados do fluxo. */
 .step>i,.steps .step>i{color:#805600!important}
 @media(max-width:900px){.app{grid-template-columns:1fr}.side{background:#152b40}.sidefoot{background:#1b364b}.hero{padding:23px}.content{padding:19px 15px calc(112px + env(safe-area-inset-bottom))}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric:nth-child(2){border-right:0}.metric:nth-child(-n+2){border-bottom:1px solid #e3e8ec}}
+
+/* Radar Promo Brasil — unified blue identity and grouped navigation. */
+:root{--brand-primary:#1769e0;--brand-navy:#14243b;--brand-surface:#fff;--brand-background:#f5f7fb;--brand-border:#d8e1ec}
+.side{background:linear-gradient(180deg,#14243b 0%,#172b45 100%);border-right-color:#ffffff12}
+.nav{gap:3px}
+.nav-heading{margin:15px 10px 2px;padding:0;color:#9fb3cb;font-size:10px;font-weight:800;letter-spacing:.11em;line-height:1.4;text-transform:uppercase}
+.nav-heading:first-child{margin-top:2px}
+.nav button{min-height:46px;color:#c1cedd;border-radius:9px;transition:background-color .18s ease,color .18s ease,box-shadow .18s ease}
+.nav button:hover{background:#ffffff0d;color:#fff}
+.nav button.on{background:#213a5a;color:#fff;box-shadow:inset 3px 0 var(--brand-primary)}
+.nav .ico,.nav button.on .ico{color:#a9c0df}
+.sidefoot{background:#1b3049;border-color:#344c68}
+.sidefoot b{color:#c8dcf5}
+.sidefoot p{color:#bdcada}
+.group-tabs{background:#eef4fc;border-color:#d5e2f3}
+.group-tab{color:#3e5674}
+.group-tab .ico{color:#1769e0}
+.group-tab.on{color:#124f9e;box-shadow:0 2px 7px #174b9118}
+@media(max-width:900px){.nav-heading{margin-top:12px}.nav{padding-bottom:12px}}
+@media(prefers-reduced-motion:reduce){.nav button{transition:none}}
 @media(max-width:600px){.top h1{font-size:18px}.content{padding-left:12px;padding-right:12px}.hero{border-radius:9px;padding:19px}.hero h2{font-size:26px}.metric{padding:14px}.metric b{font-size:24px}.mode{min-height:0}.card{padding:14px}}
 @media(prefers-reduced-motion:reduce){.mode,.btn{transition:none}.mode:hover,.btn:hover{transform:none}}
 

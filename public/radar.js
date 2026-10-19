@@ -64,14 +64,15 @@ var D = {
   current = "dashboard",
   selected = null,
   reportDays = 30;
+var pendingCopierPrefill = null;
 var NAV = [
-  ["dashboard", "Central", "DB"],
-  ["radar", "Radar", "RD"],
-  ["offers", "Ofertas", "OF"],
-  ["publishing", "Publicações", "PB"],
-  ["channels", "Canais", "CN"],
-  ["reports", "Relatórios", "BI"],
-  ["settings", "Configurações", "CT"],
+  ["dashboard", "Central", "DB", "Operação"],
+  ["radar", "Radar", "RD", "Operação"],
+  ["offers", "Ofertas", "OF", "Operação"],
+  ["publishing", "Publicações", "PB", "Operação"],
+  ["channels", "Canais", "CN", "Análise"],
+  ["reports", "Relatórios", "BI", "Análise"],
+  ["settings", "Configurações", "CT", "Gestão"],
 ];
 var GROUPS = {
   radar: [
@@ -582,19 +583,39 @@ async function parseCopierMessage() {
       couponUrl: data.couponUrl || "",
       message: raw,
     };
+    pendingCopierPrefill = prefill;
     if (box) {
-      box.textContent = "Sugestão extraída: " + prefill.title +
-        " · preço sugerido R$ " + prefill.currentPrice.replace(".", ",") +
-        (prefill.originalPrice ? " · preço anterior sugerido R$ " + prefill.originalPrice.replace(".", ",") : "") +
-        (prefill.couponCode ? " · cupom " + prefill.couponCode : "") +
-        (data.needsAffiliateLink && !affiliateUrl ? " · falta informar seu link afiliado" : "") +
-        ". " + String(data.notice || "Revise todos os campos; nada será publicado automaticamente.");
+      box.innerHTML = '<div class="field"><strong>Revise os dados reconhecidos</strong><p class="muted">Os campos abaixo são sugestões extraídas da mensagem. Confirme preço e links antes de continuar.</p></div>' +
+        '<div class="field"><label for="copierReviewTitle">Produto</label><input class="input" id="copierReviewTitle" maxlength="220" value="' + esc(prefill.title) + '"></div>' +
+        '<div class="field"><label for="copierReviewCurrent">Preço atual (R$)</label><input class="input" id="copierReviewCurrent" inputmode="decimal" value="' + esc(prefill.currentPrice) + '"></div>' +
+        '<div class="field"><label for="copierReviewOriginal">Preço anterior (R$)</label><input class="input" id="copierReviewOriginal" inputmode="decimal" value="' + esc(prefill.originalPrice) + '"></div>' +
+        '<div class="field"><label for="copierReviewProduct">Link do produto</label><input class="input" id="copierReviewProduct" type="url" maxlength="1200" value="' + esc(prefill.productUrl) + '"></div>' +
+        '<div class="field"><label for="copierReviewAffiliate">Link de afiliado confirmado</label><input class="input" id="copierReviewAffiliate" type="url" maxlength="1200" value="' + esc(prefill.affiliateUrl) + '"></div>' +
+        '<div class="field"><label for="copierReviewCoupon">Cupom (se aplicável)</label><input class="input" id="copierReviewCoupon" maxlength="100" value="' + esc(prefill.couponCode) + '"></div>' +
+        '<div class="field"><label for="copierReviewCouponUrl">URL do cupom (opcional)</label><input class="input" id="copierReviewCouponUrl" type="url" maxlength="1200" value="' + esc(prefill.couponUrl) + '"></div>' +
+        '<p class="muted">Salvar como rascunho não publica a oferta. O preço oficial ainda precisa ser verificado antes do envio.</p>' +
+        '<button class="btn csp-margin-top-12px" type="button" data-action="continueCopierDraft()">Continuar para cadastro</button>';
     }
-    openOffer(prefill);
   } catch (error) {
     if (box) box.textContent = error.message || "Não foi possível interpretar a mensagem.";
     toast(error.message || "Não foi possível interpretar a mensagem.");
   }
+}
+function continueCopierDraft() {
+  if (!pendingCopierPrefill) { toast('Analise uma mensagem antes de continuar.'); return; }
+  var value = function(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  var draft = {
+    title: value('copierReviewTitle'), currentPrice: value('copierReviewCurrent'),
+    originalPrice: value('copierReviewOriginal'), productUrl: value('copierReviewProduct'),
+    affiliateUrl: value('copierReviewAffiliate'), couponCode: value('copierReviewCoupon'),
+    couponUrl: value('copierReviewCouponUrl'), source: pendingCopierPrefill.source,
+    message: pendingCopierPrefill.message
+  };
+  if (!draft.title || !draft.currentPrice || !draft.productUrl) {
+    toast('Confirme o produto, o preço atual e o link do produto.'); return;
+  }
+  pendingCopierPrefill = draft;
+  openOffer(draft);
 }
 async function inspectCollshpClone(button) {
   var input = document.getElementById("collshpCloneUrl");
@@ -3518,8 +3539,11 @@ var navPaths = {
   settings:'M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8 M12 2v3 M12 19v3 M2 12h3 M19 12h3 M5 5l2 2 M17 17l2 2 M5 19l2-2 M17 7l2-2'
 };
 function nav(){
+  var section='';
   document.getElementById('nav').innerHTML=NAV.map(function(n){
-    return '<button '+(current===n[0]?'aria-current="page" ':'')+'class="'+(current===n[0]?'on':'')+'" data-action="show(\''+n[0]+'\')"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+navPaths[n[0]]+'"/></svg></span>'+n[1]+'</button>';
+    var heading=n[3]!==section?'<h2 class="nav-heading">'+n[3]+'</h2>':'';
+    section=n[3];
+    return heading+'<button '+(current===n[0]?'aria-current="page" ':'')+'class="'+(current===n[0]?'on':'')+'" data-action="show(\''+n[0]+'\')"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+navPaths[n[0]]+'"/></svg></span>'+n[1]+'</button>';
   }).join('');
 }
 function syncDrawer(){

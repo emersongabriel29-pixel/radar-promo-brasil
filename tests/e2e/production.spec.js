@@ -13,12 +13,22 @@ async function accessibility(page){
   expect.soft(violations).toEqual([]);
 }
 test('sete áreas acessíveis, conteúdo preservado, modal por teclado e oferta com upload',async({page,request})=>{
- const errors=[];page.on('pageerror',e=>errors.push(e.message));await ready(page);
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await ready(page);await page.screenshot({path:'test-results/dashboard-home.png',fullPage:true});
  await expect(page.locator('#nav button')).toHaveCount(7);
+ for(const heading of ['Operação','Análise','Gestão'])await expect(page.locator('#nav').getByRole('heading',{name:heading,exact:true})).toBeVisible();
  for(const [name,title] of [['Central','Central'],['Radar','Radar'],['Ofertas','Ofertas'],['Publicações','Publicações'],['Canais','Canais'],['Relatórios','Relatórios'],['Configurações','Configurações']]){
   await page.locator('#nav').getByRole('button',{name,exact:true}).click();await expect(page.locator('#title')).toHaveText(title);await accessibility(page);
  }
+ for(const [area,items] of [['Radar',['Monitoramento 24h','Modo clone','Criação rápida']],['Ofertas',['Ofertas e cupons','Curador de ofertas','Estúdio de IA','Tráfego e redes sociais','Agente Radar Social']],['Publicações',['Filas e agendamento']],['Canais',['Grupos e canais','Gestão de leads']],['Configurações',['Segurança e LGPD','Integrações','Conta, vitrine e planos']]]){
+  await page.locator('#nav').getByRole('button',{name:area,exact:true}).click();
+  for(const item of items){const tab=page.getByRole('button',{name:item,exact:true});await expect(tab).toBeVisible();await tab.click();await expect(tab).toHaveClass(/\bon\b/);await expect(page.locator('#group-panel')).toBeVisible();}
+ }
  await page.getByRole('button',{name:'Integrações',exact:true}).click();await expect(page.getByRole('heading',{name:'Prontidão da operação'})).toBeVisible();
+ await page.locator('#nav').getByRole('button',{name:'Radar',exact:true}).click();await page.getByRole('button',{name:'Modo clone',exact:true}).click();
+ await page.route('**/api/messages/parse-preview',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,title:'Fone de teste',currentPrice:4990,originalPrice:9990,productUrl:'https://amazon.com.br/dp/B000TEST',affiliateUrl:'https://amazon.com.br/dp/B000TEST?tag=radar',marketplace:'AMAZON',couponCode:'RADAR10',couponUrl:'https://amazon.com.br/cupom/RADAR10'})}));
+ await page.getByLabel('Mensagem copiada').fill('Fone de teste por R$ 49,90');await page.getByRole('button',{name:'Analisar e preparar rascunho',exact:true}).click();
+ await expect(page.getByLabel('Produto',{exact:true})).toHaveValue('Fone de teste');await page.getByLabel('Produto',{exact:true}).fill('Fone revisado');await page.getByRole('button',{name:'Continuar para cadastro',exact:true}).click();
+ await expect(page.getByRole('dialog')).toBeVisible();await expect(page.getByLabel('Nome do produto')).toHaveValue('Fone revisado');await page.keyboard.press('Escape');await page.unroute('**/api/messages/parse-preview');
  await page.locator('#nav').getByRole('button',{name:'Ofertas',exact:true}).click();
  await page.getByRole('button',{name:'Estúdio de IA',exact:true}).click();await expect(page.locator('[name=studioTitle]')).toBeVisible();await accessibility(page);
  await page.getByRole('button',{name:'Agente Radar Social',exact:true}).click();await expect(page.locator('[name=agentTopic]')).toBeVisible();
@@ -44,7 +54,7 @@ test('menu e layout em 375, 768, 880, 1024 e 1440; preferência por movimento re
   await page.setViewportSize({width,height:900});await ready(page);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   const menu=page.getByRole('button',{name:'Menu',exact:true});
-  if(width<=900){await expect(menu).toBeVisible();await menu.click();await expect(menu).toHaveAttribute('aria-expanded','true');await expect(page.locator('#nav').getByRole('button',{name:'Central',exact:true})).toBeFocused();await page.keyboard.press('Escape');await expect(menu).toBeFocused();await menu.click();await page.locator('#nav').getByRole('button',{name:'Ofertas',exact:true}).click();await expect(menu).toHaveAttribute('aria-expanded','false');}
+  if(width<=900){await expect(menu).toBeVisible();await menu.click();await expect(menu).toHaveAttribute('aria-expanded','true');await expect(page.locator('#nav').getByRole('button',{name:'Central',exact:true})).toBeFocused();if(width===375)await page.screenshot({path:'test-results/menu-mobile.png'});await page.keyboard.press('Escape');await expect(menu).toBeFocused();await menu.click();await page.locator('#nav').getByRole('button',{name:'Ofertas',exact:true}).click();await expect(menu).toHaveAttribute('aria-expanded','false');}
   else await expect(menu).not.toBeVisible();
   await accessibility(page);
   if(width===375)await page.screenshot({path:'test-results/dashboard-mobile.png',fullPage:true});
