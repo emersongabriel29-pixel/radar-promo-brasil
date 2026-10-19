@@ -1,5 +1,6 @@
 import { ai, db } from 'hatchable';
 import { meliGet } from 'lib/direct-connectors.js';
+import { isSetupRequired } from 'lib/media.js';
 
 export const access='member';
 export const methods=['POST'];
@@ -107,12 +108,19 @@ export default async function(req,res){
       'Regras: não invente características, compatibilidade, resultados, desconto, frete, estoque, garantia ou urgência. Não afirme preço promocional. Se não houver especificação confirmada, omita-a. Não escreva que o vídeo foi publicado. Se os dados vierem do cartão do perfil, use apenas o título para contextualizar e evite alegações técnicas.',
       'Entregue: gancho, cenas com tempos aproximados, texto na tela, narração opcional e CTA neutro. O CTA deve direcionar ao link de afiliado fornecido, sem remover seus parâmetros de rastreamento. Termine com uma nota curta listando fatos que precisam de revisão humana.'
     ].join('\n');
-    const generated=await ai.generateText({purpose:'radar-video-ia-script',model:'gpt-mini',userId:String(req.member.id),maxTokens:1800,system:'Você é roteirista de vídeos curtos de comércio eletrônico. Priorize precisão, transparência e linguagem natural. Nunca invente fatos de produto.',prompt,signal:AbortSignal.timeout(60000)});
+    const generate=model=>ai.generateText({purpose:'radar-video-ia-script',model,userId:String(req.member.id),maxTokens:1800,system:'Você é roteirista de vídeos curtos de comércio eletrônico. Priorize precisão, transparência e linguagem natural. Nunca invente fatos de produto.',prompt,signal:AbortSignal.timeout(60000)});
+    let generated,usedModel='gpt-mini',fallbackNotice='';
+    try{generated=await generate(usedModel)}catch(primaryError){
+      if(!isSetupRequired(primaryError))throw primaryError;
+      generated=await generate('gemini');usedModel='gemini';
+      fallbackNotice='O provedor OpenAI não está configurado; o Gemini configurado foi usado.';
+    }
     const script=clean(generated.text,9000);
     if(!script||generated.finishReason==='length')return res.status(502).json({error:'Não foi possível produzir um roteiro completo. Tente novamente.'});
-    return res.json({ok:true,product:{itemId:resolved.itemId,title,price:facts.price,imageUrl,productUrl,attributes,dataSource:source},script,stage:'SCRIPT_READY',published:false,videoRendered:false,notice:[apiWarning,'Roteiro apenas. Avatar, tendências verificadas e publicação ainda não foram implementados.'].filter(Boolean).join(' ')});
+    return res.json({ok:true,product:{itemId:resolved.itemId,title,price:facts.price,imageUrl,productUrl,attributes,dataSource:source},script,model:usedModel,stage:'SCRIPT_READY',published:false,videoRendered:false,notice:[apiWarning,fallbackNotice,'Roteiro apenas. Avatar, tendências verificadas e publicação ainda não foram implementados.'].filter(Boolean).join(' ')});
   }catch(e){
     console.error('ai/video-ia',JSON.stringify({status:Number(e?.status)||0,code:clean(e?.code||e?.message,80)}));
+    if(isSetupRequired(e))return res.status(412).json({error:'Configure uma chave OpenAI ou Gemini em Configurações do projeto → IA para gerar o roteiro.',code:'AI_SETUP_REQUIRED'});
     if(e?.code==='MELI_NOT_CONNECTED')return res.status(412).json({error:'Conecte o Mercado Livre pela conexão oficial do Radar antes de analisar produtos.'});
     if(e?.message==='LINK_HOST_NOT_ALLOWED')return res.status(400).json({error:'O link redirecionou para um domínio não permitido. Nenhuma página foi processada.'});
     if(String(e?.message||'').startsWith('LINK_FETCH_404'))return res.status(424).json({error:'O link curto retornou 404. Cole o link direto do perfil de afiliado do Mercado Livre ou copie um link individual do produto.'});
