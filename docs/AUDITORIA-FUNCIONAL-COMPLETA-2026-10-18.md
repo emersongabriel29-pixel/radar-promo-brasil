@@ -134,9 +134,9 @@ Os testes locais e as verificações administrativas comprovam contratos e estad
 
 ## 8. Conferência da alteração publicada com o branch
 
-A v322 está live. Os três arquivos Telegram/IA que receberam correção foram comparados por SHA-256 com o worktree após o commit `84e87d3`. Os arquivos completos ainda divergem entre Hatchable e GitHub; não fazer sincronização integral nem substituir nenhum deles em bloco. A lógica específica corrigida está presente nas duas versões, mas existem diferenças anteriores fora desta alteração.
+A v322 está live. Os quatro arquivos listados foram comparados com o branch `5102e52`; os três componentes Telegram/IA têm divergências de arquivo completas, mas os trechos corrigidos coincidem semanticamente. O arquivo `api-health.js` é equivalente depois de normalizar CRLF.
 
-| Arquivo | GitHub/worktree (`84e87d3`) | Hatchable v322 | Estado do trecho corrigido |
+| Arquivo | GitHub/worktree (`5102e52`) | Hatchable v322 | Estado do trecho corrigido |
 |---|---|---|---|
 | `api/jobs/telegram.js` | `b0937d0440e2f3c8c2f556de317ad9c210253d8532f8de0eaf4152281d3953fc` | `e61419ffea7ddfbc971745c64acf18cd7d2e80c3e2988260c49bb99de4495352` | Ambos pedem URL pública temporária para mídia aprovada |
 | `api/n8n/telegram-tick.js` | `69148d060d5ce5c72e456870c6e2401dba353e7c03df48b78381f4984c81694b` | `40ef25107e0fc5cb4476f0ebe373ccfe68028a116a85dac9bd9cc8ae92ad944c` | Ambos pedem URL pública temporária para mídia aprovada |
