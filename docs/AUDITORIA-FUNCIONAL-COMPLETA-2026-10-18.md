@@ -96,6 +96,8 @@ Hatchable v319 está live e possui os mesmos nomes de arquivos, mas os hashes de
 - **Inventário de testes Lomadee:** substituídos testes antigos que exigiam endpoints/cabeçalhos diferentes do conector implementado. A nova cobertura verifica o host e `x-api-key`, limita recursos/ações suportados e exige projeção allowlist sem dados pessoais em pedidos.
 - **Contrato de despacho Telegram:** adicionada cobertura para a URL pública nos dois despachantes e para manter mídia privada como padrão fora de uma publicação autorizada.
 - **Implantação Hatchable v320:** publicada em 19/10/2026 às 03:03 UTC após dry-run sem erros. Manifesto v320 confirmado como live. Não foram alterados dados de ofertas, credenciais ou destinatários e nenhum envio manual de teste foi disparado.
+- **Configuração de IA:** o detector de credencial ausente agora considera o código e a mensagem retornados pelo gateway, para que uma resposta de setup 412 não seja mascarada como falha genérica 502. OpenAI, Gemini e modo local permanecem disponíveis; nenhum foi removido.
+- **Implantação Hatchable v321:** publicada em 19/10/2026. O gate do endpoint de vídeo foi verificado sem gerar conteúdo pago: chamada pública recebeu 401 e membro com entrada inválida recebeu 400 antes de qualquer chamada de provedor.
 
 ### Verificações executadas
 
@@ -106,6 +108,7 @@ Hatchable v319 está live e possui os mesmos nomes de arquivos, mas os hashes de
 - Dry-run Hatchable: **0 erros**, 3 avisos preexistentes no streaming de `/api/jobs/api-health.js` (SSE é bufferizado pelo runtime); esses avisos não fazem parte do fluxo Telegram.
 - Depois da v320: `/api/readiness` e `/api/admin/telegram-diagnostics` responderam HTTP 200 no contexto administrativo; os 5 cron jobs (`telegram`, `hourly`, `autopilot`, `social`, `api-health`) estavam ativos e com zero erros nos últimos 7 dias.
 - Diagnóstico agregado do Telegram: uma conexão ativa, um destino, 29 entregas `PUBLISHED`, uma entrega `WAITING_CONFIRMATION` e 144 eventos n8n processados nas últimas 24h. O item incerto não foi reenviado.
+- Erros das 82 funções nas últimas 24h: dois timeouts Lomadee (504, ~8s), dois 500 sociais `ReferenceError: api is not defined` registrados antes da v319, e um 502 de vídeo IA causado pela chave OpenAI ausente. Na v321 o classificador foi corrigido; uma nova chamada inválida ao endpoint retornou 400 sem invocar IA. O GET social atual responde 200; seus rascunhos continuam bloqueados por autorização Meta ausente.
 
 ### Estado operacional ainda pendente
 
@@ -114,7 +117,8 @@ O produto está **funcionando parcialmente**, não em 100% operacional. A readin
 1. **0 ofertas com preço oficial validado nas últimas 24h**;
 2. **0 regras de afiliado ativas**, sem marketplace/tag operacional para transformar a oferta em publicação elegível;
 3. a leitura de produtos da **Lomadee retorna 504 após cerca de 8 segundos**; não tratamos timeout como autenticação válida nem como falha local resolvida;
-4. faltam configurações externas adicionais para recursos opcionais: Runway API, Amazon Creators e números WhatsApp validados. O estado destes conectores não deve desativar Gemini ou OpenAI; são integrações independentes.
+4. a publicação social segue bloqueada até a autorização oficial Meta; dois erros de GET por referência indefinida foram registrados antes da v319 e o GET voltou a responder 200;
+5. faltam configurações externas adicionais para recursos opcionais: chave OpenAI na configuração do projeto, Runway API, Amazon Creators e números WhatsApp validados. Gemini/OpenAI continuam selecionáveis; a correção de IA deixa a falta de chave visível como setup pendente.
 
 O Telegram está configurado e tem prova histórica de envio; os cron jobs estão ativos. Porém, a execução observada do autopilot avaliou 49 ofertas e enfileirou zero. Portanto, esta implantação corrige o caminho de imagem mas não transforma ofertas antigas/sem preço atual ou sem afiliado válido em mensagens. Isso preserva a checagem de preço e a rastreabilidade do link.
 

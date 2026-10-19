@@ -77,6 +77,8 @@ test('normaliza formatos de mídia aceitos pelos provedores',()=>{
 test('reconhece limite temporário e falta de configuração',()=>{
   assert.equal(isRateLimit({status:429,message:'Too many requests'}),true);
   assert.equal(isSetupRequired({code:'SetupRequired'}),true);
+  assert.equal(isSetupRequired({code:'gateway internal/ai/complete 412: project has no OpenAI API key'}),true);
+  assert.equal(isSetupRequired({status:412,message:'Precondition required'}),true);
   assert.equal(isRateLimit(new Error('Falha comum')),false);
 });
 
