@@ -1,5 +1,6 @@
-import { db } from 'hatchable';
+import { ai, db } from 'hatchable';
 import { meliGet } from 'lib/direct-connectors.js';
+import { isSetupRequired } from 'lib/media.js';
 
 export const access='member';
 export const methods=['POST'];
@@ -106,12 +107,32 @@ export default async function(req,res){
     const voice=clean(b.voice,100)||'voz feminina PT-BR';
     const destination=clean(b.destination,80)||'TikTok';
     const notes=clean(b.notes,500);
+    const requestedProvider=['openai','gemini'].includes(b.scriptProvider)?b.scriptProvider:'local';
     const price=Number.isFinite(Number(p.price))&&p.price!=null?Number(p.price):null;
     const facts={title,price,condition:clean(p.condition,30),attributes,dataSource:source};
-    const script=buildLocalScript({title,attributes,duration,voice,style,destination,notes});
-    return res.json({ok:true,product:{itemId:resolved.itemId,title,price:facts.price,imageUrl,productUrl,attributes,dataSource:source},script,model:'template-local',stage:'SCRIPT_READY',published:false,videoRendered:false,notice:[apiWarning,'Roteiro montado localmente a partir de dados confirmados. Nenhum provedor de IA pago foi chamado. Avatar, tendências verificadas e publicação ainda não foram implementados.'].filter(Boolean).join(' ')});
+    let script=buildLocalScript({title,attributes,duration,voice,style,destination,notes}),model='template-local';
+    if(requestedProvider!=='local'){
+      const prompt=[
+        'Crie roteiro curto vertical de produto em português do Brasil.',
+        'Duração: '+duration+'s. Estilo: '+style+'. Voz: '+voice+'. Destino: '+destination+'. Orientações: '+(notes||'nenhuma'),
+        'Dados confirmados do produto: '+JSON.stringify(facts),
+        'Não invente características, compatibilidade, resultados, desconto, frete, estoque, garantia, urgência ou preço promocional. Se faltarem especificações, omita-as. Preserve o link de afiliado e termine indicando revisão humana.'
+      ].join('\n');
+      model=requestedProvider==='openai'?'gpt-mini':'gemini';
+      try{
+        const generated=await ai.generateText({purpose:'radar-video-ia-script',model,userId:String(req.member.id),maxTokens:1800,system:'Roteirista de vídeos curtos, preciso e transparente. Não invente fatos de produto.',prompt,signal:AbortSignal.timeout(60000)});
+        const generatedText=clean(generated.text,9000);
+        if(!generatedText||generated.finishReason==='length')return res.status(502).json({error:'O provedor não produziu um roteiro completo. Tente novamente ou selecione o modo local.'});
+        script=generatedText;
+      }catch(error){
+        if(isSetupRequired(error))return res.status(412).json({error:'O provedor escolhido não está configurado. Escolha o modo local ou configure a credencial do provedor.',code:'AI_SETUP_REQUIRED'});
+        throw error;
+      }
+    }
+    return res.json({ok:true,product:{itemId:resolved.itemId,title,price:facts.price,imageUrl,productUrl,attributes,dataSource:source},script,model,stage:'SCRIPT_READY',published:false,videoRendered:false,notice:[apiWarning,requestedProvider==='local'?'Roteiro montado localmente, sem chamadas externas.':('Roteiro gerado pelo provedor selecionado: '+requestedProvider+'. O uso pode consumir créditos do projeto.'),'Avatar, tendências verificadas e publicação ainda não foram implementados.'].filter(Boolean).join(' ')});
   }catch(e){
     console.error('ai/video-ia',JSON.stringify({status:Number(e?.status)||0,code:clean(e?.code||e?.message,80)}));
+    if(isSetupRequired(e))return res.status(412).json({error:'O provedor selecionado não está configurado. Escolha o modo local ou configure a credencial do provedor.',code:'AI_SETUP_REQUIRED'});
     if(e?.code==='MELI_NOT_CONNECTED')return res.status(412).json({error:'Conecte o Mercado Livre pela conexão oficial do Radar antes de analisar produtos.'});
     if(e?.message==='LINK_HOST_NOT_ALLOWED')return res.status(400).json({error:'O link redirecionou para um domínio não permitido. Nenhuma página foi processada.'});
     if(String(e?.message||'').startsWith('LINK_FETCH_404'))return res.status(424).json({error:'O link curto retornou 404. Cole o link direto do perfil de afiliado do Mercado Livre ou copie um link individual do produto.'});
