@@ -12,6 +12,7 @@
 - Vinte e cinco execuções recentes estavam como `success` e em modo `trigger`, normalmente abaixo de dois segundos. Isso demonstra que o n8n aceitou e executou o ciclo; não demonstra que havia publicação elegível nem que o Telegram confirmou uma mensagem.
 - Consulta posterior encontrou 210 execuções no total; as 25 mais recentes seguiram em `success`. A versão ativa e o rascunho continuam iguais (`versionId` `c8865d8b-c3a5-4c08-92ac-8376a11950d9`).
 - O endpoint da aplicação valida HMAC-SHA256, timestamp dentro da tolerância configurada, conta ativa, evento idempotente e publicação elegível. Entrega incerta fica em `WAITING_CONFIRMATION` para evitar duplicidade.
+- Um teste negativo ao vivo, com conta/evento fictícios e HMAC deliberadamente inválido, recebeu 401 tanto em `/api/n8n/bridge` quanto em `/api/n8n/telegram-tick`; a rejeição ocorreu antes de tocar o banco ou qualquer destinatário.
 - O workflow usa segredo de ambiente e conta/evento para assinar a chamada; nenhum valor secreto foi copiado para este documento.
 - Busca de agentes acessíveis não encontrou agentes do n8n. A única credencial acessível listada era `httpCustomAuth`; o gateway de IA estava indisponível. A busca de projetos não retornou projetos com esse nome e informou que projetos de equipe não estão habilitados; o workflow ativo segue acessível no projeto pessoal. Os valores de credenciais não foram consultados.
 
