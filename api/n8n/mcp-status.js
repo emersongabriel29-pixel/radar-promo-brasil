@@ -1,4 +1,5 @@
 import { db, config } from 'hatchable';
+import { withIntegrationHealth } from 'lib/integration-health.js';
 import { open, seal } from 'lib/direct-connectors.js';
 export const access='member';
 export const methods=['POST'];
@@ -17,7 +18,7 @@ async function rpc(token,method,id,params,session,version){
  const response=await fetch(ENDPOINT,{method:'POST',headers,body:JSON.stringify({jsonrpc:'2.0',id,method,params}),signal:AbortSignal.timeout(10000)});
  return {response,data:await readPayload(response)};
 }
-export default async function(req,res){
+async function handler(req,res){
  if(!req.member)return res.status(401).json({error:'Entre no Radar Promo Brasil para testar o MCP.'});
  try{
   const account=(await db.query("SELECT id FROM accounts WHERE owner_member_id=$1 AND status='ACTIVE' LIMIT 1",[String(req.member.id)])).rows[0];
@@ -55,3 +56,4 @@ export default async function(req,res){
   return res.json({ok:true,status:'CONNECTED',authentication:useStaticToken?'bearer_token':'oauth',endpoint:ENDPOINT,protocolVersion:version,server:{name:String(init.data.result.serverInfo?.name||'n8n MCP').slice(0,100),version:String(init.data.result.serverInfo?.version||'').slice(0,60)},toolCount:tools.length,tools:tools.slice(0,80).map(t=>({name:String(t.name||'').slice(0,100),description:String(t.description||'').slice(0,240)})),readOnlyCheck:true,message:'Autenticação, handshake MCP e tools/list concluídos. Nenhuma ferramenta remota foi executada.'});
  }catch(e){return res.status(e.status||502).json({ok:false,status:'ERROR',error:String(e.message||'Falha ao testar o servidor MCP.').slice(0,240)});}
 }
+export default async function(req,res){return withIntegrationHealth(req,res,db,'n8n_mcp',handler);}
