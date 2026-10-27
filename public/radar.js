@@ -674,6 +674,12 @@ async function registerUniversalCloneSource() {
       affiliateUrl: ""
     });
     if (box) box.textContent += "\nOrigem cadastrada como PAUSADA. O convite sozinho não fornece mensagens anteriores.";
+if (sourceType === "WHATSAPP_GROUP" && box) {
+      var setup = document.createElement("p");
+      setup.className = "muted";
+      setup.textContent = "Conector auto-hospedado possível: Evolution API. Atenção: usa sessão WhatsApp Web não oficial e pode causar restrições na conta; exige servidor e não foi conectado automaticamente. Configure o segredo WHATSAPP_CLONE_WEBHOOK_SECRET (mínimo 32 caracteres) no Hatchable e, no Evolution, o webhook https://radar-promo-brasil.hatchable.site/api/clone/whatsapp-incoming, evento MESSAGES_UPSERT e cabeçalho x-rpb-whatsapp-secret com o mesmo segredo. As ofertas capturadas entram PENDENTES para revisão; não há publicação automática.";
+      box.appendChild(setup);
+    }
     if (sourceType === "WHATSAPP_GROUP" && registered && registered.id && box) {
       var help = document.createElement("p");
       help.textContent = "Após configurar o conector, informe o JID do grupo (formato numérico terminado em @g.us). O vínculo permanecerá pausado até você ativar manualmente.";
