@@ -1,4 +1,4 @@
-import { db,scheduler } from 'hatchable';
+import { config,db,scheduler } from 'hatchable';
 import { runwayCall,geminiVideoCall } from 'lib/direct-connectors.js';
 import { clean,isRateLimit,isSetupRequired,mediaRatio,safePublicUrl } from 'lib/media.js';
 
@@ -39,7 +39,9 @@ export default async function(req,res){
   if(kind!=='VIDEO')return res.status(400).json({error:'Tipo de mídia inválido.'});
   const title=clean(b.title,220),prompt=clean(b.prompt,1400),imageUrl=safePublicUrl(b.imageUrl),ratio=mediaRatio(b.ratio,'VIDEO'),duration=[5,10].includes(Number(b.duration))?Number(b.duration):5,provider=clean(b.provider,20).toUpperCase()==='GOOGLE'?'GOOGLE':'RUNWAY';
   if(!title||!prompt)return res.status(400).json({error:'Informe o título e a descrição visual do vídeo.'});
+  if(provider==='GOOGLE'&&!imageUrl)return res.status(400).json({error:'A geração Google exige uma imagem HTTPS válida do produto.'});
   try{
+    if(provider==='GOOGLE'&&!String(await config.get('GEMINI_API_KEY')||''))throw Object.assign(new Error('GEMINI_API_KEY não configurada.'),{code:'SETUP_REQUIRED'});
     let response;
     if(provider==='GOOGLE'){
       const input=[];if(imageUrl)input.push(await geminiImageInput(imageUrl));input.push({type:'text',text:prompt});
