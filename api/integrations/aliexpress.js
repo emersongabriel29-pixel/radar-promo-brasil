@@ -159,6 +159,9 @@ export default async function handler(req,res){
       const affiliateUrl=await createAliExpressAffiliateUrl({appKey:c.appId,appSecret:c.apiSecret,trackingId:clean(req.body?.trackingId||c.trackingId,200),productUrl:req.body?.productUrl});
       return res.json({ok:true,provider:'@afilimax/aliexpress-provider',providerVersion:'0.1.0',license:'MIT',experimental:true,affiliateUrl,trackingId:clean(req.body?.trackingId||c.trackingId,200),created:true,published:false,publicationEnabled:false,note:'Provider de terceiros adaptado; API não validada com esta conta. Nenhuma oferta foi publicada.'});
     }
+    if(action==='credentialDiagnostics'){
+      return res.json({provider:'ALIEXPRESS',configured:true,appKeyPresent:Boolean(clean(c.appId,200)),appKeyLast4:clean(c.appId,200).slice(-4),appSecretPresent:Boolean(clean(c.apiSecret,4096)),trackingIdPresent:Boolean(clean(c.trackingId,200)),trackingIdLast4:clean(c.trackingId,200).slice(-4),appSignaturePresent:Boolean(clean(c.appSignature,300)),legacyApiAcknowledged:c.legacyApiAcknowledged==='true',secretsExposed:false,note:'Diagnóstico mascarado; nenhum segredo é retornado.'});
+    }
     if(action==='test'){
       try{
         const spec=build('test',req.body||{},c),data=await topRequest(c,spec.api,spec.params),result=unwrap(data,spec.api),items=normalize(listOf(result));
