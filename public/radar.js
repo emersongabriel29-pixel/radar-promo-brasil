@@ -677,7 +677,7 @@ async function registerUniversalCloneSource() {
 if (sourceType === "WHATSAPP_GROUP" && box) {
       var setup = document.createElement("p");
       setup.className = "muted";
-      setup.textContent = "Conector auto-hospedado possível: Evolution API. Atenção: usa sessão WhatsApp Web não oficial e pode causar restrições na conta; exige servidor e não foi conectado automaticamente. Configure o segredo WHATSAPP_CLONE_WEBHOOK_SECRET (mínimo 32 caracteres) no Hatchable e, no Evolution, o webhook https://radar-promo-brasil.hatchable.site/api/clone/whatsapp-incoming, evento MESSAGES_UPSERT e cabeçalho x-rpb-whatsapp-secret com o mesmo segredo. As ofertas capturadas entram PENDENTES para revisão; não há publicação automática.";
+      setup.textContent = "Conectores gratuitos auto-hospedados possíveis: OpenWA (GitHub) ou Evolution API. Ambos usam sessão WhatsApp Web não oficial e podem causar restrições na conta; exigem servidor e não foram conectados automaticamente. Configure WHATSAPP_CLONE_WEBHOOK_SECRET (mínimo 32 caracteres) no Hatchable. Para OpenWA, configure um webhook POST para https://radar-promo-brasil.hatchable.site/api/clone/whatsapp-incoming, evento message.received, e inclua o cabeçalho personalizado x-rpb-whatsapp-secret com o mesmo segredo; filtre grupos se disponível. Para Evolution, use o evento MESSAGES_UPSERT e o mesmo cabeçalho. As ofertas entram PENDENTES para revisão; nada é publicado automaticamente.";
       box.appendChild(setup);
     }
     if (sourceType === "WHATSAPP_GROUP" && registered && registered.id && box) {
