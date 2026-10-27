@@ -67,6 +67,11 @@ required = true
 description = "Segredo compartilhado para assinar as requisições entre o n8n e o Radar Promo Brasil."
 
 [[secret]]
+name = "WHATSAPP_CLONE_WEBHOOK_SECRET"
+required = false
+description = "Segredo exclusivo de pelo menos 32 caracteres para autenticar o webhook de captura do WhatsApp via Evolution API. Não reutilize tokens de WhatsApp, n8n ou outras integrações."
+
+[[secret]]
 name = "API_CREDENTIALS_MASTER_KEY"
 required = true
 description = "Chave aleatória forte com pelo menos 32 caracteres para criptografar chaves de API cadastradas por conta."
