@@ -43,7 +43,11 @@ async function topRequest(credentials, method, business={}) {
   try{data=raw?JSON.parse(raw):{};}catch{throw Object.assign(new Error('O gateway AliExpress retornou conteúdo não JSON.'),{status:502});}
   if(!response.ok)throw Object.assign(new Error('O gateway AliExpress respondeu HTTP '+response.status+'.'),{status:502});
   const error=data?.error_response;
-  if(error)throw Object.assign(new Error('AliExpress recusou a operação ('+clean(error.code||error.sub_code||'API_ERROR',60)+'). Confirme se a API Affiliate ainda está habilitada no portal e se as permissões estão ativas.'),{status:502});
+  if(error){
+    const code=clean(error.code||'API_ERROR',60),subCode=clean(error.sub_code||'',100),message=clean(error.msg||error.message||error.sub_msg||'Sem mensagem adicional do gateway.',300),requestId=clean(error.request_id||error.requestId||'',120);
+    const detail=['AliExpress recusou a operação. Código: '+code,subCode?'Subcódigo: '+subCode:'','Detalhe: '+message,requestId?'Request ID: '+requestId:''].filter(Boolean).join(' | ');
+    throw Object.assign(new Error(detail),{status:502});
+  }
   return data;
 }
 function unwrap(data, method) {
