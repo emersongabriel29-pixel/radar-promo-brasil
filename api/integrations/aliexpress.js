@@ -1,13 +1,27 @@
 import { config, db } from 'hatchable';
 import { signTopParams } from 'lib/top-signature.js';
-import { createAliExpressAffiliateUrl } from 'lib/afilimax-aliexpress-provider.js';
+import { createAliExpressAffiliateUrl, signAliExpressParams } from 'lib/afilimax-aliexpress-provider.js';
 
 export const access = 'member';
 export const methods = ['GET', 'POST'];
 
-const API_URL = 'https://eco.taobao.com/router/rest';
+const API_URL = 'https://api-sg.aliexpress.com/sync';
 const clean = (v, n=500) => String(v ?? '').trim().slice(0,n);
 const fromB64 = v => Uint8Array.from(atob(v), c => c.charCodeAt(0));
+const toB64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)));
+async function encryptionKey(accountId, usage) {
+  let master=String(await config.get('API_CREDENTIALS_MASTER_KEY')||'');
+  if(master.length<32)master=String(await config.get('CONNECTOR_ENCRYPTION_KEY')||'');
+  if(master.length<32)throw Object.assign(new Error('Configure API_CREDENTIALS_MASTER_KEY ou CONNECTOR_ENCRYPTION_KEY nos segredos do projeto.'),{status:412});
+  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(master+'|radar-marketplace-credentials|'+accountId+'|ALIEXPRESS'));
+  return crypto.subtle.importKey('raw',digest,{name:'AES-GCM'},false,usage);
+}
+async function sealCredentials(accountId, credentials) {
+  const nonce=crypto.getRandomValues(new Uint8Array(12));
+  const key=await encryptionKey(accountId,['encrypt']);
+  const encrypted=await crypto.subtle.encrypt({name:'AES-GCM',iv:nonce},key,new TextEncoder().encode(JSON.stringify(credentials)));
+  return {nonce:toB64(nonce),encrypted:toB64(encrypted)};
+}
 async function accountFor(member) {
   return (await db.query("SELECT id FROM accounts WHERE owner_member_id=$1 AND status='ACTIVE' LIMIT 1",[String(member.id)])).rows[0];
 }
@@ -32,10 +46,10 @@ async function topRequest(credentials, method, business={}) {
   const timestamp=date.toISOString().slice(0,19).replace('T',' ');
   const params={
     app_key:appKey,format:'json',method,
-    sign_method:'hmac',timestamp,v:'2.0',...business
+    sign_method:'sha256',timestamp,v:'2.0',...business
   };
   if(credentials.appSignature)params.app_signature=clean(credentials.appSignature,300);
-  params.sign=signParams(params,secret);
+  params.sign=await signAliExpressParams(params,secret);
   const body=new URLSearchParams();
   for(const [k,v] of Object.entries(params))if(v!==undefined&&v!==null&&String(v)!=='')body.set(k,String(v));
   const response=await fetch(API_URL,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded;charset=UTF-8',accept:'application/json'},body:body.toString(),signal:AbortSignal.timeout(12000)});
@@ -145,11 +159,11 @@ export default async function handler(req,res){
     if(req.method==='GET')return res.json({
       provider:'ALIEXPRESS',
       status:saved?.status||'NOT_CONFIGURED',
-      mode:'official_TOP_affiliate_legacy_compatibility',
+      mode:'aliexpress_open_platform_sync_sha256',
       capabilities:['product_search','smart_match_recommendations','hot_products','hot_product_download','product_details','categories','featured_campaigns','campaign_products','affiliate_link_generation','order_list','order_details','cursor_order_reports'],
-      apiDocumentationStatus:'LEGACY_DOCUMENTATION_MARKED_DEPRECATED',
+      apiDocumentationStatus:'OPEN_PLATFORM_SYNC_SHA256_READ_TEST_CONFIRMED',
       publicationEnabled:false,
-      note:'A documentação pública dos métodos Affiliate API está marcada como descontinuada. A validação real depende de a conta ainda ter acesso e permissões no portal. O Radar não publica ofertas automaticamente.'
+      note:'Gateway atual da Open Platform configurado com assinatura SHA-256. A validação de leitura confirmou uma consulta de produto; o Radar não publica ofertas automaticamente.'
     });
     if(req.method!=='POST')return res.status(405).json({error:'Método não permitido.'});
     if(!saved) return res.status(412).json({error:'Cadastre App Key, App Secret e Tracking ID no painel antes de usar a API.'});
@@ -166,7 +180,7 @@ export default async function handler(req,res){
       try{
         const spec=build('test',req.body||{},c),data=await topRequest(c,spec.api,spec.params),result=unwrap(data,spec.api),items=normalize(listOf(result));
         await db.query("UPDATE marketplace_api_credentials SET status='VALIDATED',last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='ALIEXPRESS'",[account.id]);
-        return res.json({ok:true,status:'VALIDATED',test:'read_only_product_search',itemsReturned:items.length,apiDocumentationStatus:'LEGACY_DOCUMENTATION_MARKED_DEPRECATED',publicationEnabled:false,note:'A consulta de leitura autenticou. Isso não garante que o AliExpress mantenha a API disponível permanentemente.'});
+        return res.json({ok:true,status:'VALIDATED',test:'read_only_product_search',itemsReturned:items.length,apiDocumentationStatus:'OPEN_PLATFORM_SYNC_SHA256_READ_TEST_CONFIRMED',publicationEnabled:false,note:'Consulta de leitura autenticada na Open Platform. Nenhuma oferta foi publicada.'});
       }catch(error){
         await db.query("UPDATE marketplace_api_credentials SET status='ERROR',last_checked_at=now(),last_error=$2,updated_at=now() WHERE account_id=$1 AND marketplace='ALIEXPRESS'",[account.id,clean(error?.message||'Falha de validação',220)]);
         throw error;
@@ -181,7 +195,7 @@ export default async function handler(req,res){
       if(!link||!/^https:\/\//i.test(link))throw Object.assign(new Error('AliExpress não retornou um link HTTPS de afiliado reconhecível.'),{status:502});
       return res.json({ok:true,affiliateUrl:link,trackingId:clean(req.body?.trackingId||c.trackingId,200),created:true,published:false,note:'Link de afiliado criado pela API; nenhuma oferta foi publicada.'});
     }
-    return res.json({ok:true,action,apiMethod:spec.api,items,total:items.length,readOnly:true,publicationEnabled:false,apiDocumentationStatus:'LEGACY_DOCUMENTATION_MARKED_DEPRECATED'});
+    return res.json({ok:true,action,apiMethod:spec.api,items,total:items.length,readOnly:true,publicationEnabled:false,apiDocumentationStatus:'OPEN_PLATFORM_SYNC_SHA256'});
   }catch(error){
     const status=Number(error?.status)||502;
     console.error('integrations/aliexpress',JSON.stringify({name:String(error?.name||'Error').slice(0,60),status}));
