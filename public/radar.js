@@ -569,6 +569,43 @@ async function inspectUniversalClone(button) {
       "\n\n" + (data.message || "Link analisado.") +
       (data.nextStep ? "\nPróximo passo: " + data.nextStep : "") +
       (data.trackingParametersPreserved ? "\nParâmetros de rastreamento preservados." : "");
+    if (["COLLSHP_STOREFRONT", "MAGALU_PUBLIC_PAGE"].includes(data.kind)) {
+      var importPath = data.kind === "COLLSHP_STOREFRONT" ? "/api/integrations/collshp-import" : "/api/integrations/magalu-clone";
+      box.textContent += "\\n\\nLendo dados públicos pela integração específica...";
+      var importResponse = await fetch(importPath, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url })
+      });
+      var imported = await importResponse.json();
+      if (!importResponse.ok || !imported.ok) throw Error(imported.error || "A integração não conseguiu ler esta página.");
+      var products = Array.isArray(imported.products) ? imported.products : [];
+      box.textContent = (data.title || "Vitrine") + "\\nStatus: LEITURA_PÚBLICA_CONCLUÍDA" +
+        "\\nTipo: " + data.kind + "\\nOrigem: " + data.host +
+        "\\nProdutos identificados: " + products.length +
+        "\\n\\n" + String(imported.note || "Produtos lidos para revisão; nenhum rascunho foi criado ou publicado.");
+      products.slice(0, 24).forEach(function(product) {
+        var row = document.createElement("div");
+        row.className = "listrow";
+        var label = document.createElement("span");
+        label.textContent = String(product.title || "Produto sem título") +
+          (product.currentPrice ? " · preço informado: " + product.currentPrice : " · preço não confirmado");
+        row.appendChild(label);
+        try {
+          var safeProductUrl = new URL(String(product.productUrl || ""));
+          if (safeProductUrl.protocol === "https:") {
+            var link = document.createElement("a");
+            link.href = safeProductUrl.toString();
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = "Abrir origem";
+            row.appendChild(link);
+          }
+        } catch {}
+        box.appendChild(row);
+      });
+      if (!products.length) box.textContent += "\\nA página abriu, mas nenhum produto foi identificado.";
+    }
     if (["WHATSAPP_INVITE", "TELEGRAM_LINK"].includes(data.kind)) {
       var action = document.createElement("button");
       action.type = "button";
