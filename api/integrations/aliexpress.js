@@ -14,8 +14,9 @@ async function accountFor(member) {
 async function credentialsFor(accountId) {
   const row=(await db.query("SELECT credentials_enc,nonce,status FROM marketplace_api_credentials WHERE account_id=$1 AND marketplace='ALIEXPRESS' LIMIT 1",[accountId])).rows[0];
   if(!row)return null;
-  const master=String(await config.get('CONNECTOR_ENCRYPTION_KEY')||'');
-  if(master.length<32)throw Object.assign(new Error('Configure CONNECTOR_ENCRYPTION_KEY nos segredos do projeto.'),{status:412});
+  let master=String(await config.get('API_CREDENTIALS_MASTER_KEY')||'');
+  if(master.length<32)master=String(await config.get('CONNECTOR_ENCRYPTION_KEY')||'');
+  if(master.length<32)throw Object.assign(new Error('Configure API_CREDENTIALS_MASTER_KEY ou CONNECTOR_ENCRYPTION_KEY nos segredos do projeto.'),{status:412});
   const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(master+'|radar-marketplace-credentials|'+accountId+'|ALIEXPRESS'));
   const key=await crypto.subtle.importKey('raw',digest,{name:'AES-GCM'},false,['decrypt']);
   const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(row.nonce)},key,fromB64(row.credentials_enc));
