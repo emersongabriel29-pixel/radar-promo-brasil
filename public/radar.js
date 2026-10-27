@@ -664,7 +664,7 @@ async function registerUniversalCloneSource() {
   if (!confirm("Você tem autorização para monitorar esta origem e conectará um conector autorizado? A fonte ficará pausada e nenhuma mensagem será enviada.")) return;
   var sourceType = data.platform === "TELEGRAM" ? "TELEGRAM_CHANNEL" : "WHATSAPP_GROUP";
   try {
-    await call("POST", {
+    var registered = await call("POST", {
       entity: "monitor",
       name: (data.title || (data.platform === "TELEGRAM" ? "Origem Telegram" : "Origem WhatsApp")).slice(0, 120),
       sourceType: sourceType,
@@ -673,11 +673,36 @@ async function registerUniversalCloneSource() {
       sourceAuthorized: true,
       affiliateUrl: ""
     });
-    if (box) box.textContent += "\\nOrigem cadastrada como PAUSADA. Para capturar mensagens, configure e valide o conector autorizado; o convite sozinho não fornece o histórico.";
+    if (box) box.textContent += "\nOrigem cadastrada como PAUSADA. O convite sozinho não fornece mensagens anteriores.";
+    if (sourceType === "WHATSAPP_GROUP" && registered && registered.id && box) {
+      var help = document.createElement("p");
+      help.textContent = "Após configurar o conector, informe o JID do grupo (formato numérico terminado em @g.us). O vínculo permanecerá pausado até você ativar manualmente.";
+      var jid = document.createElement("input");
+      jid.type = "text"; jid.className = "input"; jid.maxLength = 100; jid.placeholder = "Ex.: 120363000000000000-123456@g.us"; jid.setAttribute("aria-label", "JID do grupo WhatsApp");
+      var bind = document.createElement("button");
+      bind.type = "button"; bind.className = "btn secondary csp-margin-top-12px"; bind.textContent = "Vincular grupo (manter pausado)";
+      bind.addEventListener("click", function(){ bindUniversalWhatsAppSource(registered.id, jid, bind); });
+      box.appendChild(help); box.appendChild(jid); box.appendChild(bind);
+    }
     toast("Origem cadastrada pausada. Nenhuma mensagem foi enviada.");
   } catch (error) {
-    if (box) box.textContent += "\\nNão foi possível cadastrar a origem: " + (error.message || "erro desconhecido");
+    if (box) box.textContent += "\nNão foi possível cadastrar a origem: " + (error.message || "erro desconhecido");
   }
+}
+async function bindUniversalWhatsAppSource(monitorId, input, button) {
+  var box = document.getElementById("universalCloneResult");
+  var groupJid = String(input && input.value || "").trim();
+  if (!/^\d{6,25}-\d{4,25}@g\.us$/.test(groupJid)) { toast("Informe o JID válido do grupo WhatsApp."); return; }
+  if (button) button.disabled = true;
+  try {
+    var response = await fetch("/api/clone/whatsapp-bind", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({monitorId:monitorId,groupJid:groupJid})});
+    var result = await response.json();
+    if (!response.ok || !result.ok) throw Error(result.error || "Não foi possível vincular o grupo.");
+    if (box) box.appendChild(document.createTextNode("\nJID vinculado. A origem continua PAUSADA; nenhuma oferta será publicada automaticamente."));
+    toast("Grupo vinculado e mantido pausado.");
+  } catch (error) {
+    if (box) box.appendChild(document.createTextNode("\nFalha no vínculo: " + (error.message || "erro desconhecido")));
+  } finally { if (button) button.disabled = false; }
 }
 async function parseCopierMessage() {
   var input = document.getElementById("copierText"),
