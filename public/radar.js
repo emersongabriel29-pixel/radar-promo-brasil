@@ -614,6 +614,13 @@ async function inspectUniversalClone(button) {
       action.addEventListener("click", registerUniversalCloneDestination);
       box.appendChild(document.createElement("br"));
       box.appendChild(action);
+      var sourceAction = document.createElement("button");
+      sourceAction.type = "button";
+      sourceAction.className = "btn secondary csp-margin-top-12px";
+      sourceAction.textContent = "Registrar origem de ofertas";
+      sourceAction.addEventListener("click", registerUniversalCloneSource);
+      box.appendChild(document.createTextNode(" "));
+      box.appendChild(sourceAction);
     } else if (data.importEndpoint) {
       var hint = document.createElement("p");
       hint.textContent = "Importador dedicado: " + data.importEndpoint + ". Abra o cartão específico da integração para executar a leitura.";
@@ -646,6 +653,30 @@ async function registerUniversalCloneDestination() {
     toast("Destino registrado pausado. Nenhuma mensagem foi enviada.");
   } catch (error) {
     if (box) box.textContent += "\nNão foi possível registrar o destino: " + (error.message || "erro desconhecido");
+  }
+}
+async function registerUniversalCloneSource() {
+  var data = lastUniversalCloneInspection;
+  var box = document.getElementById("universalCloneResult");
+  if (!data || !["WHATSAPP_INVITE", "TELEGRAM_LINK"].includes(data.kind)) {
+    toast("Analise um convite de grupo/canal primeiro."); return;
+  }
+  if (!confirm("Você tem autorização para monitorar esta origem e conectará um conector autorizado? A fonte ficará pausada e nenhuma mensagem será enviada.")) return;
+  var sourceType = data.platform === "TELEGRAM" ? "TELEGRAM_CHANNEL" : "WHATSAPP_GROUP";
+  try {
+    await call("POST", {
+      entity: "monitor",
+      name: (data.title || (data.platform === "TELEGRAM" ? "Origem Telegram" : "Origem WhatsApp")).slice(0, 120),
+      sourceType: sourceType,
+      sourceUrl: data.originalUrl,
+      mode: "CLONE",
+      sourceAuthorized: true,
+      affiliateUrl: ""
+    });
+    if (box) box.textContent += "\\nOrigem cadastrada como PAUSADA. Para capturar mensagens, configure e valide o conector autorizado; o convite sozinho não fornece o histórico.";
+    toast("Origem cadastrada pausada. Nenhuma mensagem foi enviada.");
+  } catch (error) {
+    if (box) box.textContent += "\\nNão foi possível cadastrar a origem: " + (error.message || "erro desconhecido");
   }
 }
 async function parseCopierMessage() {
@@ -3370,7 +3401,7 @@ function openMonitor() {
       select(
         "Tipo",
         "sourceType",
-        '<option value="WHATSAPP_GROUP">Grupo do WhatsApp</option><option value="MARKETPLACE">Marketplace</option><option value="FEED">Feed autorizado</option>',
+        '<option value="WHATSAPP_GROUP">Grupo do WhatsApp</option><option value="TELEGRAM_CHANNEL">Grupo/canal do Telegram</option><option value="MARKETPLACE">Marketplace</option><option value="FEED">Feed autorizado</option>',
       ) +
       field("Origem HTTPS", "sourceUrl", "url", "required") +
       field('Link oficial de afiliado (anúncio Mercado Livre)', 'affiliateUrl', 'url') +
