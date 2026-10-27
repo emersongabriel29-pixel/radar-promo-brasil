@@ -1290,9 +1290,9 @@ function integrations() {
     integration(
       "ALI",
       "AliExpress Portals",
-      "Preparar App/API e tracking ID fornecidos no portal oficial.",
-      "Conectar conta",
-      "openMarketplaceSetup('ALIEXPRESS')",
+      "Conectar credenciais salvas e validar a API oficial em consulta somente leitura.",
+      "Conectar / validar",
+      "connectOrTestAliExpress()",
     ) +
     integration(
       "SHN",
@@ -4102,6 +4102,27 @@ async function openMarketplaceSetup(provider){
     });
   }catch(error){toast(error.message||'Não foi possível abrir o cadastro de credenciais.');}
 }
+// Expose the marketplace setup handler to the delegated data-action dispatcher.
+window.openMarketplaceSetup = openMarketplaceSetup;
+async function connectOrTestAliExpress(){
+  try{
+    var data=await operationRequest('/api/integrations/marketplaces');
+    var item=(data.items||[]).find(function(x){return x.id==='ALIEXPRESS';});
+    if(!item||!item.credentialFields||item.credentialFields.indexOf('appId')===-1||item.credentialFields.indexOf('apiSecret')===-1||item.credentialFields.indexOf('trackingId')===-1){
+      openMarketplaceSetup('ALIEXPRESS');
+      return;
+    }
+    if(!confirm('Executar agora uma consulta de leitura para validar a API Affiliate do AliExpress? Só prossiga se o portal confirmou que o acesso à API está aprovado/ativo. Nenhuma oferta será publicada.'))return;
+    var result=await operationRequest('/api/integrations/aliexpress',{action:'test'});
+    await load();
+    await loadMarketplaceStatus();
+    toast(result.status==='VALIDATED'?'AliExpress validado por consulta oficial de leitura. Nenhuma oferta foi publicada.':'A API respondeu, mas a validação ainda não foi confirmada.');
+  }catch(error){
+    try{await load();await loadMarketplaceStatus();}catch(_){}
+    toast('Não foi possível validar o AliExpress: '+(error.message||'confira o acesso à API e o estado das credenciais.'));
+  }
+}
+window.connectOrTestAliExpress = connectOrTestAliExpress;
 async function testLomadeeConnection(){
   try{
     var result=await operationRequest('/api/integrations/lomadee',{action:'validate'});
