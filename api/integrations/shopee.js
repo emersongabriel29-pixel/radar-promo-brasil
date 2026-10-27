@@ -62,7 +62,7 @@ function safeOfferRows(kind, result) {
       name: clean(item.productName || item.shopName || item.brandName || item.offerName, 300),
       itemId: clean(item.itemId, 80),
       shopId: clean(item.shopId, 80),
-      url: typeof (item.offerLink || item.productLink || item.originalLink) === 'string' && /^https:\/\//i.test(item.offerLink || item.productLink || item.originalLink) ? String(item.offerLink || item.productLink || item.originalLink).slice(0, 2000) : '',
+      url: typeof (item.offerLink || item.productLink) === 'string' && /^https:\/\//i.test(item.offerLink || item.productLink) ? String(item.offerLink || item.productLink).slice(0, 2000) : '',
       originalUrl: typeof (item.originalLink || item.productLink) === 'string' && /^https:\/\//i.test(item.originalLink || item.productLink) ? String(item.originalLink || item.productLink).slice(0, 2000) : '',
       price: item.priceMin == null ? null : Number(item.priceMin),
       maxPrice: item.priceMax == null ? null : Number(item.priceMax),
