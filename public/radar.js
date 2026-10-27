@@ -698,7 +698,7 @@ if (sourceType === "WHATSAPP_GROUP" && box) {
 async function bindUniversalWhatsAppSource(monitorId, input, button) {
   var box = document.getElementById("universalCloneResult");
   var groupJid = String(input && input.value || "").trim();
-  if (!/^\d{6,25}-\d{4,25}@g\.us$/.test(groupJid)) { toast("Informe o JID válido do grupo WhatsApp."); return; }
+  if (!/^\d{6,30}(?:-\d{4,25})?@g\.us$/.test(groupJid)) { toast("Informe o JID válido do grupo WhatsApp."); return; }
   if (button) button.disabled = true;
   try {
     var response = await fetch("/api/clone/whatsapp-bind", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({monitorId:monitorId,groupJid:groupJid})});
