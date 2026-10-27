@@ -11,7 +11,7 @@ export default async function(req,res){
     const account=await getOrCreateAccount(req.member);
     const monitorId=clean(req.body?.monitorId,100);
     const groupJid=clean(req.body?.groupJid,100);
-    if(!monitorId||!/^\d{6,25}-\d{4,25}@g\.us$/.test(groupJid)){
+    if(!monitorId||!/^\d{6,30}(?:-\d{4,25})?@g\.us$/.test(groupJid)){
       return res.status(400).json({ok:false,error:'Informe um monitor e o identificador do grupo WhatsApp no formato numérico terminado em @g.us.'});
     }
     const result=await db.query(
