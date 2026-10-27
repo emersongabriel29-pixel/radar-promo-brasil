@@ -17,7 +17,7 @@ function equalSecret(a,b){
   let diff=0;for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);
   return diff===0;
 }
-function messageText(message){
+function evolutionMessageText(message){
   const m=message||{};
   return String(m.conversation||m.extendedTextMessage?.text||m.imageMessage?.caption||m.videoMessage?.caption||m.documentMessage?.caption||m.documentWithCaptionMessage?.message?.documentMessage?.caption||'').slice(0,12000);
 }
@@ -31,14 +31,18 @@ export default async function(req,res){
 
     const body=req.body||{};
     const event=String(body.event||body.type||'').toLowerCase().replace(/_/g,'.');
-    if(event&&!['messages.upsert','messages.upsert.message','message'].includes(event))return res.json({ok:true,ignored:true,reason:'Evento não é uma nova mensagem.'});
+    const openWa=event==='message.received';
+    if(event&&!openWa&&!['messages.upsert','messages.upsert.message','message'].includes(event))return res.json({ok:true,ignored:true,reason:'Evento não é uma nova mensagem.'});
+
     const data=body.data||body;
     const key=data.key||{};
-    const groupJid=String(key.remoteJid||data.remoteJid||'');
+    // Evolution API sends key.remoteJid + key.id + message object.
+    // OpenWA sends data.chatId, data.id/idempotencyKey, data.body and data.isGroup.
+    const groupJid=String(openWa?(data.chatId||(data.isGroup===true?data.from:'')):(key.remoteJid||data.remoteJid||''));
     if(!groupJid.endsWith('@g.us'))return res.json({ok:true,ignored:true,reason:'Mensagem não pertence a um grupo WhatsApp.'});
     if(key.fromMe===true||data.fromMe===true)return res.json({ok:true,ignored:true,reason:'Mensagem enviada pela própria conta.'});
-    const text=messageText(data.message||{});
-    if(!text.trim())return res.json({ok:true,ignored:true,reason:'Mensagem sem texto ou legenda.'});
+    const text=(openWa?String(data.body||data.caption||'').slice(0,12000):evolutionMessageText(data.message||{})).trim();
+    if(!text)return res.json({ok:true,ignored:true,reason:'Mensagem sem texto ou legenda.'});
 
     const monitors=(await db.query(
       "SELECT id,account_id AS \"accountId\",name FROM monitors WHERE source_type='WHATSAPP_GROUP' AND source_authorized=true AND status='ACTIVE' AND external_source_id=$1 ORDER BY created_at DESC LIMIT 2",
@@ -47,7 +51,7 @@ export default async function(req,res){
     if(!monitors.length)return res.json({ok:true,ignored:true,reason:'Grupo não está vinculado a uma origem WhatsApp autorizada e ativa no Radar.'});
     if(monitors.length>1)return res.status(409).json({ok:false,error:'Grupo associado a mais de uma origem. Importação bloqueada para evitar mistura entre contas.'});
 
-    const messageId=clean(key.id||data.id||body.id,180);
+    const messageId=clean((openWa?(data.idempotencyKey||data.id||body.id):(key.id||data.id||body.id)),180);
     if(!messageId)return res.status(400).json({ok:false,error:'Mensagem sem identificador para deduplicação.'});
     const accountId=monitors[0].accountId;
     const eventKey=groupJid+':'+messageId;
