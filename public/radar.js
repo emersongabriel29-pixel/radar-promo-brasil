@@ -539,9 +539,77 @@ function cloneView() {
     '<div class="card"><h3>Espelhamento inteligente 24h</h3><p class="muted">Abra os monitores e confira fontes, status e captura. A captura depende da fonte e das permissões configuradas.</p><button class="btn secondary" type="button" data-action="show(\'monitoring\')">Abrir monitoramento</button></div>' +
     '<div class="card"><h3>Validar links SHEIN em lote</h3><p class="muted">Cole uma mensagem e valide os links sem salvar; se desejar, crie rascunhos pendentes para revisão.</p><button class="btn secondary" type="button" data-action="openSheinTools()">Abrir ferramentas SHEIN</button></div>' +
     '<div class="card"><h3>Importar vitrine Collshp</h3><p class="muted">Lê os produtos públicos da sua vitrine. Os links retornados são candidatos e não têm comissão verificada.</p><label for="collshpCloneUrl">URL pública da vitrine</label><input class="input" id="collshpCloneUrl" type="url" maxlength="500" value="https://collshp.com/emersongabriel291295?view=storefront" placeholder="https://collshp.com/sua-vitrine"><button class="btn secondary csp-margin-top-12px" type="button" data-action="inspectCollshpClone(this)">Ler vitrine</button><div id="collshpCloneResult" class="callout csp-hidden csp-margin-top-12px" role="status"></div></div>' +
+    '<div class="card"><h3>Importador universal de links</h3><p class="muted">Reconhece convites WhatsApp/Telegram, vitrines e links de produto/afiliado. Grupos ficam pausados até que a conexão autorizada seja validada. Nenhuma mensagem é enviada.</p><label for="universalCloneUrl">Cole qualquer link de origem</label><input class="input" id="universalCloneUrl" type="url" maxlength="2000" placeholder="https://chat.whatsapp.com/... ou https://t.me/..."><button class="btn csp-margin-top-12px" type="button" data-action="inspectUniversalClone(this)">Analisar link</button><div id="universalCloneResult" class="callout csp-hidden csp-margin-top-12px" role="status"></div></div>' +
     '<div class="card"><h3>Clone sob demanda</h3><p class="muted">Analise um link, revise os dados e prepare uma oferta manualmente. A conversão só é considerada afiliada quando confirmada pelo programa oficial.</p><button class="btn secondary" type="button" data-action="show(\'quick\')">Abrir criação rápida</button></div>' +
     '<div class="card"><h3>Modo Copiador de mensagens</h3><p class="muted">Cole uma mensagem de oferta para extrair título, preços, cupom e link de origem. O Radar prepara um rascunho para revisão; não publica nada automaticamente.</p><div class="field"><label for="copierText">Mensagem copiada</label><textarea class="input" id="copierText" rows="7" maxlength="6000" placeholder="Cole aqui o texto da oferta, incluindo preços e links..."></textarea></div><div class="field"><label for="copierAffiliateUrl">Link oficial de afiliado</label><input class="input" id="copierAffiliateUrl" type="url" maxlength="1200" placeholder="Cole o link gerado pelo programa oficial"></div><button class="btn csp-margin-top-12px" type="button" data-action="parseCopierMessage()">Analisar e preparar rascunho</button><div id="copierResult" class="callout csp-hidden csp-margin-top-12px" role="status"></div></div><div class="card"><h3>Fila e agendamento</h3><p class="muted">Organize rascunhos aprovados, horários, intervalos e prioridade. O envio real depende do conector e do destino validados.</p><button class="btn secondary" type="button" data-action="show(\'publishing\')">Abrir filas e agendamento</button></div></div></section>'
   );
+}
+var lastUniversalCloneInspection = null;
+async function inspectUniversalClone(button) {
+  var input = document.getElementById("universalCloneUrl");
+  var box = document.getElementById("universalCloneResult");
+  if (!input || !box) return;
+  var url = input.value.trim();
+  if (!url) { toast("Cole um link antes de analisar."); return; }
+  if (button) button.disabled = true;
+  box.classList.remove("csp-hidden");
+  box.textContent = "Analisando tipo e requisitos do link; nada será salvo ou publicado...";
+  lastUniversalCloneInspection = null;
+  try {
+    var response = await fetch("/api/clone/inspect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: url })
+    });
+    var data = await response.json();
+    if (!response.ok || !data.ok) throw Error(data.error || "Não foi possível analisar o link.");
+    lastUniversalCloneInspection = data;
+    box.textContent = (data.title || "Link reconhecido") + "\nStatus: " + (data.status || "ANALISADO") +
+      "\nTipo: " + data.kind + "\nOrigem: " + data.host +
+      "\n\n" + (data.message || "Link analisado.") +
+      (data.nextStep ? "\nPróximo passo: " + data.nextStep : "") +
+      (data.trackingParametersPreserved ? "\nParâmetros de rastreamento preservados." : "");
+    if (["WHATSAPP_INVITE", "TELEGRAM_LINK"].includes(data.kind)) {
+      var action = document.createElement("button");
+      action.type = "button";
+      action.className = "btn secondary csp-margin-top-12px";
+      action.textContent = "Registrar destino pausado";
+      action.addEventListener("click", registerUniversalCloneDestination);
+      box.appendChild(document.createElement("br"));
+      box.appendChild(action);
+    } else if (data.importEndpoint) {
+      var hint = document.createElement("p");
+      hint.textContent = "Importador dedicado: " + data.importEndpoint + ". Abra o cartão específico da integração para executar a leitura.";
+      box.appendChild(hint);
+    }
+  } catch (error) {
+    box.textContent = error.message || "Falha ao analisar o link.";
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+async function registerUniversalCloneDestination() {
+  var data = lastUniversalCloneInspection;
+  var box = document.getElementById("universalCloneResult");
+  if (!data || !["WHATSAPP_INVITE", "TELEGRAM_LINK"].includes(data.kind)) {
+    toast("Analise um convite válido primeiro."); return;
+  }
+  var name = data.title || (data.platform === "TELEGRAM" ? "Destino Telegram importado" : "Grupo WhatsApp importado");
+  try {
+    await call("POST", {
+      name: name.slice(0, 100),
+      platform: data.platform,
+      destinationType: "GROUP",
+      inviteUrl: data.originalUrl,
+      externalId: "",
+      members: 0,
+      capacity: 1024
+    }, "?entity=group");
+    if (box) box.textContent = "Destino registrado como PAUSADO. O convite foi preservado; ainda é necessário validar a conexão autorizada e informar o ID oficial antes de ativar a captura ou publicar.";
+    toast("Destino registrado pausado. Nenhuma mensagem foi enviada.");
+  } catch (error) {
+    if (box) box.textContent += "\nNão foi possível registrar o destino: " + (error.message || "erro desconhecido");
+  }
 }
 async function parseCopierMessage() {
   var input = document.getElementById("copierText"),
