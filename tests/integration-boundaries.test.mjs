@@ -67,6 +67,6 @@ test('adaptador Telegram tolera links/cupom ausentes sem inventar redirecionamen
 test('cada integração deve ter documentação de fronteira e migração gradual', () => {
   const guide = fs.readFileSync(path.join(root, 'integrations/README.md'), 'utf8');
   assert.match(guide, /uma integração por PR/i);
-  assert.match(guide, /Preservar a URL de afiliado original/i);
+  assert.match(guide, /preservar a URL de afiliado original/i);
   assert.match(guide, /testes/i);
 });
