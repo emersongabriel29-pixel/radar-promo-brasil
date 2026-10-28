@@ -132,6 +132,14 @@ path = "/api/jobs/marketplace-ingestion"
 schedule = "0 * * * *"
 
 [[cron]]
+path = "/api/jobs/lomadee"
+schedule = "15 * * * *"
+
+[[cron]]
+path = "/api/jobs/aliexpress-review"
+schedule = "45 * * * *"
+
+[[cron]]
 path = "/api/jobs/telegram"
 schedule = "0 * * * *"
 
