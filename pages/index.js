@@ -13,7 +13,7 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/radar.css?v=20261016-v6" />
-    <link rel="stylesheet" href="/radar-theme-v5.css?v=20261016-v6" />
+    <link rel="stylesheet" href="/radar-theme-v5.css?v=20261019-offers-workspace-v1" />
   </head>
   <body><a class="skip-link" href="#content">Ir para o conteúdo</a>
     <div class="app">
@@ -33,6 +33,6 @@ export default function(req,res){res.setHeader('Content-Type','text/html; charse
     </div>
     <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalHint" aria-hidden="true"><div class="dialog"><div class="sectionhead csp-margin-top-0"><div><h2 id="modalTitle"></h2><p id="modalHint"></p></div><button class="btn secondary" data-action="closeModal()">Fechar</button></div><form class="form" id="form"></form></div></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="/radar.js?v=20261016-v7" defer></script>
+    <script src="/radar.js?v=20261027-shopee-connect-fix-v1" defer></script>
   </body>
 </html>`);}
