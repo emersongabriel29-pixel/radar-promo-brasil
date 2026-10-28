@@ -11,6 +11,7 @@ var D = {
     leadStats: [],
     activity: [],
     integrations: [],
+    integrationHealth: { items: [], interval: "hourly", alert: false },
     automation: {},
     suite: {
       marketplaces: [],
@@ -427,26 +428,36 @@ function dashboard() {
   );
 }
 function integrationHealthPanel() {
-  var items = (D.integrations || []).slice(0, 6);
+  var health = D.integrationHealth || {};
+  var items = Array.isArray(health.items) ? health.items.slice(0, 6) : [];
   var rows = items.map(function (item) {
-    var status = String(item.status || "").trim();
+    var status = String(item.status || "NOT_REPORTED").trim();
     var details = String(item.details || "").trim();
     var checked = item.lastCheckedAt ? new Date(item.lastCheckedAt) : null;
     var checkedLabel = checked && !Number.isNaN(checked.getTime())
       ? "Verificado em " + checked.toLocaleString("pt-BR")
       : "Sem horário de verificação registrado";
+    var statusLabel = status === "CONNECTED" ? "CONECTADO"
+      : status === "ERROR" ? "FALHA"
+      : status === "NOT_CONFIGURED" ? "NÃO CONFIGURADO"
+      : status === "PENDING_VALIDATION" ? "PENDENTE DE VALIDAÇÃO"
+      : status;
     return '<li><i class="a-dot"></i><div><b>' +
       esc(item.name || "Integração sem nome") +
       '</b><div class="muted">' + esc(details || "Sem detalhes de diagnóstico registrados.") +
       '</div><small class="muted">' + esc(checkedLabel) +
-      '</small></div><span class="pill">' + esc(status || "NÃO INFORMADO") + '</span></li>';
+      '</small></div><span class="pill">' + esc(statusLabel) + '</span></li>';
   }).join("");
+  var alert = health.alert
+    ? '<p role="alert" class="partial-error">O monitoramento registrou uma falha. Confira os detalhes antes de confiar na conexão.</p>'
+    : "";
+  var interval = health.interval ? " Frequência informada: " + String(health.interval) + "." : "";
   return section(
     "Saúde das integrações",
-    "Resumo do estado registrado pelo Radar. Um estado cadastrado não comprova, sozinho, uma operação externa bem-sucedida."
-  ) + '<div class="card"><ul class="activity">' +
-    (rows || '<li><i class="a-dot"></i><div><b>Nenhum diagnóstico registrado</b><div class="muted">Revise os conectores em Configurações; não há dados suficientes para confirmar o estado.</div></div></li>') +
-    '</ul></div>';
+    "Diagnóstico automático registrado pelo Radar. Conectado não significa que uma publicação foi testada ou enviada."
+  ) + alert + '<div class="card"><ul class="activity">' +
+    (rows || '<li><i class="a-dot"></i><div><b>Nenhum diagnóstico registrado</b><div class="muted">Aguardando dados do monitor de saúde; não há confirmação de funcionamento externo.</div></div></li>') +
+    '</ul><small class="muted">' + esc(interval) + '</small></div>';
 }
 function metric(a, b, c) {
   return (
@@ -3824,8 +3835,8 @@ async function loadNow(){
   try{
     var data=await readJSON('/api/data');
     // Serialize dashboard reads to avoid bursts against the project's shared DB query limit.
-    var paths=['/api/suite','/api/reports?days='+reportDays,'/api/growth','/api/social/autopilot','/api/compliance/messaging?days=7','/api/readiness'];
-    var keys=['suite','reportsData','growth','social','compliance','readiness'],failures=[];
+    var paths=['/api/suite','/api/reports?days='+reportDays,'/api/growth','/api/social/autopilot','/api/compliance/messaging?days=7','/api/readiness','/api/integrations/health-summary'];
+    var keys=['suite','reportsData','growth','social','compliance','readiness','integrationHealth'],failures=[];
     for(var index=0;index<paths.length;index++){
       try{data[keys[index]]=await readJSON(paths[index]);}
       catch(error){data[keys[index]]=D[keys[index]];failures.push(keys[index]);}
