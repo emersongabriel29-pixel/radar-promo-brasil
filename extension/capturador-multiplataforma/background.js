@@ -1,0 +1,5 @@
+chrome.runtime.onMessage.addListener((m,_s,reply)=>{
+ if(m?.type==="SAVE_OFFER"){chrome.storage.local.get({offers:[]},d=>{const offers=d.offers||[],o=m.offer||{},key=o.productUrl||o.sourceUrl,i=offers.findIndex(x=>(x.productUrl||x.sourceUrl)===key);const item={...o,id:o.id||crypto.randomUUID(),savedAt:new Date().toISOString()};if(i>=0)offers[i]={...offers[i],...item};else offers.unshift(item);chrome.storage.local.set({offers},()=>reply({ok:true,count:offers.length,updated:i>=0}));});return true;}
+ if(m?.type==="GET_OFFERS"){chrome.storage.local.get({offers:[]},d=>reply({offers:d.offers||[]}));return true;}
+ if(m?.type==="DELETE_OFFER"){chrome.storage.local.get({offers:[]},d=>{const offers=(d.offers||[]).filter(x=>x.id!==m.id);chrome.storage.local.set({offers},()=>reply({ok:true,offers}));});return true;}
+});
