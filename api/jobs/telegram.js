@@ -2,6 +2,7 @@ import { db,config } from 'hatchable';
 import { configuredBotToken,sendTelegramOffer } from 'lib/telegram.js';
 import { eligiblePublication,claimPublication } from 'lib/delivery.js';
 import {offerImage} from 'lib/offer-images.js';
+import { prepareTelegramOfferLinks } from '../../integrations/telegram/affiliate-link.js';
 export const access='scheduler';
 export const methods=['POST'];
 
@@ -18,8 +19,8 @@ export default async function(req,res){
       let providerAccepted=false;
       try{
         const token=await configuredBotToken(connection.secretSlot,item.accountId);
-        const effectiveAffiliate=String(item.affiliateUrl||'').trim(),baseMessage=String(item.message||''),couponUrl=String(item.couponUrl||'').trim(),trackedMessage=item.couponCode&&couponUrl&&!baseMessage.includes(couponUrl)?baseMessage+String.fromCharCode(10,10)+'🎟️ Resgate o cupom aqui: '+couponUrl:baseMessage;
-        const external=await sendTelegramOffer(token,{...item,imageUrl:item.contentType==='MESSAGE'?null:new URL(await offerImage(item,{publicAccess:true}),origin).toString(),message:trackedMessage,affiliateUrl:effectiveAffiliate});
+        const { affiliateUrl, message: trackedMessage } = prepareTelegramOfferLinks(item);
+        const external=await sendTelegramOffer(token,{...item,imageUrl:item.contentType==='MESSAGE'?null:new URL(await offerImage(item,{publicAccess:true}),origin).toString(),message:trackedMessage,affiliateUrl});
         providerAccepted=true;
         await db.transaction([
           {sql:"UPDATE publications SET status='PUBLISHED',published_at=now(),error_message=NULL,telegram_connection_id=$3,external_message_id=$4 WHERE id=$1 AND account_id=$2 AND status='DISPATCHING'",params:[item.id,item.accountId,connection.id,String(external?.message_id||'')]},
