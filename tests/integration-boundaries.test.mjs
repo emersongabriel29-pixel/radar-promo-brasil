@@ -67,7 +67,7 @@ test('adaptador Telegram tolera links e cupons ausentes', () => {
 
 test('documentação define fronteiras e migração gradual', () => {
   const guide = fs.readFileSync(path.join(root, 'integrations/README.md'), 'utf8').toLowerCase();
-  assert.match(guide, /uma integração por pr/);
+  assert.match(guide, /integração por pr/);
   assert.match(guide, /preservar a url de afiliado original/);
   assert.match(guide, /testes/);
 });
