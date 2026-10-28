@@ -1,6 +1,6 @@
 (() => {
   if (window.__radarCaptureLoaded) return; window.__radarCaptureLoaded = true;
-  const clean = v => String(v || "").replace(/\\s+/g," ").trim();
+  const clean = v => String(v || "").replace(/\s+/g," ").trim();
   const meta = (...sels) => { for (const s of sels) { const e=document.querySelector(s); const v=e?.content || ""; if(clean(v)) return clean(v); } return ""; };
   const txt = (...sels) => { for (const s of sels) { const e=document.querySelector(s); const v=e?.innerText || e?.textContent || ""; if(clean(v)) return clean(v); } return ""; };
   const platform = () => { const h=location.hostname; if(/mercadolivre|mercadolibre/.test(h)) return "Mercado Livre"; if(h.includes("amazon")) return "Amazon"; if(h.includes("temu")) return "Temu"; if(h.includes("shein")) return "SHEIN"; if(/magazineluiza|magalu/.test(h)) return "Magalu"; return "Outra"; };
