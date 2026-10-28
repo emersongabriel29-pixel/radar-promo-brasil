@@ -217,7 +217,7 @@ export default async function handler(req,res){
       fallback={used:true,requestedAction:action,actualApi:fallbackSpec.api,reason:'A API avançada recusou a operação por falta de permissão; foi usada a busca padrão de produtos. Os itens não são garantidos como produtos em alta nem como correspondência inteligente.',keyword:fallbackSpec.params.keywords||null};
     }
     if(action==='importOffers'){
-      const minDiscount=Math.max(0,Math.min(90,Number(req.body?.minDiscountPercent??10)||0));
+      const minDiscount=Math.max(0,Math.min(90,Number(req.body?.minDiscountPercent??0)||0));
       const minCommission=Math.max(0,Math.min(100,Number(req.body?.minCommissionRate??3)||0));
       const maxRating=Math.max(0,Math.min(100,Number(req.body?.minimumRating??90)||0));
       const cats=(await db.query('SELECT id,name FROM categories WHERE account_id=$1 ORDER BY name',[account.id])).rows;
