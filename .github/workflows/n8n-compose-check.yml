@@ -1,0 +1,29 @@
+name: n8n deployment config
+
+on:
+  pull_request:
+    paths:
+      - 'deploy/n8n/**'
+      - '.github/workflows/n8n-compose-check.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/n8n/**'
+      - '.github/workflows/n8n-compose-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  compose-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Docker Compose configuration
+        run: docker compose --env-file deploy/n8n/.env.example -f deploy/n8n/docker-compose.yml config --quiet
+      - name: Ensure real environment file is not tracked
+        run: |
+          if git ls-files --error-unmatch deploy/n8n/.env >/dev/null 2>&1; then
+            echo 'Production .env must never be committed.' >&2
+            exit 1
+          fi
