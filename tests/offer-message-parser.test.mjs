@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseOfferMessage } from '../lib/offer-message-parser.js';
+import { parseOfferMessage, parseOfferMessageBatch } from '../lib/offer-message-parser.js';
 
 test('interpreta oferta brasileira com preço anterior, preço atual e tag Amazon',()=>{
   const result=parseOfferMessage('🔥 Fone Bluetooth JBL\nDe: R$ 199,90\nPor: R$ 99,90\n50% OFF\nhttps://www.amazon.com.br/dp/B0TEST?tag=radarpromo-20');
@@ -57,4 +57,29 @@ test('não aceita URL HTTP como link de produto',()=>{
   const result=parseOfferMessage('Fone Bluetooth JBL\nPor R$ 99,90\nhttp://www.amazon.com.br/dp/B0TEST?tag=radarpromo-20');
   assert.equal(result.ok,false);
   assert.equal(result.marketplace,'');
+});
+
+test('identifica várias ofertas completas coladas em blocos separados',()=>{
+  const result=parseOfferMessageBatch('Fone Bluetooth JBL\nPor R$ 99,90\nhttps://www.amazon.com.br/dp/B0TEST?tag=radarpromo-20\n\nAir Fryer 4L\nDe R$ 399,90\nPor R$ 249,90\nhttps://www.magazineluiza.com.br/p/123');
+  assert.equal(result.multiple,true);
+  assert.equal(result.items.length,2);
+  assert.equal(result.items[0].title,'Fone Bluetooth JBL');
+  assert.equal(result.items[1].marketplace,'MAGALU');
+  assert.equal(result.items.every(item=>item.requiresManualReview),true);
+});
+
+test('mantém o fluxo unitário se o texto não contiver duas ofertas identificáveis',()=>{
+  const text='Air Fryer 4L\n\nDe R$ 399,90\nPor R$ 249,90\nhttps://www.magazineluiza.com.br/p/123';
+  const result=parseOfferMessageBatch(text);
+  assert.equal(result.multiple,false);
+  assert.equal(result.items.length,1);
+  assert.equal(result.items[0].title,'Air Fryer 4L');
+});
+
+test('limita lote a dez blocos e informa quantos ficaram de fora',()=>{
+  const text=Array.from({length:11},(_,index)=>`Produto ${index}\nPor R$ 2${index},90\nhttps://www.amazon.com.br/dp/B0TEST${index}?tag=radarpromo-20`).join('\n\n');
+  const result=parseOfferMessageBatch(text);
+  assert.equal(result.multiple,true);
+  assert.equal(result.items.length,10);
+  assert.equal(result.omitted,1);
 });

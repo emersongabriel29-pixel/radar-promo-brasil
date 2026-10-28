@@ -64,14 +64,17 @@ var D = {
   current = "dashboard",
   selected = null,
   reportDays = 30;
+var pendingCopierPrefill = null;
+var pendingCopierBatch = [];
+var copierBatchOmitted = 0;
 var NAV = [
-  ["dashboard", "Central", "DB"],
-  ["radar", "Radar", "RD"],
-  ["offers", "Ofertas", "OF"],
-  ["publishing", "Publicações", "PB"],
-  ["channels", "Canais", "CN"],
-  ["reports", "Relatórios", "BI"],
-  ["settings", "Configurações", "CT"],
+  ["dashboard", "Central", "DB", "Operação"],
+  ["radar", "Radar", "RD", "Operação"],
+  ["offers", "Ofertas", "OF", "Operação"],
+  ["publishing", "Publicações", "PB", "Operação"],
+  ["channels", "Canais", "CN", "Análise"],
+  ["reports", "Relatórios", "BI", "Análise"],
+  ["settings", "Configurações", "CT", "Gestão"],
 ];
 var GROUPS = {
   radar: [
@@ -82,6 +85,7 @@ var GROUPS = {
   offers: [
     ["offers", "Ofertas e cupons", "OF", "offers"],
     ["curator", "Curador de ofertas", "IA", "curatorView"],
+    ["ia-central", "IA Central", "IC", "aiCentralView"],
     ["studio", "Estúdio de IA", "AI", "studio"],
     ["growth", "Tráfego e redes sociais", "AD", "growth"],
     ["socialagent", "Agente Radar Social", "RS", "socialAgent"],
@@ -143,7 +147,39 @@ function off(id) {
     return x.id === id;
   });
 }
+var OFFER_CATEGORIES = [
+  { id: "catalog", title: "Ofertas", description: "Catálogo e curadoria", views: ["offers", "curator"] },
+  { id: "ai", title: "IA", description: "Coordenação, conteúdo, arte e vídeo", views: ["ia-central", "studio"] },
+  { id: "social", title: "Redes e campanhas", description: "Canais, anúncios e posts", views: ["growth", "socialagent"] },
+];
+function offerCategoryForView(view) {
+  var category = OFFER_CATEGORIES.find(function (item) { return item.views.indexOf(view) !== -1; });
+  return category ? category.id : "catalog";
+}
+function switchOfferCategory(categoryId) {
+  var category = OFFER_CATEGORIES.find(function (item) { return item.id === categoryId; });
+  if (!category) return;
+  selectedGroups.offerCategory = category.id;
+  show(category.views[0]);
+}
+function offersWorkspace() {
+  var category = OFFER_CATEGORIES.find(function (item) { return item.id === selectedGroups.offerCategory; }) || OFFER_CATEGORIES[0],
+    items = GROUPS.offers || [],
+    visibleItems = items.filter(function (item) { return category.views.indexOf(item[0]) !== -1; }),
+    active = visibleItems.find(function (item) { return item[0] === selectedGroups.offers; }) || visibleItems[0];
+  return '<div class="offers-workspace"><aside class="offers-rail" aria-label="Organização de Ofertas"><div class="offers-rail-intro"><span class="offers-kicker">ACESSO RÁPIDO</span><h2>Explore o Radar</h2><p>Ofertas, inteligência artificial, redes e campanhas em áreas separadas.</p></div><nav class="offers-categories" aria-label="Categorias de Ofertas">' +
+    OFFER_CATEGORIES.map(function (item) {
+      return '<button class="offers-category category-' + item.id + ' ' + (item.id === category.id ? "on" : "") + '" type="button" aria-pressed="' + (item.id === category.id) + '" data-action="switchOfferCategory(\'' + item.id + '\')"><span class="offers-category-mark" aria-hidden="true">' + (item.id === "catalog" ? "01" : item.id === "ai" ? "02" : "03") + '</span><span class="offers-category-copy"><b>' + item.title + '</b><small>' + item.description + '</small></span><span class="offers-category-arrow" aria-hidden="true">›</span></button>';
+    }).join("") +
+    '</nav><div class="offers-rail-divider"></div><div class="offers-destinations" aria-label="Telas de ' + category.title + '"><h3>' + category.title + '</h3>' +
+    visibleItems.map(function (item) {
+      return '<button type="button" class="group-tab offers-view-tab ' + (item[0] === active[0] ? "on" : "") + '" aria-current="' + (item[0] === active[0] ? "page" : "false") + '" data-action="switchGroup(\'offers\',\'' + item[0] + '\')"><span class="ico" aria-hidden="true">' + item[2] + '</span><span>' + item[1] + '</span></button>';
+    }).join("") +
+    (category.id === "ai" ? '<a class="offers-video-link" href="/radar-video-ia"><span class="offers-video-icon" aria-hidden="true">▶</span><span><b>Radar Vídeo IA</b><small>Roteiros e geração de vídeo</small></span><span aria-hidden="true">↗</span></a>' : "") +
+    '</div><div class="offers-rail-foot">Todos os recursos e conexões da conta continuam disponíveis.</div></aside><section class="offers-content" id="group-panel" aria-label="' + active[1] + '">' + window[active[3]]() + '</section></div>';
+}
 function groupPage(key) {
+  if (key === "offers") return offersWorkspace();
   var items = GROUPS[key] || [],
     active = items.find(function(x){return x[0]===selectedGroups[key]}) || items[0],
     tabs = items
@@ -171,12 +207,21 @@ function groupPage(key) {
     "</div>"
   );
 }
+function aiCentralView() {
+  return section("IA Central", "Uma visão consultiva para priorizar melhorias em todo o Radar. Ela reúne estados agregados e prepara um plano para revisão humana.") +
+    '<div class="grid two ai-central-layout"><div class="card"><h3>Defina o objetivo</h3><div class="field"><label for="motherObjective">Objetivo da análise</label><textarea id="motherObjective" class="input" rows="4" maxlength="500" placeholder="Ex.: reduzir ofertas sem preço verificado e melhorar a fila de publicação"></textarea></div>' +
+    '<div class="formgrid">' + select("Modelo de IA", "motherModel", '<option value="gemini">Google Gemini</option><option value="gpt-mini">OpenAI rápido</option><option value="gpt">OpenAI avançado</option><option value="haiku">Claude rápido</option><option value="sonnet">Claude avançado</option>') + '</div>' +
+    '<div class="callout">A consulta envia apenas contagens e estados agregados desta conta. O modelo escolhido pode consumir cota ou gerar custo. A IA Central prepara recomendações; não altera ofertas, configurações, filas ou publicações.</div><div class="actions"><button class="btn" type="button" data-action="generateMotherPlan()">Analisar panorama e preparar plano</button></div></div>' +
+    '<div class="card"><h3>Como a IA Central trabalha</h3><div class="steps ai-central-steps"><div class="step"><i>01</i><b>Consulta estados agregados</b></div><div class="step"><i>02</i><b>Organiza prioridades</b></div><div class="step"><i>03</i><b>Explica limitações</b></div><div class="step"><i>04</i><b>Entrega para revisão humana</b></div></div><p class="muted csp-margin-top-14px">Curador, Estúdio de IA, Radar Vídeo IA e Agente Radar Social continuam disponíveis como ferramentas especializadas.</p></div></div>' +
+    '<section class="sectionhead"><div><h2>Plano consultivo</h2><p id="motherPlanStatus" role="status" aria-live="polite">Nenhuma consulta executada.</p></div></section><div id="motherPlanResult" class="grid two" aria-live="polite"></div>';
+}
 function switchGroup(key, id) {
   var item = (GROUPS[key] || []).find(function (n) {
     return n[0] === id;
   });
   if (!item) return;
   selectedGroups[key]=id;
+  if(key==="offers")selectedGroups.offerCategory=offerCategoryForView(id);
   history.replaceState(null,'','#'+id);
   document.querySelectorAll(".group-tab").forEach(function (b) {
     b.classList.toggle("on", b.textContent.trim().includes(item[1]));
@@ -541,7 +586,7 @@ function cloneView() {
     '<div class="card"><h3>Importar vitrine Collshp</h3><p class="muted">Lê os produtos públicos da sua vitrine. Os links retornados são candidatos e não têm comissão verificada.</p><label for="collshpCloneUrl">URL pública da vitrine</label><input class="input" id="collshpCloneUrl" type="url" maxlength="500" value="https://collshp.com/emersongabriel291295?view=storefront" placeholder="https://collshp.com/sua-vitrine"><button class="btn secondary csp-margin-top-12px" type="button" data-action="inspectCollshpClone(this)">Ler vitrine</button><div id="collshpCloneResult" class="callout csp-hidden csp-margin-top-12px" role="status"></div></div>' +
     '<div class="card"><h3>Importador universal de links</h3><p class="muted">Reconhece convites WhatsApp/Telegram, vitrines e links de produto/afiliado. Grupos ficam pausados até que a conexão autorizada seja validada. Nenhuma mensagem é enviada.</p><label for="universalCloneUrl">Cole qualquer link de origem</label><input class="input" id="universalCloneUrl" type="url" maxlength="2000" placeholder="https://chat.whatsapp.com/... ou https://t.me/..."><button class="btn csp-margin-top-12px" type="button" data-action="inspectUniversalClone(this)">Analisar link</button><div id="universalCloneResult" class="callout csp-hidden csp-margin-top-12px" role="status"></div></div>' +
     '<div class="card"><h3>Clone sob demanda</h3><p class="muted">Analise um link, revise os dados e prepare uma oferta manualmente. A conversão só é considerada afiliada quando confirmada pelo programa oficial.</p><button class="btn secondary" type="button" data-action="show(\'quick\')">Abrir criação rápida</button></div>' +
-    '<div class="card"><h3>Modo Copiador de mensagens</h3><p class="muted">Cole uma mensagem de oferta para extrair título, preços, cupom e link de origem. O Radar prepara um rascunho para revisão; não publica nada automaticamente.</p><div class="field"><label for="copierText">Mensagem copiada</label><textarea class="input" id="copierText" rows="7" maxlength="6000" placeholder="Cole aqui o texto da oferta, incluindo preços e links..."></textarea></div><div class="field"><label for="copierAffiliateUrl">Link oficial de afiliado</label><input class="input" id="copierAffiliateUrl" type="url" maxlength="1200" placeholder="Cole o link gerado pelo programa oficial"></div><button class="btn csp-margin-top-12px" type="button" data-action="parseCopierMessage()">Analisar e preparar rascunho</button><div id="copierResult" class="callout csp-hidden csp-margin-top-12px" role="status"></div></div><div class="card"><h3>Fila e agendamento</h3><p class="muted">Organize rascunhos aprovados, horários, intervalos e prioridade. O envio real depende do conector e do destino validados.</p><button class="btn secondary" type="button" data-action="show(\'publishing\')">Abrir filas e agendamento</button></div></div></section>'
+    '<div class="card"><h3>Modo Copiador de mensagens</h3><p class="muted">Cole uma oferta ou várias ofertas separadas por uma linha em branco. O Radar mostra os itens reconhecidos para revisão individual; não publica nada automaticamente.</p><div class="field"><label for="copierText">Mensagem ou lote copiado</label><textarea class="input" id="copierText" rows="7" maxlength="12000" placeholder="Cole aqui o texto da oferta ou vários blocos com produto, preço e link..."></textarea></div><div class="field"><label for="copierAffiliateUrl">Link oficial de afiliado (para uma oferta)</label><input class="input" id="copierAffiliateUrl" type="url" maxlength="1200" placeholder="Em lotes, informe o link oficial na revisão de cada item"></div><button class="btn csp-margin-top-12px" type="button" data-action="parseCopierMessage()">Analisar oferta(s)</button><div id="copierResult" class="callout csp-hidden csp-margin-top-12px" role="status"></div></div><div class="card"><h3>Fila e agendamento</h3><p class="muted">Organize rascunhos aprovados, horários, intervalos e prioridade. O envio real depende do conector e do destino validados.</p><button class="btn secondary" type="button" data-action="show(\'publishing\')">Abrir filas e agendamento</button></div></div></section>'
   );
 }
 var lastUniversalCloneInspection = null;
@@ -722,13 +767,40 @@ async function parseCopierMessage() {
     box.textContent = "Interpretando a mensagem. Os campos serão sugestões para sua revisão.";
   }
   try {
-    var parseText = raw + (affiliateUrl ? "\n" + affiliateUrl : ""),
+    var response = await fetch("/api/messages/parse-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: raw, batch: true }),
+      }),
+      data = await response.json();
+    if (!data.multiple && affiliateUrl) {
       response = await fetch("/api/messages/parse-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: parseText }),
-      }),
+        body: JSON.stringify({ text: raw + "\n" + affiliateUrl }),
+      });
       data = await response.json();
+    }
+    if (data.multiple) {
+      copierBatchOmitted = Number(data.omitted) || 0;
+      pendingCopierBatch = (data.items || []).map(function (item) {
+        var current = Number(item.currentPrice || 0) / 100;
+        var original = item.originalPrice ? Number(item.originalPrice) / 100 : 0;
+        return {
+          parsed: item,
+          prefill: {
+            title: item.title || "", source: item.marketplace || "",
+            currentPrice: current ? current.toFixed(2) : "",
+            originalPrice: original ? original.toFixed(2) : "",
+            productUrl: item.productUrl || "", affiliateUrl: item.affiliateUrl || "",
+            couponCode: item.couponCode || "", couponUrl: item.couponUrl || "",
+            message: item.sourceText || "",
+          },
+        };
+      });
+      renderCopierBatch(data.omitted || 0);
+      return;
+    }
     if (!response.ok || !data.ok) {
       throw Error(data.reason || data.error || "Não consegui interpretar esta oferta.");
     }
@@ -738,6 +810,8 @@ async function parseCopierMessage() {
     if (!data.title || !currentPrice || !productUrl) {
       throw Error("Confira se a mensagem inclui o nome, o preço e o link do produto.");
     }
+    pendingCopierBatch = [];
+    copierBatchOmitted = 0;
     var prefill = {
       title: data.title,
       source: data.marketplace || "",
@@ -749,19 +823,65 @@ async function parseCopierMessage() {
       couponUrl: data.couponUrl || "",
       message: raw,
     };
-    if (box) {
-      box.textContent = "Sugestão extraída: " + prefill.title +
-        " · preço sugerido R$ " + prefill.currentPrice.replace(".", ",") +
-        (prefill.originalPrice ? " · preço anterior sugerido R$ " + prefill.originalPrice.replace(".", ",") : "") +
-        (prefill.couponCode ? " · cupom " + prefill.couponCode : "") +
-        (data.needsAffiliateLink && !affiliateUrl ? " · falta informar seu link afiliado" : "") +
-        ". " + String(data.notice || "Revise todos os campos; nada será publicado automaticamente.");
-    }
-    openOffer(prefill);
+    pendingCopierPrefill = prefill;
+    renderCopierReview(prefill, box, false);
   } catch (error) {
     if (box) box.textContent = error.message || "Não foi possível interpretar a mensagem.";
     toast(error.message || "Não foi possível interpretar a mensagem.");
   }
+}
+function renderCopierBatch(omitted) {
+  var box = document.getElementById("copierResult");
+  if (!box) return;
+  box.classList.remove("csp-hidden");
+  var rows = pendingCopierBatch.map(function (entry, index) {
+    var item = entry.parsed, prefill = entry.prefill, missing = [];
+    if (!prefill.title) missing.push("produto");
+    if (!prefill.currentPrice) missing.push("preço atual");
+    if (!prefill.productUrl) missing.push("link de produto reconhecido");
+    if (!item.affiliateLinkDetected) missing.push("link oficial de afiliado");
+    if (!prefill.originalPrice) missing.push("preço anterior para confirmar desconto");
+    var status = item.ok ? (missing.length ? "Revisar dados pendentes" : "Pronto para revisão") : (item.reason || "Dados incompletos");
+    return '<article class="card csp-margin-top-12px"><h4>' + esc(prefill.title || ("Item " + (index + 1))) + '</h4><p class="muted">' + esc(prefill.source || "Loja não identificada") + (prefill.currentPrice ? ' · R$ ' + esc(prefill.currentPrice) : '') + '</p><p>' + esc(status) + (missing.length ? ': falta conferir ' + esc(missing.join(", ")) + '.' : '.') + '</p><button class="btn secondary" type="button" data-action="reviewCopierItem(' + index + ')"' + (item.ok ? '' : ' disabled') + '>Revisar este item</button></article>';
+  }).join("");
+  box.innerHTML = '<strong>' + pendingCopierBatch.length + ' item(ns) encontrado(s)</strong><p class="muted">Cada item abrirá o cadastro pendente separadamente. Confirme os links e envie uma imagem para cada oferta. A deduplicação e a aprovação continuam ativas.</p>' + rows + (omitted ? '<p role="alert">Mais ' + omitted + ' bloco(s) foram omitidos pelo limite de 10 itens por análise.</p>' : '');
+}
+function renderCopierReview(prefill, box, fromBatch) {
+  if (!box) return;
+  box.innerHTML = '<div class="field"><strong>Revise os dados reconhecidos</strong><p class="muted">Os campos são sugestões extraídas da mensagem. Confirme o preço, a imagem e que o link afiliado foi gerado na sua conta.</p></div>' +
+    '<div class="field"><label for="copierReviewTitle">Produto</label><input class="input" id="copierReviewTitle" maxlength="220" value="' + esc(prefill.title) + '"></div>' +
+    '<div class="field"><label for="copierReviewCurrent">Preço atual (R$)</label><input class="input" id="copierReviewCurrent" inputmode="decimal" value="' + esc(prefill.currentPrice) + '"></div>' +
+    '<div class="field"><label for="copierReviewOriginal">Preço anterior (R$)</label><input class="input" id="copierReviewOriginal" inputmode="decimal" value="' + esc(prefill.originalPrice) + '"></div>' +
+    '<div class="field"><label for="copierReviewProduct">Link do produto</label><input class="input" id="copierReviewProduct" type="url" maxlength="1200" value="' + esc(prefill.productUrl) + '"></div>' +
+    '<div class="field"><label for="copierReviewAffiliate">Link de afiliado confirmado</label><input class="input" id="copierReviewAffiliate" type="url" maxlength="1200" value="' + esc(prefill.affiliateUrl) + '"></div>' +
+    '<div class="field"><label for="copierReviewCoupon">Cupom (se aplicável)</label><input class="input" id="copierReviewCoupon" maxlength="100" value="' + esc(prefill.couponCode) + '"></div>' +
+    '<div class="field"><label for="copierReviewCouponUrl">URL do cupom (opcional)</label><input class="input" id="copierReviewCouponUrl" type="url" maxlength="1200" value="' + esc(prefill.couponUrl) + '"></div>' +
+    '<p class="muted">Salvar cria somente um rascunho pendente. O envio exige aprovação e confirmação oficial do preço.</p>' +
+    (fromBatch ? '<button class="btn secondary" type="button" data-action="returnToCopierBatch()">Voltar à lista de itens</button> ' : '') +
+    '<button class="btn csp-margin-top-12px" type="button" data-action="continueCopierDraft()">Continuar para cadastro</button>';
+}
+function reviewCopierItem(index) {
+  var entry = pendingCopierBatch[Number(index)], box = document.getElementById("copierResult");
+  if (!entry || !entry.parsed.ok) { toast("Este bloco precisa de mais dados antes de criar um rascunho."); return; }
+  pendingCopierPrefill = entry.prefill;
+  renderCopierReview(entry.prefill, box, true);
+}
+function returnToCopierBatch() { renderCopierBatch(copierBatchOmitted); }
+function continueCopierDraft() {
+  if (!pendingCopierPrefill) { toast('Analise uma mensagem antes de continuar.'); return; }
+  var value = function(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  var draft = {
+    title: value('copierReviewTitle'), currentPrice: value('copierReviewCurrent'),
+    originalPrice: value('copierReviewOriginal'), productUrl: value('copierReviewProduct'),
+    affiliateUrl: value('copierReviewAffiliate'), couponCode: value('copierReviewCoupon'),
+    couponUrl: value('copierReviewCouponUrl'), source: pendingCopierPrefill.source,
+    message: pendingCopierPrefill.message
+  };
+  if (!draft.title || !draft.currentPrice || !draft.productUrl) {
+    toast('Confirme o produto, o preço atual e o link do produto.'); return;
+  }
+  pendingCopierPrefill = draft;
+  openOffer(draft);
 }
 async function inspectCollshpClone(button) {
   var input = document.getElementById("collshpCloneUrl");
@@ -1787,6 +1907,8 @@ function socialAgent() {
     c = so.counts || {},
     channels = s.channels || [],
     connections = so.connections || [];
+  var socialOffers=(D.offers||[]).filter(function(x){return ['APPROVED','READY'].includes(x.status)&&x.affiliateUrl&&x.imageUrl;}),
+    socialImages=(D.growth&&D.growth.mediaJobs||[]).filter(function(x){return x.kind==='IMAGE'&&['COMPLETED','FALLBACK_COMPLETED'].includes(x.status);});
   function connection(n) {
     return (
       connections.find(function (x) {
@@ -1924,7 +2046,9 @@ function socialAgent() {
       "time",
       'value="' + esc(s.endTime || "22:00") + '"',
     ) +
-    '</div><div class="actions"><button class="btn" data-action="saveSocialSettings()">Salvar e ativar</button><button class="btn secondary" data-action="generateSocialQueue()">Gerar mensagens agora</button><button class="btn dark" data-action="runSocialQueue()">Executar fila</button></div><div class="callout csp-margin-top-14px" >A IA não inventa preço, desconto, cupom, frete ou urgência. Cada link aponta para o rastreador do Radar e depois redireciona ao link de afiliado cadastrado.</div></div><div class="card"><h3>Conexões oficiais Meta</h3>' +
+    '</div>' + select("Oferta para publicar", "socialOffer", '<option value="">Todas as ofertas elegíveis</option>'+socialOffers.map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.title)+'</option>'}).join("")) +
+    select("Imagem gerada por IA", "socialImageJob", '<option value="">Usar imagem da oferta</option>'+socialImages.map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.title)+' · '+esc(x.provider||"IA")+'</option>'}).join("")) +
+    '<div class="callout">Gere uma arte no Estúdio de IA, volte aqui e selecione-a. Ela será anexada aos rascunhos do Instagram/Facebook; revise legenda e imagem antes de aprovar. Publicar exige uma conexão Meta ativa.</div><div class="actions"><button class="btn" data-action="saveSocialSettings()">Salvar e ativar</button><button class="btn secondary" data-action="generateSocialQueue()">Gerar posts e legendas</button><button class="btn dark" data-action="runSocialQueue()">Executar fila</button></div><div class="callout csp-margin-top-14px" >A IA não inventa preço, desconto, cupom, frete ou urgência. Cada link aponta para o rastreador do Radar e depois redireciona ao link de afiliado cadastrado.</div></div><div class="card"><h3>Conexões oficiais Meta</h3>' +
     ["INSTAGRAM", "FACEBOOK"]
       .map(function (n) {
         var x = connection(n);
@@ -2225,6 +2349,8 @@ function accountView() {
 }
 function render() {
   nav();
+  var globalOfferAction=document.getElementById("global-create-offer");
+  if(globalOfferAction)globalOfferAction.hidden=current==="offers"&&selectedGroups.offers==="offers";
   var f = {
     dashboard: dashboard,
     radar: function () {
@@ -2343,12 +2469,12 @@ async function saveSocialSettings() {
 }
 async function generateSocialQueue() {
   try {
-    var b = await socialCall("POST", { action: "GENERATE", limit: 6 });
+    var b = await socialCall("POST", { action: "GENERATE", limit: 6, offerId:document.querySelector('[name="socialOffer"]').value, imageJobId:document.querySelector('[name="socialImageJob"]').value });
     show("socialagent");
     toast(
       b.generated
-        ? b.generated + " mensagem(ns) criada(s)"
-        : "Nenhuma oferta elegível nova",
+        ? b.generated + " post(s) com legenda criados para revisão"
+        : b.reason==="IMAGE_NOT_READY" ? "A imagem selecionada ainda não está pronta" : "Nenhuma oferta elegível nova",
     );
   } catch (e) {
     toast(e.message);
@@ -2429,6 +2555,18 @@ async function generateStudioText() {
   } catch (e) {
     box.textContent = e.message;
   }
+}
+async function generateMotherPlan() {
+  var button=document.querySelector('[data-action="generateMotherPlan()"]'),status=document.getElementById('motherPlanStatus'),result=document.getElementById('motherPlanResult');
+  if(!button||!status||!result)return;
+  button.disabled=true;status.textContent='Consultando o panorama e preparando recomendações…';result.innerHTML='';
+  try {
+    var response=await fetch('/api/ai/orchestrator',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({objective:document.getElementById('motherObjective')?.value||'',model:document.getElementById('motherModel')?.value||'gemini'})}),data=await response.json();
+    if(!response.ok)throw Error(data.error||'A IA Central não está disponível.');
+    status.textContent='Plano preparado com '+esc(data.model||'modelo selecionado')+'. Revise antes de executar qualquer ação.';
+    result.innerHTML='<div class="callout mother-plan-summary"><b>'+esc(data.summary)+'</b><p>'+esc(data.notice)+'</p></div>'+((data.recommendations||[]).map(function(item){return '<article class="card mother-plan-item"><span class="pill '+(item.priority==='HIGH'?'warn':'')+'">'+esc(item.priority)+'</span><span class="pill">'+esc(item.area)+'</span><h3>'+esc(item.title)+'</h3><p>'+esc(item.reason)+'</p><ol>'+((item.steps||[]).map(function(step){return '<li>'+esc(step)+'</li>';}).join(''))+'</ol><p class="muted">Revisão humana necessária · nenhuma ação executada</p></article>';}).join('')||'<div class="empty mother-plan-item">A IA não encontrou recomendações suficientes. Revise os estados das integrações e tente novamente.</div>');
+  } catch(error) {status.textContent=error.message||'A IA Central não conseguiu preparar o plano. Nenhum dado foi alterado.';}
+  finally {button.disabled=false;}
 }
 async function generateStudioImage() {
   var x = studioData(),
@@ -3681,8 +3819,11 @@ var navPaths = {
   settings:'M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8 M12 2v3 M12 19v3 M2 12h3 M19 12h3 M5 5l2 2 M17 17l2 2 M5 19l2-2 M17 7l2-2'
 };
 function nav(){
+  var section='';
   document.getElementById('nav').innerHTML=NAV.map(function(n){
-    return '<button '+(current===n[0]?'aria-current="page" ':'')+'class="'+(current===n[0]?'on':'')+'" data-action="show(\''+n[0]+'\')"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+navPaths[n[0]]+'"/></svg></span>'+n[1]+'</button>';
+    var heading=n[3]!==section?'<h2 class="nav-heading">'+n[3]+'</h2>':'';
+    section=n[3];
+    return heading+'<button '+(current===n[0]?'aria-current="page" ':'')+'class="'+(current===n[0]?'on':'')+'" data-action="show(\''+n[0]+'\')"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+navPaths[n[0]]+'"/></svg></span>'+n[1]+'</button>';
   }).join('');
 }
 function syncDrawer(){
@@ -3704,7 +3845,7 @@ function show(view){
   var parent=Object.keys(GROUPS).find(function(key){return key!==view&&GROUPS[key].some(function(item){return item[0]===view;});});
   var target=parent||view;
   if(!NAV.some(function(n){return n[0]===target;}))target='dashboard';
-  if(parent)selectedGroups[parent]=view;else if(GROUPS[target])selectedGroups[target]=GROUPS[target][0][0];
+  if(parent){selectedGroups[parent]=view;if(parent==="offers")selectedGroups.offerCategory=offerCategoryForView(view);}else if(GROUPS[target]){selectedGroups[target]=GROUPS[target][0][0];if(target==="offers")selectedGroups.offerCategory="catalog";}
   current=target;menu(false);nav();
   document.getElementById('title').textContent=NAV.find(function(n){return n[0]===current;})[1];
   render();history.replaceState(null,'','#'+(parent?view:current));

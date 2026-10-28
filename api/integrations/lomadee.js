@@ -7,6 +7,8 @@ export const methods = ['GET', 'POST'];
 
 // Official affiliate API documented at docs.lomadee.com.br; production host is the target.
 const BASE_URL = 'https://api.lomadee.com.br';
+const UPSTREAM_TIMEOUT_MS = 55000;
+const REQUEST_DEADLINE_MS = 57000;
 const clean = (value, max = 100) => String(value ?? '').trim().slice(0, max);
 const fromB64 = value => Uint8Array.from(atob(value), char => char.charCodeAt(0));
 
@@ -48,7 +50,7 @@ async function apiRequest(path, apiKey, params = {}, method = 'GET', payload = n
           method,
           headers: { 'x-api-key': apiKey, 'accept': 'application/json', ...(method === 'POST' ? { 'content-type': 'application/json' } : {}) },
           ...(method === 'POST' ? { body: JSON.stringify(payload || {}) } : {}),
-          signal: AbortSignal.timeout(7000)
+          signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)
         });
         const raw = await upstream.text();
         let parsed = {};
@@ -56,7 +58,7 @@ async function apiRequest(path, apiKey, params = {}, method = 'GET', payload = n
         return { upstream, parsed };
       })(),
       new Promise((_, reject) => {
-        timeoutId = setTimeout(() => reject(Object.assign(new Error('Tempo limite de 8 segundos ao consultar a API Lomadee.'), { status: 504 })), 8000);
+        timeoutId = setTimeout(() => reject(Object.assign(new Error('Tempo limite de 57 segundos ao consultar a API Lomadee.'), { status: 504 })), REQUEST_DEADLINE_MS);
       })
     ]);
     response = result.upstream;

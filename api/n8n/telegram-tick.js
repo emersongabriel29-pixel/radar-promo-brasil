@@ -81,7 +81,7 @@ export default async function(req, res) {
           const baseMessage = item.affiliateUrl ? String(item.message || '').split(item.affiliateUrl).join(effectiveAffiliate) : String(item.message || '');
           const couponUrl = String(item.couponUrl || '').trim();
           const trackedMessage = item.couponCode && couponUrl && !baseMessage.includes(couponUrl) ? baseMessage + String.fromCharCode(10, 10) + '🎟️ Resgate o cupom aqui: ' + couponUrl : baseMessage;
-          const external = await sendTelegramOffer(token, { ...item, imageUrl: item.contentType === 'MESSAGE' ? null : new URL(await offerImage(item), origin).toString(), message: trackedMessage, affiliateUrl: effectiveAffiliate });
+          const external = await sendTelegramOffer(token, { ...item, imageUrl: item.contentType === 'MESSAGE' ? null : new URL(await offerImage(item, { publicAccess: true }), origin).toString(), message: trackedMessage, affiliateUrl: effectiveAffiliate });
           providerAccepted = true;
           await db.transaction([
             { sql: "UPDATE publications SET status='PUBLISHED',published_at=now(),error_message=NULL,telegram_connection_id=$3,external_message_id=$4 WHERE id=$1 AND account_id=$2 AND status='DISPATCHING'", params: [item.id, item.accountId, connection.id, String(external?.message_id || '')] },
