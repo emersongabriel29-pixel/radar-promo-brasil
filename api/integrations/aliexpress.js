@@ -1,25 +1,20 @@
 import { config, db } from 'hatchable';
 import { signTopParams } from 'lib/top-signature.js';
 import { createAliExpressAffiliateUrl } from 'lib/afilimax-aliexpress-provider.js';
+import { decryptMarketplaceCredentials } from 'lib/marketplace-credentials.js';
 
 export const access = 'member';
 export const methods = ['GET', 'POST'];
 
 const API_URL = 'https://eco.taobao.com/router/rest';
 const clean = (v, n=500) => String(v ?? '').trim().slice(0,n);
-const fromB64 = v => Uint8Array.from(atob(v), c => c.charCodeAt(0));
 async function accountFor(member) {
   return (await db.query("SELECT id FROM accounts WHERE owner_member_id=$1 AND status='ACTIVE' LIMIT 1",[String(member.id)])).rows[0];
 }
 async function credentialsFor(accountId) {
   const row=(await db.query("SELECT credentials_enc,nonce,status FROM marketplace_api_credentials WHERE account_id=$1 AND marketplace='ALIEXPRESS' LIMIT 1",[accountId])).rows[0];
   if(!row)return null;
-  const master=String(await config.get('CONNECTOR_ENCRYPTION_KEY')||'');
-  if(master.length<32)throw Object.assign(new Error('Configure CONNECTOR_ENCRYPTION_KEY nos segredos do projeto.'),{status:412});
-  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(master+'|radar-marketplace-credentials|'+accountId+'|ALIEXPRESS'));
-  const key=await crypto.subtle.importKey('raw',digest,{name:'AES-GCM'},false,['decrypt']);
-  const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(row.nonce)},key,fromB64(row.credentials_enc));
-  return {credentials:JSON.parse(new TextDecoder().decode(plain)),status:row.status};
+  return decryptMarketplaceCredentials({ accountId, marketplace: 'ALIEXPRESS', row, config });
 }
 function signParams(params, secret) { return signTopParams(params, secret); }
 const fields='product_id,product_title,product_main_image_url,product_detail_url,target_sale_price,target_original_price,sale_price,discount,commission_rate,first_level_category_id,second_level_category_id,shop_id,shop_url';

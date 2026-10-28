@@ -1,11 +1,11 @@
 import { config, db } from 'hatchable';
+import { decryptMarketplaceCredentials } from 'lib/marketplace-credentials.js';
 
 export const access = 'member';
 export const methods = ['GET', 'POST'];
 
 const BASE = 'https://api.linksynergy.com';
 const clean = (v, n = 300) => String(v ?? '').trim().slice(0, n);
-const fromB64 = value => Uint8Array.from(atob(value), c => c.charCodeAt(0));
 const decodeXml = value => String(value || '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Math.min(0x10ffff, Number(n) || 0)));
 function tag(block, name) {
   const match = String(block || '').match(new RegExp('<' + name + '(?:\\s[^>]*)?>([\\s\\S]*?)<\\/' + name + '>', 'i'));
@@ -24,9 +24,7 @@ async function rakutenKey(accountId, usages) {
 async function credentialsFor(accountId) {
   const row = (await db.query("SELECT credentials_enc,nonce,status FROM marketplace_api_credentials WHERE account_id=$1 AND marketplace='RAKUTEN' LIMIT 1", [accountId])).rows[0];
   if (!row) return null;
-  const key = await rakutenKey(accountId, ['decrypt']);
-  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(row.nonce) }, key, fromB64(row.credentials_enc));
-  return { credentials: JSON.parse(new TextDecoder().decode(plain)), status: row.status };
+  return decryptMarketplaceCredentials({ accountId, marketplace: 'RAKUTEN', row, config });
 }
 async function saveCredentials(accountId, credentials, status = 'PENDING_VALIDATION') {
   const nonce = crypto.getRandomValues(new Uint8Array(12));

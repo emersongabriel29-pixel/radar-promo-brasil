@@ -1,11 +1,11 @@
 import { config, db } from 'hatchable';
+import { decryptMarketplaceCredentials } from 'lib/marketplace-credentials.js';
 
 export const access = 'member';
 export const methods = ['GET', 'POST'];
 
 const API_URL = 'https://open-api.affiliate.shopee.com.br/graphql';
 const clean = (value, max = 200) => String(value ?? '').trim().slice(0, max);
-const fromB64 = value => Uint8Array.from(atob(value), char => char.charCodeAt(0));
 const hex = bytes => Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('');
 
 async function getAccount(member) {
@@ -18,12 +18,7 @@ async function getCredentials(accountId) {
     [accountId]
   )).rows[0];
   if (!row) return null;
-  const master = String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '');
-  if (master.length < 32) throw Object.assign(new Error('Configure CONNECTOR_ENCRYPTION_KEY nos segredos do projeto.'), { status: 412 });
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(master + '|radar-marketplace-credentials|' + accountId + '|SHOPEE'));
-  const key = await crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['decrypt']);
-  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(row.nonce) }, key, fromB64(row.credentials_enc));
-  return { credentials: JSON.parse(new TextDecoder().decode(plain)), status: row.status };
+  return decryptMarketplaceCredentials({ accountId, marketplace: 'SHOPEE', row, config });
 }
 
 async function signedRequest(credentials, payload) {

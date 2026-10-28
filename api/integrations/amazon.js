@@ -1,4 +1,5 @@
 import { config, db } from 'hatchable';
+import { decryptMarketplaceCredentials } from 'lib/marketplace-credentials.js';
 
 export const access = 'member';
 export const methods = ['GET', 'POST'];
@@ -20,7 +21,6 @@ const DEFAULT_RESOURCES = [
   'offersV2.listings.price'
 ];
 const clean = (value, max = 300) => String(value ?? '').trim().slice(0, max);
-const fromB64 = value => Uint8Array.from(atob(value), char => char.charCodeAt(0));
 
 async function getAccount(member) {
   return (await db.query("SELECT id FROM accounts WHERE owner_member_id=$1 AND status='ACTIVE' LIMIT 1", [String(member.id)])).rows[0];
@@ -31,12 +31,7 @@ async function getCredentials(accountId) {
     [accountId]
   )).rows[0];
   if (!row) return null;
-  const master = String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '');
-  if (master.length < 32) throw Object.assign(new Error('Configure CONNECTOR_ENCRYPTION_KEY nos segredos do projeto.'), { status: 412 });
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(master + '|radar-marketplace-credentials|' + accountId + '|AMAZON'));
-  const key = await crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['decrypt']);
-  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(row.nonce) }, key, fromB64(row.credentials_enc));
-  return { credentials: JSON.parse(new TextDecoder().decode(plain)), status: row.status };
+  return decryptMarketplaceCredentials({ accountId, marketplace: 'AMAZON', row, config });
 }
 function credentialsFor(c) {
   const version = clean(c.version || '3.1', 10);

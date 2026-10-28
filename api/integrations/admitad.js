@@ -1,4 +1,5 @@
 import { config, db } from 'hatchable';
+import { decryptMarketplaceCredentials } from 'lib/marketplace-credentials.js';
 
 export const access = 'member';
 export const methods = ['GET', 'POST'];
@@ -20,9 +21,7 @@ async function encryptionKey(accountId) {
 async function credentialsFor(accountId) {
   const row = (await db.query("SELECT credentials_enc,nonce,status FROM marketplace_api_credentials WHERE account_id=$1 AND marketplace='ADMITAD' LIMIT 1", [accountId])).rows[0];
   if (!row) return null;
-  const key = await encryptionKey(accountId);
-  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(row.nonce) }, key, fromB64(row.credentials_enc));
-  return { credentials: JSON.parse(new TextDecoder().decode(plain)), status: row.status };
+  return decryptMarketplaceCredentials({ accountId, marketplace: 'ADMITAD', row, config });
 }
 async function persistCredentials(accountId, credentials) {
   const nonce = crypto.getRandomValues(new Uint8Array(12));
