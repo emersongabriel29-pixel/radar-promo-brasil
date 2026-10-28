@@ -4623,7 +4623,7 @@ function parseActionArgs(source,element){
   return args.map(function(value){
     if(value==='this')return element;
     if(value==='true')return true;if(value==='false')return false;if(value==='null')return null;
-    if(/^[-+]?\\d+(?:\\.\\d+)?$/.test(value))return Number(value);
+    if(/^[-+]?\d+(?:\.\d+)?$/.test(value))return Number(value);
     if((value[0]==="'"&&value[value.length-1]==="'")||(value[0]==='\"'&&value[value.length-1]==='\"')){
       var body=value.slice(1,-1);return body.replace(/\\\\([\\\\'"nrt])/g,function(_,c){return ({n:'\\n',r:'\\r',t:'\\t'})[c]||c;});
     }
@@ -4632,7 +4632,7 @@ function parseActionArgs(source,element){
 }
 document.addEventListener('change',function(event){
   var el=event.target.closest('[data-change]');if(!el)return;
-  var name=el.getAttribute('data-change')||'';if(!/^[A-Za-z_$][\\w$]*$/.test(name))return;
+  var name=el.getAttribute('data-change')||'';if(!/^[A-Za-z_$][\w$]*$/.test(name))return;
   var fn=window[name];if(typeof fn!=='function')return;
   fn.call(window,el.value,el);
 });

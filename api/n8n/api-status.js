@@ -1,11 +1,12 @@
-import { config } from 'hatchable';
+import { config, db } from 'hatchable';
+import { withIntegrationHealth } from 'lib/integration-health.js';
 
 export const access = 'member';
 export const methods = ['POST'];
 
 const BASE_URL = 'https://radar-n8n.duckdns.org';
 
-export default async function(req, res) {
+async function handler(req, res) {
   if (!req.member) return res.status(401).json({ ok: false, status: 'UNAUTHENTICATED', error: 'Entre no Radar Promo Brasil para testar a API do n8n.' });
   try {
     const key = String(await config.get('N8N_API_KEY') || '').trim();
@@ -42,3 +43,5 @@ export default async function(req, res) {
     return res.status(502).json({ ok: false, status: timeout ? 'TIMEOUT' : 'CONNECTION_ERROR', error: timeout ? 'Tempo limite ao consultar a API do n8n.' : 'Não foi possível consultar a API REST do n8n. Verifique a conectividade da instância.' });
   }
 }
+
+export default async function(req, res) { return withIntegrationHealth(req, res, db, 'n8n_api', handler); }
