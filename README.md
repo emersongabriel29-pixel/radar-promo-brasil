@@ -28,6 +28,10 @@ npm audit --audit-level=moderate
 
 O processo lê variáveis de ambiente; `.env.example` documenta os nomes e não é carregado automaticamente. Para usar um arquivo local de variáveis, configure seu gerenciador de processos ou execute `node --env-file=.env server.js` em uma instalação de desenvolvimento.
 
+## MCP remoto (Claude, OpenAI e clientes compatíveis)
+
+O projeto Hatchable publica um endpoint MCP remoto com OAuth em `https://radar-promo-brasil.hatchable.site/mcp`. As ferramentas disponíveis são `categorize_product`, `generate_promo_draft` e `validate_offer_facts`. A classificação e a geração de rascunhos usam Gemini; a validação é determinística. As ferramentas exigem autorização de proprietária/administradora e não publicam ofertas nem enviam mensagens. Veja [docs/MCP-GEMINI.md](docs/MCP-GEMINI.md) para conectar Claude Desktop/Code, OpenAI via API ou outros clientes MCP compatíveis.
+
 ## Produção standalone
 
 Use HTTPS no proxy, `NODE_ENV=production`, `PUBLIC_APP_URL`, `STANDALONE_USER_ID` e `STANDALONE_AUTH_SECRET` aleatório com pelo menos 32 caracteres. O painel privado usa cookie assinado HttpOnly/Secure/SameSite=Strict ou bearer para clientes da API. Mutações com cookie exigem origem correta. O servidor recusa inicializar produção sem identidade/segredo. Ele não implementa cadastro comercial multiusuário.
