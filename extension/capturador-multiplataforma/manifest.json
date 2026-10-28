@@ -1,0 +1,49 @@
+{
+  "manifest_version": 3,
+  "name": "Radar Promo Brasil — Capturador Multiplataforma",
+  "version": "1.0.0",
+  "description": "Captura ofertas de Mercado Livre, Amazon, Temu, SHEIN e Magalu para revisão e importação no Radar.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "downloads",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://*.mercadolivre.com.br/*",
+    "https://*.mercadolibre.com/*",
+    "https://*.amazon.com.br/*",
+    "https://*.amazon.com/*",
+    "https://*.temu.com/*",
+    "https://*.shein.com/*",
+    "https://*.br.shein.com/*",
+    "https://*.magazineluiza.com.br/*",
+    "https://*.magalu.com/*"
+  ],
+  "action": {
+    "default_title": "Capturar oferta",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.mercadolivre.com.br/*",
+        "https://*.mercadolibre.com/*",
+        "https://*.amazon.com.br/*",
+        "https://*.amazon.com/*",
+        "https://*.temu.com/*",
+        "https://*.shein.com/*",
+        "https://*.br.shein.com/*",
+        "https://*.magazineluiza.com.br/*",
+        "https://*.magalu.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
