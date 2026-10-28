@@ -140,10 +140,6 @@ path = "/api/jobs/aliexpress-review"
 schedule = "45 * * * *"
 
 [[cron]]
-path = "/api/jobs/api-health"
-schedule = "30 * * * *"
-
-[[cron]]
 path = "/api/jobs/telegram"
 schedule = "0 * * * *"
 
@@ -154,3 +150,7 @@ schedule = "5 * * * *"
 [[cron]]
 path = "/api/jobs/social"
 schedule = "10 * * * *"
+
+[[cron]]
+path = "/api/jobs/api-health"
+schedule = "30 * * * *"
