@@ -3830,7 +3830,7 @@ function integrationHealthPanel() {
     (rows || '<li><i class="a-dot"></i><div><b>Nenhum diagnóstico registrado</b><div class="muted">Aguardando dados do monitor de saúde; não há confirmação de funcionamento externo.</div></div></li>') +
     '</ul><small class="muted">' + esc(interval) + '</small></div>';
 }
-function loadNow(){
+async function loadNow(){
   var sequence=++loadSequence;
   try{
     var data=await readJSON('/api/data');
