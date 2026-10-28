@@ -11,6 +11,7 @@ var D = {
     leadStats: [],
     activity: [],
     integrations: [],
+    integrationHealth: { items: [], interval: "hourly", alert: false },
     automation: {},
     suite: {
       marketplaces: [],
@@ -369,6 +370,7 @@ function dashboard() {
     metric("Envios na fila", ready, "prontos ou agendados") +
     metric("Cliques rastreados", clicks, "links publicados") +
     "</div>" +
+    integrationHealthPanel() +
     section(
       "Fluxo de trabalho",
       "Escolha como capturar, preparar e distribuir ofertas.",
@@ -3796,13 +3798,45 @@ function load(){
     if(loadAgain){loadAgain=false;Promise.resolve().then(load);}
   });
 }
-async function loadNow(){
+async function integrationHealthPanel() {
+  var health = D.integrationHealth || {};
+  var items = Array.isArray(health.items) ? health.items.slice(0, 6) : [];
+  var rows = items.map(function (item) {
+    var status = String(item.status || "NOT_REPORTED").trim();
+    var details = String(item.details || "").trim();
+    var checked = item.lastCheckedAt ? new Date(item.lastCheckedAt) : null;
+    var checkedLabel = checked && !Number.isNaN(checked.getTime())
+      ? "Verificado em " + checked.toLocaleString("pt-BR")
+      : "Sem horário de verificação registrado";
+    var statusLabel = status === "CONNECTED" ? "CONECTADO"
+      : status === "ERROR" ? "FALHA"
+      : status === "NOT_CONFIGURED" ? "NÃO CONFIGURADO"
+      : status === "PENDING_VALIDATION" ? "PENDENTE DE VALIDAÇÃO"
+      : status;
+    return '<li><i class="a-dot"></i><div><b>' +
+      esc(item.name || "Integração sem nome") +
+      '</b><div class="muted">' + esc(details || "Sem detalhes de diagnóstico registrados.") +
+      '</div><small class="muted">' + esc(checkedLabel) +
+      '</small></div><span class="pill">' + esc(statusLabel) + '</span></li>';
+  }).join("");
+  var alert = health.alert
+    ? '<p role="alert" class="partial-error">O monitoramento registrou uma falha. Confira os detalhes antes de confiar na conexão.</p>'
+    : "";
+  var interval = health.interval ? " Frequência informada: " + String(health.interval) + "." : "";
+  return section(
+    "Saúde das integrações",
+    "Diagnóstico automático registrado pelo Radar. Conectado não significa que uma publicação foi testada ou enviada."
+  ) + alert + '<div class="card"><ul class="activity">' +
+    (rows || '<li><i class="a-dot"></i><div><b>Nenhum diagnóstico registrado</b><div class="muted">Aguardando dados do monitor de saúde; não há confirmação de funcionamento externo.</div></div></li>') +
+    '</ul><small class="muted">' + esc(interval) + '</small></div>';
+}
+function loadNow(){
   var sequence=++loadSequence;
   try{
     var data=await readJSON('/api/data');
     // Serialize dashboard reads to avoid bursts against the project's shared DB query limit.
-    var paths=['/api/suite','/api/reports?days='+reportDays,'/api/growth','/api/social/autopilot','/api/compliance/messaging?days=7','/api/readiness'];
-    var keys=['suite','reportsData','growth','social','compliance','readiness'],failures=[];
+    var paths=['/api/suite','/api/reports?days='+reportDays,'/api/growth','/api/social/autopilot','/api/compliance/messaging?days=7','/api/readiness','/api/integrations/health-summary'];
+    var keys=['suite','reportsData','growth','social','compliance','readiness','integrationHealth'],failures=[];
     for(var index=0;index<paths.length;index++){
       try{data[keys[index]]=await readJSON(paths[index]);}
       catch(error){data[keys[index]]=D[keys[index]];failures.push(keys[index]);}
@@ -4473,7 +4507,7 @@ async function openSheinTools(){
   var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Executar';
 }
 async function openAliExpressTools(){
-  var body='<label for="aliAction">Operação AliExpress</label><select id="aliAction" name="action" required><option value="test">Validar conexão (consulta somente leitura)</option><option value="products">Buscar produtos (somente consulta)</option><option value="importOffers">Buscar e importar ofertas para revisão manual</option><option value="smartMatch">Recomendação inteligente</option><option value="hotProducts">Produtos em destaque</option><option value="hotProductsDownload">Baixar produtos em destaque</option><option value="productDetail">Detalhes de produtos por ID</option><option value="categories">Categorias</option><option value="campaigns">Campanhas em destaque</option><option value="campaignProducts">Produtos de uma campanha</option><option value="generateLink">Gerar link de afiliado</option><option value="generateLinkAfilimax">Gerar link com provider Afilimax (experimental)</option><option value="orders">Consultar pedidos/comissões (API legada)</option><option value="orderDetail">Detalhes de pedidos por ID</option><option value="ordersByCursor">Consultar pedidos por cursor</option></select>'+field('Palavra-chave','keyword','text','maxlength="120" placeholder="Ex.: fone bluetooth"')+field('IDs dos produtos (separados por vírgula)','productIds','text','maxlength="500"')+field('ID de produto para recomendação inteligente','productId','text','maxlength="30"')+field('IDs dos pedidos (separados por vírgula)','orderIds','text','maxlength="500"')+field('Cursor start_query_index_id (relatórios)','cursor','text','maxlength="200"')+field('Site/região do portal (ex.: global)','localeSite','text','maxlength="30" value="global"')+field('IDs das categorias (separados por vírgula)','categoryIds','text','maxlength="200"')+field('ID da categoria para campanha','categoryId','text','maxlength="80"')+field('Nome exato da campanha','promotionName','text','maxlength="180"')+field('URL original do produto (gerar link)','productUrl','url','maxlength="2000" placeholder="https://www.aliexpress.com/item/..."')+field('País de entrega (ISO, padrão BR)','country','text','maxlength="2" value="BR"')+field('Página','page','number','min="1" max="1000" value="1"')+field('Itens por página (1–50)','pageSize','number','min="1" max="50" value="20"')+field('Desconto mínimo para importar (%)','minDiscountPercent','number','min="0" max="90" value="10"')+field('Comissão mínima para importar (%)','minCommissionRate','number','min="0" max="100" value="3"')+field('Avaliação mínima se fornecida (%)','minimumRating','number','min="0" max="100" value="90"')+field('Preço mínimo (opcional)','minPrice','number','min="0" step="0.01"')+field('Preço máximo (opcional)','maxPrice','number','min="0" step="0.01"')+field('Início do relatório (AAAA-MM-DD HH:mm:ss)','startTime','text','maxlength="19" placeholder="2026-10-01 00:00:00"')+field('Fim do relatório (AAAA-MM-DD HH:mm:ss)','endTime','text','maxlength="19" placeholder="2026-10-02 23:59:59"')+field('Status do pedido','orderStatus','text','maxlength="50" value="Payment Completed"')+'<div class="callout"><b>Atenção:</b> a documentação pública dos métodos Affiliate API está marcada como descontinuada. Todas as consultas dependem de a sua conta ainda ter acesso. Busca, detalhes, categorias, campanhas e relatórios são somente leitura. Gerar link cria apenas um link rastreável; não publica em WhatsApp ou Telegram. O provider Afilimax usa endpoint alternativo não validado com esta conta; use apenas para teste manual e confirme que o portal mantém a API habilitada.</div>';
+  var body='<label for="aliAction">Operação AliExpress</label><select id="aliAction" name="action" required><option value="test">Validar conexão (consulta somente leitura)</option><option value="products">Buscar produtos (somente consulta)</option><option value="importOffers">Buscar e importar ofertas para revisão manual</option><option value="smartMatch">Recomendação inteligente</option><option value="hotProducts">Produtos em destaque</option><option value="hotProductsDownload">Baixar produtos em destaque</option><option value="productDetail">Detalhes de produtos por ID</option><option value="categories">Categorias</option><option value="campaigns">Campanhas em destaque</option><option value="campaignProducts">Produtos de uma campanha</option><option value="generateLink">Gerar link de afiliado</option><option value="generateLinkAfilimax">Gerar link com provider Afilimax (experimental)</option><option value="orders">Consultar pedidos/comissões (API legada)</option><option value="orderDetail">Detalhes de pedidos por ID</option><option value="ordersByCursor">Consultar pedidos por cursor</option></select>'+field('Palavra-chave','keyword','text','maxlength="120" placeholder="Ex.: fone bluetooth"')+field('IDs dos produtos (separados por vírgula)','productIds','text','maxlength="500"')+field('ID de produto para recomendação inteligente','productId','text','maxlength="30"')+field('IDs dos pedidos (separados por vírgula)','orderIds','text','maxlength="500"')+field('Cursor start_query_index_id (relatórios)','cursor','text','maxlength="200"')+field('Site/região do portal (ex.: global)','localeSite','text','maxlength="30" value="global"')+field('IDs das categorias (separados por vírgula)','categoryIds','text','maxlength="200"')+field('ID da categoria para campanha','categoryId','text','maxlength="80"')+field('Nome exato da campanha','promotionName','text','maxlength="180"')+field('URL original do produto (gerar link)','productUrl','url','maxlength="2000" placeholder="https://www.aliexpress.com/item/..."')+field('País de entrega (ISO, padrão BR)','country','text','maxlength="2" value="BR"')+field('Página','page','number','min="1" max="1000" value="1"')+field('Itens por página (1–50)','pageSize','number','min="1" max="50" value="20"')+field('Desconto mínimo para importar (%)','minDiscountPercent','number','min="0" max="90" value="0"')+field('Comissão mínima para importar (%)','minCommissionRate','number','min="0" max="100" value="3"')+field('Avaliação mínima se fornecida (%)','minimumRating','number','min="0" max="100" value="90"')+field('Preço mínimo (opcional)','minPrice','number','min="0" step="0.01"')+field('Preço máximo (opcional)','maxPrice','number','min="0" step="0.01"')+field('Início do relatório (AAAA-MM-DD HH:mm:ss)','startTime','text','maxlength="19" placeholder="2026-10-01 00:00:00"')+field('Fim do relatório (AAAA-MM-DD HH:mm:ss)','endTime','text','maxlength="19" placeholder="2026-10-02 23:59:59"')+field('Status do pedido','orderStatus','text','maxlength="50" value="Payment Completed"')+'<div class="callout"><b>Atenção:</b> a documentação pública dos métodos Affiliate API está marcada como descontinuada. Todas as consultas dependem de a sua conta ainda ter acesso. Busca, detalhes, categorias, campanhas e relatórios são somente leitura. Gerar link cria apenas um link rastreável; não publica em WhatsApp ou Telegram. O provider Afilimax usa endpoint alternativo não validado com esta conta; use apenas para teste manual e confirme que o portal mantém a API habilitada.</div>';
   openModal('Ferramentas · AliExpress Afiliados','Use apenas credenciais oficiais do portal. Não informe sua senha de login nem cookies.',body,async function(event){
     event.preventDefault();var fd=new FormData(event.target),action=String(fd.get('action')||'test'),payload={action:action};
     ['keyword','productIds','productId','orderIds','cursor','localeSite','categoryIds','categoryId','promotionName','productUrl','country','page','pageSize','minDiscountPercent','minCommissionRate','minimumRating','minPrice','maxPrice','startTime','endTime','orderStatus'].forEach(function(key){var v=String(fd.get(key)||'').trim();if(v)payload[key]=v;});
