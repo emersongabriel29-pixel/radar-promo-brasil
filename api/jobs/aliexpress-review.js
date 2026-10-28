@@ -26,7 +26,7 @@ export default async function handler(req, res) {
       if (!String(offer.title || '').trim()) reason = 'Título ausente';
       else if (!isHttps(offer.affiliate_url) || !isHttps(offer.product_url) || !isHttps(offer.image_url)) reason = 'Link de afiliado, produto ou imagem HTTPS ausente/inválido';
       else if (!Number.isFinite(current) || !Number.isFinite(original) || current <= 0 || original <= current) reason = 'Preço atual/original inválido ou desconto não verificável';
-      else if (discount < 10) reason = 'Desconto abaixo do limite automático de 10%';
+      // Descontos abaixo de 10% são permitidos; preços ainda precisam ser válidos.
       if (reason) {
         await db.query(
           "UPDATE offers SET validation_status='REJECTED',discount_percent=$1,classification_status='REVIEW',classification_reason=$2,updated_at=now() WHERE id=$3 AND account_id=$4 AND status='PENDING'",
