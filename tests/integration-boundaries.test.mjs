@@ -71,3 +71,21 @@ test('documentação define fronteiras e migração gradual', () => {
   assert.match(guide, /preservar a url de afiliado original/);
   assert.match(guide, /testes/);
 });
+
+test('webhook Telegram exige segredo forte, valida corpo e não vaza exceções', () => {
+  const source = fs.readFileSync(path.join(root, 'api/telegram/incoming.js'), 'utf8');
+  assert.ok(source.includes('constantTimeSecretMatch(secret,supplied)'), 'a autenticação deve comparar o segredo em tempo constante');
+  assert.ok(source.includes('isPlainObject(req.body)'), 'o corpo deve ser um objeto JSON');
+  assert.ok(source.includes("secret.length<32"), 'segredo fraco deve falhar fechado');
+  assert.ok(source.includes('safePublicError()'), 'erros internos não devem ser devolvidos ao cliente');
+  assert.doesNotMatch(source, /detail:clean\(error\?\.message/, 'detalhes internos não podem ser expostos');
+});
+
+test('publicação Telegram mantém validação de elegibilidade e isolamento por conta', () => {
+  const source = fs.readFileSync(path.join(root, 'api/jobs/telegram.js'), 'utf8');
+  assert.ok(source.includes("export const access='scheduler'"), 'job deve exigir contexto de scheduler');
+  assert.ok(source.includes('AND ${eligiblePublication}'), 'publicação deve passar pelas regras de elegibilidade');
+  assert.match(source, /claimPublication\(db,item\.id,item\.accountId\)/, 'a publicação deve ser reivindicada antes do envio');
+  assert.match(source, /WHERE id=\$1 AND account_id=\$2/, 'atualizações devem ser limitadas à conta da oferta');
+  assert.ok(source.includes("'WAITING_CONFIRMATION'"), 'entrega incerta não deve ser reenviada automaticamente');
+});
