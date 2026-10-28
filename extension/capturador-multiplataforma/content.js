@@ -43,12 +43,25 @@
     }
     return {};
   }
-  function detectCategory(ld) {
+  function detectCategory(ld, title) {
     const direct = clean(ld.category || meta('meta[property="product:category"]', 'meta[name="category"]', 'meta[property="og:category"]'));
     if (direct) return direct.split(/[>/|]/).map(clean).filter(Boolean).slice(-2).join(" > ");
     const crumbs = [...document.querySelectorAll('nav[aria-label*="breadcrumb" i] a, [class*="breadcrumb" i] a, [itemtype*="BreadcrumbList"] [itemprop="name"]')]
       .map(e => clean(e.content || e.innerText || e.textContent)).filter(Boolean);
-    return crumbs.length ? [...new Set(crumbs)].slice(-2).join(" > ") : "";
+    if (crumbs.length) return [...new Set(crumbs)].slice(-2).join(" > ");
+    const t = clean(title).normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase();
+    const rules = [
+      [/fralda|mamadeira|chupeta|carrinho de bebe|bebe conforto|infantil/, "Bebês e crianças"],
+      [/iphone|smartphone|celular|notebook|laptop|tablet|monitor|computador|ssd|memoria ram|playstation|xbox|fone de ouvido|headset/, "Tecnologia"],
+      [/air fryer|fritadeira|liquidificador|geladeira|fogao|microondas|cafeteira|panela|organizador|aspirador|ventilador/, "Casa e cozinha"],
+      [/perfume|maquiagem|shampoo|hidratante|skincare|protetor solar|creme facial/, "Moda e beleza"],
+      [/vestido|camiseta|camisa|calca|tenis|sapato|bolsa|jaqueta|moletom/, "Moda e beleza"],
+      [/racao|coleira|areia sanitaria|brinquedo para gato|brinquedo para cachorro|petisco/, "Pet"],
+      [/bicicleta|halter|barraca de camping|bola de futebol|tapete de yoga/, "Esporte e lazer"],
+      [/cafe|chocolate|biscoito|azeite|suplemento alimentar/, "Alimentos e bebidas"]
+    ];
+    const match = rules.find(([pattern]) => pattern.test(t));
+    return match ? match[1] : "";
   }
   function trackedUrl(value) {
     try {
@@ -81,7 +94,7 @@
       originalPrice: txt('.andes-money-amount--previous', 's .a-offscreen', 'del', '[class*="original-price"]'),
       currency: offers.priceCurrency || meta('meta[property="product:price:currency"]') || "BRL",
       imageUrl: image, productUrl: canonical, sourceUrl: location.href, affiliateUrl,
-      subId: detectSubId(location.href) || detectSubId(canonical), category: detectCategory(ld),
+      subId: detectSubId(location.href) || detectSubId(canonical), category: detectCategory(ld, title),
       capturedAt: new Date().toISOString(), sku: clean(ld.sku),
       brand: clean(typeof ld.brand === "string" ? ld.brand : ld.brand?.name),
       captureMethod: "public_page_metadata_and_dom"
