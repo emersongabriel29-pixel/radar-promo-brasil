@@ -3798,7 +3798,7 @@ function load(){
     if(loadAgain){loadAgain=false;Promise.resolve().then(load);}
   });
 }
-async function integrationHealthPanel() {
+function integrationHealthPanel() {
   var health = D.integrationHealth || {};
   var items = Array.isArray(health.items) ? health.items.slice(0, 6) : [];
   var rows = items.map(function (item) {
