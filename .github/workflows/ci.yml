@@ -25,6 +25,8 @@ jobs:
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
             git add package-lock.json
             git commit -m 'fix(security): refresh npm dependency lockfile'
+            git fetch origin feat/afiliados-custo-zero
+            git rebase origin/feat/afiliados-custo-zero
             git push origin HEAD:feat/afiliados-custo-zero
           fi
       - run: npm ci
