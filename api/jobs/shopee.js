@@ -14,8 +14,8 @@ const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padSt
 const list = body => Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : Array.isArray(body?.items) ? body.items : [];
 
 async function credentials(row) {
-  let master = String(await config.get('API_CREDENTIALS_MASTER_KEY') || '');
-  if (master.length < 32) master = String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '');
+  let master = String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '');
+  if (master.length < 32) master = String(await config.get('API_CREDENTIALS_MASTER_KEY') || '');
   if (master.length < 32) throw new Error('credential_key_missing');
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(master+'|radar-marketplace-credentials|'+row.account_id+'|SHOPEE'));
   const key = await crypto.subtle.importKey('raw', digest, {name:'AES-GCM'}, false, ['decrypt']);
