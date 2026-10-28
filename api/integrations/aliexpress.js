@@ -72,15 +72,15 @@ function unwrap(data, method) {
 function listOf(result, depth=0) {
   if(Array.isArray(result))return result;
   if(!result||typeof result!=='object'||depth>4)return [];
-  const preferred=['products','product','categories','category','promotion_links','promotion_link','orders','order','hot_products','hot_product','promotions','promotion','items','data'];
-  for(const key of preferred){const v=result[key];if(Array.isArray(v))return v;if(v&&typeof v==='object'){const nested=listOf(v,depth+1);if(nested.length)return nested;if(['product','category','promotion_link','order','hot_product','promotion'].includes(key))return [v];}}
+  const preferred=['products','product','categories','category','promotion_links','promotion_link','promos','promo','orders','order','hot_products','hot_product','promotions','promotion','items','data'];
+  for(const key of preferred){const v=result[key];if(Array.isArray(v))return v;if(v&&typeof v==='object'){const nested=listOf(v,depth+1);if(nested.length)return nested;if(['product','category','promotion_link','order','hot_product','promotion','promo'].includes(key))return [v];}}
   for(const v of Object.values(result)){if(v&&typeof v==='object'){const nested=listOf(v,depth+1);if(nested.length)return nested;}}
   return [];
 }
 function normalize(items) {
   return items.slice(0,50).map(x=>({
     id:clean(x.product_id||x.productId||x.order_id||x.orderId||x.category_id,100),
-    title:clean(x.product_title||x.productTitle||x.title||x.promotion_name||x.order_id,300),
+    title:clean(x.product_title||x.productTitle||x.title||x.promotion_name||x.promo_name||x.promo_desc||x.category_name||x.order_id,300),
     imageUrl:clean(x.product_main_image_url||x.productMainImageUrl,1500),
     productUrl:clean(x.product_detail_url||x.productDetailUrl||x.source_value,2000),
     affiliateUrl:clean(x.promotion_link||x.promotionLink||x.promotion_link_url,2000),
@@ -112,7 +112,7 @@ function build(method,body,c) {
     return {api:'aliexpress.affiliate.product.query',params};
   }
   if(method==='smartMatch'){
-    const params={fields,keywords:clean(body.keyword,120),page_no:pageNo,country,target_currency:'BRL',target_language:'PT',tracking_id:clean(body.trackingId||c.trackingId,200)};
+    const params={fields,keywords:clean(body.keyword,120),page_no:pageNo,country,target_currency:'BRL',target_language:'PT',tracking_id:clean(body.trackingId||c.trackingId,200),device:'PC',device_id:'radar-promo-brasil'};
     const productId=clean(body.productId,30);if(productId&&/^\d{1,30}$/.test(productId))params.product_id=productId;
     if(!params.keywords&&!params.product_id)throw Object.assign(new Error('Informe uma palavra-chave ou um ID de produto para a recomendação inteligente.'),{status:400});
     return {api:'aliexpress.affiliate.product.smartmatch',params};
@@ -125,7 +125,7 @@ function build(method,body,c) {
     return {api:'aliexpress.affiliate.productdetail.get',params:{fields,product_ids:ids.join(','),...common}};
   }
   if(method==='categories')return {api:'aliexpress.affiliate.category.get',params:{fields:'category_id,parent_category_id,category_name'}};
-  if(method==='campaigns')return {api:'aliexpress.affiliate.featuredpromo.get',params:{fields:'promotion_name,promotion_start_time,promotion_end_time,commission_rate,sale_price'}};
+  if(method==='campaigns')return {api:'aliexpress.affiliate.featuredpromo.get',params:{fields:'promo_name,promo_desc,product_num,commission_rate,sale_price'}};
   if(method==='campaignProducts'){
     const promo=clean(body.promotionName,180);
     if(!promo)throw Object.assign(new Error('Informe o nome exato da campanha retornado pelo AliExpress.'),{status:400});
