@@ -18,7 +18,7 @@ export default async function(req,res){
       let providerAccepted=false;
       try{
         const token=await configuredBotToken(connection.secretSlot,item.accountId);
-        const trackingUrl=origin+'/api/r/'+encodeURIComponent(item.id),useShort=/^https:\/\/(?:lmdee\.link|meli\.la|amzn\.to|s\.shopee\.com\.br|shope\.ee|ali\.ski)(?:\/|$)/i.test(item.affiliateUrl||''),effectiveAffiliate=useShort?item.affiliateUrl:trackingUrl,baseMessage=item.affiliateUrl?String(item.message||'').split(item.affiliateUrl).join(effectiveAffiliate):String(item.message||''),couponUrl=String(item.couponUrl||'').trim(),trackedMessage=item.couponCode&&couponUrl&&!baseMessage.includes(couponUrl)?baseMessage+String.fromCharCode(10,10)+'🎟️ Resgate o cupom aqui: '+couponUrl:baseMessage;
+        const effectiveAffiliate=String(item.affiliateUrl||'').trim(),baseMessage=String(item.message||''),couponUrl=String(item.couponUrl||'').trim(),trackedMessage=item.couponCode&&couponUrl&&!baseMessage.includes(couponUrl)?baseMessage+String.fromCharCode(10,10)+'🎟️ Resgate o cupom aqui: '+couponUrl:baseMessage;
         const external=await sendTelegramOffer(token,{...item,imageUrl:item.contentType==='MESSAGE'?null:new URL(await offerImage(item,{publicAccess:true}),origin).toString(),message:trackedMessage,affiliateUrl:effectiveAffiliate});
         providerAccepted=true;
         await db.transaction([
