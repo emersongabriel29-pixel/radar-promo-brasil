@@ -118,7 +118,7 @@ default = "https://radar-promo-brasil.hatchable.site"
 description = "Endereço público usado nos links enviados pelo Telegram."
 
 [[config]]
-name = "WHATSAPP_CHANNEL_API_URL"
+name = "whatsapp_channel_api_url"
 required = false
 default = ""
 description = "URL HTTPS da API comunitária auto-hospedada para publicar em Canal do WhatsApp."
