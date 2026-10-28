@@ -18,8 +18,9 @@ async function getCredentials(accountId) {
     [accountId]
   )).rows[0];
   if (!row) return null;
-  const master = String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '');
-  if (master.length < 32) throw Object.assign(new Error('Configure CONNECTOR_ENCRYPTION_KEY nos segredos do projeto.'), { status: 412 });
+  let master = String(await config.get('API_CREDENTIALS_MASTER_KEY') || '');
+  if (master.length < 32) master = String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '');
+  if (master.length < 32) throw Object.assign(new Error('Configure API_CREDENTIALS_MASTER_KEY ou CONNECTOR_ENCRYPTION_KEY nos segredos do projeto.'), { status: 412 });
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(master + '|radar-marketplace-credentials|' + accountId + '|SHOPEE'));
   const key = await crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['decrypt']);
   const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(row.nonce) }, key, fromB64(row.credentials_enc));
@@ -62,14 +63,32 @@ function safeOfferRows(kind, result) {
       itemId: clean(item.itemId, 80),
       shopId: clean(item.shopId, 80),
       url: typeof (item.offerLink || item.productLink) === 'string' && /^https:\/\//i.test(item.offerLink || item.productLink) ? String(item.offerLink || item.productLink).slice(0, 2000) : '',
+      originalUrl: typeof (item.originalLink || item.productLink) === 'string' && /^https:\/\//i.test(item.originalLink || item.productLink) ? String(item.originalLink || item.productLink).slice(0, 2000) : '',
       price: item.priceMin == null ? null : Number(item.priceMin),
+      maxPrice: item.priceMax == null ? null : Number(item.priceMax),
+      discountRate: item.priceDiscountRate == null ? null : Number(item.priceDiscountRate),
+      imageUrl: typeof item.imageUrl === 'string' && /^https:\/\//i.test(item.imageUrl) ? item.imageUrl.slice(0, 2000) : '',
       commissionRate: item.commissionRate == null ? null : Number(item.commissionRate),
-      sales: item.sales == null ? null : Number(item.sales)
+      sellerCommissionRate: item.sellerCommissionRate == null ? null : Number(item.sellerCommissionRate),
+      shopeeCommissionRate: item.shopeeCommissionRate == null ? null : Number(item.shopeeCommissionRate),
+      estimatedCommission: item.commission == null ? null : Number(item.commission),
+      sales: item.sales == null ? null : Number(item.sales),
+      rating: item.ratingStar == null ? null : Number(item.ratingStar),
+      shopName: clean(item.shopName, 200),
+      shopType: item.shopType == null ? null : Number(item.shopType),
+      offerType: item.offerType == null ? null : Number(item.offerType),
+      categoryId: item.categoryId == null ? null : String(item.categoryId),
+      collectionId: item.collectionId == null ? null : String(item.collectionId),
+      periodStartTime: item.periodStartTime == null ? null : Number(item.periodStartTime),
+      periodEndTime: item.periodEndTime == null ? null : Number(item.periodEndTime),
+      remainingBudget: item.remainingBudget == null ? null : Number(item.remainingBudget),
+      sellerCommissionCoverageRatio: item.sellerCommCoveRatio == null ? null : Number(item.sellerCommCoveRatio)
     })),
     pageInfo: root.pageInfo ? {
       page: Number(root.pageInfo.page) || 1,
       limit: Number(root.pageInfo.limit) || nodes.length,
-      hasNextPage: Boolean(root.pageInfo.hasNextPage)
+      hasNextPage: Boolean(root.pageInfo.hasNextPage),
+      scrollId: clean(root.pageInfo.scrollId, 1000) || null
     } : null
   };
 }
@@ -111,16 +130,20 @@ export default async function handler(req, res) {
       const kind = kindMap[clean(req.body?.kind, 20).toLowerCase()];
       if (!kind) return res.status(400).json({ error: 'Escolha ofertas de produto, loja ou campanha Shopee.' });
       const keyword = clean(req.body?.keyword || 'phone', 80).replace(/[\r\n]/g, ' ').trim() || 'phone';
-      const limit = Math.min(20, Math.max(1, Math.floor(Number(req.body?.limit) || 10)));
+      // The documented offer endpoints support large pages. Keep the default useful for interactive use,
+      // while allowing authorized callers to request up to 500 records per page.
+      const limit = Math.min(500, Math.max(1, Math.floor(Number(req.body?.limit) || 50)));
       const page = Math.min(1000, Math.max(1, Math.floor(Number(req.body?.page) || 1)));
       const query = kind === 'productOfferV2'
-        ? 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { productOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { productName offerLink commissionRate sales } pageInfo { page limit hasNextPage } } }'
+        ? 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { productOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { itemId shopId shopName shopType productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate commissionRate sellerCommissionRate shopeeCommissionRate commission sales ratingStar periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }'
         : kind === 'shopOfferV2'
-          ? 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { shopOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { shopName shopId offerLink commissionRate } pageInfo { page limit hasNextPage } } }'
+          ? 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { shopOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { shopName shopId offerLink commissionRate ratingStar shopType imageUrl remainingBudget sellerCommCoveRatio periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }'
           : kind === 'brandOffer'
             ? 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { brandOffer(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { brandName offerName offerLink commissionRate } pageInfo { page limit hasNextPage } } }'
-            : 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { shopeeOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { offerName offerLink commissionRate } pageInfo { page limit hasNextPage } } }';
-      result = await signedRequest(credentials, { query, variables: { keyword, sortType: 1, page, limit } });
+            : 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { shopeeOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { offerName offerLink originalLink imageUrl commissionRate offerType categoryId collectionId periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
+      const requestedSort = Math.floor(Number(req.body?.sortType) || (kind === 'productOfferV2' ? 5 : 2));
+      const sortType = Math.min(5, Math.max(1, requestedSort));
+      result = await signedRequest(credentials, { query, variables: { keyword, sortType, page, limit } });
       const normalized = safeOfferRows(kind, result);
       return res.json({ kind, ...normalized, readOnly: true, publicationEnabled: false });
     }
@@ -149,20 +172,22 @@ export default async function handler(req, res) {
       const end = Math.floor(endDate.getTime() / 1000);
       if (!Number.isFinite(start) || !Number.isFinite(end) || start <= 0 || end < start || end > now + 300 || end - start > 90 * 86400) return res.status(400).json({ error: 'Informe um período válido de até 90 dias, sem datas futuras.' });
       const limit = Math.min(100, Math.max(1, Math.floor(Number(req.body?.limit) || 20)));
-      const query = 'query { conversionReport(purchaseTimeStart: ' + start + ', purchaseTimeEnd: ' + end + ', limit: ' + limit + ') { nodes { conversionId purchaseTime totalCommission } pageInfo { limit hasNextPage scrollId } } }';
-      result = await signedRequest(credentials, { query });
+      const scrollId = clean(req.body?.scrollId, 1000);
+      const query = 'query($start: Int!, $end: Int!, $limit: Int!, $scrollId: String) { conversionReport(purchaseTimeStart: $start, purchaseTimeEnd: $end, limit: $limit, scrollId: $scrollId) { nodes { conversionId clickTime purchaseTime totalCommission sellerCommission shopeeCommissionCapped buyerType device utmContent orders { orderId orderStatus items { itemId itemName shopName itemPrice qty itemTotalCommission attributionType } } } pageInfo { limit hasNextPage scrollId } } }';
+      result = await signedRequest(credentials, { query, variables: { start, end, limit, ...(scrollId ? { scrollId } : {}) } });
       const root = result?.data?.conversionReport || {};
-      return res.json({ report: 'conversionReport', items: Array.isArray(root.nodes) ? root.nodes : [], pageInfo: root.pageInfo || null, readOnly: true });
+      return res.json({ report: 'conversionReport', items: Array.isArray(root.nodes) ? root.nodes : [], pageInfo: root.pageInfo || null, readOnly: true, nextScrollId: root.pageInfo?.hasNextPage ? (root.pageInfo.scrollId || null) : null });
     }
 
     if (action === 'validated') {
       const validationId = String(req.body?.validationId || '').trim();
       if (!/^\d{1,18}$/.test(validationId)) return res.status(400).json({ error: 'Informe o Validation ID numérico exibido no relatório de pagamentos da Shopee.' });
       const limit = Math.min(100, Math.max(1, Math.floor(Number(req.body?.limit) || 20)));
-      const query = 'query { validatedReport(validationId: ' + validationId + ', limit: ' + limit + ') { nodes { conversionId totalCommission netCommission } pageInfo { limit hasNextPage scrollId } } }';
-      result = await signedRequest(credentials, { query });
+      const scrollId = clean(req.body?.scrollId, 1000);
+      const query = 'query($validationId: Int!, $limit: Int!, $scrollId: String) { validatedReport(validationId: $validationId, limit: $limit, scrollId: $scrollId) { nodes { conversionId totalCommission netCommission } pageInfo { limit hasNextPage scrollId } } }';
+      result = await signedRequest(credentials, { query, variables: { validationId: Number(validationId), limit, ...(scrollId ? { scrollId } : {}) } });
       const root = result?.data?.validatedReport || {};
-      return res.json({ report: 'validatedReport', items: Array.isArray(root.nodes) ? root.nodes : [], pageInfo: root.pageInfo || null, readOnly: true });
+      return res.json({ report: 'validatedReport', items: Array.isArray(root.nodes) ? root.nodes : [], pageInfo: root.pageInfo || null, readOnly: true, nextScrollId: root.pageInfo?.hasNextPage ? (root.pageInfo.scrollId || null) : null });
     }
 
     return res.status(400).json({ error: 'Ação Shopee não suportada.' });
