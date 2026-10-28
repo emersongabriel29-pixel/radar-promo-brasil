@@ -15,7 +15,7 @@
 ## API e autenticação
 - Configure o endpoint HTTPS real da API.
 - O campo Bearer só funciona se a API de destino aceitar esse método. A rota Hatchable `/api/data` usa autenticação de membro (`req.member`) e não aceita automaticamente um token standalone.
-- A extensão envia `subId` na requisição e o mantém na cópia local. **A versão atual do backend `api/data.js` não persiste Sub_id em um campo próprio da oferta**; para isso, será necessária uma alteração de esquema e da API.
+- A extensão envia `subId` e o backend o persiste em `offers.sub_id`; a migração `041_offer_sub_id.sql` adiciona a coluna e o índice no banco standalone. Em ambientes já existentes, confirme que as migrações foram aplicadas antes de enviar ofertas.
 - O envio da oferta não publica automaticamente no Telegram/WhatsApp. A publicação segue o fluxo de aprovação e conectores oficiais.
 
 ## Diagnóstico
