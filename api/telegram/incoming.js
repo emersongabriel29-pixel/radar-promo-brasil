@@ -2,6 +2,7 @@ import { config, db } from 'hatchable';
 import { parseOfferMessage } from 'lib/offer-message-parser.js';
 import { formatPromo } from 'lib/promo-message.js';
 import { classifyProduct } from 'lib/category-classifier.js';
+import { constantTimeSecretMatch, isPlainObject, safePublicError } from 'lib/api-security.js';
 const clean=(v,n=500)=>String(v??'').trim().slice(0,n);
 const uid=()=>crypto.randomUUID();
 async function fingerprint(value){const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value));return Array.from(new Uint8Array(bytes)).map(b=>b.toString(16).padStart(2,'0')).join('');}
@@ -11,10 +12,11 @@ export default async function(req,res){
  try{
   const secret=String(await config.get('TELEGRAM_WEBHOOK_SECRET')||'');
   if(secret.length<32)return res.status(503).json({ok:false,error:'Webhook Telegram ainda não configurado: defina TELEGRAM_WEBHOOK_SECRET (mínimo 32 caracteres) nos segredos do projeto.'});
-  const supplied=String(req.headers['x-telegram-bot-api-secret-token']||'');
-  if(!supplied||supplied.length!==secret.length)return res.status(401).json({ok:false,error:'Assinatura de webhook inválida.'});
-  const a=new TextEncoder().encode(secret),b=new TextEncoder().encode(supplied);let diff=0;for(let i=0;i<a.length;i++)diff|=a[i]^b[i];if(diff!==0)return res.status(401).json({ok:false,error:'Assinatura de webhook inválida.'});
-  const update=req.body||{},message=update.channel_post||update.message;
+  const rawHeader=req.headers['x-telegram-bot-api-secret-token'];
+  const supplied=Array.isArray(rawHeader)?'':String(rawHeader||'');
+  if(!constantTimeSecretMatch(secret,supplied))return res.status(401).json({ok:false,error:'Assinatura de webhook inválida.'});
+  if(!isPlainObject(req.body))return res.status(400).json({ok:false,error:'Corpo da solicitação inválido.'});
+  const update=req.body,message=update.channel_post||update.message;
   if(!message||!message.chat?.id)return res.json({ok:true,ignored:true,reason:'Atualização sem mensagem de canal/grupo.'});
   const groupId=String(message.chat.id),text=String(message.text||message.caption||'').slice(0,12000);
   if(!text.trim())return res.json({ok:true,ignored:true,reason:'Mensagem sem texto/caption.'});
@@ -45,5 +47,5 @@ export default async function(req,res){
    if(result.rows.length){imported++;if(group.monitorId)await db.query("UPDATE monitors SET captured_count=captured_count+1,last_run_at=now(),last_error='' WHERE id=$1 AND account_id=$2",[group.monitorId,group.accountId]);if(!parsed.affiliateLinkDetected)needsAffiliate++;}else duplicates++;
   }
   return res.json({ok:true,imported,duplicates,needsAffiliateLink:needsAffiliate,autoPublished:0,reviewRequired:true});
- }catch(error){return res.status(500).json({ok:false,error:'Falha ao processar a mensagem recebida.',detail:clean(error?.message,240)});}
+ }catch(error){return res.status(500).json(safePublicError());}
 }
