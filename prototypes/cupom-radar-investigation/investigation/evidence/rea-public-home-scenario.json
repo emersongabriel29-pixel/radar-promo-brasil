@@ -1,0 +1,26 @@
+{
+  "browser": {
+    "mode": "launch",
+    "executable_path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+  },
+  "start_url": {
+    "url": "https://www.cupomradaroficial.com/"
+  },
+  "actions": [
+    {
+      "step_id": "public-home-ready",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "h1"
+      },
+      "state": "visible",
+      "timeout_ms": 10000
+    }
+  ],
+  "capture": {
+    "at_end": [
+      "url"
+    ]
+  }
+}

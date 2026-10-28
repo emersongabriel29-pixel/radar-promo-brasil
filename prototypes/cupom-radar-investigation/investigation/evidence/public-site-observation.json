@@ -1,0 +1,948 @@
+{
+  "capturedAt": "2026-10-28T02:43:12.304Z",
+  "tool": "Playwright 1.62.1",
+  "evidencePolicy": "anonymous public-page inspection; query strings and fragments omitted; no storage or credentials captured",
+  "pages": {
+    "homeDesktop": {
+      "requestedPath": "/",
+      "status": 200,
+      "finalPath": "https://www.cupomradaroficial.com/",
+      "title": "Cupom Radar - Automação de links de afiliado no WhatsApp e Telegram",
+      "headings": [
+        {
+          "level": "h1",
+          "text": "O Aplicativo Oficial dos Top Afiliados."
+        },
+        {
+          "level": "h2",
+          "text": "Plataformas suportadas."
+        },
+        {
+          "level": "h2",
+          "text": "Crie textos de disparo em segundos."
+        },
+        {
+          "level": "h3",
+          "text": "Recorte e diagramação automáticos"
+        },
+        {
+          "level": "h3",
+          "text": "Modelos personalizados por loja"
+        },
+        {
+          "level": "h3",
+          "text": "Mais rapidez, mais vendas"
+        },
+        {
+          "level": "h2",
+          "text": "Os melhores achadinhos, com o seu link."
+        },
+        {
+          "level": "h2",
+          "text": "Stories gerados automaticamente."
+        },
+        {
+          "level": "h3",
+          "text": "Templates personalizáveis"
+        },
+        {
+          "level": "h3",
+          "text": "Formato 9:16 otimizado"
+        },
+        {
+          "level": "h3",
+          "text": "Sem ferramentas de design"
+        },
+        {
+          "level": "h2",
+          "text": "Automação completa no WhatsApp."
+        },
+        {
+          "level": "h3",
+          "text": "Conecte sua conta"
+        },
+        {
+          "level": "h3",
+          "text": "Gere a postagem"
+        },
+        {
+          "level": "h3",
+          "text": "Agende e dispare"
+        },
+        {
+          "level": "h2",
+          "text": "O que nossos clientes dizem."
+        },
+        {
+          "level": "h2",
+          "text": "Seu próximo passo. No seu ritmo."
+        },
+        {
+          "level": "h3",
+          "text": "Gratuito"
+        },
+        {
+          "level": "h3",
+          "text": "Premium"
+        },
+        {
+          "level": "h3",
+          "text": "Diamante"
+        },
+        {
+          "level": "h3",
+          "text": "Master"
+        },
+        {
+          "level": "h2",
+          "text": "Tudo que você precisa saber."
+        },
+        {
+          "level": "h3",
+          "text": "Ganhe agilidade e tenha mais tempo."
+        }
+      ],
+      "counts": {
+        "links": 31,
+        "buttons": 16,
+        "forms": 0,
+        "inputs": 0,
+        "textareas": 0,
+        "selects": 1,
+        "images": 14,
+        "videos": 0,
+        "iframes": 1,
+        "details": 0
+      },
+      "navigationLabels": [
+        "Funcionalidades",
+        "Como funciona",
+        "Planos",
+        "Depoimentos",
+        "FAQ"
+      ],
+      "buttons": [
+        "Começar agora",
+        "Ativar o Modo Copiador",
+        "Mensal",
+        "Anual ATÉ −17%",
+        "−",
+        "+",
+        "Como funciona o plano gratuito?",
+        "Posso cancelar minha assinatura a qualquer momento?",
+        "Como funciona a automação do WhatsApp?",
+        "Quais plataformas são suportadas?",
+        "Preciso de conhecimento técnico para usar?",
+        "Como funciona o agendamento de postagens?",
+        "Posso personalizar as mensagens?",
+        "Qual a diferença entre o plano mensal e anual?",
+        "Ver Planos"
+      ],
+      "linkSample": [
+        {
+          "label": "",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Funcionalidades",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Como funciona",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Planos",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Depoimentos",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "FAQ",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Login",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Comece agora",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Comece",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Começar Grátis",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Assinar Premium",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Assinar Diamante",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Assinar Master",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Assinar Master",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Ver a Central de Ajuda completa",
+          "href": "https://www.cupomradaroficial.com/faq"
+        },
+        {
+          "label": "Comece agora",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Funcionalidades",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Como funciona",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Planos",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Depoimentos",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Central de Ajuda",
+          "href": "https://www.cupomradaroficial.com/faq"
+        },
+        {
+          "label": "FAQ",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Entrar",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Criar Conta",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Termos de Uso",
+          "href": "https://www.cupomradaroficial.com/termos-de-uso"
+        },
+        {
+          "label": "Privacidade",
+          "href": "https://www.cupomradaroficial.com/politica-de-privacidade"
+        },
+        {
+          "label": "Reembolso",
+          "href": "https://www.cupomradaroficial.com/politica-de-reembolso"
+        },
+        {
+          "label": "[contact redacted]",
+          "href": "[contact redacted]"
+        },
+        {
+          "label": "",
+          "href": "https://instagram.com/cupomradar.app"
+        },
+        {
+          "label": "",
+          "href": "https://facebook.com/cupomradar"
+        },
+        {
+          "label": "",
+          "href": "https://wa.me/5548996911387"
+        }
+      ],
+      "stylesheetPaths": [
+        "https://gc.kis.v2.scr.kaspersky-labs.com/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css",
+        "https://fonts.googleapis.com/css2",
+        "https://www.cupomradaroficial.com/_nuxt/entry.BlvPMg-Y.css",
+        "https://www.cupomradaroficial.com/_nuxt/pages.C2BgXlST.css",
+        "https://www.cupomradaroficial.com/_nuxt/landing.CP_RDmEm.css",
+        "https://www.cupomradaroficial.com/_nuxt/Input.DOMiW3Gm.css",
+        "https://www.cupomradaroficial.com/_nuxt/TwoFactorVerify.D0eUheB9.css",
+        "https://www.cupomradaroficial.com/_nuxt/login.CO1sgYS0.css"
+      ],
+      "scriptPaths": [
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined"
+      ],
+      "visual": {
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "documentWidth": 1440,
+        "topFont": "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+        "topBackground": "rgba(0, 0, 0, 0)",
+        "bodyBackground": "rgb(3, 7, 18)"
+      }
+    },
+    "homeMobile": {
+      "requestedPath": "/",
+      "status": 200,
+      "finalPath": "https://www.cupomradaroficial.com/",
+      "title": "Cupom Radar - Automação de links de afiliado no WhatsApp e Telegram",
+      "headings": [
+        {
+          "level": "h1",
+          "text": "O Aplicativo Oficial dos Top Afiliados."
+        },
+        {
+          "level": "h2",
+          "text": "Plataformas suportadas."
+        },
+        {
+          "level": "h2",
+          "text": "Crie textos de disparo em segundos."
+        },
+        {
+          "level": "h3",
+          "text": "Recorte e diagramação automáticos"
+        },
+        {
+          "level": "h3",
+          "text": "Modelos personalizados por loja"
+        },
+        {
+          "level": "h3",
+          "text": "Mais rapidez, mais vendas"
+        },
+        {
+          "level": "h2",
+          "text": "Os melhores achadinhos, com o seu link."
+        },
+        {
+          "level": "h2",
+          "text": "Stories gerados automaticamente."
+        },
+        {
+          "level": "h3",
+          "text": "Templates personalizáveis"
+        },
+        {
+          "level": "h3",
+          "text": "Formato 9:16 otimizado"
+        },
+        {
+          "level": "h3",
+          "text": "Sem ferramentas de design"
+        },
+        {
+          "level": "h2",
+          "text": "Automação completa no WhatsApp."
+        },
+        {
+          "level": "h3",
+          "text": "Conecte sua conta"
+        },
+        {
+          "level": "h3",
+          "text": "Gere a postagem"
+        },
+        {
+          "level": "h3",
+          "text": "Agende e dispare"
+        },
+        {
+          "level": "h2",
+          "text": "O que nossos clientes dizem."
+        },
+        {
+          "level": "h2",
+          "text": "Seu próximo passo. No seu ritmo."
+        },
+        {
+          "level": "h3",
+          "text": "Gratuito"
+        },
+        {
+          "level": "h3",
+          "text": "Premium"
+        },
+        {
+          "level": "h3",
+          "text": "Diamante"
+        },
+        {
+          "level": "h3",
+          "text": "Master"
+        },
+        {
+          "level": "h2",
+          "text": "Tudo que você precisa saber."
+        },
+        {
+          "level": "h3",
+          "text": "Ganhe agilidade e tenha mais tempo."
+        }
+      ],
+      "counts": {
+        "links": 31,
+        "buttons": 16,
+        "forms": 0,
+        "inputs": 0,
+        "textareas": 0,
+        "selects": 1,
+        "images": 14,
+        "videos": 0,
+        "iframes": 1,
+        "details": 0
+      },
+      "navigationLabels": [
+        "Funcionalidades",
+        "Como funciona",
+        "Planos",
+        "Depoimentos",
+        "FAQ"
+      ],
+      "buttons": [
+        "Começar agora",
+        "Ativar o Modo Copiador",
+        "Mensal",
+        "Anual ATÉ −17%",
+        "−",
+        "+",
+        "Como funciona o plano gratuito?",
+        "Posso cancelar minha assinatura a qualquer momento?",
+        "Como funciona a automação do WhatsApp?",
+        "Quais plataformas são suportadas?",
+        "Preciso de conhecimento técnico para usar?",
+        "Como funciona o agendamento de postagens?",
+        "Posso personalizar as mensagens?",
+        "Qual a diferença entre o plano mensal e anual?",
+        "Ver Planos"
+      ],
+      "linkSample": [
+        {
+          "label": "",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Funcionalidades",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Como funciona",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Planos",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Depoimentos",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "FAQ",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Login",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Comece agora",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Comece",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Começar Grátis",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Assinar Premium",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Assinar Diamante",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Assinar Master",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Assinar Master",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Ver a Central de Ajuda completa",
+          "href": "https://www.cupomradaroficial.com/faq"
+        },
+        {
+          "label": "Comece agora",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Funcionalidades",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Como funciona",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Planos",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Depoimentos",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Central de Ajuda",
+          "href": "https://www.cupomradaroficial.com/faq"
+        },
+        {
+          "label": "FAQ",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Entrar",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Criar Conta",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Termos de Uso",
+          "href": "https://www.cupomradaroficial.com/termos-de-uso"
+        },
+        {
+          "label": "Privacidade",
+          "href": "https://www.cupomradaroficial.com/politica-de-privacidade"
+        },
+        {
+          "label": "Reembolso",
+          "href": "https://www.cupomradaroficial.com/politica-de-reembolso"
+        },
+        {
+          "label": "[contact redacted]",
+          "href": "[contact redacted]"
+        },
+        {
+          "label": "",
+          "href": "https://instagram.com/cupomradar.app"
+        },
+        {
+          "label": "",
+          "href": "https://facebook.com/cupomradar"
+        },
+        {
+          "label": "",
+          "href": "https://wa.me/5548996911387"
+        }
+      ],
+      "stylesheetPaths": [
+        "https://gc.kis.v2.scr.kaspersky-labs.com/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css",
+        "https://fonts.googleapis.com/css2",
+        "https://www.cupomradaroficial.com/_nuxt/entry.BlvPMg-Y.css",
+        "https://www.cupomradaroficial.com/_nuxt/pages.C2BgXlST.css",
+        "https://www.cupomradaroficial.com/_nuxt/landing.CP_RDmEm.css",
+        "https://www.cupomradaroficial.com/_nuxt/Input.DOMiW3Gm.css",
+        "https://www.cupomradaroficial.com/_nuxt/TwoFactorVerify.D0eUheB9.css",
+        "https://www.cupomradaroficial.com/_nuxt/login.CO1sgYS0.css"
+      ],
+      "scriptPaths": [
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined"
+      ],
+      "visual": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "documentWidth": 390,
+        "topFont": "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+        "topBackground": "rgba(0, 0, 0, 0)",
+        "bodyBackground": "rgb(3, 7, 18)"
+      }
+    },
+    "faqDesktop": {
+      "requestedPath": "/faq",
+      "status": 200,
+      "finalPath": "https://www.cupomradaroficial.com/faq",
+      "title": "Central de Ajuda - Cupom Radar",
+      "headings": [
+        {
+          "level": "h1",
+          "text": "Central de Ajuda"
+        },
+        {
+          "level": "h2",
+          "text": "Por onde você quer começar"
+        },
+        {
+          "level": "h2",
+          "text": "As mais buscadas"
+        }
+      ],
+      "counts": {
+        "links": 22,
+        "buttons": 1,
+        "forms": 0,
+        "inputs": 0,
+        "textareas": 0,
+        "selects": 0,
+        "images": 1,
+        "videos": 0,
+        "iframes": 0,
+        "details": 0
+      },
+      "navigationLabels": [
+        "Começar",
+        "Publicar",
+        "Automações",
+        "Ferramentas",
+        "Conta e pagamento"
+      ],
+      "buttons": [
+        "Buscar… Ctrl K"
+      ],
+      "linkSample": [
+        {
+          "label": "",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Acessar",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Começar",
+          "href": "https://www.cupomradaroficial.com/faq/comecar"
+        },
+        {
+          "label": "Publicar",
+          "href": "https://www.cupomradaroficial.com/faq/publicar"
+        },
+        {
+          "label": "Automações",
+          "href": "https://www.cupomradaroficial.com/faq/automacoes"
+        },
+        {
+          "label": "Ferramentas",
+          "href": "https://www.cupomradaroficial.com/faq/ferramentas"
+        },
+        {
+          "label": "Conta e pagamento",
+          "href": "https://www.cupomradaroficial.com/faq/conta"
+        },
+        {
+          "label": "Começar Monte a conta na ordem certa: entenda a ferramenta, conecte WhatsApp e Telegram e cadastre a",
+          "href": "https://www.cupomradaroficial.com/faq/comecar"
+        },
+        {
+          "label": "Publicar Como montar uma postagem, personalizar o texto, enviar para os grupos na hora e deixar agen",
+          "href": "https://www.cupomradaroficial.com/faq/publicar"
+        },
+        {
+          "label": "Automações Modo Fila, Modo Lista e Modo Copiador: o robô postando sozinho, com os filtros e horários",
+          "href": "https://www.cupomradaroficial.com/faq/automacoes"
+        },
+        {
+          "label": "Ferramentas Bio Link Pro, relatório de comissões, analytics de grupos, indicações e a área de aulas.",
+          "href": "https://www.cupomradaroficial.com/faq/ferramentas"
+        },
+        {
+          "label": "Conta e pagamento Planos, formas de pagamento, troca de plano, cancelamento e segurança dos seus dad",
+          "href": "https://www.cupomradaroficial.com/faq/conta"
+        },
+        {
+          "label": "Acabei de criar minha conta. Por onde eu começo? Primeiros passos",
+          "href": "https://www.cupomradaroficial.com/faq/por-onde-comecar"
+        },
+        {
+          "label": "Como conectar meu WhatsApp pelo QR Code? Conectar WhatsApp e Telegram",
+          "href": "https://www.cupomradaroficial.com/faq/conectar-whatsapp-qr-code"
+        },
+        {
+          "label": "Como configurar a API da Shopee? Credenciais das lojas",
+          "href": "https://www.cupomradaroficial.com/faq/configurar-api-shopee"
+        },
+        {
+          "label": "Como gerar uma postagem colando o link do produto? Gerar e personalizar postagens",
+          "href": "https://www.cupomradaroficial.com/faq/gerar-postagem-por-link"
+        },
+        {
+          "label": "Como configurar o Modo Fila do zero? Automações: Fila, Lista e Copiador",
+          "href": "https://www.cupomradaroficial.com/faq/configurar-modo-fila"
+        },
+        {
+          "label": "Meu WhatsApp não conecta ou fica caindo. O que faço? Conectar WhatsApp e Telegram",
+          "href": "https://www.cupomradaroficial.com/faq/whatsapp-desconecta-sozinho"
+        },
+        {
+          "label": "Quais são os planos e quanto custa cada um? Conta, planos e pagamento",
+          "href": "https://www.cupomradaroficial.com/faq/quais-sao-os-planos-e-precos"
+        },
+        {
+          "label": "Como cancelo minha assinatura? Conta, planos e pagamento",
+          "href": "https://www.cupomradaroficial.com/faq/cancelar-assinatura"
+        },
+        {
+          "label": "Falar com o suporte",
+          "href": "https://wa.me/5548996911387"
+        },
+        {
+          "label": "canal do YouTube",
+          "href": "https://www.youtube.com/@cupomradarapp"
+        }
+      ],
+      "stylesheetPaths": [
+        "https://gc.kis.v2.scr.kaspersky-labs.com/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css",
+        "https://fonts.googleapis.com/css2",
+        "https://www.cupomradaroficial.com/_nuxt/entry.BlvPMg-Y.css",
+        "https://www.cupomradaroficial.com/_nuxt/landing.CP_RDmEm.css",
+        "https://www.cupomradaroficial.com/_nuxt/pages.C2BgXlST.css",
+        "https://www.cupomradaroficial.com/_nuxt/Input.DOMiW3Gm.css",
+        "https://www.cupomradaroficial.com/_nuxt/TwoFactorVerify.D0eUheB9.css",
+        "https://www.cupomradaroficial.com/_nuxt/login.CO1sgYS0.css"
+      ],
+      "scriptPaths": [
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined"
+      ],
+      "visual": {
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "documentWidth": 1440,
+        "topFont": "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+        "topBackground": "rgba(0, 0, 0, 0)",
+        "bodyBackground": "rgb(3, 7, 18)"
+      }
+    },
+    "faqMobile": {
+      "requestedPath": "/faq",
+      "status": 200,
+      "finalPath": "https://www.cupomradaroficial.com/faq",
+      "title": "Central de Ajuda - Cupom Radar",
+      "headings": [
+        {
+          "level": "h1",
+          "text": "Central de Ajuda"
+        },
+        {
+          "level": "h2",
+          "text": "Por onde você quer começar"
+        },
+        {
+          "level": "h2",
+          "text": "As mais buscadas"
+        }
+      ],
+      "counts": {
+        "links": 22,
+        "buttons": 1,
+        "forms": 0,
+        "inputs": 0,
+        "textareas": 0,
+        "selects": 0,
+        "images": 1,
+        "videos": 0,
+        "iframes": 0,
+        "details": 0
+      },
+      "navigationLabels": [
+        "Começar",
+        "Publicar",
+        "Automações",
+        "Ferramentas",
+        "Conta e pagamento"
+      ],
+      "buttons": [
+        "Buscar…"
+      ],
+      "linkSample": [
+        {
+          "label": "",
+          "href": "https://www.cupomradaroficial.com/"
+        },
+        {
+          "label": "Acessar",
+          "href": "https://www.cupomradaroficial.com/login"
+        },
+        {
+          "label": "Começar",
+          "href": "https://www.cupomradaroficial.com/faq/comecar"
+        },
+        {
+          "label": "Publicar",
+          "href": "https://www.cupomradaroficial.com/faq/publicar"
+        },
+        {
+          "label": "Automações",
+          "href": "https://www.cupomradaroficial.com/faq/automacoes"
+        },
+        {
+          "label": "Ferramentas",
+          "href": "https://www.cupomradaroficial.com/faq/ferramentas"
+        },
+        {
+          "label": "Conta e pagamento",
+          "href": "https://www.cupomradaroficial.com/faq/conta"
+        },
+        {
+          "label": "Começar Monte a conta na ordem certa: entenda a ferramenta, conecte WhatsApp e Telegram e cadastre a",
+          "href": "https://www.cupomradaroficial.com/faq/comecar"
+        },
+        {
+          "label": "Publicar Como montar uma postagem, personalizar o texto, enviar para os grupos na hora e deixar agen",
+          "href": "https://www.cupomradaroficial.com/faq/publicar"
+        },
+        {
+          "label": "Automações Modo Fila, Modo Lista e Modo Copiador: o robô postando sozinho, com os filtros e horários",
+          "href": "https://www.cupomradaroficial.com/faq/automacoes"
+        },
+        {
+          "label": "Ferramentas Bio Link Pro, relatório de comissões, analytics de grupos, indicações e a área de aulas.",
+          "href": "https://www.cupomradaroficial.com/faq/ferramentas"
+        },
+        {
+          "label": "Conta e pagamento Planos, formas de pagamento, troca de plano, cancelamento e segurança dos seus dad",
+          "href": "https://www.cupomradaroficial.com/faq/conta"
+        },
+        {
+          "label": "Acabei de criar minha conta. Por onde eu começo? Primeiros passos",
+          "href": "https://www.cupomradaroficial.com/faq/por-onde-comecar"
+        },
+        {
+          "label": "Como conectar meu WhatsApp pelo QR Code? Conectar WhatsApp e Telegram",
+          "href": "https://www.cupomradaroficial.com/faq/conectar-whatsapp-qr-code"
+        },
+        {
+          "label": "Como configurar a API da Shopee? Credenciais das lojas",
+          "href": "https://www.cupomradaroficial.com/faq/configurar-api-shopee"
+        },
+        {
+          "label": "Como gerar uma postagem colando o link do produto? Gerar e personalizar postagens",
+          "href": "https://www.cupomradaroficial.com/faq/gerar-postagem-por-link"
+        },
+        {
+          "label": "Como configurar o Modo Fila do zero? Automações: Fila, Lista e Copiador",
+          "href": "https://www.cupomradaroficial.com/faq/configurar-modo-fila"
+        },
+        {
+          "label": "Meu WhatsApp não conecta ou fica caindo. O que faço? Conectar WhatsApp e Telegram",
+          "href": "https://www.cupomradaroficial.com/faq/whatsapp-desconecta-sozinho"
+        },
+        {
+          "label": "Quais são os planos e quanto custa cada um? Conta, planos e pagamento",
+          "href": "https://www.cupomradaroficial.com/faq/quais-sao-os-planos-e-precos"
+        },
+        {
+          "label": "Como cancelo minha assinatura? Conta, planos e pagamento",
+          "href": "https://www.cupomradaroficial.com/faq/cancelar-assinatura"
+        },
+        {
+          "label": "Falar com o suporte",
+          "href": "https://wa.me/5548996911387"
+        },
+        {
+          "label": "canal do YouTube",
+          "href": "https://www.youtube.com/@cupomradarapp"
+        }
+      ],
+      "stylesheetPaths": [
+        "https://gc.kis.v2.scr.kaspersky-labs.com/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css",
+        "https://fonts.googleapis.com/css2",
+        "https://www.cupomradaroficial.com/_nuxt/entry.BlvPMg-Y.css",
+        "https://www.cupomradaroficial.com/_nuxt/landing.CP_RDmEm.css",
+        "https://www.cupomradaroficial.com/_nuxt/pages.C2BgXlST.css"
+      ],
+      "scriptPaths": [
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined",
+        "https://www.cupomradaroficial.com/undefined"
+      ],
+      "visual": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "documentWidth": 390,
+        "topFont": "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+        "topBackground": "rgba(0, 0, 0, 0)",
+        "bodyBackground": "rgb(3, 7, 18)"
+      }
+    },
+    "dashboardWithoutSession": {
+      "requestedPath": "/dashboard",
+      "status": 200,
+      "finalPath": "https://www.cupomradaroficial.com/login",
+      "title": "Entrar ou criar conta - Cupom Radar",
+      "headings": []
+    }
+  },
+  "interactions": {
+    "faqSearch": {
+      "query": "WhatsApp",
+      "dialogVisible": true,
+      "resultLabels": [
+        "Como conectar meu WhatsApp pelo QR Code? Começar · Conectar WhatsApp e Telegram",
+        "Dá para postar em canais do WhatsApp também? Começar · Conectar WhatsApp e Telegram",
+        "Como conectar o WhatsApp pelo código de pareamento (sem escanear)? Começar · Conectar WhatsApp e Tel",
+        "Como escolher em quais grupos do WhatsApp as postagens serão enviadas? Começar · Conectar WhatsApp e",
+        "Meu WhatsApp não conecta ou fica caindo. O que faço? Começar · Conectar WhatsApp e Telegram",
+        "Como funciona o segundo número de WhatsApp do plano Master? Começar · Conectar WhatsApp e Telegram",
+        "Começar",
+        "Publicar"
+      ]
+    },
+    "publicarCategory": {
+      "status": 200,
+      "finalPath": "https://www.cupomradaroficial.com/faq/publicar",
+      "heading": "Publicar"
+    }
+  },
+  "runtime": {
+    "consoleErrorCount": 0,
+    "requestFailureCount": 0
+  }
+}

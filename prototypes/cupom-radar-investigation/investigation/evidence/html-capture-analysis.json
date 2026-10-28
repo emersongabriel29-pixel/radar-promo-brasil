@@ -1,0 +1,231 @@
+{
+  "source": "Texto colado.txt",
+  "bytes": 96424,
+  "title": "Dashboard - Cupom Radar",
+  "structure": {
+    "elementCount": 397,
+    "uniqueElements": [
+      "a",
+      "aside",
+      "body",
+      "button",
+      "circle",
+      "div",
+      "h1",
+      "h2",
+      "h3",
+      "head",
+      "header",
+      "html",
+      "img",
+      "li",
+      "link",
+      "main",
+      "meta",
+      "nav",
+      "p",
+      "path",
+      "rect",
+      "script",
+      "section",
+      "span",
+      "style",
+      "svg",
+      "title",
+      "ul"
+    ],
+    "anchors": 27,
+    "buttons": 11,
+    "forms": 0,
+    "inputs": 0,
+    "textareas": 0,
+    "selects": 0,
+    "images": 2,
+    "iframes": 0,
+    "scriptTags": 5,
+    "stylesheetLinks": 3,
+    "inlineStyleBlocks": 11,
+    "inlineStyleAttributes": 6,
+    "ariaAttributes": 61,
+    "dataAttributes": 162,
+    "inlineEventAttributes": 0
+  },
+  "headings": {
+    "h1": [
+      "Seu espaço de trabalho."
+    ],
+    "h2": [
+      "Acesso rápido",
+      "Para explorar"
+    ],
+    "h3": [
+      "[PERSONAL DATA REDACTED]",
+      "Gerar Postagem",
+      "Modo Fila",
+      "Modo Copiador",
+      "Aulas"
+    ]
+  },
+  "links": [
+    {
+      "label": "Dashboard",
+      "href": "https://www.cupomradaroficial.com/dashboard"
+    },
+    {
+      "label": "Config Robô",
+      "href": "https://www.cupomradaroficial.com/configuser"
+    },
+    {
+      "label": "Planos",
+      "href": "https://www.cupomradaroficial.com/planos"
+    },
+    {
+      "label": "Produtos",
+      "href": ""
+    },
+    {
+      "label": "Enviar Mensagem NOVO",
+      "href": ""
+    },
+    {
+      "label": "Modo Fila",
+      "href": ""
+    },
+    {
+      "label": "Modo Lista NOVO",
+      "href": ""
+    },
+    {
+      "label": "Modo Copiador",
+      "href": ""
+    },
+    {
+      "label": "Envio Rápido NOVO",
+      "href": ""
+    },
+    {
+      "label": "Curador IA NOVO",
+      "href": ""
+    },
+    {
+      "label": "Bio Link Pro",
+      "href": "https://www.cupomradaroficial.com/biolinkpro"
+    },
+    {
+      "label": "Rotacionador NOVO",
+      "href": ""
+    },
+    {
+      "label": "Aulas",
+      "href": "https://www.cupomradaroficial.com/aulas"
+    },
+    {
+      "label": "Relatórios",
+      "href": ""
+    },
+    {
+      "label": "Analytics de Grupos NOVO",
+      "href": ""
+    },
+    {
+      "label": "Indique e ganhe NOVO",
+      "href": "https://www.cupomradaroficial.com/indicacoes"
+    },
+    {
+      "label": "Central de Ajuda",
+      "href": "https://www.cupomradaroficial.com/faq"
+    },
+    {
+      "label": "Suporte IA",
+      "href": "https://www.cupomradaroficial.com/suporte"
+    },
+    {
+      "label": "Seus Dados",
+      "href": "https://www.cupomradaroficial.com/seusdados"
+    },
+    {
+      "label": "Enviar Feedback",
+      "href": "https://www.cupomradaroficial.com/feedback"
+    },
+    {
+      "label": "Falar com Suporte",
+      "href": "https://api.whatsapp.com/send"
+    },
+    {
+      "label": "Início",
+      "href": "https://www.cupomradaroficial.com/dashboard"
+    },
+    {
+      "label": "Criar",
+      "href": "https://www.cupomradaroficial.com/postagens"
+    },
+    {
+      "label": "Copiador",
+      "href": "https://www.cupomradaroficial.com/modo-copiador"
+    },
+    {
+      "label": "",
+      "href": "https://www.cupomradaroficial.com/indicacoes"
+    },
+    {
+      "label": "Gerar Postagem Crie postagens prontas para compartilhar em suas redes sociais.",
+      "href": "https://www.cupomradaroficial.com/postagens"
+    },
+    {
+      "label": "Aulas Aprenda a usar os recursos da plataforma no seu ritmo.",
+      "href": "https://www.cupomradaroficial.com/aulas"
+    }
+  ],
+  "buttons": [
+    "Postagens",
+    "Ferramentas",
+    "Crescimento",
+    "Configurações",
+    "Baixar App",
+    "Modo claro",
+    "Sair",
+    "Menu",
+    "Modo Fila Premium / Diamante Programe ofertas em sequência para seus grupos.",
+    "Modo Copiador Diamante Republique ofertas de grupos com seus links de afiliado."
+  ],
+  "scripts": [
+    "https://me.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js",
+    "[inline]",
+    "https://www.cupomradaroficial.com/_nuxt/CoSWBJ4F.js",
+    "[inline]",
+    "[inline]"
+  ],
+  "stylesheets": [
+    "https://me.kis.v2.scr.kaspersky-labs.com/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css",
+    "https://www.cupomradaroficial.com/_nuxt/entry.BlvPMg-Y.css",
+    "https://www.cupomradaroficial.com/_nuxt/SupportChatPanel.DUUkKCge.css"
+  ],
+  "metaNames": [
+    "viewport",
+    "theme-color",
+    "mobile-web-app-capable",
+    "apple-mobile-web-app-capable",
+    "apple-mobile-web-app-status-bar-style",
+    "apple-mobile-web-app-title",
+    "application-name",
+    "description",
+    "og:title",
+    "og:description",
+    "og:type",
+    "twitter:card",
+    "twitter:title",
+    "twitter:description"
+  ],
+  "sensitivityScan": {
+    "credentialKeywordOccurrences": 2,
+    "bearerCredentialPatterns": 0,
+    "emailLikeStrings": 1,
+    "phoneLikeStrings": 10,
+    "note": "Only counts are retained; matched strings are not copied into this report."
+  },
+  "caveats": [
+    "This is static HTML from a prior browser capture; it does not recreate runtime API responses or authenticated behavior.",
+    "One script URL is injected by a local browser security product; its query string is omitted from this report.",
+    "Paths and labels are sanitized to remove query strings, fragments, and URL user information."
+  ]
+}

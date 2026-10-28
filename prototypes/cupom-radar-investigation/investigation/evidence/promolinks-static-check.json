@@ -1,0 +1,26 @@
+{
+  "repository": "zHobbit/promolinks-ofertas-whatsapp",
+  "check": "parse-only; node code wrapped as async n8n Code node; never executed",
+  "results": [
+    {
+      "file": "01-deteccao.js",
+      "status": "syntax-ok-in-n8n-async-wrapper"
+    },
+    {
+      "file": "02-preparar-dedup.js",
+      "status": "syntax-ok-in-n8n-async-wrapper"
+    },
+    {
+      "file": "04-restaurar.js",
+      "status": "syntax-ok-in-n8n-async-wrapper"
+    },
+    {
+      "file": "05-gerar-link-afiliado.js",
+      "status": "syntax-ok-in-n8n-async-wrapper"
+    },
+    {
+      "file": "06-montar-mensagem.js",
+      "status": "syntax-ok-in-n8n-async-wrapper"
+    }
+  ]
+}

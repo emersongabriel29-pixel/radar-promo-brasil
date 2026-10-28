@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Protótipo local para investigar os fluxos públicos do Cupom Radar." />
+    <title>Radar de Ofertas — Protótipo de investigação</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar" aria-label="Navegação principal">
+        <a class="brand" href="#dashboard" aria-label="Radar de Ofertas, início">
+          <span class="brand-mark" aria-hidden="true">R</span>
+          <span><strong>Radar de Ofertas</strong><small>protótipo independente</small></span>
+        </a>
+        <div class="demo-note"><span class="status-dot"></span> Ambiente demonstrativo<br /><small>Sem integrações conectadas</small></div>
+        <nav class="nav-groups">
+          <div class="nav-group"><p>VISÃO GERAL</p><button class="nav-item active" data-page="dashboard"><span>◫</span> Painel</button></div>
+          <div class="nav-group"><p>PUBLICAÇÃO</p><button class="nav-item" data-page="postagem"><span>✎</span> Gerar postagem</button><button class="nav-item" data-page="ofertas"><span>◇</span> Ofertas e cupons</button><button class="nav-item" data-page="modelos"><span>▤</span> Modelos de mensagem</button></div>
+          <div class="nav-group"><p>AUTOMAÇÕES</p><button class="nav-item" data-page="fila"><span>≋</span> Modo Fila</button><button class="nav-item" data-page="lista"><span>☷</span> Modo Lista</button><button class="nav-item" data-page="copiador"><span>⧉</span> Copiador</button><button class="nav-item" data-page="agendamentos"><span>◷</span> Agendamentos</button></div>
+          <div class="nav-group"><p>CANAIS E CONTEÚDO</p><button class="nav-item" data-page="canais"><span>◉</span> WhatsApp e Telegram</button><button class="nav-item" data-page="stories"><span>▯</span> Stories e redes</button><button class="nav-item" data-page="biolink"><span>↗</span> Bio link</button></div>
+          <div class="nav-group"><p>ANÁLISE</p><button class="nav-item" data-page="relatorios"><span>▥</span> Relatórios</button><button class="nav-item" data-page="integracoes"><span>⚙</span> Integrações</button></div>
+        </nav>
+        <div class="sidebar-foot"><span class="avatar">DI</span><span><strong>Demonstração local</strong><small>dados fictícios</small></span><button aria-label="Mais opções" class="icon-button">•••</button></div>
+      </aside>
+
+      <main class="main-area">
+        <header class="topbar">
+          <button class="icon-button mobile-menu" id="menuToggle" aria-label="Abrir menu" aria-expanded="false">☰</button>
+          <div class="breadcrumbs"><span>Investigação</span><b>/</b><strong id="crumb">Painel</strong></div>
+          <div class="top-actions"><span class="environment-pill"><i></i> Protótipo</span><button class="icon-button" aria-label="Ajuda">?</button></div>
+        </header>
+        <div class="content-wrap">
+          <div class="notice"><strong>Protótipo de investigação</strong><span>Fluxos locais com dados de demonstração. Nenhuma conta, API ou canal externo está conectado.</span><button class="notice-close" aria-label="Fechar aviso">×</button></div>
+          <section id="pageRoot" aria-live="polite"></section>
+          <footer>Reconstrução independente para estudo funcional · nenhuma marca ou integração da referência foi copiada.</footer>
+        </div>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

@@ -1,0 +1,67 @@
+{
+  "url": "https://www.cupomradaroficial.com/",
+  "final_url": "https://www.cupomradaroficial.com/",
+  "status": 200,
+  "title": "Cupom Radar - Automa\u00e7\u00e3o de links de afiliado no WhatsApp e Telegram",
+  "platform": "generic",
+  "frame_policy": {
+    "x_frame_options": "SAMEORIGIN",
+    "content_security_policy": "frame-ancestors 'self'",
+    "frame_ancestors": null,
+    "embeddable": false,
+    "reason": "X-Frame-Options=SAMEORIGIN blocks cross-origin iframe reuse."
+  },
+  "source_signals": [],
+  "site_profile": {
+    "primary_surface": "authenticated-app-surface",
+    "confidence": "high",
+    "platform": "generic",
+    "route_hints": {
+      "acquisition_profile": "session-aware-browser-capture",
+      "renderer_route": "exact-reuse",
+      "renderer_family": "app-shell-dashboard-next-app",
+      "critical_depths": [
+        "dom",
+        "computed-styles",
+        "interactions",
+        "runtime-html",
+        "network",
+        "session-state"
+      ],
+      "evidence_limit": null,
+      "evidence_note": null
+    },
+    "signals": {
+      "frame_blocked": true,
+      "app_shell": true,
+      "auth_detected": true,
+      "app_gate_detected": false,
+      "app_deep_link_detected": false,
+      "app_promo_detected": false,
+      "app_login_gate_detected": false,
+      "app_gate_signals": [],
+      "canvas_detected": false,
+      "shadow_dom_detected": false,
+      "multi_frame": false,
+      "longform": true,
+      "runtime_frameworks": [
+        "nuxt",
+        "vue"
+      ],
+      "exact_candidate_present": true,
+      "exact_candidate_kinds": [
+        "iframe-src"
+      ]
+    },
+    "notes": [
+      "Authentication signals plus JS app-shell markers were detected."
+    ]
+  },
+  "candidate_count": 1,
+  "candidate_sample": [
+    {
+      "kind": "iframe-src",
+      "url": "https://player-vz-41ca66f1-5be.tv.pandavideo.com.br/embed/?v=cee82d34-b473-4c32-9e8b-87a444a97685"
+    }
+  ]
+}

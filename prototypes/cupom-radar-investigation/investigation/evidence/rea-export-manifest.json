@@ -1,0 +1,2550 @@
+{
+  "capture_path": "[historical local REA evidence; source path omitted]",
+  "capture_sha256": "d2ed57d5c85e8bc4259a3152cc5eb224dcdb0bd3682f45841ee5a31022e0c5c3",
+  "capture_kind": "page-inspection",
+  "source_evidence_id": "ev_6158a7b73d5265057038689f94f1e27f02d2de303fa575768dcd2e41b4d6d354",
+  "capture_completeness": {
+    "status": "policy_filtered",
+    "conditions": [
+      "attach_limited",
+      "policy_filtered"
+    ],
+    "policy_filtered_sections": [
+      "accessibility",
+      "console_text",
+      "json_body_shapes",
+      "metadata",
+      "resources",
+      "scripts",
+      "storage_keys",
+      "websocket_shapes"
+    ],
+    "attach_limited_sections": [
+      "console_events",
+      "metadata",
+      "network_requests",
+      "websocket_connections",
+      "websocket_frames"
+    ],
+    "truncated_sections": [],
+    "unavailable_sections": [],
+    "excluded": [
+      {
+        "section": "accessibility",
+        "reason": "not_approved",
+        "count": 210
+      },
+      {
+        "section": "console_text",
+        "reason": "not_approved",
+        "count": null
+      },
+      {
+        "section": "json_body_shapes",
+        "reason": "not_approved",
+        "count": null
+      },
+      {
+        "section": "metadata",
+        "reason": "disallowed_origin",
+        "count": 12
+      },
+      {
+        "section": "resources",
+        "reason": "unsupported_url",
+        "count": 2
+      },
+      {
+        "section": "scripts",
+        "reason": "disallowed_origin",
+        "count": 8
+      },
+      {
+        "section": "scripts",
+        "reason": "unattributed_origin",
+        "count": 3
+      },
+      {
+        "section": "storage_keys",
+        "reason": "not_approved",
+        "count": null
+      },
+      {
+        "section": "websocket_shapes",
+        "reason": "not_approved",
+        "count": null
+      }
+    ],
+    "dropped_events": {
+      "scripts": 0,
+      "network_requests": 0,
+      "console_events": 0,
+      "websocket_connections": 0,
+      "websocket_frames": 0,
+      "webmcp_tools": 0,
+      "timeline_events": 0,
+      "total": 0
+    }
+  },
+  "output_directory": "rea-export-smoke",
+  "analysis_input": {
+    "input_path": "C:\\Users\\emers\\OneDrive\\Documentos\\New project\\outputs\\cupom-radar-investigation\\rea-export-smoke\\files",
+    "format": "directory"
+  },
+  "scripts": [
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_02e0babebf4af8795c27caccc871e9c9123f1313030d0f35ed847d378dd0fccf",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/CfCrz1Zc.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/CfCrz1Zc.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "260c3754e5b15c4eeec9a6cab327ca3bcd5fb04cb76770347868e4df0ef43544",
+        "bytes": 1199,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_0347de5298fd7ae3f3beb6abe3453b613d8c39cfcfeb291c1155e09de0becaf2",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/DCrxIaZr.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/DCrxIaZr.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "a7e2656693438378115a58fb13dbdcd66d1e06d3226211c978eb4b7e52580d64",
+        "bytes": 944,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_03c41fb24763c12d15d433a3843d07ec37f6ce7fd6fa4cdfc361ca5fb38180fa",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BiSz7GNe.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BiSz7GNe.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "91e8617233e992d687a75e38700b31f5aa2b8053cdab9d68ea111537c6f02a29",
+        "bytes": 789,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_050d08632d6f8da33559bb148398a94e2cedab3fe6c5d3f7c17d03e98b90e935",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/CBkGS96N.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/CBkGS96N.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "fa04e8df2544f5b2182714cf456f4f4d9ce99c39a4c98191247b686811e1e2dd",
+        "bytes": 527,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_0815b995178f03197c58cd80643e339cc76adb468723d79dece33b50f9a3bfd9",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/FBV5EFLK.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/FBV5EFLK.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "a2ef56e3a56f0355e0aeee1fa51812c055a8829171ba29a85337bb25e19bc5da",
+        "bytes": 509,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_08e5abbc05658b92cef44a454277dc29d0e153f6ab6862a7910cecc3897a6730",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/ToXlKTVr.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/ToXlKTVr.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "5a7e39c71685209d7816857691ee2cd05d4a63c0a1f82c750f20d37eeb9905e9",
+        "bytes": 2652,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_094803f7997c734e6361ac53b680bcf456fbc3d41ca09308071c2a55f992e910",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/X1XGRs5T.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/X1XGRs5T.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "06825e58670d1e9094c6a10cc1e87c6eb0f0215b95984c6ea005b1a5204c99d8",
+        "bytes": 5878,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_09e9b74dc6ad46247474ce9a8e86f7930fcd56a2667c230968438ecfe8a0d4b2",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/CpbR6O9A.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/CpbR6O9A.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "38c69f3d25fcfcd9231e32355c10019412d036e1ffd45cd151df0770969448b3",
+        "bytes": 2420,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_0a186bb89e603314fdb5ce83a465daecdd4d3440837aba3eb3a0db1dbc7b5000",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/Bks2Klnm.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/Bks2Klnm.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "301ccf671ed7cb6725c3d9452f58f997a20a40189a73bc2594f89e5f15f15ff8",
+        "bytes": 1733,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_0d81a0f5ac39e9c79fe5870c1d7356333c91f228c707aea9969d81a48b5917e0",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/pW_S3L-Y.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/pW_S3L-Y.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "feb1b3aee2fc9bb38738338295496ba0fb5b913c18ac4176bb21e7ddfa63bd89",
+        "bytes": 6096,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_14fae0949ff30fab379948e947b12932c7c21eb58cfaca0aeb19ea21bd53da4b",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/U8ZGWrD2.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/U8ZGWrD2.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "5b9fad7b1ae398c3acbf0c6b5ff829d1f7eb1b3b6e89eb2efe735b6df675551f",
+        "bytes": 647385,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_15b04c0bde234be987dc9ef08dd1f97ec8560a584a284b0fc1ee88c401924e4e",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BjECo6a2.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BjECo6a2.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "c5a4f8cfe8704d54bee2385518b62f15af819b645398e516429f0f3dc20ede68",
+        "bytes": 1260,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_1612065a70d931a3950b416651e9fd46e4e472780b29c1d392a02b0a819697d4",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BIbuvWpr.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BIbuvWpr.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "8c4d748aaab000f4059818cea3565197278bef2358fba12d2721fadff9950d17",
+        "bytes": 6407,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_17eb2d5065ca834791e1b9aa13391253a1babede1cf4973ae27721931c342536",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/KJSEcjNQ.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/KJSEcjNQ.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "d38f8058cdba12747b6cc058ecb131a583ff1de0e91d356a9e52498138e7e173",
+        "bytes": 1448,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_190896d2c082a154439b0a5b7422c7a090c31ede6db4d57d7de6301b9f71e878",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/Cjr2oXhf.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/Cjr2oXhf.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "30f83eb34bdd5730fa5ab2a68985e8e064350beeb07d4429ddd5c9e21ec735c8",
+        "bytes": 588,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_1a5d714eb6a5e49332d31a3b83c230d891600c2f0815edddbf5952a4b6d01eb8",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/COMjHdax.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/COMjHdax.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "8d6e1e8d6f181548b2b14c27902e55b7b155a8ddd7a1e05d84fa2fb9e45b6df8",
+        "bytes": 1018,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_1b3dadac6f076d9adce39db37ba2b16bc6adba7a3ce28a459bf9e9c759651dd4",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BGLYdv9s.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BGLYdv9s.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "998d2467a577f4b98e4746b3492061b25edc71a16545ec9489518d6a06c01f9d",
+        "bytes": 556,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_234f13356377a2eb92e532b7cdbd2294d7e5b3e4fa7bfba7e3af5ff7299c68f4",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/GEFv6GC8.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/GEFv6GC8.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "14f3bfdb5b530b0e67a10c2aff70be97fedcdff6b3b25cd6dcb71e075b9a4b32",
+        "bytes": 1171,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_26c2abe2ee5438fe069f70948fc162560e45e095609802e9b85138fb95212d39",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BX10Ampi.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BX10Ampi.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "8991d0ea871a8b7ad5a16a23961a3c32eb4b5c3501fe61728c7232aa833a8699",
+        "bytes": 521,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_29e3381b857f697d2c0a71211e62d4a772bf772a405e365e4cc4612d45a84706",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BSZzf7-L.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BSZzf7-L.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "7ad1ba27fde79ff6e4c9c259ba3bbef2cfe9f819dc355e6bce3873d6bbf60621",
+        "bytes": 7143,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_2e6780c7fc8ef42733f05aa865aa133c7667cd14212026851357583975ad4eac",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BtUNubmr.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BtUNubmr.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "754a17076df63009cc3844ddaa047fa053b018208f311703e6da202a64080dc0",
+        "bytes": 540,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_32c938db4fd3ec283aa28be01988b318635eb28c38a26e54e005ac9830eeb59b",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/Cd6j-zle.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/Cd6j-zle.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "74398668f6d37d788281c7448bd988bec1cd52d37b5df7be1677e1e86c8fb931",
+        "bytes": 108526,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_34cac7b9546b46843ede767a96cfc73cf7087ddba2b757eac40d4975c3b48dd0",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/DG2lNerh.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/DG2lNerh.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "2e84ae09f4899a00399b0c2372de43efe954953fc0049342efc3d84aa3cdf559",
+        "bytes": 8586,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_35f76815f22f72472898c2c7e1cdd4d0710cf577506a868001ed596759bf5313",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BXM74qW3.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BXM74qW3.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "9a20060c75e8805957df4347cffb62b50e28fe7c8bd725e0939973096fc1f10f",
+        "bytes": 2177,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_37ca5c8a68ce2feaa5e6373c5d45b7e7ce26eb42f47a5095e05b6542037d77fa",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BAzMSH5P.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BAzMSH5P.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "dec8a294d1e0efc0c89a675d28d709c6e83c33f5bdc21eec5b49f16f0c042e03",
+        "bytes": 1929,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_3d5b911dc08475e9a35d87a74bf8a2ba2ba227d2d829de80b874264165966dca",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BLUo7RSY.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BLUo7RSY.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "9985dcb21375a3805e94954e5cd60c4d24fd4edf79d953723b32577b7e379a2c",
+        "bytes": 4145,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_3d5c2ae6528959ecab3166ba559b2a7819d318646a3073b414fa2cf134bb2027",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/D-q6CW0V.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/D-q6CW0V.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "b8d8005870ec0b61e1de83129093e4ac7aa06a00e5c1e74524db034ae31fb7fc",
+        "bytes": 4379,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_3d8a58306288de7b82bb2059327c593877a64bfb08b5250f7348ad0b6278c0b7",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/DblHru44.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/DblHru44.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "1701b289d15fc4d9543dbe7f0c8f4654af2b98241e5d4de6e79f70a82d289a8f",
+        "bytes": 1460,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_3deaae11e6805b5f583244b4753d5bafa568fcf6f2859978830f93c717c2e35b",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/C0EjGxYo.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/C0EjGxYo.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "a879af6ff9c56b41edaf97a660bb5d8bed7b2d2c117398725316e44ffa442d5c",
+        "bytes": 1233,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_3ef9404cbc5bce5c66090ebf51ca33aaee90eb60f4c7447d5822de3466baa3ca",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/C6V-WLiw.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/C6V-WLiw.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "96910f98a6410e80f26f05dcc36e66d74941148f97fc3cfc633d99e059d2eb51",
+        "bytes": 1285,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_3f581a197662b09e6651672bcce9c80d54ca9494d35d3600e534cb246c887c48",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/D0vNGFuR.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/D0vNGFuR.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "b287c3b8983c9448ee842c42d2fa377714e15189516f66db4daa98fda294938e",
+        "bytes": 3262,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_4033f62e6c6d58b35081b100f5a9910b32efe8210100f29a2686219559814f16",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BSO0t5s7.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BSO0t5s7.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "8a3b9e19883edfe90595e0967a3f3288aee7f3ddb00c499d6231dc6c1e1a771b",
+        "bytes": 942,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_40dcfe99158a8de4d2a9666732b84e0e3b406cef6ec22c334a0fae6c47501fc4",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/Dtled6sW.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/Dtled6sW.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "9d6b04dac002907da8742f6b5497742bb1f86022f417c7fadc8ebcbb55af57f9",
+        "bytes": 2107,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_438b6c1c7271d8312d5399634899a37df1cb7c3608d740c63a24d59c9a6b7223",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/B35pczZY.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/B35pczZY.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "675b30c5740e5a3e898a9ce7d7467d729087535a9a4b60bc1b0baf93f0e170f6",
+        "bytes": 31125,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_46375468664191ce89cc0a53367838a2e3238fd0760c097b3666a57c37d2d502",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/ByIKT0L1.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/ByIKT0L1.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "46e29f48881cec37c8f6e99d31dbe2c34c77266bcbe0f5f75623a7bc74351ac8",
+        "bytes": 10394,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_4a1c773aa51270e16e986bf3477042bf4cea22d8acf8d77cb09660103c2a6231",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/D20OuqxX.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/D20OuqxX.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "fcfbc089adf11d297d831f2b1c38b6d73c6eb23eb2c762023835aa99bf425f07",
+        "bytes": 3999,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_4a229eb4422a7af49a863c22420740f5900394e8ca36b4c5afebe59f1de470bf",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BVLH14KQ.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BVLH14KQ.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "b26a932abe431545a427ddc199919f44d519566b008fb2589f9643dc197aa264",
+        "bytes": 931,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_4b91cfceb09d4b987078fee99cb80c1e6c67021e86bd7efd4d8eda517b1f4dfb",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/B792BXc0.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/B792BXc0.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "0ace73e2f85dcb55c9e2ddd3287e411d3b81f8faa31b9f6fae40757a71ce743f",
+        "bytes": 2063,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_4d4d66707490a3fdff5f1bad83228f56f97349b52434d5a574d6f1272b9dbaf8",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/ClTZK9SF.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/ClTZK9SF.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "b4ebde38da877dee66c0a8c1b3ea1d54e3ef8f34fe5d3e7955e1b00b1c0f2419",
+        "bytes": 1117,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_4e47cba49d01a3e41196314e53113c32f3f51d1c638dab3d63ab18477012152f",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/CzHrwqQQ.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/CzHrwqQQ.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "d2105f27313797b44084eb5adc013d953f7761f7951bfccc44b491d8aa8095e3",
+        "bytes": 7153,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_4ead305e840ca678b9d5bba090415f7148e2c5c5109b02835346561d0e436e8c",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/DDxjEG7d.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/DDxjEG7d.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "bba14ddaae22a3f93bc4a9985a8fd17aaa44d755078d746ada1ff890219aab54",
+        "bytes": 51179,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_54e9f35993d74d818f58b62d419868533ab0170f014395677f24a8e4a61fa4b2",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/Mh4CK4Rb.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/Mh4CK4Rb.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "37a2491a60c1a7471b2e3f6e387cff5d5edc362cfd3da7f81486ea198c370e64",
+        "bytes": 4313,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_5a67602543fb3763ad3fe94452970125be01138361998bf7b5302919bebdbf9b",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/PidxvK-t.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/PidxvK-t.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "084dc2663496258a2b3643b15f89ae55cb0d6b8daab8c0e4fbcb6f7a6c3805b5",
+        "bytes": 1096,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_5aff0ba95fbc0e024b27bb7eda47aff8ab30d040511fb27f7fd1d0ea8268e114",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/B-PncPK9.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/B-PncPK9.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "6d8ca2071b64d8dc3a5ed05fa01e3bb6055b6c51f27d74a6dfe4dbe88c6089c1",
+        "bytes": 470,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_5b18a66c11d7a1937f3e9fbded14b2874f4f55f01ef4bdf27598c2525302ac33",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/Cs8yGZ5F.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/Cs8yGZ5F.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "ca2e0cb7897649ae1d0564fb3173f4c685dd008d58eb78ee7e834a0ea0d84b8a",
+        "bytes": 9492,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_5c9debdbe984a2f39054f2bbed441234cbf9cd3aa6cbdb8b9bf8872f459a3124",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/DcQvHfqL.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/DcQvHfqL.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "770e3252a4ed68b9045767dd4c76d0fc4fb33fdb616aa52fe3fab168c00190c5",
+        "bytes": 7921,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_5cab1f69ecf6c4f3fd7cd82253aeaf6534a6e7cd29053783cca29ae454f6df7b",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/DznB9mAl.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/DznB9mAl.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "5bf4eda576ad3268ac06e43307f91a43b81ea9b814595d09e22e97ba06cc1414",
+        "bytes": 24507,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_5e04bb6f0114e48b18fa32f3879576787765624e699b08a25c734d750e3cfb35",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/CXJbNDjk.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/CXJbNDjk.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "a6694f47359fbb1173367ed724d57c8f40c046935acafe8da21a8ee6e11f7b8a",
+        "bytes": 5245,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_5f734022cd71eefe746520bb71f0ecb378166af306cf7673de92b24c44b35a8b",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/CzwGCT8j.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/CzwGCT8j.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "62f9cce49905697fec82bd387e28634784da452df54b015505f4d789d4924491",
+        "bytes": 1713,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_68197755b94134a2ec1cdcc1cf74a3a606dc0bf4ce4252aba9966625130e9a04",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BXnerMLW.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BXnerMLW.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "2bc3ff385e1cc57e22a034ee71a7178b798be7ad974e3c83b3bd4d579639a1b4",
+        "bytes": 25235,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_6df81f8f031a89bc718a941d0aee1def7032b8de92252a8efc9cb65add12d2ab",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/DwNqQTFv.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/DwNqQTFv.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "b7386bc46e003f7dfbe348970843994a89dcca0ee664fdd56440f8bfdeb2aec1",
+        "bytes": 7746,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_6e34b4a83b39383308e2824cf6eb91c93244b1fa4ce34138d3dcada77589a955",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/CuJG6QYM.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/CuJG6QYM.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "95237b72adf0354db3eb2b29cef18a05ca7f58e71fd10def2732e33258566409",
+        "bytes": 1409,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_707e53269dd3ec6fdcaa13511c0bf1d6f58c41d608f522ed13f004c6bf54788b",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BLxllAys.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BLxllAys.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "54582a793b838ca13cd71a0866bbff1eea7b07e31f3cd838f4eca1c8f72cdc67",
+        "bytes": 1080,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_7616064b5f36ccb91b88e8d5daabb83a4449d753c7b26dbf6e9cc722d3c5e206",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/DHPfPEGk.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/DHPfPEGk.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "c30c69428ffcced2dde6154b76bb81b5e2f1d6fe537b9e404f59bce073a7f007",
+        "bytes": 1117,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_77a5a5352e9053bfab8c6f83b3b843bdaab50cf028a1bccc74b44d8c2c289fed",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/CYs6RTm2.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/CYs6RTm2.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "b8838ceeddb8699bc6bde69f20525fb258e2fe04b8fecbae803cbdf140dfe7ce",
+        "bytes": 1579,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_77f532f75ca74cffb463681910bdda517b8ca7bf6125389aefe4e8721d4da366",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/TPZgMj8O.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/TPZgMj8O.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "b2df9bd6d1854f823a6030939b5479744ed3458dad341f937af7b11cec32686e",
+        "bytes": 138184,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_7876830aaf70ab5f29591f14d4e7dedb413e102db1e502021cc1dc9bcca5c4e9",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/D270EZC4.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/D270EZC4.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "dd633ad63525efeb61ef83c4927d21daa9a84f28681caad97bbdb7f9a8ab44a3",
+        "bytes": 798,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_790ddc78749dfe0546e1c5b801d450cb81bed893ce24a5ed342f0f194c8e7875",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/CNMzfw3z.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/CNMzfw3z.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "43bcd2f17616f4d921d7a71fbbcab273a84a6d8c2bfde8b6ded94c9c189a7e16",
+        "bytes": 79985,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_792df331b66ed29bd336731cde05aff6d240794d48e1834dbe00bddb32681ffb",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BMhzL77l.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BMhzL77l.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "96b2943b765917c6f64a0ca920c82ae94b49c76e80a364cdd3997567dfe3f3c0",
+        "bytes": 812,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_7f97bee5a6ea11fd62adc49144b740b8cc2c8dc34d29f670d616bad5130cce4c",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/B3uecAT9.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/B3uecAT9.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "5198c7fc314b2144fc36e4046a4cf639452de90942d333fb5e0bbcd34d435bec",
+        "bytes": 1326,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_827b450d0a4aa6a09a9ce561279856b2570c6c1270b8c65fd17a5b0686cb9847",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/D6W8Z33G.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/D6W8Z33G.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "62332eb1c33cac7f1a471cf36dd8e2b4200327447442f95219342561089d7808",
+        "bytes": 22009,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_829ad031ca199323dc2bcfcce73372d27ba417abd96094fc887614be8ba2bce5",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/0qEGCmku.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/0qEGCmku.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "35b233b71cd8ed039634bd65e5872c82f66dabc8fea43c3998429fe8d62b27a7",
+        "bytes": 3137,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_82f557e7df2eddedb1fcb7fe8b101fe995715930e9bc7d39c9f30121390ba972",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BLGIM-ZC.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BLGIM-ZC.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "fe686724e867aed987064937bad85a1c4e9ffaaf48fb9e6556c6461cc38f2d21",
+        "bytes": 12847,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_88212c3006a6a5ef441cfd1279a1378ed93d37297cf7880d8a5ca51d22c615ed",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BJ5bfK9q.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BJ5bfK9q.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "de793b3df74e70e62b2c0c4d62c71e7b46c130883866bf57a44642631888de21",
+        "bytes": 1124,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_8bdd3f2d78cf036bea70e2126de8abd291810ccc2265fc49333d4e723cfa9cdd",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/ByGPOR1E.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/ByGPOR1E.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "e5ebd5d70a5338e62ef40e673385c291092244bf888c4146b6e8874a9481cfd9",
+        "bytes": 3659,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_97d01b8033c8dee3f33e2a5e23a7bdd8aa72fad372273d0b8ff317ae687b3c01",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/CW0PwSQW.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/CW0PwSQW.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "5a13228ef9538d39c851e2a5f12777003dfeee589e412fb04ee397b5f782239f",
+        "bytes": 2389,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_97d37034ea1af6e1aa5bfb0e0dff41bdefbb8a62e8d1bb8d0cd922d5fc1676b0",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/CHW_2xK0.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/CHW_2xK0.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "01c949e20fae6007a8e2ab132b0da787768484b1ff68912fad937bfe8bf74234",
+        "bytes": 947,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_9a6c0dae854d580524c6d2b2141249e5ae3875410f581b86d32a69e015b84ab9",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/U1KiUUtY.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/U1KiUUtY.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "76b9884e1903fd868794134fc6b3a1d1418092c6e80b02ae178207b31b64b9cb",
+        "bytes": 4269,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_9b0a9a62c52cdec1d82bbfe2ba154b7ac534a373aa73f017a77ec5b3074bf147",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BY8_jQZ7.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BY8_jQZ7.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "f3168f3f1d7e8110fcf2323a7b49ae566f515abea1fe6b324f70645fa1e38ed6",
+        "bytes": 833,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_a196d14451716a52df0c1a1530f1c00af11757c17cda9e6228308ef63b6b630f",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/CrSG75Fg.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/CrSG75Fg.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "51d7200fa42653d9f6d0b5c5988796772972dc501e9b7dbf7c563c6999ab0a6e",
+        "bytes": 3771,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_a2fee7b3ceee595b2ba3d353a7796e7a80e2fecc6698930336293a15d9a4ef76",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BCuFGSZb.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BCuFGSZb.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "52af090188743693b22c0d682de99b9ae0045c1b2f0cf26ac5f715623b9b9516",
+        "bytes": 1184,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_a6a0ae522d1c32958a03ac2764827991199004bd2b9e96954409fc1cd965a31d",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/D8Bd60ma.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/D8Bd60ma.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "4e2600454f04f4624b4437412befdd1b764f2d1c6e8d307952b326926161d2e3",
+        "bytes": 16911,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_ad9dd532f0f8c7aeacebb36c973f3a741f006ef0a16874d270d4a319cf865b58",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/B90jrl8U.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/B90jrl8U.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "90834df608b8cb86f6aa878a6bf2f3b2be20c46efb6034c44f2fd02511c34bf7",
+        "bytes": 509,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_ae074a07d0461c17358ee15375200a8e37c2c9104419edf3ce5de546c7554b1f",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/B0quxr29.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/B0quxr29.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "4fea5b8f07bd9db0208954f5c09fb538bb6ca567101939adfcaba662b3ee499f",
+        "bytes": 1676,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_b0c2a79892dedb4caaa77dfab08e3bd5ad0b3e1a788889fab8927add28305040",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BQfp7x2S.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BQfp7x2S.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "6df673eb5f9b44d10387ecffcc295a3bd47aa286d7d6145d1c3e2daf681d95ad",
+        "bytes": 797,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_b1a1116b38e12dd7c8291185ffde2a1e70856e9c387ed5f876bef4e3c624596f",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/i-egu0f-.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/i-egu0f-.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "61a9c96180adb7583fa191c3e1b9f47fac7745f91e779e61023441c8adb4ce07",
+        "bytes": 514,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_b5a4e641ef0383a6a250af25a08542a55d6edf575b098304b42fad7d80779c85",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/Dyd0kjh3.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/Dyd0kjh3.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "5bc755874d1213e6406f2ae07377f9840ed516906cda6d63a331f0012892f291",
+        "bytes": 1030,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_b9465d060f174a3ea18bcda661609a8ff27bea81da750e3e903e2176bbd6017a",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BFqHRClp.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BFqHRClp.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "971e169475504a3047b5d1d6e955195dfe607a323da09ceb3b2d50a045b385a8",
+        "bytes": 5549,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_bae78c6fadf390dfc481d2e6d0b48174500ccac176906fbbfd8606458d3dcdd1",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/DU0IqSjJ.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/DU0IqSjJ.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "85f622620b5547816253a897862d00a1f41e47865c176cb1ee6e71889ba6ae5c",
+        "bytes": 1020,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_bbab6ce4292174da3e4df59fa7229c21743af97b77239dc1340291e24df15478",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/o0NFR-i9.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/o0NFR-i9.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "01a64548147fb0d962e2e04da6dbe9d706f5fde0d41f3e09f6316093c659e4cb",
+        "bytes": 1035,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_bc705e51e9bb7be0233524f835f6baebcb8a3d5c3955e0176dcd7437be3ffb5c",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/CmmYyoQU.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/CmmYyoQU.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "e2b6f0f41e7aa9d0a7466acb3645de8a8842a2028dc77d89ba655966ab8cdad8",
+        "bytes": 4833,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_bd0a34244b92714f793875d6d340d2c922e0ba81053a8ba1389f500b8b91a929",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BW23jRSH.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BW23jRSH.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "974d7071cfc0b526f49875d31ac60a9252f7b5cfe1bb4e147d025e28de48ec6f",
+        "bytes": 538,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_bfb8c28280706888683ef277dec1aee6614438516f693d68ef8f9b247e87df6e",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/Bvafjn-K.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/Bvafjn-K.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "7edc93dc2181f0535b0722452b5ff96e6aeb4bc38448c22c238938e586b0a29c",
+        "bytes": 1141,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_c13087f34ce8f17ed1773f457bee5a2381b962b47c00adb640901dbe328136c3",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/Wp1Ts9LW.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/Wp1Ts9LW.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "ba5e71bbb4dec0488f3d7c7ce3e06aaa7edfad075f843565dd7083c73cc3c0ff",
+        "bytes": 1726,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_c49277e100b8171f0e531954ea1cfd49bf8fe03e9cdb173b0d6591e7f7ab24aa",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/DpV0u23Y.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/DpV0u23Y.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "d668341cb8532a678a1cc7b65dadfb459cf8660641211236e512458ebe409bc3",
+        "bytes": 1228,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_c5fa1f2cd666467b0cdf4a7a18184c6b024fc16be037261bb0ac53ce34d73820",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/DQTpLplw.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/DQTpLplw.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "2214892ff08e70ee448855cd6fd03a2a2d45eb1ee21d1e02205c8e2cb7297629",
+        "bytes": 3958,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_c9bd3ec10e3c9296197f0a87fab04be1fcea1552555fd66e7a82fb9e7e0924d9",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/DK73zsa4.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/DK73zsa4.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "bdd008649d0e8fe22efbb6776264c467faa0fd73bd052740d332930e0321745a",
+        "bytes": 7005,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_ca694b630f7c7690083a32c80a02fb4a5f43a91a02c055cbeba341940716151f",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/Ct25DEGA.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/Ct25DEGA.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "a8ebd3bb3ea6fa2c328d6f609f82cc695238ee0ce4c224ea5e4d67f09b8fdb3d",
+        "bytes": 16886,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_cb824aea9dcafa5f359cfc6f9dd23fcb9a02a0dadcf7251bb96964daddac13e0",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/Dgsp3oHV.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/Dgsp3oHV.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "7365e9a4a8168a6dc97ce3a85fcb20adcbb3873c981e8d8b97ebf250cd203769",
+        "bytes": 3858,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_cb9f934050e94f89e508e12488dae41c064e7e6ae34b73d94507998ec8e2e1a0",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BXj8UoRZ.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BXj8UoRZ.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "7ca45f64ef43f9fe8dd38a0e4bec120fc8cad1438ef9ba90160c2203f6d6e222",
+        "bytes": 3506,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_cd31e83d25d6db5c7cea3344646dc6b779d5385ed9657c738836a4ba3e724d81",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BAvorcCu.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BAvorcCu.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "7f525e288045342f6b4c53fe380def6b2f0cb1728d1123e7411bcb8d585130b8",
+        "bytes": 1529,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_cd3e3318f915ee4bc7d915cc1aaf841d55ea8b8a363e30b23258db071fd8d7c2",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/yRWdk-F3.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/yRWdk-F3.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "94d41cd7c6b5facc41d18ad0130153d31148d36fd816d3e689d7eb774b4b64f4",
+        "bytes": 608,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_cf072f0f9d3a458e9268ab38190bd5f756a34d3f242e18cdc8ab8d5015812149",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BOXSW5me.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BOXSW5me.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "5af08c715e30936177845da46c5261f381c140d7e4d1135fea57fcb2e8269a93",
+        "bytes": 5784,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_ddd6a1a64a1a1692557d583a6f626b7655b5ea5d5b624d56f692de4694df4f5d",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/KReTxTA5.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/KReTxTA5.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "d26e3af80f52f98e63a5c44bf9c0892e8143a13b06abfef4c406a4fa119a64aa",
+        "bytes": 659,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_de98c7aee604530e805a6693194d3485aa8d97c3bcab676c3efe0fc886e54139",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BwtdUVWr.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BwtdUVWr.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "2eb8e97abd27298cd1de0732e0c8bcf89e0782869123a309ed5a280df3eab482",
+        "bytes": 15767,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_dee63637e56b07ca1022565503969f3a3d5f5c0d6097a5205756f6d1854f3ea8",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/EG4e7BwY.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/EG4e7BwY.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "cb0aed9479efd85fca68f534f5dead8cfcb3ee9c3269b40e7b1cf9a75c8240f6",
+        "bytes": 11900,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_e0274cf64d991aa18cab347d9baa6747be8c4c4a10565105845c91750229ddf2",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BgIPx5Sx.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BgIPx5Sx.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "c850fa6f5bdff53d1b6a3ea4429263867257414440e96562c93e38d2b3ebf62e",
+        "bytes": 13584,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_e1bb96e831711ce943a7de696ae3604b0b4779730e2e5ca5993aefbc6005f6c6",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/Dbo7hmTv.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/Dbo7hmTv.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "aebae5e4886f2c48a2b2d324955f3328c02cefa39e22d552c9af34d94dd665a1",
+        "bytes": 6706,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_e2ae073965f5d387112415ddf0ccd456a544bfcc27aac6e8d8945976bee7a1ee",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/CidJqy0N.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/CidJqy0N.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "892c1f3f18d78c42c6d2f3e513bc898a1ed9d90a1e5d9529f09d2603dfd40a3f",
+        "bytes": 1282,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_e42295eb0b084c9d57418eed0cd619699c9b554c14c292e669d602b1d3b9799d",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/C_1vHFFG.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/C_1vHFFG.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "a119fa4542b81fb1c436dd37ca01d5b93e88bd17c5cc81d70c8c47e34d93543e",
+        "bytes": 974,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_e45c0fbce89010e9867b64debbd05ae15a83a3797edcd82db61c7b81155fc292",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/DIR-TdVs.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/DIR-TdVs.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "2ba0b3159d80a86ff534a2702f463e11bd159a01d9f959e55ad9d6e9c7b9c915",
+        "bytes": 43195,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_e9d7392dfea14a431c9a80ebccd721d7f103fd968627b9f391e1b2348929ca14",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/DbNQ-hTx.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/DbNQ-hTx.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "b7a49eefc9ec8022e68f4dd4b4b75a9dc0c65ebece18b4edafa73b9421413098",
+        "bytes": 881,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_ec0f3520d9736dd4f4dbd49975181962ea0cb3fb765e4c04858969e48d5987a2",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/sizL_z1p.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/sizL_z1p.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "18ab25b769c8eff276c64cfbd2e945724895bb311d702c88079c189ff61a8b5f",
+        "bytes": 974,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_ecd41ed10a128c0fb6b8d8cc3dddc5c929f9a0610e76e138b6997c2fc020a631",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/C6JscLcc.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/C6JscLcc.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "9681b231f15adab8e903ba367b28b9ffd3baad42e9471edf38f8afee53fb1e7d",
+        "bytes": 1051,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_ece399202900946ac6cb911dd9052b5e6780bd6abff1e763736642d7304609f3",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/Bd048jBL.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/Bd048jBL.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "7d2785f4e20c8e61130a92c43bbfe5f63bab9aa85868daa9094cf6536a635387",
+        "bytes": 915,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_ee316c46759f0f964412e55f84edf98cfb44f857ab31cfd5f41fa6b293a4c61a",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/DlElfz1u.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/DlElfz1u.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "523790ed9ae18c04ead1064c833c1228065e524cb959dc1296723a88642da04f",
+        "bytes": 4979,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_f21aa510b1ec148e8ac0f39fe5a48276d6b02b5ccb7c17d304bdf35269921104",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/DiJtslCY.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/DiJtslCY.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "407a552cc4f888962153db7f1c140695aa48bdbc5d3a44ff89217ac93d8b5567",
+        "bytes": 1194,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_f3ab163f9b1850e8f03e9242e142d8302718e05bd8044f7327253eb2e5dc41db",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BLvYLane.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BLvYLane.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "a4ae275045ce4c3d712b83c8a2c016458622a9f67e82c20fdfdf36749bfea6b4",
+        "bytes": 8703,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_f7520ae32cd1f408d5fa487dfe5c02f5dd31ea9b74378647cb93f48e16164e30",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/DOTigCZ_.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/DOTigCZ_.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "e79d37b83a32b8c5ae24871c64f48740a6ec38cbf7cd01866901569366210733",
+        "bytes": 2862,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_f846b5855ff8679081543dc9276e2c8f6eb92fa48847d81879ac6a88a257af3d",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/CgrM-iww.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/CgrM-iww.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "a61d04567b39fdf8fb4bc3f39d37594876c0b4f4e46f2b8774bde1a015d1ec8d",
+        "bytes": 1123,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    },
+    {
+      "source": {
+        "kind": "page-script",
+        "script_key": "scr_fc2e5b97b82b67d814ff39e0d31e731f9ec23af73d32ce33006c8509e70a000d",
+        "frame_id": "49D0002F62CB00376DC7AA6C89D60AFE",
+        "is_module": true,
+        "language": "JavaScript",
+        "source_map_url": null
+      },
+      "url": "https://www.cupomradaroficial.com/_nuxt/BNMZ09yK.js",
+      "content": {
+        "state": "exported",
+        "relative_path": "origins/61f65399e2ee9fe03d9dc9c71fa3797651c1c151852f747a2e63c67e75efd761/_nuxt/BNMZ09yK.js",
+        "layout": "url-path",
+        "layout_reason": null,
+        "sha256": "bf6a94f4361a9b81f187405891ef43ab8949235da66d0800770a0d1cf91b1643",
+        "bytes": 790,
+        "media_type": "text/javascript",
+        "redacted": null,
+        "representation": "debugger-source-utf8"
+      }
+    }
+  ],
+  "limitations": [
+    "Observation starts when REA attaches; prior network and console activity is unavailable.",
+    "Raw network headers, bodies, cookies, storage values, console objects, and WebSocket payloads are never retained; explicitly requested primitive console text is retained verbatim, while payload captures retain value-free shapes.",
+    "Source maps are reported only as declarative URLs and are not fetched.",
+    "URL-less scripts and console events without an allowed source URL are excluded because their origin cannot be proven.",
+    "CDP discovery omitted the target attachment state; attached is reported as unknown.",
+    "Only script bytes retained in this capture are exported. Sources are not refetched or executed, and a response or Debugger source does not prove execution.",
+    "Ordinary unambiguous URL paths preserve relative module layouts by origin, including case-distinct spellings. Query variants, exact path collisions, file/directory prefixes, inline sources, and unrepresentable paths are isolated. A case-distinct pair is isolated only when the destination filesystem cannot store both spellings; the record names that pair. Browser module relationships of isolated paths remain unknown.",
+    "Local JavaScript analysis does not implement browser import maps, root-relative URL resolution, remote URL loading, or browser runtime behavior. It may strip import queries and fragments; isolated variants are not canonical targets.",
+    "Source-map declarations are retained as metadata. No source maps or missing dependencies are fetched or reconstructed.",
+    "Scenario response bytes preserve the output of Playwright's Response.body() API; any source-body provenance caveat from the capture is retained in this manifest. Debugger sources are the exposed text encoded as UTF-8. Redacted bytes are exported exactly as retained, and may no longer parse as JavaScript."
+  ]
+}

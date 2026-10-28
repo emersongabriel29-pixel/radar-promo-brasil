@@ -1,0 +1,13 @@
+{
+  "name": "cupom-radar-investigation-prototype",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Independent local prototype based on publicly observable Cupom Radar flows",
+  "scripts": {
+    "serve": "node scripts/serve-prototype.cjs",
+    "test": "node --test tests/prototype.test.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}
