@@ -1,6 +1,6 @@
 const $=id=>document.getElementById(id),val=id=>$(id).value.trim(),set=(id,v)=>$(id).value=v||"",msg=t=>$("status").textContent=t;
 const send=m=>new Promise((resolve,reject)=>chrome.runtime.sendMessage(m,r=>chrome.runtime.lastError?reject(chrome.runtime.lastError):resolve(r)));
-let captured={};
+let captured={},generatedAffiliate="";
 const validHttps=v=>{try{return new URL(v).protocol==="https:"}catch{return false}};
 function num(v){if(typeof v==="number")return v;let s=String(v||"").replace(/[^\d,.-]/g,"");if(s.includes(",")&&s.includes("."))s=s.lastIndexOf(",")>s.lastIndexOf(".")?s.replace(/\./g,"").replace(",","."):s.replace(/,/g,"");else if(s.includes(","))s=s.replace(",",".");let n=Number(s);return Number.isFinite(n)?n:null}
 function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -10,10 +10,13 @@ function makeAffiliateLink(productUrl,template,subId){
 }
 function fillAffiliate(){
  const current=val("affiliateUrl");
- if(current&&validHttps(current))return;
+ const mayReplace=!current||current===generatedAffiliate;
+ if(!mayReplace&&validHttps(current))return;
  const generated=makeAffiliateLink(val("productUrl"),val("affiliateTemplate"),val("subId"));
- if(generated){set("affiliateUrl",generated);$("affiliateHint").textContent="Link preenchido pelo modelo configurado. Confirme se o modelo é válido para seu programa de afiliados.";return}
+ if(generated){generatedAffiliate=generated;set("affiliateUrl",generated);$("affiliateHint").textContent="Link preenchido pelo modelo configurado. Confirme se o modelo é válido para seu programa de afiliados.";return}
+ generatedAffiliate="";
  if(captured.affiliateUrl&&validHttps(captured.affiliateUrl)){set("affiliateUrl",captured.affiliateUrl);$("affiliateHint").textContent="Link rastreado detectado na URL da página.";return}
+ if(mayReplace)set("affiliateUrl","");
  $("affiliateHint").textContent="Nenhum link rastreado detectado. Configure um modelo oficial ou cole seu link de afiliado.";
 }
 async function init(){
@@ -28,6 +31,7 @@ async function capture(){
   const r=await chrome.tabs.sendMessage(t.id,{type:"RADAR_CAPTURE"});
   if(!r?.ok)throw Error();
   captured=r.offer;
+  generatedAffiliate="";
   ["platform","title","price","originalPrice","productUrl","imageUrl","category"].forEach(k=>set(k,captured[k]||(k==="productUrl"?captured.sourceUrl:"")));
   set("subId",captured.subId||val("defaultSubId"));
   set("affiliateUrl",captured.affiliateUrl||"");
@@ -42,7 +46,7 @@ async function refresh(){
  $("offers").innerHTML=offers.slice(0,15).map(o=>'<div class="item"><strong>'+esc(o.title)+'</strong><small>'+esc(o.platform)+' · '+esc(o.price)+'<br>'+esc(o.syncStatus||"Salva localmente")+'<br>'+esc(o.productUrl)+'</small></div>').join("")||"<p>Nenhuma oferta.</p>";
 }
 $("capture").onclick=capture;
-["productUrl","subId","affiliateTemplate"].forEach(id=>$(id).addEventListener("change",()=>{if(!val("affiliateUrl"))fillAffiliate()}));
+["productUrl","subId","affiliateTemplate"].forEach(id=>$(id).addEventListener("change",fillAffiliate));
 $("saveConfig").onclick=async()=>{
  const base=val("apiBase"),template=val("affiliateTemplate");
  if(base&&!validHttps(base))return msg("O endpoint deve usar HTTPS.");
@@ -63,7 +67,8 @@ $("form").onsubmit=async e=>{
  if(!validHttps(base))return msg("Configure o endpoint HTTPS real da API.");
  await chrome.storage.local.set({apiBase:base,apiToken:token,defaultSubId:val("defaultSubId"),affiliateTemplate:val("affiliateTemplate")});
  msg("Enviando à API...");
- const payload={entity:"offer",title:o.title,source:o.platform||"Outro",currentPrice:price,originalPrice:num(o.originalPrice),imageUrl:o.imageUrl,affiliateUrl:o.affiliateUrl,productUrl:o.productUrl,sourceCategory:o.category||"",description:o.notes||"",subId:o.subId||"",message:"",storefrontVisible:false};
+ const sourceMap={"Mercado Livre":"MERCADO_LIVRE","Amazon":"AMAZON","SHEIN":"SHEIN","Magalu":"MAGALU","Temu":"TEMU","Outra":"Outro"};
+  const payload={entity:"offer",title:o.title,source:sourceMap[o.platform]||o.platform||"Outro",currentPrice:price,originalPrice:num(o.originalPrice),imageUrl:o.imageUrl,affiliateUrl:o.affiliateUrl,productUrl:o.productUrl,sourceCategory:o.category||"",description:o.notes||"",subId:o.subId||"",message:"",storefrontVisible:false};
  try{
   const h={"Content-Type":"application/json"};if(token)h.Authorization="Bearer "+token;
   const res=await fetch(base,{method:"POST",headers:h,credentials:"omit",body:JSON.stringify(payload)});
