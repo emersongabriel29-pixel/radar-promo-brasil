@@ -259,7 +259,17 @@ export default async function handler(req,res){
     return res.json({ok:true,action,apiMethod:fallback?.actualApi||spec.api,fallback:fallback||{used:false},items,total:items.length,readOnly:true,publicationEnabled:false,apiDocumentationStatus:'OPEN_PLATFORM_SYNC_SHA256'});
   }catch(error){
     const status=Number(error?.status)||502;
-    console.error('integrations/aliexpress',JSON.stringify({name:String(error?.name||'Error').slice(0,60),status}));
+    const message=String(error?.message||'');
+    const providerCode=message.match(/(?:Código|code)[: ]+([A-Z0-9_.-]{1,60})/i)?.[1]||null;
+    const providerSubCode=message.match(/Subcódigo[: ]+([A-Z0-9_.-]{1,100})/i)?.[1]||null;
+    const requestId=message.match(/Request ID[: ]+([A-Z0-9_.:-]{1,120})/i)?.[1]||null;
+    const kind=/timeout|timed out|abort/i.test(message)?'timeout':
+      /gateway AliExpress respondeu HTTP/i.test(message)?'upstream_http':
+      /conteúdo não JSON/i.test(message)?'upstream_invalid_json':
+      /AliExpress recusou/i.test(message)?'provider_rejection':
+      /Configure .*segredos do projeto|Informe App Key|descontinuada/i.test(message)?'configuration':
+      'request_failure';
+    console.error('integrations/aliexpress',JSON.stringify({name:String(error?.name||'Error').slice(0,60),status,kind,providerCode,providerSubCode,requestId}));
     return res.status(status>=400&&status<600?status:502).json({error:error?.message||'Não foi possível consultar a API AliExpress.'});
   }
 }
