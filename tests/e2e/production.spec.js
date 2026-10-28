@@ -20,15 +20,18 @@ test('sete áreas acessíveis, conteúdo preservado, modal por teclado e oferta 
  }
  await page.getByRole('button',{name:'Integrações',exact:true}).click();await expect(page.getByRole('heading',{name:'Prontidão da operação'})).toBeVisible();
  await page.locator('#nav').getByRole('button',{name:'Ofertas',exact:true}).click();
- await page.getByRole('button',{name:'Estúdio de IA',exact:true}).click();await expect(page.locator('[name=studioTitle]')).toBeVisible();await accessibility(page);
- await page.getByRole('button',{name:'Agente Radar Social',exact:true}).click();await expect(page.locator('[name=agentTopic]')).toBeVisible();
- await page.getByRole('button',{name:'Tráfego e redes sociais',exact:true}).click();await expect(page.locator('#content')).toContainText('Campanhas');
+ // The workspace groups IA and social tools into separate categories; open the category before its view.
+ await page.locator('button.category-ai').click();
+ await page.getByRole('button',{name:/Estúdio de IA/}).click();await expect(page.locator('[name=studioTitle]')).toBeVisible();await accessibility(page);
+ await page.locator('button.category-social').click();
+ await page.getByRole('button',{name:/Agente Radar Social/}).click();await expect(page.locator('[name=agentTopic]')).toBeVisible();
+ await page.getByRole('button',{name:/Tráfego e redes sociais/}).click();await expect(page.locator('#content')).toContainText('Campanhas');
  const add=page.locator('.topactions').getByRole('button',{name:'+ Nova oferta',exact:true});await add.click();
  await expect(page.getByRole('dialog')).toBeVisible();await expect(page.getByLabel('Imagem do produto')).toBeFocused();await accessibility(page);
  await page.keyboard.press('Shift+Tab');await expect(page.getByRole('button',{name:'Fechar',exact:true})).toBeFocused();
  await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).not.toBeVisible();await expect(add).toBeFocused();
  await add.click();await page.getByLabel('Imagem do produto').setInputFiles({name:'produto.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jMloAAAAASUVORK5CYII=','base64')});
- await page.getByLabel('Nome do produto').fill('Oferta auditada no navegador');await page.getByLabel('Preço atual',{exact:true}).fill('49.90');await page.getByLabel('Preço anterior',{exact:true}).fill('99.90');await page.getByLabel('Link oficial de afiliado').fill('https://amazon.com.br/dp/AUDIT?tag=audit');await page.getByLabel('Código do cupom').fill('REAL10');
+ await page.getByLabel('Nome do produto').fill('Oferta auditada no navegador');await page.getByLabel('Preço atual',{exact:true}).fill('49.90');await page.getByLabel('Preço anterior',{exact:true}).fill('99.90');await page.getByRole('textbox',{name:'Link oficial de afiliado'}).fill('https://amazon.com.br/dp/AUDIT?tag=audit');await page.getByRole('checkbox',{name:/Confirmo que revisei os dados/}).check();await page.getByLabel('Código do cupom').fill('REAL10');
  await page.getByRole('button',{name:'Salvar',exact:true}).click();await expect(page.getByRole('dialog')).not.toBeVisible();await expect(page.locator('#content')).toContainText('Oferta auditada no navegador');await accessibility(page);
  const data=await (await request.get('/api/data')).json();const offer=data.offers.find(o=>o.title==='Oferta auditada no navegador');expect(offer.currentPrice).toBe(4990);expect(offer.imageUrl).toMatch(/^\/api\/media\/offer\//);expect(offer.couponCode).toBe('REAL10');
  expect((await request.put('/api/data',{data:{entity:'offer',id:offer.id,status:'APPROVED'}})).status()).toBe(200);
