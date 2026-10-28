@@ -16,16 +16,12 @@
     "express": "^5.2.1",
     "hatchable": "file:hatchable",
     "lib": "file:lib",
-    "multer": "^2.5.0",
+    "multer": "2.4.0",
     "playwright": "1.63.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "axe-core": "^4.13.0",
     "prettier": "^3.9.9"
-  },
-  "overrides": {
-    "body-parser": "^2.4.0",
-    "qs": "^6.17.0"
   }
 }
