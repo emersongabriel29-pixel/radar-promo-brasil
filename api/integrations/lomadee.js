@@ -234,8 +234,11 @@ export default async function handler(req, res) {
       if (action === 'import_products') {
         if (!['VALIDATED','READ_ONLY_VALIDATED'].includes(saved.status)) return res.status(412).json({ error: 'Valide primeiro a leitura da API Lomadee. A importação só será aprovada se a API também gerar um link rastreável autorizado.' });
         const search = clean(req.body?.search, 100);
-        const limit = Math.min(10, Math.max(1, Math.floor(Number(req.body?.limit) || 5)));
-        const productBody = await apiRequest('/affiliate/products', apiKey, { page: 1, limit, isAvailable: true, ...(search ? { search } : {}) });
+        // A API de leitura já suporta páginas de até 100 itens; não truncar a importação em 10.
+        // O chamador pode continuar com nextPage, evitando perder produtos ou exceder o tempo da função.
+        const limit = Math.min(100, Math.max(1, Math.floor(Number(req.body?.limit) || 100)));
+        const page = Math.max(1, Math.floor(Number(req.body?.page) || 1));
+        const productBody = await apiRequest('/affiliate/products', apiKey, { page, limit, isAvailable: true, ...(search ? { search } : {}) });
         const products = listFrom(productBody);
         const imported = [], skipped = [];
         for (const product of products) {
@@ -279,7 +282,8 @@ export default async function handler(req, res) {
           }
           else skipped.push({ id: clean(product.id, 120), reason: 'Duplicada; não foi inserida novamente.' });
         }
-        return res.json({ ok: true, imported: imported.length, skipped: skipped.length, items: imported, skippedItems: skipped, autopilotTriggered: false, publicationTriggered: false, note: 'Produtos importados como rascunhos para revisão humana. Preço e link foram verificados na API oficial; nenhuma oferta foi aprovada para publicação nem foi disparado o piloto automático.' });
+        const nextPage = products.length >= limit ? page + 1 : null;
+        return res.json({ ok: true, page, requestedLimit: limit, received: products.length, nextPage, imported: imported.length, skipped: skipped.length, items: imported, skippedItems: skipped, autopilotTriggered: false, publicationTriggered: false, note: 'Produtos importados como rascunhos para revisão humana. Use nextPage para continuar a paginação quando houver mais resultados. Preço e link foram verificados na API oficial; nenhuma oferta foi aprovada para publicação nem foi disparado o piloto automático.' });
       }
       return res.status(400).json({ error: 'Ação não suportada. Use validate ou import_products.' });
     }
