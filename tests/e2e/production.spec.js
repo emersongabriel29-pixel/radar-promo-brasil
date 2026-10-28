@@ -21,9 +21,9 @@ test('sete áreas acessíveis, conteúdo preservado, modal por teclado e oferta 
  await page.getByRole('button',{name:'Integrações',exact:true}).click();await expect(page.getByRole('heading',{name:'Prontidão da operação'})).toBeVisible();
  await page.locator('#nav').getByRole('button',{name:'Ofertas',exact:true}).click();
  // The workspace groups IA and social tools into separate categories; open the category before its view.
- await page.getByRole('button',{name:/^IA Conteúdo, arte e vídeo/}).click();
+ await page.locator('button.category-ai').click();
  await page.getByRole('button',{name:/Estúdio de IA/}).click();await expect(page.locator('[name=studioTitle]')).toBeVisible();await accessibility(page);
- await page.getByRole('button',{name:/^Redes e campanhas/}).click();
+ await page.locator('button.category-social').click();
  await page.getByRole('button',{name:/Agente Radar Social/}).click();await expect(page.locator('[name=agentTopic]')).toBeVisible();
  await page.getByRole('button',{name:/Tráfego e redes sociais/}).click();await expect(page.locator('#content')).toContainText('Campanhas');
  const add=page.locator('.topactions').getByRole('button',{name:'+ Nova oferta',exact:true});await add.click();
