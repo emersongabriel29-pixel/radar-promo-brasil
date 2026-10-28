@@ -65,6 +65,8 @@ var D = {
   selected = null,
   reportDays = 30;
 var pendingCopierPrefill = null;
+var pendingCopierBatch = [];
+var copierBatchOmitted = 0;
 var NAV = [
   ["dashboard", "Central", "DB", "Operação"],
   ["radar", "Radar", "RD", "Operação"],
@@ -583,7 +585,7 @@ function cloneView() {
     '<div class="card"><h3>Validar links SHEIN em lote</h3><p class="muted">Cole uma mensagem e valide os links sem salvar; se desejar, crie rascunhos pendentes para revisão.</p><button class="btn secondary" type="button" data-action="openSheinTools()">Abrir ferramentas SHEIN</button></div>' +
     '<div class="card"><h3>Importar vitrine Collshp</h3><p class="muted">Lê os produtos públicos da sua vitrine. Os links retornados são candidatos e não têm comissão verificada.</p><label for="collshpCloneUrl">URL pública da vitrine</label><input class="input" id="collshpCloneUrl" type="url" maxlength="500" value="https://collshp.com/emersongabriel291295?view=storefront" placeholder="https://collshp.com/sua-vitrine"><button class="btn secondary csp-margin-top-12px" type="button" data-action="inspectCollshpClone(this)">Ler vitrine</button><div id="collshpCloneResult" class="callout csp-hidden csp-margin-top-12px" role="status"></div></div>' +
     '<div class="card"><h3>Clone sob demanda</h3><p class="muted">Analise um link, revise os dados e prepare uma oferta manualmente. A conversão só é considerada afiliada quando confirmada pelo programa oficial.</p><button class="btn secondary" type="button" data-action="show(\'quick\')">Abrir criação rápida</button></div>' +
-    '<div class="card"><h3>Modo Copiador de mensagens</h3><p class="muted">Cole uma mensagem de oferta para extrair título, preços, cupom e link de origem. O Radar prepara um rascunho para revisão; não publica nada automaticamente.</p><div class="field"><label for="copierText">Mensagem copiada</label><textarea class="input" id="copierText" rows="7" maxlength="6000" placeholder="Cole aqui o texto da oferta, incluindo preços e links..."></textarea></div><div class="field"><label for="copierAffiliateUrl">Link oficial de afiliado</label><input class="input" id="copierAffiliateUrl" type="url" maxlength="1200" placeholder="Cole o link gerado pelo programa oficial"></div><button class="btn csp-margin-top-12px" type="button" data-action="parseCopierMessage()">Analisar e preparar rascunho</button><div id="copierResult" class="callout csp-hidden csp-margin-top-12px" role="status"></div></div><div class="card"><h3>Fila e agendamento</h3><p class="muted">Organize rascunhos aprovados, horários, intervalos e prioridade. O envio real depende do conector e do destino validados.</p><button class="btn secondary" type="button" data-action="show(\'publishing\')">Abrir filas e agendamento</button></div></div></section>'
+    '<div class="card"><h3>Modo Copiador de mensagens</h3><p class="muted">Cole uma oferta ou várias ofertas separadas por uma linha em branco. O Radar mostra os itens reconhecidos para revisão individual; não publica nada automaticamente.</p><div class="field"><label for="copierText">Mensagem ou lote copiado</label><textarea class="input" id="copierText" rows="7" maxlength="12000" placeholder="Cole aqui o texto da oferta ou vários blocos com produto, preço e link..."></textarea></div><div class="field"><label for="copierAffiliateUrl">Link oficial de afiliado (para uma oferta)</label><input class="input" id="copierAffiliateUrl" type="url" maxlength="1200" placeholder="Em lotes, informe o link oficial na revisão de cada item"></div><button class="btn csp-margin-top-12px" type="button" data-action="parseCopierMessage()">Analisar oferta(s)</button><div id="copierResult" class="callout csp-hidden csp-margin-top-12px" role="status"></div></div><div class="card"><h3>Fila e agendamento</h3><p class="muted">Organize rascunhos aprovados, horários, intervalos e prioridade. O envio real depende do conector e do destino validados.</p><button class="btn secondary" type="button" data-action="show(\'publishing\')">Abrir filas e agendamento</button></div></div></section>'
   );
 }
 async function parseCopierMessage() {
@@ -598,13 +600,40 @@ async function parseCopierMessage() {
     box.textContent = "Interpretando a mensagem. Os campos serão sugestões para sua revisão.";
   }
   try {
-    var parseText = raw + (affiliateUrl ? "\n" + affiliateUrl : ""),
+    var response = await fetch("/api/messages/parse-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: raw, batch: true }),
+      }),
+      data = await response.json();
+    if (!data.multiple && affiliateUrl) {
       response = await fetch("/api/messages/parse-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: parseText }),
-      }),
+        body: JSON.stringify({ text: raw + "\n" + affiliateUrl }),
+      });
       data = await response.json();
+    }
+    if (data.multiple) {
+      copierBatchOmitted = Number(data.omitted) || 0;
+      pendingCopierBatch = (data.items || []).map(function (item) {
+        var current = Number(item.currentPrice || 0) / 100;
+        var original = item.originalPrice ? Number(item.originalPrice) / 100 : 0;
+        return {
+          parsed: item,
+          prefill: {
+            title: item.title || "", source: item.marketplace || "",
+            currentPrice: current ? current.toFixed(2) : "",
+            originalPrice: original ? original.toFixed(2) : "",
+            productUrl: item.productUrl || "", affiliateUrl: item.affiliateUrl || "",
+            couponCode: item.couponCode || "", couponUrl: item.couponUrl || "",
+            message: item.sourceText || "",
+          },
+        };
+      });
+      renderCopierBatch(data.omitted || 0);
+      return;
+    }
     if (!response.ok || !data.ok) {
       throw Error(data.reason || data.error || "Não consegui interpretar esta oferta.");
     }
@@ -614,6 +643,8 @@ async function parseCopierMessage() {
     if (!data.title || !currentPrice || !productUrl) {
       throw Error("Confira se a mensagem inclui o nome, o preço e o link do produto.");
     }
+    pendingCopierBatch = [];
+    copierBatchOmitted = 0;
     var prefill = {
       title: data.title,
       source: data.marketplace || "",
@@ -626,23 +657,49 @@ async function parseCopierMessage() {
       message: raw,
     };
     pendingCopierPrefill = prefill;
-    if (box) {
-      box.innerHTML = '<div class="field"><strong>Revise os dados reconhecidos</strong><p class="muted">Os campos abaixo são sugestões extraídas da mensagem. Confirme preço e links antes de continuar.</p></div>' +
-        '<div class="field"><label for="copierReviewTitle">Produto</label><input class="input" id="copierReviewTitle" maxlength="220" value="' + esc(prefill.title) + '"></div>' +
-        '<div class="field"><label for="copierReviewCurrent">Preço atual (R$)</label><input class="input" id="copierReviewCurrent" inputmode="decimal" value="' + esc(prefill.currentPrice) + '"></div>' +
-        '<div class="field"><label for="copierReviewOriginal">Preço anterior (R$)</label><input class="input" id="copierReviewOriginal" inputmode="decimal" value="' + esc(prefill.originalPrice) + '"></div>' +
-        '<div class="field"><label for="copierReviewProduct">Link do produto</label><input class="input" id="copierReviewProduct" type="url" maxlength="1200" value="' + esc(prefill.productUrl) + '"></div>' +
-        '<div class="field"><label for="copierReviewAffiliate">Link de afiliado confirmado</label><input class="input" id="copierReviewAffiliate" type="url" maxlength="1200" value="' + esc(prefill.affiliateUrl) + '"></div>' +
-        '<div class="field"><label for="copierReviewCoupon">Cupom (se aplicável)</label><input class="input" id="copierReviewCoupon" maxlength="100" value="' + esc(prefill.couponCode) + '"></div>' +
-        '<div class="field"><label for="copierReviewCouponUrl">URL do cupom (opcional)</label><input class="input" id="copierReviewCouponUrl" type="url" maxlength="1200" value="' + esc(prefill.couponUrl) + '"></div>' +
-        '<p class="muted">Salvar como rascunho não publica a oferta. O preço oficial ainda precisa ser verificado antes do envio.</p>' +
-        '<button class="btn csp-margin-top-12px" type="button" data-action="continueCopierDraft()">Continuar para cadastro</button>';
-    }
+    renderCopierReview(prefill, box, false);
   } catch (error) {
     if (box) box.textContent = error.message || "Não foi possível interpretar a mensagem.";
     toast(error.message || "Não foi possível interpretar a mensagem.");
   }
 }
+function renderCopierBatch(omitted) {
+  var box = document.getElementById("copierResult");
+  if (!box) return;
+  box.classList.remove("csp-hidden");
+  var rows = pendingCopierBatch.map(function (entry, index) {
+    var item = entry.parsed, prefill = entry.prefill, missing = [];
+    if (!prefill.title) missing.push("produto");
+    if (!prefill.currentPrice) missing.push("preço atual");
+    if (!prefill.productUrl) missing.push("link de produto reconhecido");
+    if (!item.affiliateLinkDetected) missing.push("link oficial de afiliado");
+    if (!prefill.originalPrice) missing.push("preço anterior para confirmar desconto");
+    var status = item.ok ? (missing.length ? "Revisar dados pendentes" : "Pronto para revisão") : (item.reason || "Dados incompletos");
+    return '<article class="card csp-margin-top-12px"><h4>' + esc(prefill.title || ("Item " + (index + 1))) + '</h4><p class="muted">' + esc(prefill.source || "Loja não identificada") + (prefill.currentPrice ? ' · R$ ' + esc(prefill.currentPrice) : '') + '</p><p>' + esc(status) + (missing.length ? ': falta conferir ' + esc(missing.join(", ")) + '.' : '.') + '</p><button class="btn secondary" type="button" data-action="reviewCopierItem(' + index + ')"' + (item.ok ? '' : ' disabled') + '>Revisar este item</button></article>';
+  }).join("");
+  box.innerHTML = '<strong>' + pendingCopierBatch.length + ' item(ns) encontrado(s)</strong><p class="muted">Cada item abrirá o cadastro pendente separadamente. Confirme os links e envie uma imagem para cada oferta. A deduplicação e a aprovação continuam ativas.</p>' + rows + (omitted ? '<p role="alert">Mais ' + omitted + ' bloco(s) foram omitidos pelo limite de 10 itens por análise.</p>' : '');
+}
+function renderCopierReview(prefill, box, fromBatch) {
+  if (!box) return;
+  box.innerHTML = '<div class="field"><strong>Revise os dados reconhecidos</strong><p class="muted">Os campos são sugestões extraídas da mensagem. Confirme o preço, a imagem e que o link afiliado foi gerado na sua conta.</p></div>' +
+    '<div class="field"><label for="copierReviewTitle">Produto</label><input class="input" id="copierReviewTitle" maxlength="220" value="' + esc(prefill.title) + '"></div>' +
+    '<div class="field"><label for="copierReviewCurrent">Preço atual (R$)</label><input class="input" id="copierReviewCurrent" inputmode="decimal" value="' + esc(prefill.currentPrice) + '"></div>' +
+    '<div class="field"><label for="copierReviewOriginal">Preço anterior (R$)</label><input class="input" id="copierReviewOriginal" inputmode="decimal" value="' + esc(prefill.originalPrice) + '"></div>' +
+    '<div class="field"><label for="copierReviewProduct">Link do produto</label><input class="input" id="copierReviewProduct" type="url" maxlength="1200" value="' + esc(prefill.productUrl) + '"></div>' +
+    '<div class="field"><label for="copierReviewAffiliate">Link de afiliado confirmado</label><input class="input" id="copierReviewAffiliate" type="url" maxlength="1200" value="' + esc(prefill.affiliateUrl) + '"></div>' +
+    '<div class="field"><label for="copierReviewCoupon">Cupom (se aplicável)</label><input class="input" id="copierReviewCoupon" maxlength="100" value="' + esc(prefill.couponCode) + '"></div>' +
+    '<div class="field"><label for="copierReviewCouponUrl">URL do cupom (opcional)</label><input class="input" id="copierReviewCouponUrl" type="url" maxlength="1200" value="' + esc(prefill.couponUrl) + '"></div>' +
+    '<p class="muted">Salvar cria somente um rascunho pendente. O envio exige aprovação e confirmação oficial do preço.</p>' +
+    (fromBatch ? '<button class="btn secondary" type="button" data-action="returnToCopierBatch()">Voltar à lista de itens</button> ' : '') +
+    '<button class="btn csp-margin-top-12px" type="button" data-action="continueCopierDraft()">Continuar para cadastro</button>';
+}
+function reviewCopierItem(index) {
+  var entry = pendingCopierBatch[Number(index)], box = document.getElementById("copierResult");
+  if (!entry || !entry.parsed.ok) { toast("Este bloco precisa de mais dados antes de criar um rascunho."); return; }
+  pendingCopierPrefill = entry.prefill;
+  renderCopierReview(entry.prefill, box, true);
+}
+function returnToCopierBatch() { renderCopierBatch(copierBatchOmitted); }
 function continueCopierDraft() {
   if (!pendingCopierPrefill) { toast('Analise uma mensagem antes de continuar.'); return; }
   var value = function(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
