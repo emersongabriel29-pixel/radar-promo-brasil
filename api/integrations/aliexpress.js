@@ -189,13 +189,33 @@ export default async function handler(req,res){
     const map={products:'products',smartMatch:'smartMatch',hotProducts:'hotProducts',hotProductsDownload:'hotProductsDownload',productDetail:'productDetail',categories:'categories',campaigns:'campaigns',campaignProducts:'campaignProducts',generateLink:'generateLink',orders:'orders',orderDetail:'orderDetail',ordersByCursor:'ordersByCursor'};
     const actionName=map[action];if(!actionName)return res.status(400).json({error:'Operação não suportada.'});
     const spec=build(actionName,req.body||{},c);if(!spec)return res.status(400).json({error:'Parâmetros inválidos.'});
-    const data=await topRequest(c,spec.api,spec.params),result=unwrap(data,spec.api),items=normalize(listOf(result));
+    let data, result, items, fallback=null;
+    try {
+      data=await topRequest(c,spec.api,spec.params);
+      result=unwrap(data,spec.api);
+      items=normalize(listOf(result));
+    } catch (apiError) {
+      const permissionDenied=/InsufficientPermission|insufficient permission|permission/i.test(String(apiError?.message||''));
+      const canFallback=['hotProducts','hotProductsDownload','smartMatch','campaignProducts'].includes(action);
+      if(!permissionDenied||!canFallback)throw apiError;
+      let fallbackSpec;
+      if(action==='smartMatch'&&!clean(req.body?.keyword,120)&&/^\d{1,30}$/.test(clean(req.body?.productId,30))){
+        fallbackSpec=build('productDetail',{...req.body,productIds:req.body.productId},c);
+      } else {
+        const fallbackKeyword=clean(req.body?.keyword||(action==='campaignProducts'?req.body?.promotionName:'ofertas'),120);
+        fallbackSpec=build('products',{...req.body,keyword:fallbackKeyword,sort:clean(req.body?.sort||'SALE_PRICE_ASC',40)},c);
+      }
+      data=await topRequest(c,fallbackSpec.api,fallbackSpec.params);
+      result=unwrap(data,fallbackSpec.api);
+      items=normalize(listOf(result));
+      fallback={used:true,requestedAction:action,actualApi:fallbackSpec.api,reason:'A API avançada recusou a operação por falta de permissão; foi usada a busca padrão de produtos. Os itens não são garantidos como produtos em alta nem como correspondência inteligente.',keyword:fallbackSpec.params.keywords||null};
+    }
     if(action==='generateLink'){
       const link=items.find(x=>x.affiliateUrl)?.affiliateUrl||clean(result?.promotion_links?.promotion_link||result?.promotion_link,2000);
       if(!link||!/^https:\/\//i.test(link))throw Object.assign(new Error('AliExpress não retornou um link HTTPS de afiliado reconhecível.'),{status:502});
       return res.json({ok:true,affiliateUrl:link,trackingId:clean(req.body?.trackingId||c.trackingId,200),created:true,published:false,note:'Link de afiliado criado pela API; nenhuma oferta foi publicada.'});
     }
-    return res.json({ok:true,action,apiMethod:spec.api,items,total:items.length,readOnly:true,publicationEnabled:false,apiDocumentationStatus:'OPEN_PLATFORM_SYNC_SHA256'});
+    return res.json({ok:true,action,apiMethod:fallback?.actualApi||spec.api,fallback:fallback||{used:false},items,total:items.length,readOnly:true,publicationEnabled:false,apiDocumentationStatus:'OPEN_PLATFORM_SYNC_SHA256'});
   }catch(error){
     const status=Number(error?.status)||502;
     console.error('integrations/aliexpress',JSON.stringify({name:String(error?.name||'Error').slice(0,60),status}));
