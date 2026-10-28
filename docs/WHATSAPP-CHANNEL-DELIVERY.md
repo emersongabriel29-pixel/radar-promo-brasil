@@ -23,7 +23,7 @@ Este conector é opcional e não altera o envio atual pelo Telegram. Ele usa o p
 
 Adicione estes valores no cofre de segredos/variáveis do ambiente do Radar (não no código nem em commits):
 
-- WHATSAPP_CHANNEL_API_URL: URL base HTTPS da API, sem barra final, por exemplo https://whatsapp-api.seudominio.com.
+- whatsapp_channel_api_url: URL base HTTPS da API, sem barra final, por exemplo https://whatsapp-api.seudominio.com.
 - WHATSAPP_CHANNEL_API_KEY: a mesma chave definida na API externa.
 
 O módulo lib/whatsapp-channel.js disponibiliza:
