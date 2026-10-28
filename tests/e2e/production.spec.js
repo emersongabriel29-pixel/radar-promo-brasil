@@ -20,9 +20,9 @@ test('sete áreas acessíveis, conteúdo preservado, modal por teclado e oferta 
  }
  await page.getByRole('button',{name:'Integrações',exact:true}).click();await expect(page.getByRole('heading',{name:'Prontidão da operação'})).toBeVisible();
  await page.locator('#nav').getByRole('button',{name:'Ofertas',exact:true}).click();
- await page.getByRole('button',{name:'Estúdio de IA',exact:true}).click();await expect(page.locator('[name=studioTitle]')).toBeVisible();await accessibility(page);
- await page.getByRole('button',{name:'Agente Radar Social',exact:true}).click();await expect(page.locator('[name=agentTopic]')).toBeVisible();
- await page.getByRole('button',{name:'Tráfego e redes sociais',exact:true}).click();await expect(page.locator('#content')).toContainText('Campanhas');
+ await page.getByRole('button',{name:/Estúdio de IA/}).click();await expect(page.locator('[name=studioTitle]')).toBeVisible();await accessibility(page);
+ await page.getByRole('button',{name:/Agente Radar Social/}).click();await expect(page.locator('[name=agentTopic]')).toBeVisible();
+ await page.getByRole('button',{name:/Tráfego e redes sociais/}).click();await expect(page.locator('#content')).toContainText('Campanhas');
  const add=page.locator('.topactions').getByRole('button',{name:'+ Nova oferta',exact:true});await add.click();
  await expect(page.getByRole('dialog')).toBeVisible();await expect(page.getByLabel('Imagem do produto')).toBeFocused();await accessibility(page);
  await page.keyboard.press('Shift+Tab');await expect(page.getByRole('button',{name:'Fechar',exact:true})).toBeFocused();
