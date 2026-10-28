@@ -19,7 +19,7 @@ test('arquivos de integração JavaScript são código-fonte, não envelopes JSO
     return walk(absolute);
   });
 
-  assert.ok(files.length > 0, 'deve haver arquivos de integração para validar');
+  assert.ok(files.length > 0, 'deve haver arquivos para validar');
   for (const file of files) {
     const source = fs.readFileSync(file, 'utf8').trimStart();
     assert.ok(!source.startsWith('{\n  "path"'), `${path.relative(root, file)} contém envelope JSON em vez de JavaScript`);
@@ -27,17 +27,18 @@ test('arquivos de integração JavaScript são código-fonte, não envelopes JSO
   }
 });
 
-test('publicação no Telegram usa o adaptador isolado de links', () => {
+test('job do Telegram usa adaptador isolado e não cria redirecionamento interno', () => {
   const file = path.join(root, 'api/jobs/telegram.js');
   assert.ok(fs.existsSync(file), 'o job de publicação do Telegram deve existir');
   const source = fs.readFileSync(file, 'utf8');
 
-  assert.match(source, /prepareTelegramOfferLinks/);
-  assert.match(source, /affiliateUrl\s*\}\s*=\s*prepareTelegramOfferLinks\(item\)/);
+  assert.ok(source.includes('prepareTelegramOfferLinks(item)'), 'o job deve chamar o adaptador');
+  assert.ok(source.includes('message:trackedMessage') || source.includes('message: trackedMessage'), 'a mensagem deve usar o texto preparado');
+  assert.ok(source.includes('affiliateUrl}'), 'o envio deve receber o link original preparado');
   assert.doesNotMatch(source, /trackingUrl\s*=\s*origin\s*\+\s*['"]\/api\/r\//);
 });
 
-test('adaptador Telegram preserva a URL original e acrescenta cupom uma única vez', () => {
+test('adaptador Telegram preserva link afiliado e acrescenta cupom sem duplicar', () => {
   const original = 'https://www.mercadolivre.com.br/oferta?aff_id=abc';
   const first = prepareTelegramOfferLinks({
     affiliateUrl: original,
@@ -57,16 +58,16 @@ test('adaptador Telegram preserva a URL original e acrescenta cupom uma única v
   }).message, first.message);
 });
 
-test('adaptador Telegram tolera links/cupom ausentes sem inventar redirecionamento', () => {
+test('adaptador Telegram tolera links e cupons ausentes', () => {
   assert.deepEqual(prepareTelegramOfferLinks({ message: 'Oferta' }), {
     affiliateUrl: '',
     message: 'Oferta'
   });
 });
 
-test('cada integração deve ter documentação de fronteira e migração gradual', () => {
-  const guide = fs.readFileSync(path.join(root, 'integrations/README.md'), 'utf8');
-  assert.match(guide, /uma integração por PR/i);
-  assert.match(guide, /preservar a URL de afiliado original/i);
-  assert.match(guide, /testes/i);
+test('documentação define fronteiras e migração gradual', () => {
+  const guide = fs.readFileSync(path.join(root, 'integrations/README.md'), 'utf8').toLowerCase();
+  assert.match(guide, /uma integração por pr/);
+  assert.match(guide, /preservar a url de afiliado original/);
+  assert.match(guide, /testes/);
 });
