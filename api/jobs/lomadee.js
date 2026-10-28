@@ -1,6 +1,7 @@
 import { config, db, scheduler } from 'hatchable';
 import { fingerprint, message as promoMessage, offerScore } from 'lib/automation.js';
 import { directImageUrl } from 'lib/validation.js';
+import { isMedicationProduct } from 'lib/product-safety.js';
 
 export const access = 'scheduler';
 export const methods = ['POST'];
@@ -8,8 +9,8 @@ const BASE = 'https://api.lomadee.com.br';
 const clean = (v, max = 300) => String(v ?? '').trim().slice(0, max);
 const fromB64 = value => Uint8Array.from(atob(value), char => char.charCodeAt(0));
 const list = body => Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : Array.isArray(body?.items) ? body.items : Array.isArray(body?.products) ? body.products : [];
-// The API may return prices as decimal reais (e.g. 72.26) or integer cents (e.g. 7226).
-const priceCents = value => { const n = Number(value); return Number.isFinite(n) && n > 0 ? (Number.isInteger(n) ? n : Math.round(n * 100)) : NaN; };
+// The current official products endpoint returns BRL major units (e.g. 59 = R$ 59,00).
+const priceCents = value => { const n = Number(value); return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : NaN; };
 
 async function readCredentials(row) {
   let raw = String(await config.get('API_CREDENTIALS_MASTER_KEY') || '');
@@ -27,12 +28,16 @@ async function request(path, apiKey, params = {}, method = 'GET', payload = null
     method,
     headers: { 'x-api-key': apiKey, accept: 'application/json', ...(method === 'POST' ? { 'content-type': 'application/json' } : {}) },
     ...(method === 'POST' ? { body: JSON.stringify(payload || {}) } : {}),
-    signal: AbortSignal.timeout(12000)
+    signal: AbortSignal.timeout(8000)
   });
   const bodyText = await response.text();
   let body = {};
   try { body = bodyText ? JSON.parse(bodyText) : {}; } catch { body = {}; }
-  if (!response.ok) throw Object.assign(new Error('HTTP ' + response.status), { status: response.status });
+  if (!response.ok) {
+    const providerMessage = clean(body?.message || body?.error || body?.detail || body?.subMessage || '', 180);
+    const providerCode = clean(body?.code || body?.errorCode || '', 80);
+    throw Object.assign(new Error('HTTP ' + response.status + (providerCode ? ' [' + providerCode + ']' : '') + (providerMessage ? ': ' + providerMessage : '')), { status: response.status, providerCode });
+  }
   return body;
 }
 
@@ -40,25 +45,30 @@ export default async function handler(req, res) {
   const credentialsRows = (await db.query(
     "SELECT account_id,credentials_enc,nonce FROM marketplace_api_credentials WHERE marketplace='LOMADEE' AND status='VALIDATED'"
   )).rows;
-  const totals = { accounts: credentialsRows.length, scanned: 0, imported: 0, duplicates: 0, skipped: 0, failed: 0, autopilotRuns: 0 };
+  const dryRun = req.body?.dryRun === true;
+  const totals = { accounts: credentialsRows.length, scanned: 0, imported: 0, duplicates: 0, skipped: 0, failed: 0, autopilotRuns: 0, dryRun, eligibleBeforeAffiliate: 0 };
   for (const row of credentialsRows) {
     let accountImported = 0;
     try {
       const credentials = await readCredentials(row);
       const apiKey = clean(credentials.apiKey, 4096);
       if (!apiKey) throw new Error('Chave API ausente');
-      // Rotate through a small page per hourly run; never crawl up to 1,000 products in one invocation.
-      const page = (Math.floor(Date.now() / 3600000) % 25) + 1;
+      // Process one small rotating page per run; never fetch up to 1,000 products in a single job.
+      const page = dryRun ? Math.min(25, Math.max(1, Math.floor(Number(req.body?.dryRunPage) || 1))) : (Math.floor(Date.now() / 3600000) % 25) + 1;
+      totals.page = page;
       const response = await request('/affiliate/products', apiKey, { page, limit: 5, isAvailable: true });
-      const products = list(response).slice(0, 5);
+      const products = list(response).slice(0, 20);
       totals.scanned += products.length;
-      totals.skipReasons ||= { unavailable: 0, missingTitle: 0, missingOrganization: 0, missingProductUrl: 0, missingImage: 0, invalidPrice: 0, missingPricing: 0, noDiscount: 0, noAffiliateLink: 0 };
+      totals.skipReasons ||= { unavailable: 0, missingTitle: 0, missingOrganization: 0, missingProductUrl: 0, missingImage: 0, invalidPrice: 0, missingPricing: 0, noDiscount: 0, noAffiliateLink: 0, medication: 0 };
       totals.priceDiagnostics ||= [];
       for (const product of products) {
         if (accountImported >= 2) break;
         const option = (Array.isArray(product.options) ? product.options : []).find(x => x.available) || product.options?.[0] || {};
         const pricing = Array.isArray(option.pricing) ? option.pricing[0] : {};
         const title = clean(option.name || product.name, 220);
+        if (isMedicationProduct({ title, description: option.description || product.description, sourceCategory: Array.isArray(option.categories) ? option.categories.join(' ') : '', product_url: product.url })) {
+          totals.skipped++; totals.skipReasons.medication++; continue;
+        }
         const productUrl = typeof product.url === 'string' && /^https:\/\//i.test(product.url) ? product.url : '';
         const imageUrl = product.images?.[0]?.url || option.images?.[0]?.url || '';
         const originalPrice = priceCents(pricing.listPrice), currentPrice = priceCents(pricing.price);
@@ -72,10 +82,24 @@ export default async function handler(req, res) {
         if (!Number.isSafeInteger(originalPrice) || !Number.isSafeInteger(currentPrice) || currentPrice <= 0) {
           totals.skipped++; totals.skipReasons.invalidPrice++;
           if (!Array.isArray(option.pricing) || !option.pricing.length) totals.skipReasons.missingPricing++;
-          if (totals.priceDiagnostics.length < 5) totals.priceDiagnostics.push({ productId: clean(product.id, 80), optionKeys: Object.keys(option || {}), pricingIsArray: Array.isArray(option.pricing), pricingCount: Array.isArray(option.pricing) ? option.pricing.length : 0, firstPricingKeys: Object.keys(pricing || {}), listPriceType: typeof pricing.listPrice, listPrice: pricing.listPrice ?? null, priceType: typeof pricing.price, price: pricing.price ?? null });
+          if (totals.priceDiagnostics.length < 5) totals.priceDiagnostics.push({ productId: clean(product.id, 80), optionKeys: Object.keys(option || {}), pricingIsArray: Array.isArray(option.pricing), pricingCount: Array.isArray(option.pricing) ? option.pricing.length : 0, firstPricingKeys: Object.keys(pricing || {}), listPriceType: typeof pricing.listPrice, listPrice: pricing.listPrice ?? null, priceType: typeof pricing.price, price: pricing.price ?? null, stocksType: Array.isArray(option.stocks) ? 'array' : typeof option.stocks, stockSample: Array.isArray(option.stocks) ? option.stocks.slice(0,2) : option.stocks ?? null, metadataKeys: Object.keys(option.metadata || {}), productKeys: Object.keys(product || {}) });
           continue;
         }
         if (originalPrice <= currentPrice) { totals.skipped++; totals.skipReasons.noDiscount++; continue; }
+        if (dryRun) {
+          totals.eligibleBeforeAffiliate++;
+          if (req.body?.testShortener === true && !totals.shortenerTest) {
+            try {
+              const probe = await request('/affiliate/shortener/url', apiKey, {}, 'POST', { organizationId: String(product.organizationId), type: 'Custom', url: productUrl });
+              const probeRows = Array.isArray(probe) ? probe : list(probe);
+              const links = probeRows.flatMap(x => Array.isArray(x.shortUrls) ? x.shortUrls : []).filter(v => typeof v === 'string' && /^https:\/\//i.test(v));
+              totals.shortenerTest = { attempted: true, ok: links.length > 0, returnedRows: probeRows.length, returnedLinks: links.length };
+            } catch (error) {
+              totals.shortenerTest = { attempted: true, ok: false, status: Number(error?.status) || 0, error: String(error?.message || 'shortener_failed').slice(0, 180) };
+            }
+          }
+          continue;
+        }
         const fp = await fingerprint({ source: 'LOMADEE', externalId: clean(product.id, 120), productUrl, title });
         // Let the unique constraints and INSERT ... ON CONFLICT handle duplicates in one DB round-trip.
         let shortResponse;
@@ -121,6 +145,7 @@ export default async function handler(req, res) {
           }
         } else totals.duplicates++;
       }
+      if (dryRun) continue;
       await db.query("UPDATE marketplace_api_credentials SET last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='LOMADEE'", [row.account_id]);
       if (accountImported) {
         try { await scheduler.now('/api/jobs/autopilot'); totals.autopilotRuns++; }
@@ -130,7 +155,7 @@ export default async function handler(req, res) {
       totals.failed++;
       const code = Number(error?.status) || 0;
       const safeError = code === 401 ? 'Lomadee API Key inválida (HTTP 401).' : code === 403 ? 'A chave Lomadee não tem o escopo necessário; confira products:read e shortener:write.' : code === 429 ? 'Limite da API Lomadee atingido; a próxima execução tentará novamente.' : 'Falha de conexão ou resposta da API Lomadee.';
-      await db.query("UPDATE marketplace_api_credentials SET last_error=$2,updated_at=now() WHERE account_id=$1 AND marketplace='LOMADEE'", [row.account_id, safeError]);
+      if (!dryRun) await db.query("UPDATE marketplace_api_credentials SET last_error=$2,updated_at=now() WHERE account_id=$1 AND marketplace='LOMADEE'", [row.account_id, safeError]);
       console.error('lomadee ingestion failed', String(code || error?.name || 'ERROR').slice(0, 60));
     }
   }
