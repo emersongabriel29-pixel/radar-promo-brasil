@@ -1,6 +1,9 @@
 import { config, db } from 'hatchable';
 import { signTopParams } from 'lib/top-signature.js';
 import { createAliExpressAffiliateUrl, signAliExpressParams } from 'lib/afilimax-aliexpress-provider.js';
+import { fingerprint, offerScore } from 'lib/automation.js';
+import { classifyProduct } from 'lib/category-classifier.js';
+import { formatPromo } from 'lib/promo-message.js';
 
 export const access = 'member';
 export const methods = ['GET', 'POST'];
@@ -37,7 +40,7 @@ async function credentialsFor(accountId) {
   return {credentials:JSON.parse(new TextDecoder().decode(plain)),status:row.status};
 }
 function signParams(params, secret) { return signTopParams(params, secret); }
-const fields='product_id,product_title,product_main_image_url,product_detail_url,target_sale_price,target_original_price,sale_price,discount,commission_rate,first_level_category_id,second_level_category_id,shop_id,shop_url';
+const fields='product_id,product_title,product_main_image_url,product_detail_url,promotion_link,target_sale_price,target_original_price,sale_price,discount,commission_rate,evaluate_rate,lastest_volume,first_level_category_id,second_level_category_id,shop_id,shop_url';
 async function topRequest(credentials, method, business={}) {
   const appKey=clean(credentials.appId,200),secret=clean(credentials.apiSecret,4096),tracking=clean(credentials.trackingId,200);
   if(!appKey||!secret||!tracking)throw Object.assign(new Error('Informe App Key, App Secret e Tracking ID emitidos no portal de afiliados.'),{status:412});
@@ -87,6 +90,9 @@ function normalize(items) {
     price: x.target_sale_price??x.app_sale_price??x.sale_price??x.salePrice??null,
     originalPrice:x.target_original_price??x.original_price??null,
     commissionRate:x.commission_rate??x.commision_rate??x.hot_product_commission_rate??x.commissionRate??null,
+    rating:x.evaluate_rate??x.evaluateRate??null,
+    salesVolume:x.lastest_volume??x.lastestVolume??null,
+    discount: x.discount??null,
     status:clean(x.order_status||x.status,80),
     createdAt:clean(x.created_time||x.createdTime,80),
     rawType:clean(x.type||x.category_name,100)
@@ -186,7 +192,7 @@ export default async function handler(req,res){
         throw error;
       }
     }
-    const map={products:'products',smartMatch:'smartMatch',hotProducts:'hotProducts',hotProductsDownload:'hotProductsDownload',productDetail:'productDetail',categories:'categories',campaigns:'campaigns',campaignProducts:'campaignProducts',generateLink:'generateLink',orders:'orders',orderDetail:'orderDetail',ordersByCursor:'ordersByCursor'};
+    const map={products:'products',importOffers:'products',smartMatch:'smartMatch',hotProducts:'hotProducts',hotProductsDownload:'hotProductsDownload',productDetail:'productDetail',categories:'categories',campaigns:'campaigns',campaignProducts:'campaignProducts',generateLink:'generateLink',orders:'orders',orderDetail:'orderDetail',ordersByCursor:'ordersByCursor'};
     const actionName=map[action];if(!actionName)return res.status(400).json({error:'Operação não suportada.'});
     const spec=build(actionName,req.body||{},c);if(!spec)return res.status(400).json({error:'Parâmetros inválidos.'});
     let data, result, items, fallback=null;
@@ -209,6 +215,41 @@ export default async function handler(req,res){
       result=unwrap(data,fallbackSpec.api);
       items=normalize(listOf(result));
       fallback={used:true,requestedAction:action,actualApi:fallbackSpec.api,reason:'A API avançada recusou a operação por falta de permissão; foi usada a busca padrão de produtos. Os itens não são garantidos como produtos em alta nem como correspondência inteligente.',keyword:fallbackSpec.params.keywords||null};
+    }
+    if(action==='importOffers'){
+      const minDiscount=Math.max(0,Math.min(90,Number(req.body?.minDiscountPercent??10)||0));
+      const minCommission=Math.max(0,Math.min(100,Number(req.body?.minCommissionRate??3)||0));
+      const maxRating=Math.max(0,Math.min(100,Number(req.body?.minimumRating??90)||0));
+      const cats=(await db.query('SELECT id,name FROM categories WHERE account_id=$1 ORDER BY name',[account.id])).rows;
+      const imported=[],skipped=[];
+      for(const item of items){
+        const title=clean(item.title,220),productUrl=clean(item.productUrl,2000),affiliateUrl=clean(item.affiliateUrl,2000),imageUrl=clean(item.imageUrl,1500);
+        const priceNumber=Number(String(item.price??'').replace(',','.')),originalNumber=Number(String(item.originalPrice??'').replace(',','.'));
+        const currentPrice=Math.round(priceNumber*100),originalPrice=Math.round(originalNumber*100);
+        const commission=Number.parseFloat(String(item.commissionRate??'').replace('%','').replace(',','.'));
+        const rating=Number.parseFloat(String(item.rating??'').replace('%','').replace(',','.'));
+        const discount=originalPrice>0&&currentPrice>0?Math.round((originalPrice-currentPrice)*100/originalPrice):0;
+        let reason='';
+        if(!title)reason='Título ausente';
+        else if(!/^https:\/\//i.test(productUrl)||!/^https:\/\//i.test(affiliateUrl)||!/^https:\/\//i.test(imageUrl))reason='Produto sem link original, link de afiliado ou imagem HTTPS válida';
+        else if(!Number.isSafeInteger(currentPrice)||currentPrice<=0||!Number.isSafeInteger(originalPrice)||originalPrice<=currentPrice)reason='Preço atual/original inválido ou sem desconto verificável';
+        else if(discount<minDiscount)reason='Desconto abaixo do mínimo de '+minDiscount+'%';
+        else if(!Number.isFinite(commission)||commission<minCommission)reason='Comissão ausente ou abaixo do mínimo de '+minCommission+'%';
+        else if(Number.isFinite(rating)&&rating<maxRating)reason='Indicador de avaliação abaixo de '+maxRating+'%';
+        if(reason){skipped.push({id:item.id,title,reason});continue;}
+        const classification=classifyProduct({title,sourceCategory:'AliExpress'});
+        const category=cats.find(c=>c.name.toLowerCase()===String(classification.category||'').toLowerCase())||cats.find(c=>c.name.toLowerCase().includes('gerais'))||null;
+        const fp=await fingerprint({source:'ALIEXPRESS',externalId:item.id,productUrl,title});
+        const promo=formatPromo({title,source:'ALIEXPRESS',category:classification.category,currentPrice,originalPrice,affiliateUrl,imageUrl,productUrl});
+        const score=offerScore({title,currentPrice,originalPrice});
+        const saved=await db.query(
+          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,subcategory,classification_tags,classification_confidence,classification_status,classification_reason,source_category) VALUES($1,$2,$3,'ALIEXPRESS',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'PENDING','ALIEXPRESS_API',false,$14,$15::jsonb,$16,'REVIEW','Imported as draft; human review required','AliExpress') ON CONFLICT DO NOTHING RETURNING id",
+          [crypto.randomUUID(),account.id,title,originalPrice,currentPrice,category?.id||null,affiliateUrl,imageUrl,productUrl,discount,score,promo.message,fp,classification.subcategory||null,JSON.stringify(classification.tags||[]),classification.confidence||0]
+        );
+        if(!saved.rows.length){skipped.push({id:item.id,title,reason:'Produto duplicado; não foi importado novamente.'});continue;}
+        imported.push({offerId:saved.rows[0].id,productId:item.id,title,price:currentPrice/100,originalPrice:originalPrice/100,discountPercent:discount,commissionRate:item.commissionRate,score,status:'PENDING_REVIEW'});
+      }
+      return res.json({ok:true,action:'importOffers',keyword:clean(req.body?.keyword,120),criteria:{minDiscountPercent:minDiscount,minCommissionRate:minCommission,minimumRating:maxRating},imported:imported.length,skipped:skipped.length,items:imported,skippedItems:skipped,readOnlySource:true,reviewRequired:true,autopilotTriggered:false,publicationTriggered:false,publicationEnabled:false,note:'Produtos importados apenas como ofertas pendentes de revisão humana. Nenhuma oferta foi aprovada, publicada ou enviada a grupos.'});
     }
     if(action==='generateLink'){
       const link=items.find(x=>x.affiliateUrl)?.affiliateUrl||clean(result?.promotion_links?.promotion_link||result?.promotion_link,2000);
