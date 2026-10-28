@@ -38,3 +38,36 @@ Referências:
 ## Critério de aceite
 
 A integração só pode ser marcada como concluída após executar testes com credenciais fornecidas pelo proprietário da conta e confirmar que o link resultante abre o produto correto e mantém o rastreamento de afiliado. A documentação e os testes em ambiente simulado, por si sós, não comprovam conversão real nem comissão.
+
+
+## Implementação experimental adicionada ao Radar
+
+Foi adicionado um gerador sob demanda para Mercado Livre:
+
+- Backend: `api/integrations/mercadolivre-affiliate.js`.
+- Validação e conversão: `lib/mercadolivre-affiliate.js`.
+- Testes sem credenciais reais: `tests/mercadolivre-affiliate.test.mjs`.
+
+### Configuração necessária no servidor
+
+Cadastre nos segredos/configuração do ambiente do backend, nunca no frontend ou no Git:
+
+- `MELI_AFFILIATE_TAG`: a tag real da conta de afiliado.
+- `MELI_AFFILIATE_COOKIES_JSON`: array JSON dos cookies da sessão autorizada do Mercado Livre.
+
+Exemplo apenas estrutural, com valores fictícios:
+
+```json
+[
+  { "name": "_csrf", "value": "VALOR_REAL_DO_SEGREDO" },
+  { "name": "cookie_de_sessao", "value": "VALOR_REAL_DO_SEGREDO" }
+]
+```
+
+Não copie o exemplo literalmente nem envie cookies em mensagens. Sessões expiram; em caso de falha, renove os segredos no ambiente de hospedagem.
+
+A rota exige autenticação de membro. GET informa configuração sem revelar segredos; POST recebe `productUrl` e devolve o link gerado, sem publicar oferta. Links de saída e de entrada passam por validação HTTPS/domínio. O rastreamento não é considerado comprovado apenas porque um link foi retornado.
+
+### Limitações e aceite pendente
+
+O endpoint usa um caminho web autenticado do programa de afiliados, não uma API pública documentada. Ele é experimental e pode mudar ou deixar de funcionar; confirme compatibilidade com os termos atuais do programa. A publicação automática permanece desativada. Os testes adicionados usam respostas HTTP simuladas e não comprovam acesso real, comissão ou rastreamento. Antes de habilitar qualquer publicação, executar a suíte do projeto e um teste manual com a própria conta, confirmar que o destino é o produto correto e verificar o rastreamento no painel de afiliados.
