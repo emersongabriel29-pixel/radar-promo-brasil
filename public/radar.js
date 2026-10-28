@@ -369,6 +369,7 @@ function dashboard() {
     metric("Envios na fila", ready, "prontos ou agendados") +
     metric("Cliques rastreados", clicks, "links publicados") +
     "</div>" +
+    integrationHealthPanel() +
     section(
       "Fluxo de trabalho",
       "Escolha como capturar, preparar e distribuir ofertas.",
@@ -424,6 +425,28 @@ function dashboard() {
       : '<li><i class="a-dot"></i><div><b>Sistema pronto</b><div class="muted">Configure as integrações para iniciar.</div></div></li>') +
     "</ul></div></div></div>"
   );
+}
+function integrationHealthPanel() {
+  var items = (D.integrations || []).slice(0, 6);
+  var rows = items.map(function (item) {
+    var status = String(item.status || "").trim();
+    var details = String(item.details || "").trim();
+    var checked = item.lastCheckedAt ? new Date(item.lastCheckedAt) : null;
+    var checkedLabel = checked && !Number.isNaN(checked.getTime())
+      ? "Verificado em " + checked.toLocaleString("pt-BR")
+      : "Sem horário de verificação registrado";
+    return '<li><i class="a-dot"></i><div><b>' +
+      esc(item.name || "Integração sem nome") +
+      '</b><div class="muted">' + esc(details || "Sem detalhes de diagnóstico registrados.") +
+      '</div><small class="muted">' + esc(checkedLabel) +
+      '</small></div><span class="pill">' + esc(status || "NÃO INFORMADO") + '</span></li>';
+  }).join("");
+  return section(
+    "Saúde das integrações",
+    "Resumo do estado registrado pelo Radar. Um estado cadastrado não comprova, sozinho, uma operação externa bem-sucedida."
+  ) + '<div class="card"><ul class="activity">' +
+    (rows || '<li><i class="a-dot"></i><div><b>Nenhum diagnóstico registrado</b><div class="muted">Revise os conectores em Configurações; não há dados suficientes para confirmar o estado.</div></div></li>') +
+    '</ul></div>';
 }
 function metric(a, b, c) {
   return (
