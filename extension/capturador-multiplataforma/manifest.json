@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Radar Promo Brasil — Capturador Multiplataforma",
-  "version": "1.1.0",
-  "description": "Captura ofertas e envia ao backend do Radar Promo Brasil quando configurado.",
+  "version": "1.1.1",
+  "description": "Captura ofertas e envia ao endpoint HTTPS configurado do Radar.",
   "permissions": [
     "activeTab",
     "storage",
