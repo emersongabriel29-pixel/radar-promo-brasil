@@ -45,3 +45,14 @@ Crie somente as pastas que tiverem implementação real. Não mantenha cópias p
 ## Regra de proteção
 
 Uma mudança em um provedor não deve editar código de outro provedor. Código compartilhado só deve ser alterado quando necessário e com testes que cubram todos os consumidores. Mudanças de banco, autenticação, filas ou publicação exigem revisão de impacto separada.
+
+## Proteções aplicadas ao fluxo API → oferta → publicação
+
+- Webhook público do Telegram falha fechado se `TELEGRAM_WEBHOOK_SECRET` não estiver configurado com pelo menos 32 caracteres.
+- A assinatura é comparada sem interromper a comparação no primeiro caractere divergente; cabeçalhos duplicados e corpos que não sejam objetos são rejeitados.
+- Erros internos de banco/provedor não são devolvidos na resposta pública.
+- Mensagens recebidas não são publicadas automaticamente: a oferta entra pendente, exige revisão e só pode ser publicada após aprovação e verificação oficial de preço conforme as regras compartilhadas de elegibilidade.
+- A importação limita o texto processado, restringe a origem a destinos ativos ou monitores explicitamente autorizados e usa fingerprint por conta para evitar duplicações.
+- O job de publicação usa contexto `scheduler`, reivindica a publicação antes de enviar, filtra por conta e mantém entregas incertas em `WAITING_CONFIRMATION` para evitar duplicar mensagens.
+- Os segredos do bot são recuperados pelo mecanismo de segredos do projeto; não devem ser colocados no banco em texto puro, nos logs ou em mensagens de erro.
+- As proteções precisam ser confirmadas no ambiente publicado, inclusive configuração do segredo do webhook, permissões do scheduler e teste de envio real em canal de homologação.
