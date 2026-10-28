@@ -1,4 +1,5 @@
 var lastMeliInspection = null;
+var pendingCopierPrefill = null;
 var D = {
     categories: [],
     groups: [],
@@ -65,13 +66,13 @@ var D = {
   selected = null,
   reportDays = 30;
 var NAV = [
-  ["dashboard", "Central", "DB"],
-  ["radar", "Radar", "RD"],
-  ["offers", "Ofertas", "OF"],
-  ["publishing", "Publicações", "PB"],
-  ["channels", "Canais", "CN"],
-  ["reports", "Relatórios", "BI"],
-  ["settings", "Configurações", "CT"],
+  ["dashboard", "Central", "DB", "Operação"],
+  ["radar", "Radar", "RD", "Operação"],
+  ["offers", "Ofertas", "OF", "Operação"],
+  ["publishing", "Publicações", "PB", "Operação"],
+  ["channels", "Canais", "CN", "Análise"],
+  ["reports", "Relatórios", "BI", "Análise"],
+  ["settings", "Configurações", "CT", "Gestão"],
 ];
 var GROUPS = {
   radar: [
@@ -143,7 +144,39 @@ function off(id) {
     return x.id === id;
   });
 }
+var OFFER_CATEGORIES = [
+  { id: "catalog", title: "Ofertas", description: "Catálogo e curadoria", views: ["offers", "curator"] },
+  { id: "ai", title: "IA", description: "Conteúdo, arte e vídeo", views: ["studio"] },
+  { id: "social", title: "Redes e campanhas", description: "Canais, anúncios e posts", views: ["growth", "socialagent"] },
+];
+function offerCategoryForView(view) {
+  var category = OFFER_CATEGORIES.find(function (item) { return item.views.indexOf(view) !== -1; });
+  return category ? category.id : "catalog";
+}
+function switchOfferCategory(categoryId) {
+  var category = OFFER_CATEGORIES.find(function (item) { return item.id === categoryId; });
+  if (!category) return;
+  selectedGroups.offerCategory = category.id;
+  show(category.views[0]);
+}
+function offersWorkspace() {
+  var category = OFFER_CATEGORIES.find(function (item) { return item.id === selectedGroups.offerCategory; }) || OFFER_CATEGORIES[0],
+    items = GROUPS.offers || [],
+    visibleItems = items.filter(function (item) { return category.views.indexOf(item[0]) !== -1; }),
+    active = visibleItems.find(function (item) { return item[0] === selectedGroups.offers; }) || visibleItems[0];
+  return '<div class="offers-workspace"><aside class="offers-rail" aria-label="Organização de Ofertas"><div class="offers-rail-intro"><span class="offers-kicker">ESPAÇO DE TRABALHO</span><h2>Ofertas</h2><p>Escolha uma área para continuar.</p></div><nav class="offers-categories" aria-label="Categorias de Ofertas">' +
+    OFFER_CATEGORIES.map(function (item) {
+      return '<button class="offers-category category-' + item.id + ' ' + (item.id === category.id ? "on" : "") + '" type="button" aria-pressed="' + (item.id === category.id) + '" data-action="switchOfferCategory(&quot;' + item.id + '&quot;)"><span class="offers-category-mark" aria-hidden="true">' + (item.id === "catalog" ? "01" : item.id === "ai" ? "02" : "03") + '</span><span class="offers-category-copy"><b>' + item.title + '</b><small>' + item.description + '</small></span><span class="offers-category-arrow" aria-hidden="true">›</span></button>';
+    }).join("") +
+    '</nav><div class="offers-rail-divider"></div><div class="offers-destinations" aria-label="Telas de ' + category.title + '"><h3>' + category.title + '</h3>' +
+    visibleItems.map(function (item) {
+      return '<button type="button" class="group-tab offers-view-tab ' + (item[0] === active[0] ? "on" : "") + '" aria-current="' + (item[0] === active[0] ? "page" : "false") + '" data-action="switchGroup(&quot;offers&quot;,&quot;' + item[0] + '&quot;)"><span class="ico" aria-hidden="true">' + item[2] + '</span><span>' + item[1] + '</span></button>';
+    }).join("") +
+    (category.id === "ai" ? '<a class="offers-video-link" href="/radar-video-ia"><span class="offers-video-icon" aria-hidden="true">▶</span><span><b>Radar Vídeo IA</b><small>Roteiros e geração de vídeo</small></span><span aria-hidden="true">↗</span></a>' : "") +
+    '</div><div class="offers-rail-foot">Todos os recursos e conexões da conta continuam disponíveis.</div></aside><section class="offers-content" id="group-panel" aria-label="' + active[1] + '">' + window[active[3]]() + '</section></div>';
+}
 function groupPage(key) {
+  if (key === "offers") return offersWorkspace();
   var items = GROUPS[key] || [],
     active = items.find(function(x){return x[0]===selectedGroups[key]}) || items[0],
     tabs = items
@@ -177,6 +210,7 @@ function switchGroup(key, id) {
   });
   if (!item) return;
   selectedGroups[key]=id;
+  if(key==="offers")selectedGroups.offerCategory=offerCategoryForView(id);
   history.replaceState(null,'','#'+id);
   document.querySelectorAll(".group-tab").forEach(function (b) {
     b.classList.toggle("on", b.textContent.trim().includes(item[1]));
@@ -564,11 +598,11 @@ async function inspectUniversalClone(button) {
     var data = await response.json();
     if (!response.ok || !data.ok) throw Error(data.error || "Não foi possível analisar o link.");
     lastUniversalCloneInspection = data;
-    box.textContent = (data.title || "Link reconhecido") + "\nStatus: " + (data.status || "ANALISADO") +
-      "\nTipo: " + data.kind + "\nOrigem: " + data.host +
-      "\n\n" + (data.message || "Link analisado.") +
-      (data.nextStep ? "\nPróximo passo: " + data.nextStep : "") +
-      (data.trackingParametersPreserved ? "\nParâmetros de rastreamento preservados." : "");
+    box.textContent = (data.title || "Link reconhecido") + "\\nStatus: " + (data.status || "ANALISADO") +
+      "\\nTipo: " + data.kind + "\\nOrigem: " + data.host +
+      "\\n\\n" + (data.message || "Link analisado.") +
+      (data.nextStep ? "\\nPróximo passo: " + data.nextStep : "") +
+      (data.trackingParametersPreserved ? "\\nParâmetros de rastreamento preservados." : "");
     if (["COLLSHP_STOREFRONT", "MAGALU_PUBLIC_PAGE"].includes(data.kind)) {
       var importPath = data.kind === "COLLSHP_STOREFRONT" ? "/api/integrations/collshp-import" : "/api/integrations/magalu-clone";
       box.textContent += "\\n\\nLendo dados públicos pela integração específica...";
@@ -640,7 +674,7 @@ async function registerUniversalCloneDestination() {
   }
   var name = data.title || (data.platform === "TELEGRAM" ? "Destino Telegram importado" : "Grupo WhatsApp importado");
   try {
-    await call("POST", {
+    var saved = await call("POST", {
       name: name.slice(0, 100),
       platform: data.platform,
       destinationType: "GROUP",
@@ -652,7 +686,7 @@ async function registerUniversalCloneDestination() {
     if (box) box.textContent = "Destino registrado como PAUSADO. O convite foi preservado; ainda é necessário validar a conexão autorizada e informar o ID oficial antes de ativar a captura ou publicar.";
     toast("Destino registrado pausado. Nenhuma mensagem foi enviada.");
   } catch (error) {
-    if (box) box.textContent += "\nNão foi possível registrar o destino: " + (error.message || "erro desconhecido");
+    if (box) box.textContent += "\\nNão foi possível registrar o destino: " + (error.message || "erro desconhecido");
   }
 }
 async function registerUniversalCloneSource() {
@@ -757,11 +791,39 @@ async function parseCopierMessage() {
         (data.needsAffiliateLink && !affiliateUrl ? " · falta informar seu link afiliado" : "") +
         ". " + String(data.notice || "Revise todos os campos; nada será publicado automaticamente.");
     }
-    openOffer(prefill);
+    pendingCopierPrefill = prefill;
+    if (box) {
+      box.innerHTML = '<div class="field"><strong>Revise os dados reconhecidos</strong><p class="muted">Os campos abaixo são sugestões extraídas da mensagem. Confirme preço e links antes de continuar.</p></div>' +
+        '<div class="field"><label for="copierReviewTitle">Produto</label><input class="input" id="copierReviewTitle" maxlength="220" value="' + esc(prefill.title) + '"></div>' +
+        '<div class="field"><label for="copierReviewCurrent">Preço atual (R$)</label><input class="input" id="copierReviewCurrent" inputmode="decimal" value="' + esc(prefill.currentPrice) + '"></div>' +
+        '<div class="field"><label for="copierReviewOriginal">Preço anterior (R$)</label><input class="input" id="copierReviewOriginal" inputmode="decimal" value="' + esc(prefill.originalPrice) + '"></div>' +
+        '<div class="field"><label for="copierReviewProduct">Link do produto</label><input class="input" id="copierReviewProduct" type="url" maxlength="1200" value="' + esc(prefill.productUrl) + '"></div>' +
+        '<div class="field"><label for="copierReviewAffiliate">Link de afiliado confirmado</label><input class="input" id="copierReviewAffiliate" type="url" maxlength="1200" value="' + esc(prefill.affiliateUrl) + '"></div>' +
+        '<div class="field"><label for="copierReviewCoupon">Cupom (se aplicável)</label><input class="input" id="copierReviewCoupon" maxlength="100" value="' + esc(prefill.couponCode) + '"></div>' +
+        '<div class="field"><label for="copierReviewCouponUrl">URL do cupom (opcional)</label><input class="input" id="copierReviewCouponUrl" type="url" maxlength="1200" value="' + esc(prefill.couponUrl) + '"></div>' +
+        '<p class="muted">Salvar como rascunho não publica a oferta. O preço oficial ainda precisa ser verificado antes do envio.</p>' +
+        '<button class="btn csp-margin-top-12px" type="button" data-action="continueCopierDraft()">Continuar para cadastro</button>';
+    }
   } catch (error) {
     if (box) box.textContent = error.message || "Não foi possível interpretar a mensagem.";
     toast(error.message || "Não foi possível interpretar a mensagem.");
   }
+}
+function continueCopierDraft() {
+  if (!pendingCopierPrefill) { toast('Analise uma mensagem antes de continuar.'); return; }
+  var value = function(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  var draft = {
+    title: value('copierReviewTitle'), currentPrice: value('copierReviewCurrent'),
+    originalPrice: value('copierReviewOriginal'), productUrl: value('copierReviewProduct'),
+    affiliateUrl: value('copierReviewAffiliate'), couponCode: value('copierReviewCoupon'),
+    couponUrl: value('copierReviewCouponUrl'), source: pendingCopierPrefill.source,
+    message: pendingCopierPrefill.message
+  };
+  if (!draft.title || !draft.currentPrice || !draft.productUrl) {
+    toast('Confirme o produto, o preço atual e o link do produto.'); return;
+  }
+  pendingCopierPrefill = draft;
+  openOffer(draft);
 }
 async function inspectCollshpClone(button) {
   var input = document.getElementById("collshpCloneUrl");
@@ -1787,6 +1849,8 @@ function socialAgent() {
     c = so.counts || {},
     channels = s.channels || [],
     connections = so.connections || [];
+  var socialOffers=(D.offers||[]).filter(function(x){return ['APPROVED','READY'].includes(x.status)&&x.affiliateUrl&&x.imageUrl;}),
+    socialImages=(D.growth&&D.growth.mediaJobs||[]).filter(function(x){return x.kind==='IMAGE'&&['COMPLETED','FALLBACK_COMPLETED'].includes(x.status);});
   function connection(n) {
     return (
       connections.find(function (x) {
@@ -1924,7 +1988,9 @@ function socialAgent() {
       "time",
       'value="' + esc(s.endTime || "22:00") + '"',
     ) +
-    '</div><div class="actions"><button class="btn" data-action="saveSocialSettings()">Salvar e ativar</button><button class="btn secondary" data-action="generateSocialQueue()">Gerar mensagens agora</button><button class="btn dark" data-action="runSocialQueue()">Executar fila</button></div><div class="callout csp-margin-top-14px" >A IA não inventa preço, desconto, cupom, frete ou urgência. Cada link aponta para o rastreador do Radar e depois redireciona ao link de afiliado cadastrado.</div></div><div class="card"><h3>Conexões oficiais Meta</h3>' +
+    '</div>' + select("Oferta para publicar", "socialOffer", '<option value="">Todas as ofertas elegíveis</option>'+socialOffers.map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.title)+'</option>'}).join("")) +
+    select("Imagem gerada por IA", "socialImageJob", '<option value="">Usar imagem da oferta</option>'+socialImages.map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.title)+' · '+esc(x.provider||"IA")+'</option>'}).join("")) +
+    '<div class="callout">Gere uma arte no Estúdio de IA, volte aqui e selecione-a. Ela será anexada aos rascunhos do Instagram/Facebook; revise legenda e imagem antes de aprovar. Publicar exige uma conexão Meta ativa.</div><div class="actions"><button class="btn" data-action="saveSocialSettings()">Salvar e ativar</button><button class="btn secondary" data-action="generateSocialQueue()">Gerar posts e legendas</button><button class="btn dark" data-action="runSocialQueue()">Executar fila</button></div><div class="callout csp-margin-top-14px" >A IA não inventa preço, desconto, cupom, frete ou urgência. Cada link aponta para o rastreador do Radar e depois redireciona ao link de afiliado cadastrado.</div></div><div class="card"><h3>Conexões oficiais Meta</h3>' +
     ["INSTAGRAM", "FACEBOOK"]
       .map(function (n) {
         var x = connection(n);
@@ -2225,6 +2291,8 @@ function accountView() {
 }
 function render() {
   nav();
+  var globalOfferAction=document.getElementById("global-create-offer");
+  if(globalOfferAction)globalOfferAction.hidden=current==="offers"&&selectedGroups.offers==="offers";
   var f = {
     dashboard: dashboard,
     radar: function () {
@@ -2343,12 +2411,12 @@ async function saveSocialSettings() {
 }
 async function generateSocialQueue() {
   try {
-    var b = await socialCall("POST", { action: "GENERATE", limit: 6 });
+    var b = await socialCall("POST", { action: "GENERATE", limit: 6, offerId:document.querySelector('[name="socialOffer"]').value, imageJobId:document.querySelector('[name="socialImageJob"]').value });
     show("socialagent");
     toast(
       b.generated
-        ? b.generated + " mensagem(ns) criada(s)"
-        : "Nenhuma oferta elegível nova",
+        ? b.generated + " post(s) com legenda criados para revisão"
+        : b.reason==="IMAGE_NOT_READY" ? "A imagem selecionada ainda não está pronta" : "Nenhuma oferta elegível nova",
     );
   } catch (e) {
     toast(e.message);
@@ -2824,7 +2892,7 @@ function openOffer(prefill) {
       '<div class="field"><label><input type="checkbox" name="offerDetailsConfirmed" required> Confirmo que revisei os dados e que este é meu link oficial de afiliado.</label></div>' +
       '<div class="formgrid">' +
       field("Código do cupom", "couponCode", "text", 'placeholder="CASA20" value="' + esc(prefill.couponCode || "") + '"') +
-      field("Link do cupom", "couponUrl", "url", 'placeholder="https://..."') +
+      field("Link do cupom", "couponUrl", "url", 'placeholder="https://..." value="' + esc(prefill.couponUrl || "") + '"') +
       "</div>" +
       '<div class="field"><label><input type="checkbox" name="useBestCoupon" checked> Aplicar automaticamente o melhor cupom ativo da loja que atende ao preço mínimo e à validade</label></div>' +
       select(
@@ -3681,8 +3749,11 @@ var navPaths = {
   settings:'M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8 M12 2v3 M12 19v3 M2 12h3 M19 12h3 M5 5l2 2 M17 17l2 2 M5 19l2-2 M17 7l2-2'
 };
 function nav(){
+  var lastGroup='';
   document.getElementById('nav').innerHTML=NAV.map(function(n){
-    return '<button '+(current===n[0]?'aria-current="page" ':'')+'class="'+(current===n[0]?'on':'')+'" data-action="show(\''+n[0]+'\')"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+navPaths[n[0]]+'"/></svg></span>'+n[1]+'</button>';
+    var heading=n[3]!==lastGroup?'<h2 class="nav-heading">'+n[3]+'</h2>':'';
+    lastGroup=n[3];
+    return heading+'<button '+(current===n[0]?'aria-current="page" ':'')+'class="'+(current===n[0]?'on':'')+'" data-action="show(\''+n[0]+'\')"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+navPaths[n[0]]+'"/></svg></span>'+n[1]+'</button>';
   }).join('');
 }
 function syncDrawer(){
@@ -3704,7 +3775,7 @@ function show(view){
   var parent=Object.keys(GROUPS).find(function(key){return key!==view&&GROUPS[key].some(function(item){return item[0]===view;});});
   var target=parent||view;
   if(!NAV.some(function(n){return n[0]===target;}))target='dashboard';
-  if(parent)selectedGroups[parent]=view;else if(GROUPS[target])selectedGroups[target]=GROUPS[target][0][0];
+  if(parent){selectedGroups[parent]=view;if(parent==="offers")selectedGroups.offerCategory=offerCategoryForView(view);}else if(GROUPS[target]){selectedGroups[target]=GROUPS[target][0][0];if(target==="offers")selectedGroups.offerCategory="catalog";}
   current=target;menu(false);nav();
   document.getElementById('title').textContent=NAV.find(function(n){return n[0]===current;})[1];
   render();history.replaceState(null,'','#'+(parent?view:current));
@@ -4083,7 +4154,7 @@ async function openMarketplaceSetup(provider){
       field('Outro campo oficial (opcional)','extra','text','placeholder="Ex.: campo=valor; não inclua senha de login nem cookies" maxlength="4096"')+
       '<div class="callout">As credenciais serão criptografadas no servidor. O sistema não testa nem declara a conta conectada nesta etapa. A ativação só poderá ocorrer após validar o endpoint oficial e as permissões da conta.</div>';
     if(provider==='LOMADEE') body=field('API Key de afiliado (x-api-key)','apiKey','password','autocomplete="new-password" maxlength="4096" required')+'<div class="callout">Gere uma chave do tipo affiliate no painel de desenvolvedores Lomadee. Autorize products:read, campaigns:read, brands:read, channels:read, orders:read e shortener:write. O teste inicial consulta apenas produtos. Campanhas, canais, pedidos e geração de links precisam de testes separados; a aprovação comercial depende da Lomadee. Nenhuma oferta é publicada automaticamente.</div>';
-    if(provider==='ALIEXPRESS') body=field('App Key (App ID)','appId','text','autocomplete="off" maxlength="200" required')+field('App Secret','apiSecret','password','autocomplete="new-password" maxlength="4096" required')+field('Tracking ID','trackingId','text','autocomplete="off" maxlength="200" required')+field('App Signature (se exigida pelo portal)','appSignature','password','autocomplete="new-password" maxlength="300"')+'<label class="csp-margin-top-10px"><input type="checkbox" name="legacyApiAcknowledged" value="true" required> Entendo que a documentação pública da Affiliate API está marcada como descontinuada e confirmo que o portal ainda habilita esse acesso para minha conta.</label><div class="callout">As credenciais serão criptografadas no servidor. O teste faz uma consulta somente leitura; não cria links nem publica ofertas. A API só será considerada funcional depois de responder à consulta real.</div>';
+    if(provider==='ALIEXPRESS') body=field('App Key (App ID)','appId','text','autocomplete="off" maxlength="200" required')+field('App Secret','apiSecret','password','autocomplete="new-password" maxlength="4096" required')+field('Tracking ID','trackingId','text','autocomplete="off" maxlength="200" required')+field('App Signature (se exigida pelo portal)','appSignature','password','autocomplete="new-password" maxlength="300"')+'<label class="csp-margin-top-10px"><input type="checkbox" name="legacyApiAcknowledged" value="true" required> Entendo que a documentação pública da Affiliate API está marcada como descontinuada; salvar credenciais não confirma que a API esteja aprovada ou disponível.</label><label class="csp-margin-top-10px"><input type="checkbox" name="accessApproved" value="true"> Já confirmei no portal que o acesso à Affiliate API está aprovado/ativo e autorizo uma consulta de leitura agora.</label><div class="callout">As credenciais serão criptografadas no servidor. Se o acesso ainda estiver em análise, elas serão salvas como pendentes e o teste não será executado. Quando aprovado, marque a segunda opção para testar. Nenhum link será criado e nenhuma oferta será publicada.</div>';
     if(provider==='AWIN') body=field('Token Bearer da API Awin','accessToken','password','autocomplete="new-password" maxlength="4096" required')+field('Publisher ID numérico','affiliateId','text','inputmode="numeric" pattern="[0-9]{1,20}" maxlength="20" required')+'<div class="callout">Gere o token na interface oficial Awin. Não use senha de login nem chave de feed de produto neste campo. O teste consulta os programas joined em modo somente leitura. A consulta de feed exige o ID de anunciante e um locale autorizado. Nenhuma oferta será publicada.</div>';
     if(provider==='RAKUTEN') body=field('Client ID da aplicação Rakuten','clientId','text','autocomplete="off" maxlength="500" required')+field('Client Secret da aplicação Rakuten','clientSecret','password','autocomplete="new-password" maxlength="4096" required')+field('Account ID da conta Publisher','accountId','text','autocomplete="off" maxlength="100" required')+'<div class="callout">A API oficial emite o token em /token usando Client ID, Client Secret e Account ID. O Radar armazena access/refresh tokens criptografados e renova o acesso antes de expirar. Se sua conta só recebeu um Bearer temporário, solicite no Developer Portal a aplicação e as credenciais necessárias para renovação. O teste consulta anunciantes em modo somente leitura; busca de produtos e deeplinks dependem das permissões e parcerias. Nenhuma oferta será publicada.</div>';
     if(provider==='ADMITAD') body=field('Client ID da aplicação Admitad','clientId','text','autocomplete="off" maxlength="300" required')+field('Client Secret da aplicação Admitad','clientSecret','password','autocomplete="new-password" maxlength="4096" required')+field('Website ID (ID da sua plataforma/site)','affiliateId','text','inputmode="numeric" pattern="[0-9]{1,20}" maxlength="20" required')+'<div class="callout">O Radar solicita o token OAuth oficial e renova-o usando o refresh token criptografado. A aplicação precisa ter os escopos advcampaigns, advcampaigns_for_website, deeplink_generator e websites. O teste consulta campanhas da plataforma; gerar deeplink cria apenas uma URL rastreável, sem publicar ofertas.</div>';
@@ -4092,9 +4163,11 @@ async function openMarketplaceSetup(provider){
     openModal('Preparar conexão · '+item.name,provider==='LOMADEE'?'Gere uma API Key do tipo affiliate no portal de desenvolvedores Lomadee. Autorize products:read, campaigns:read, channels:read e shortener:write; copie somente a chave, nunca a senha de login.':provider==='SHOPEE'?'Use as credenciais da Open API de Afiliados, não sua senha da conta Shopee. O botão de teste valida a autenticação com uma consulta somente leitura.':provider==='AMAZON'?'Abra Creators API em Associados Amazon e use Credential ID, Credential Secret, versão atribuída e Partner Tag. Não use as chaves antigas PA-API nem a senha de login.':'Abra o portal oficial, copie apenas as credenciais de API emitidas para sua conta e preencha os campos aplicáveis. Não informe senha de login, cookies ou códigos de recuperação.',body,async function(event){
       event.preventDefault();
       var formData=new FormData(event.target),credentials={};
-      ['affiliateId','appId','clientId','clientSecret','accountId','apiKey','apiSecret','accessToken','trackingId','version','marketplace','appSignature','legacyApiAcknowledged','extra'].forEach(function(key){var value=String(formData.get(key)||'').trim();if(value)credentials[key]=value;});
+      ['affiliateId','appId','clientId','clientSecret','accountId','apiKey','apiKeySecret','apiKeyId','apiSecret','accessToken','trackingId','version','marketplace','appSignature','legacyApiAcknowledged','extra'].forEach(function(key){var value=String(formData.get(key)||'').trim();if(value)credentials[key]=value;});
+      var accessApproved=String(formData.get('accessApproved')||'')==='true';
       var result=await operationRequest('/api/integrations/marketplaces',{marketplace:provider,credentials:credentials});
       closeModal();
+      if(provider==='ALIEXPRESS'&&!accessApproved){await loadMarketplaceStatus();toast('Credenciais salvas com segurança como pendentes. Nenhum teste foi executado porque a aprovação da API ainda não foi confirmada.');return;}
       var testRoutes={AMAZON:{path:'/api/integrations/amazon',body:{action:'test'}},SHOPEE:{path:'/api/integrations/shopee',body:{action:'test'}},ALIEXPRESS:{path:'/api/integrations/aliexpress',body:{action:'test'}},AWIN:{path:'/api/integrations/awin',body:{action:'test'}},RAKUTEN:{path:'/api/integrations/rakuten',body:{action:'test'}},ADMITAD:{path:'/api/integrations/admitad',body:{action:'test'}},LOMADEE:{path:'/api/integrations/lomadee',body:{action:'validate'}}};
       var testRoute=testRoutes[provider];
       if(testRoute){try{var testResult=await operationRequest(testRoute.path,testRoute.body);await loadMarketplaceStatus();toast(testResult.status==='VALIDATED'?'Credenciais e escopos validados pela API oficial.':testResult.status==='READ_ONLY_VALIDATED'?'Leitura de produtos validada; geração de links e aprovação comercial exigem testes separados.':testResult.ok?'Consulta oficial respondeu; confira os escopos ainda pendentes.':'Teste concluído; confira o estado da integração.');}catch(testError){await loadMarketplaceStatus();toast('Credenciais salvas, mas a validação falhou: '+(testError.message||'verifique credenciais, escopos e acesso ao programa.'));}}
@@ -4400,10 +4473,10 @@ async function openSheinTools(){
   var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Executar';
 }
 async function openAliExpressTools(){
-  var body='<label for="aliAction">Operação AliExpress</label><select id="aliAction" name="action" required><option value="test">Validar conexão (consulta somente leitura)</option><option value="products">Buscar produtos</option><option value="smartMatch">Recomendação inteligente</option><option value="hotProducts">Produtos em destaque</option><option value="hotProductsDownload">Baixar produtos em destaque</option><option value="productDetail">Detalhes de produtos por ID</option><option value="categories">Categorias</option><option value="campaigns">Campanhas em destaque</option><option value="campaignProducts">Produtos de uma campanha</option><option value="generateLink">Gerar link de afiliado</option><option value="generateLinkAfilimax">Gerar link com provider Afilimax (experimental)</option><option value="orders">Consultar pedidos/comissões (API legada)</option><option value="orderDetail">Detalhes de pedidos por ID</option><option value="ordersByCursor">Consultar pedidos por cursor</option></select>'+field('Palavra-chave','keyword','text','maxlength="120" placeholder="Ex.: fone bluetooth"')+field('IDs dos produtos (separados por vírgula)','productIds','text','maxlength="500"')+field('ID de produto para recomendação inteligente','productId','text','maxlength="30"')+field('IDs dos pedidos (separados por vírgula)','orderIds','text','maxlength="500"')+field('Cursor start_query_index_id (relatórios)','cursor','text','maxlength="200"')+field('Site/região do portal (ex.: global)','localeSite','text','maxlength="30" value="global"')+field('IDs das categorias (separados por vírgula)','categoryIds','text','maxlength="200"')+field('ID da categoria para campanha','categoryId','text','maxlength="80"')+field('Nome exato da campanha','promotionName','text','maxlength="180"')+field('URL original do produto (gerar link)','productUrl','url','maxlength="2000" placeholder="https://www.aliexpress.com/item/..."')+field('País de entrega (ISO, padrão BR)','country','text','maxlength="2" value="BR"')+field('Página','page','number','min="1" max="1000" value="1"')+field('Itens por página (1–50)','pageSize','number','min="1" max="50" value="20"')+field('Preço mínimo (opcional)','minPrice','number','min="0" step="0.01"')+field('Preço máximo (opcional)','maxPrice','number','min="0" step="0.01"')+field('Início do relatório (AAAA-MM-DD HH:mm:ss)','startTime','text','maxlength="19" placeholder="2026-10-01 00:00:00"')+field('Fim do relatório (AAAA-MM-DD HH:mm:ss)','endTime','text','maxlength="19" placeholder="2026-10-02 23:59:59"')+field('Status do pedido','orderStatus','text','maxlength="50" value="Payment Completed"')+'<div class="callout"><b>Atenção:</b> a documentação pública dos métodos Affiliate API está marcada como descontinuada. Todas as consultas dependem de a sua conta ainda ter acesso. Busca, detalhes, categorias, campanhas e relatórios são somente leitura. Gerar link cria apenas um link rastreável; não publica em WhatsApp ou Telegram. O provider Afilimax usa endpoint alternativo não validado com esta conta; use apenas para teste manual e confirme que o portal mantém a API habilitada.</div>';
+  var body='<label for="aliAction">Operação AliExpress</label><select id="aliAction" name="action" required><option value="test">Validar conexão (consulta somente leitura)</option><option value="products">Buscar produtos (somente consulta)</option><option value="importOffers">Buscar e importar ofertas para revisão manual</option><option value="smartMatch">Recomendação inteligente</option><option value="hotProducts">Produtos em destaque</option><option value="hotProductsDownload">Baixar produtos em destaque</option><option value="productDetail">Detalhes de produtos por ID</option><option value="categories">Categorias</option><option value="campaigns">Campanhas em destaque</option><option value="campaignProducts">Produtos de uma campanha</option><option value="generateLink">Gerar link de afiliado</option><option value="generateLinkAfilimax">Gerar link com provider Afilimax (experimental)</option><option value="orders">Consultar pedidos/comissões (API legada)</option><option value="orderDetail">Detalhes de pedidos por ID</option><option value="ordersByCursor">Consultar pedidos por cursor</option></select>'+field('Palavra-chave','keyword','text','maxlength="120" placeholder="Ex.: fone bluetooth"')+field('IDs dos produtos (separados por vírgula)','productIds','text','maxlength="500"')+field('ID de produto para recomendação inteligente','productId','text','maxlength="30"')+field('IDs dos pedidos (separados por vírgula)','orderIds','text','maxlength="500"')+field('Cursor start_query_index_id (relatórios)','cursor','text','maxlength="200"')+field('Site/região do portal (ex.: global)','localeSite','text','maxlength="30" value="global"')+field('IDs das categorias (separados por vírgula)','categoryIds','text','maxlength="200"')+field('ID da categoria para campanha','categoryId','text','maxlength="80"')+field('Nome exato da campanha','promotionName','text','maxlength="180"')+field('URL original do produto (gerar link)','productUrl','url','maxlength="2000" placeholder="https://www.aliexpress.com/item/..."')+field('País de entrega (ISO, padrão BR)','country','text','maxlength="2" value="BR"')+field('Página','page','number','min="1" max="1000" value="1"')+field('Itens por página (1–50)','pageSize','number','min="1" max="50" value="20"')+field('Desconto mínimo para importar (%)','minDiscountPercent','number','min="0" max="90" value="10"')+field('Comissão mínima para importar (%)','minCommissionRate','number','min="0" max="100" value="3"')+field('Avaliação mínima se fornecida (%)','minimumRating','number','min="0" max="100" value="90"')+field('Preço mínimo (opcional)','minPrice','number','min="0" step="0.01"')+field('Preço máximo (opcional)','maxPrice','number','min="0" step="0.01"')+field('Início do relatório (AAAA-MM-DD HH:mm:ss)','startTime','text','maxlength="19" placeholder="2026-10-01 00:00:00"')+field('Fim do relatório (AAAA-MM-DD HH:mm:ss)','endTime','text','maxlength="19" placeholder="2026-10-02 23:59:59"')+field('Status do pedido','orderStatus','text','maxlength="50" value="Payment Completed"')+'<div class="callout"><b>Atenção:</b> a documentação pública dos métodos Affiliate API está marcada como descontinuada. Todas as consultas dependem de a sua conta ainda ter acesso. Busca, detalhes, categorias, campanhas e relatórios são somente leitura. Gerar link cria apenas um link rastreável; não publica em WhatsApp ou Telegram. O provider Afilimax usa endpoint alternativo não validado com esta conta; use apenas para teste manual e confirme que o portal mantém a API habilitada.</div>';
   openModal('Ferramentas · AliExpress Afiliados','Use apenas credenciais oficiais do portal. Não informe sua senha de login nem cookies.',body,async function(event){
     event.preventDefault();var fd=new FormData(event.target),action=String(fd.get('action')||'test'),payload={action:action};
-    ['keyword','productIds','productId','orderIds','cursor','localeSite','categoryIds','categoryId','promotionName','productUrl','country','page','pageSize','minPrice','maxPrice','startTime','endTime','orderStatus'].forEach(function(key){var v=String(fd.get(key)||'').trim();if(v)payload[key]=v;});
+    ['keyword','productIds','productId','orderIds','cursor','localeSite','categoryIds','categoryId','promotionName','productUrl','country','page','pageSize','minDiscountPercent','minCommissionRate','minimumRating','minPrice','maxPrice','startTime','endTime','orderStatus'].forEach(function(key){var v=String(fd.get(key)||'').trim();if(v)payload[key]=v;});
     try{var result=await operationRequest('/api/integrations/aliexpress',payload);if(action==='test')await loadMarketplaceStatus();closeModal();openModal('Resultado · AliExpress','Resultado da API. Nenhuma oferta foi publicada.','<pre style="white-space:pre-wrap;max-height:55vh;overflow:auto;word-break:break-word">'+esc(JSON.stringify(result,null,2))+'</pre>',function(e){e.preventDefault();closeModal();});var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Fechar';}
     catch(error){toast(error.message||'Não foi possível executar a operação AliExpress.');}
   });var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Executar';
