@@ -118,6 +118,17 @@ default = "https://radar-promo-brasil.hatchable.site"
 description = "Endereço público usado nos links enviados pelo Telegram."
 
 [[config]]
+name = "WHATSAPP_CHANNEL_API_URL"
+required = false
+default = ""
+description = "URL HTTPS da API comunitária auto-hospedada para publicar em Canal do WhatsApp."
+
+[[secret]]
+name = "WHATSAPP_CHANNEL_API_KEY"
+required = false
+description = "Chave privada da API auto-hospedada do Canal do WhatsApp. Nunca exponha no navegador ou no GitHub."
+
+[[config]]
 name = "meli_redirect_uri"
 required = false
 default = "https://radar-promo-brasil.hatchable.site/api/mercadolivre/callback"
@@ -138,3 +149,6 @@ schedule = "5 * * * *"
 [[cron]]
 path = "/api/jobs/social"
 schedule = "10 * * * *"
+[[cron]]
+path = "/api/jobs/whatsapp-channel"
+schedule = "2 * * * *"
