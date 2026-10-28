@@ -7,9 +7,10 @@ export const access='scheduler';
 export const methods=['POST'];
 export default async function(req,res){
   const recurrence=await recoverRecurrences(),monitoring=await runMonitors(),retention=await runRetention();
-  let lomadee={ok:true,accounts:0,scanned:0,imported:0,duplicates:0,skipped:0,failed:0};
-  try { lomadee=await scheduler.now('/api/jobs/lomadee'); }
-  catch(error) { lomadee={ok:false,error:String(error?.code||error?.name||'ERROR').slice(0,60)}; console.error('hourly lomadee ingestion failed',lomadee.error); }
+  let marketplaceIngestion={ok:true,lomadee:{ok:true,accounts:0,scanned:0,imported:0,duplicates:0,skipped:0,failed:0},shopee:{ok:true,accounts:0,scanned:0,imported:0,duplicates:0,skipped:0,failed:0},aliexpressReview:{ok:true,scanned:0,validated:0,rejected:0,failed:0,publicationTriggered:false,messagesSent:0}};
+  try { marketplaceIngestion=await scheduler.now('/api/jobs/marketplace-ingestion'); }
+  catch(error) { marketplaceIngestion={ok:false,error:String(error?.code||error?.name||'ERROR').slice(0,60)}; console.error('hourly marketplace ingestion failed',marketplaceIngestion.error); }
+  const lomadee=marketplaceIngestion.lomadee||{ok:false,error:'Resultado Lomadee ausente'};
   // Recovery path for Mercado Livre notification events if immediate scheduling was unavailable.
   let meliNotifications={ok:true,scanned:0,processed:0,updatedOffers:0,unsupported:0,failed:0};
   try { meliNotifications=await scheduler.now('/api/jobs/mercadolivre-notifications'); }
@@ -21,5 +22,5 @@ export default async function(req,res){
   await db.query("UPDATE publications p SET status='READY',error_message=NULL FROM promo_groups g WHERE p.group_id=g.id AND p.account_id=g.account_id AND p.status='WAITING_CONNECTION' AND g.status='ACTIVE' AND NULLIF(trim(g.external_id),'') IS NOT NULL");
   if(due.length)await scheduler.now('/api/jobs/telegram');
   await db.query('DELETE FROM marketplace_oauth_states WHERE expires_at<now()');
-  return res.json({ready:due.length,recovered:recovered.rows.length,waitingConnection:waiting.rows.length,recurrence,monitoring,retention,meliNotifications,lomadee});
+  return res.json({ready:due.length,recovered:recovered.rows.length,waitingConnection:waiting.rows.length,recurrence,monitoring,retention,meliNotifications,lomadee,marketplaceIngestion});
 }
