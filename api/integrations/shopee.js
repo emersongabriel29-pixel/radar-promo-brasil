@@ -167,30 +167,38 @@ export default async function handler(req, res) {
     }
 
     if (action === 'batch_links') {
-      const entries = Array.isArray(req.body?.items) ? req.body.items.slice(0, 20) : [];
-      if (!entries.length) return res.status(400).json({ error: 'Envie uma lista de 1 a 20 URLs Shopee para gerar os links.' });
+      const entries = Array.isArray(req.body?.items) ? req.body.items : [];
+      if (!entries.length) return res.status(400).json({ error: 'Envie uma lista de URLs Shopee para gerar os links.' });
       const defaults = String(req.body?.subIds || '').split(',').map(value => clean(value, 50)).filter(value => /^[a-zA-Z0-9]+$/.test(value)).slice(0, 5);
-      const output = [];
-      for (const entry of entries) {
-        const rawUrl = String(entry?.originUrl || entry?.url || '');
-        let origin;
-        try { origin = new URL(rawUrl); } catch { output.push({ originUrl: rawUrl.slice(0, 500), error: 'URL inválida.' }); continue; }
-        if (origin.protocol !== 'https:' || !(origin.hostname === 'shopee.com.br' || origin.hostname.endsWith('.shopee.com.br'))) {
-          output.push({ originUrl: rawUrl.slice(0, 500), error: 'A URL precisa pertencer a shopee.com.br.' }); continue;
+      const output = new Array(entries.length);
+      let nextIndex = 0;
+      const worker = async () => {
+        while (true) {
+          const index = nextIndex++;
+          if (index >= entries.length) return;
+          const entry = entries[index];
+          const rawUrl = String(entry?.originUrl || entry?.url || '');
+          let origin;
+          try { origin = new URL(rawUrl); } catch { output[index] = { originUrl: rawUrl.slice(0, 500), error: 'URL inválida.' }; continue; }
+          if (origin.protocol !== 'https:' || !(origin.hostname === 'shopee.com.br' || origin.hostname.endsWith('.shopee.com.br'))) {
+            output[index] = { originUrl: rawUrl.slice(0, 500), error: 'A URL precisa pertencer a shopee.com.br.' }; continue;
+          }
+          const custom = Array.isArray(entry?.subIds) ? entry.subIds : defaults;
+          const subIds = custom.map(value => clean(value, 50)).filter(value => /^[a-zA-Z0-9]+$/.test(value)).slice(0, 5);
+          try {
+            const query = 'mutation { generateShortLink(input: { originUrl: ' + JSON.stringify(origin.toString()) + ', subIds: ' + JSON.stringify(subIds) + ' }) { shortLink } }';
+            const linkResult = await signedRequest(credentials, { query });
+            const shortLink = linkResult?.data?.generateShortLink?.shortLink;
+            if (typeof shortLink !== 'string' || !shortLink.startsWith('https://')) throw new Error('A Shopee não retornou um link válido.');
+            output[index] = { originUrl: origin.toString(), shortLink, subIds, created: true };
+          } catch (error) {
+            output[index] = { originUrl: origin.toString(), error: String(error?.message || 'Falha ao gerar link.').slice(0, 220) };
+          }
         }
-        const custom = Array.isArray(entry?.subIds) ? entry.subIds : defaults;
-        const subIds = custom.map(value => clean(value, 50)).filter(value => /^[a-zA-Z0-9]+$/.test(value)).slice(0, 5);
-        try {
-          const query = 'mutation { generateShortLink(input: { originUrl: ' + JSON.stringify(origin.toString()) + ', subIds: ' + JSON.stringify(subIds) + ' }) { shortLink } }';
-          const linkResult = await signedRequest(credentials, { query });
-          const shortLink = linkResult?.data?.generateShortLink?.shortLink;
-          if (typeof shortLink !== 'string' || !shortLink.startsWith('https://')) throw new Error('A Shopee não retornou um link válido.');
-          output.push({ originUrl: origin.toString(), shortLink, subIds, created: true });
-        } catch (error) {
-          output.push({ originUrl: origin.toString(), error: String(error?.message || 'Falha ao gerar link.').slice(0, 220) });
-        }
-      }
-      return res.json({ items: output, requested: entries.length, created: output.filter(item => item.created).length, failed: output.filter(item => !item.created).length, published: false, note: 'Geração em lote feita com a mutation oficial generateShortLink; nenhum link foi publicado.' });
+      };
+      // Concorrência moderada para evitar uma chamada simultânea por URL e preservar a ordem original.
+      await Promise.all(Array.from({ length: Math.min(3, entries.length) }, () => worker()));
+      return res.json({ items: output, requested: entries.length, created: output.filter(item => item?.created).length, failed: output.filter(item => !item?.created).length, published: false, note: 'Todas as URLs recebidas foram processadas; falhas individuais são retornadas por item. Geração via API oficial; nenhum link foi publicado.' });
     }
 
     if (action === 'feeds') {
