@@ -128,6 +128,18 @@ path = "/api/jobs/hourly"
 schedule = "0 * * * *"
 
 [[cron]]
+path = "/api/jobs/marketplace-ingestion"
+schedule = "0 * * * *"
+
+[[cron]]
+path = "/api/jobs/lomadee"
+schedule = "15 * * * *"
+
+[[cron]]
+path = "/api/jobs/aliexpress-review"
+schedule = "45 * * * *"
+
+[[cron]]
 path = "/api/jobs/telegram"
 schedule = "0 * * * *"
 
@@ -138,3 +150,7 @@ schedule = "5 * * * *"
 [[cron]]
 path = "/api/jobs/social"
 schedule = "10 * * * *"
+
+[[cron]]
+path = "/api/jobs/api-health"
+schedule = "30 * * * *"
