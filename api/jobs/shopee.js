@@ -77,57 +77,64 @@ export default async function handler(req, res) {
     let accountImported = 0;
     try {
       const credentials = await readCredentials(row);
-      // One official API page per account/run; continue pagination on subsequent scheduled runs.
-      const page = Math.floor(Date.now() / 3600000) % 1000 + 1;
+      // Follow the official API's pagination until it reports no more pages.
+      // Page size is capped at the documented endpoint maximum; no arbitrary product-count cap is applied.
       const query = 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int, $listType: Int) { productOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit, listType: $listType) { nodes { itemId shopId shopName productName productLink offerLink imageUrl priceMin priceDiscountRate commissionRate sales ratingStar } pageInfo { page limit hasNextPage } } }';
-      const response = await signedRequest(credentials, { query, variables: { keyword: '', sortType: 5, page, limit: 100, listType: 0 } });
-      const root = response?.data?.productOfferV2 || {};
-      const products = list(root.nodes);
-      totals.scanned += products.length;
+      let page = 1;
+      let hasNextPage = true;
+      while (hasNextPage) {
+        const response = await signedRequest(credentials, { query, variables: { keyword: '', sortType: 5, page, limit: 500, listType: 0 } });
+        const root = response?.data?.productOfferV2 || {};
+        const products = list(root.nodes);
+        totals.scanned += products.length;
 
-      for (const product of products) {
-        const title = clean(product.productName || product.shopName, 220);
-        const affiliateUrl = clean(product.offerLink, 2000);
-        const productUrl = clean(product.productLink, 2000);
-        const imageUrl = clean(product.imageUrl, 2000);
-        const currentPrice = priceCents(product.priceMin);
-        const discount = discountPercent(product.priceDiscountRate);
-        const originalPrice = discount > 0 && Number.isSafeInteger(currentPrice)
-          ? Math.round(currentPrice / (1 - discount / 100))
-          : NaN;
+        for (const product of products) {
+          const title = clean(product.productName || product.shopName, 220);
+          const affiliateUrl = clean(product.offerLink, 2000);
+          const productUrl = clean(product.productLink, 2000);
+          const imageUrl = clean(product.imageUrl, 2000);
+          const currentPrice = priceCents(product.priceMin);
+          const discount = discountPercent(product.priceDiscountRate);
+          const originalPrice = discount > 0 && Number.isSafeInteger(currentPrice)
+            ? Math.round(currentPrice / (1 - discount / 100))
+            : NaN;
 
-        if (!title) { totals.skipped++; totals.skipReasons.missingTitle++; continue; }
-        if (!/^https:\/\//i.test(affiliateUrl)) { totals.skipped++; totals.skipReasons.missingAffiliateLink++; continue; }
-        if (!/^https:\/\//i.test(productUrl)) { totals.skipped++; totals.skipReasons.missingProductUrl++; continue; }
-        if (!directImageUrl(imageUrl)) { totals.skipped++; totals.skipReasons.missingImage++; continue; }
-        if (!Number.isSafeInteger(currentPrice) || !Number.isSafeInteger(originalPrice) || currentPrice <= 0 || originalPrice <= currentPrice) {
-          totals.skipped++; totals.skipReasons.invalidPrice++; continue;
-        }
-        if (!discount) { totals.skipped++; totals.skipReasons.noDiscount++; continue; }
+          if (!title) { totals.skipped++; totals.skipReasons.missingTitle++; continue; }
+          if (!/^https:\/\//i.test(affiliateUrl)) { totals.skipped++; totals.skipReasons.missingAffiliateLink++; continue; }
+          if (!/^https:\/\//i.test(productUrl)) { totals.skipped++; totals.skipReasons.missingProductUrl++; continue; }
+          if (!directImageUrl(imageUrl)) { totals.skipped++; totals.skipReasons.missingImage++; continue; }
+          if (!Number.isSafeInteger(currentPrice) || !Number.isSafeInteger(originalPrice) || currentPrice <= 0 || originalPrice <= currentPrice) {
+            totals.skipped++; totals.skipReasons.invalidPrice++; continue;
+          }
+          if (!discount) { totals.skipped++; totals.skipReasons.noDiscount++; continue; }
 
-        const externalId = clean(product.itemId, 120);
-        const fp = await fingerprint({ source: 'SHOPEE', externalId, productUrl, title });
-        const score = offerScore({ title, currentPrice, originalPrice });
-        const message = promoMessage({ title, source: 'SHOPEE', currentPrice, originalPrice, affiliateUrl, imageUrl, productUrl });
-        const inserted = await db.query(
-          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible) VALUES($1,$2,$3,'SHOPEE',$4,$5,NULL,$6,$7,$8,NULL,NULL,$9,$10,'APPROVED',$11,$12,'VALIDATED','AUTO',false) ON CONFLICT DO NOTHING RETURNING id",
-          [crypto.randomUUID(), row.account_id, title, originalPrice, currentPrice, affiliateUrl, imageUrl, productUrl, discount, score, message, fp]
-        );
-        if (!inserted.rows.length) { totals.duplicates++; continue; }
-
-        const offerId = inserted.rows[0].id;
-        try {
-          await db.query(
-            "INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,$4,$5,'OFFICIAL_API',$6,now())",
-            [crypto.randomUUID(), row.account_id, offerId, currentPrice, originalPrice, 'SHOPEE:' + (externalId || 'unknown')]
+          const externalId = clean(product.itemId, 120);
+          const fp = await fingerprint({ source: 'SHOPEE', externalId, productUrl, title });
+          const score = offerScore({ title, currentPrice, originalPrice });
+          const message = promoMessage({ title, source: 'SHOPEE', currentPrice, originalPrice, affiliateUrl, imageUrl, productUrl });
+          const inserted = await db.query(
+            "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible) VALUES($1,$2,$3,'SHOPEE',$4,$5,NULL,$6,$7,$8,NULL,NULL,$9,$10,'APPROVED',$11,$12,'VALIDATED','AUTO',false) ON CONFLICT DO NOTHING RETURNING id",
+            [crypto.randomUUID(), row.account_id, title, originalPrice, currentPrice, affiliateUrl, imageUrl, productUrl, discount, score, message, fp]
           );
-          totals.imported++;
-          accountImported++;
-        } catch (historyError) {
-          await db.query("UPDATE offers SET status='PENDING',validation_status='NEEDS_REVIEW' WHERE id=$1 AND account_id=$2", [offerId, row.account_id]);
-          totals.failed++;
-          console.error('shopee price history failed', String(historyError?.code || historyError?.name || 'ERROR').slice(0, 60));
+          if (!inserted.rows.length) { totals.duplicates++; continue; }
+
+          const offerId = inserted.rows[0].id;
+          try {
+            await db.query(
+              "INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,$4,$5,'OFFICIAL_API',$6,now())",
+              [crypto.randomUUID(), row.account_id, offerId, currentPrice, originalPrice, 'SHOPEE:' + (externalId || 'unknown')]
+            );
+            totals.imported++;
+            accountImported++;
+          } catch (historyError) {
+            await db.query("UPDATE offers SET status='PENDING',validation_status='NEEDS_REVIEW' WHERE id=$1 AND account_id=$2", [offerId, row.account_id]);
+            totals.failed++;
+            console.error('shopee price history failed', String(historyError?.code || historyError?.name || 'ERROR').slice(0, 60));
+          }
         }
+
+        hasNextPage = Boolean(root.pageInfo?.hasNextPage) && products.length > 0;
+        page = Number(root.pageInfo?.page) > 0 ? Number(root.pageInfo.page) + 1 : page + 1;
       }
       await db.query("UPDATE marketplace_api_credentials SET last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='SHOPEE'", [row.account_id]);
       if (accountImported) {
