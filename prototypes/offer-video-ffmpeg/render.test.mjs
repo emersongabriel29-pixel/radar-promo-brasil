@@ -84,6 +84,10 @@ test('blocks local and private URL targets before fetching', async () => {
   await assert.rejects(assertPublicHttpUrl('file:///etc/passwd'), /HTTP\/HTTPS/);
   await assert.rejects(assertPublicHttpUrl('http://[::ffff:7f00:1]/admin'), /local|privado|reservado/i);
   await assert.rejects(assertPublicHttpUrl('http://[2001:db8::1]/'), /local|privado|reservado/i);
+  await assert.rejects(assertPublicHttpUrl('http://[2001:1::1]/'), /local|privado|reservado/i);
+  await assert.rejects(assertPublicHttpUrl('http://[2002:c0a8:0101::1]/'), /local|privado|reservado/i);
+  await assert.rejects(assertPublicHttpUrl('http://[3fff::1]/'), /local|privado|reservado/i);
+  await assert.rejects(assertPublicHttpUrl('http://192.88.99.1/'), /local|privado|reservado/i);
 });
 
 
