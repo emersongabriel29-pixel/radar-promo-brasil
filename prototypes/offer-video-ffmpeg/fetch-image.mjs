@@ -63,7 +63,7 @@ export function requestPinned(target,accept,max){
     const req=transport.request(url,{
       method:'GET',
       headers:{'user-agent':'RadarPromoBrasil-OfferVideoPrototype/1.0',accept},
-      lookup:(_hostname,_options,callback)=>callback(null,address,family),
+      lookup:(_hostname,options,callback)=>options?.all ? callback(null,[{address,family}]) : callback(null,address,family),
       timeout:12000,
     },res=>{
       const status=res.statusCode||0, headers=res.headers;
