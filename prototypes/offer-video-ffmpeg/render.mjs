@@ -68,6 +68,23 @@ function textFileFilter(file, { font, size, y, color = 'white' }) {
   return `drawtext=${fontPart}textfile='${filterPath(file)}':expansion=none:fontcolor=${color}:fontsize=${size}:x=(w-text_w)/2:y=${y}:shadowcolor=black@0.7:shadowx=2:shadowy=2`;
 }
 
+export function wrapText(value, maxChars) {
+  const words = String(value || '').replace(/[\\r\\n]+/g, ' ').trim().split(/\\s+/).filter(Boolean);
+  const lines = [];
+  let line = '';
+  for (const originalWord of words) {
+    const pieces = [];
+    for (let i = 0; i < originalWord.length; i += maxChars) pieces.push(originalWord.slice(i, i + maxChars));
+    for (const piece of pieces) {
+      if (!line) line = piece;
+      else if ((line + ' ' + piece).length <= maxChars) line += ' ' + piece;
+      else { lines.push(line); line = piece; }
+    }
+  }
+  if (line) lines.push(line);
+  return lines.join('\\n');
+}
+
 export function buildFilterGraph({ titleFile, priceFile, ctaFile, font, duration }) {
   const frames = duration * 30;
   const filters = [
@@ -75,10 +92,10 @@ export function buildFilterGraph({ titleFile, priceFile, ctaFile, font, duration
     'crop=720:1280',
     `zoompan=z='min(zoom+0.00025,1.035)':d=${frames}:s=720x1280:fps=30`,
     'drawbox=x=0:y=100:w=iw:h=270:color=black@0.48:t=fill',
-    textFileFilter(titleFile, { font, size: 46, y: 170 }),
+    textFileFilter(titleFile, { font, size: 38, y: 125 }),
     'drawbox=x=0:y=900:w=iw:h=310:color=black@0.58:t=fill',
-    ...(priceFile ? [textFileFilter(priceFile, { font, size: 58, y: 960, color: 'white' })] : []),
-    textFileFilter(ctaFile, { font, size: 30, y: 1100 }),
+    ...(priceFile ? [textFileFilter(priceFile, { font, size: 48, y: 925, color: 'white' })] : []),
+    textFileFilter(ctaFile, { font, size: 28, y: 1090 }),
     'format=yuv420p'
   ];
   return filters.join(',');
@@ -93,7 +110,7 @@ export function buildFfmpegArgs(options, files) {
     duration: options.duration
   });
   return [
-    '-hide_banner', '-loglevel', 'error', '-y',
+    '-hide_banner', '-loglevel', 'error', '-n',
     '-loop', '1', '-framerate', '30', '-i', options.inputPath,
     '-vf', graph, '-t', String(options.duration), '-r', '30',
     '-an', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23',
@@ -113,7 +130,7 @@ async function runFfmpeg(args) {
 
 export async function render(options) {
   const valid = validateOptions(options);
-  await access(valid.inputPath);
+  await access(valid.inputPath);\n  try { await access(valid.outputPath); throw new Error('O arquivo de saída já existe; escolha outro caminho para não sobrescrevê-lo.'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   const workDir = await mkdtemp(resolve(tmpdir(), 'radar-offer-video-'));
   try {
     const titleFile = resolve(workDir, 'title.txt');
