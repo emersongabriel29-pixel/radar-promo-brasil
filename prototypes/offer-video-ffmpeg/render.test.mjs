@@ -11,9 +11,11 @@ test('parses supported CLI options', () => {
   });
 });
 
-test('rejects unknown and missing CLI options', () => {
+test('rejects unknown, missing and duplicate CLI options', () => {
   assert.throws(() => parseArgs(['--publish', 'true']), /não reconhecido/);
   assert.throws(() => parseArgs(['--title']), /Informe um valor/);
+  assert.throws(() => parseArgs(['--title', 'Produto A', '--title', 'Produto B']), /Argumento duplicado: --title/);
+  assert.throws(() => parseArgs(['--output', 'a.mp4', '--output', 'b.mp4']), /Argumento duplicado: --output/);
 });
 
 test('validates image, output, title, duration and overwrite protection', () => {
