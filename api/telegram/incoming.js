@@ -32,7 +32,7 @@ export default async function(req,res){
   if(groups.length>1)return res.status(409).json({ok:false,ignored:true,reason:'O destino Telegram está associado a mais de uma conta; importação bloqueada para evitar cruzamento de dados entre contas.'});
   const entities=Array.isArray(message.entities)?message.entities:Array.isArray(message.caption_entities)?message.caption_entities:[];
   const hiddenUrls=entities.filter(entity=>entity?.type==='text_link'&&typeof entity.url==='string').map(entity=>entity.url).slice(0,10);
-  const parsed=parseOfferMessage(text,{urls:hiddenUrls});
+  const parsed=parseOfferMessage(text,{urls:hiddenUrls,strictAffiliateProductMatch:true});
   if(!parsed.ok)return res.json({ok:true,ignored:true,reason:parsed.reason,parsed:{title:parsed.title,currentPrice:parsed.currentPrice,marketplace:parsed.marketplace}});
   let imported=0,duplicates=0,needsAffiliate=0;
   for(const group of groups){
