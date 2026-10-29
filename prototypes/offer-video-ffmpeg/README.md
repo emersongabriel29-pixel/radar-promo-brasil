@@ -40,6 +40,7 @@ Opções:
 
 - MP4 H.264, 720×1280 (9:16), 30 fps, sem áudio.
 - Faz um movimento de zoom discreto na imagem e quebra automaticamente títulos, preços e chamadas longas em linhas; não gera novas cenas ou avatar por IA.
+- Reserva mais área central para a imagem do produto: faixa superior de título reduzida e painel inferior de preço/CTA limitado aos últimos 220 px, para diminuir a chance de cobrir detalhes importantes.
 - O texto é escrito em arquivos temporários e usado com `expansion=none`; o comando é executado sem shell.
 - Só aceita caminhos de arquivos locais e não faz requisições HTTP.
 - Não lê links de afiliados, não verifica preços, não envia o arquivo para serviços externos e não publica nada.
