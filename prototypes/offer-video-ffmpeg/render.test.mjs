@@ -39,8 +39,9 @@ test('uses text files with expansion disabled so user text is not interpreted as
   assert.match(graph, /expansion=none/);
   assert.match(graph, /scale=720:1280/);
   assert.match(graph, /drawbox=x=0:y=40:w=iw:h=250/);
-  assert.match(graph, /drawbox=x=0:y=1000:w=iw:h=220/);
+  assert.match(graph, /drawbox=x=0:y=960:w=iw:h=280/);
   assert.match(graph, /fontsize=34/);
+  assert.match(graph, /fontsize=24:x=\(w-text_w\)\/2:y=1125/);
   assert.match(graph, /format=yuv420p/);
 });
 
