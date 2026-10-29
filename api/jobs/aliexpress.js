@@ -300,7 +300,10 @@ export default async function handler(req, res) {
         const category = categories.find(c => c.name.toLowerCase() === String(classified.category || '').toLowerCase()) ||
           categories.find(c => c.name.toLowerCase().includes('gerais')) || null;
         const fp = await fingerprint({ source: 'ALIEXPRESS', externalId: p.id, productUrl: p.productUrl, title: p.title });
-        candidates.push({ ...p, discount, classified, category, fp, score: offerScore({ title: p.title, currentPrice: p.currentPrice, originalPrice: p.originalPrice }) });
+        const qualityFlags = [];
+        if (p.commission !== null && p.commission < 3) qualityFlags.push('LOW_COMMISSION');
+        if (p.rating !== null && p.rating < 90) qualityFlags.push('LOW_RATING');
+        candidates.push({ ...p, qualityFlags, discount, classified, category, fp, score: offerScore({ title: p.title, currentPrice: p.currentPrice, originalPrice: p.originalPrice }) });
       }
       candidates.sort((a, b) => b.score - a.score || b.sales - a.sales || (b.commission || 0) - (a.commission || 0) || a.currentPrice - b.currentPrice);
       for (const p of candidates) {
@@ -310,13 +313,13 @@ export default async function handler(req, res) {
         const promo = formatPromo({ title: p.title, source: 'ALIEXPRESS', category: p.category?.name || p.classified.category || '', currentPrice: p.currentPrice, originalPrice: p.originalPrice, affiliateUrl: p.affiliateUrl, imageUrl: p.imageUrl, productUrl: p.productUrl });
         const offerId = crypto.randomUUID();
         const inserted = await db.query(
-          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,subcategory,classification_tags,classification_confidence,classification_status,classification_reason,source_category) VALUES($1,$2,$3,'ALIEXPRESS',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'PENDING','ALIEXPRESS_AUTO',false,$14,$15::jsonb,$16,'AUTO',$17,'AliExpress') ON CONFLICT DO NOTHING RETURNING id",
-          [offerId, row.account_id, p.title, p.originalPrice, p.currentPrice, p.category?.id || null, p.affiliateUrl, p.imageUrl, p.productUrl, p.discount, p.score, promo.message, p.fp, p.classified.subcategory || null, JSON.stringify(p.classified.tags || []), p.classified.confidence || 0, 'Importação automática via API oficial; preço, desconto, comissão, avaliação, link e imagem presentes.']
+          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,subcategory,classification_tags,classification_confidence,classification_status,classification_reason,source_category) VALUES($1,$2,$3,'ALIEXPRESS',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'PENDING','ALIEXPRESS_AUTO',false,$14,$15::jsonb,$16,$18,$17,'AliExpress') ON CONFLICT DO NOTHING RETURNING id",
+          [offerId, row.account_id, p.title, p.originalPrice, p.currentPrice, p.category?.id || null, p.affiliateUrl, p.imageUrl, p.productUrl, p.discount, p.score, promo.message, p.fp, p.classified.subcategory || null, JSON.stringify(p.classified.tags || []), p.classified.confidence || 0, p.qualityFlags.length ? p.qualityFlags.join('|') : 'Importação automática via API oficial; preço, desconto, link e imagem presentes.', p.qualityFlags.length ? 'REVIEW' : 'AUTO']
         );
         if (!inserted.rows.length) { totals.duplicates++; continue; }
         try {
           await db.query("INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,$4,$5,'OFFICIAL_API',$6,now())", [crypto.randomUUID(), row.account_id, offerId, p.currentPrice, p.originalPrice, 'ALIEXPRESS:' + p.id]);
-          await db.query("UPDATE offers SET status='PENDING',validation_status='PENDING_REVIEW',classification_status='REVIEW',classification_reason=$3,updated_at=now() WHERE id=$1 AND account_id=$2 AND status='PENDING'", [offerId, row.account_id, 'Importação automática enriquecida pela API AliExpress; exige revisão humana antes de aprovação/publicação.']);
+          await db.query("UPDATE offers SET status='PENDING',validation_status='PENDING_REVIEW',classification_status=$3,classification_reason=$4,updated_at=now() WHERE id=$1 AND account_id=$2 AND status='PENDING'", [offerId, row.account_id, p.qualityFlags.length ? 'REVIEW' : 'AUTO', p.qualityFlags.length ? p.qualityFlags.join('|') : 'Importação automática via API oficial; aguardando validação de requisitos.']);
           totals.imported++;
           accountImported++;
         } catch (error) {
@@ -325,7 +328,7 @@ export default async function handler(req, res) {
         }
       }
       await db.query("UPDATE marketplace_api_credentials SET last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='ALIEXPRESS'", [row.account_id]);
-      // Deliberately do not trigger autopilot: AliExpress imports remain drafts for human review.
+      // The review gate auto-approves only offers that pass every hard requirement; low known commission/rating stays for human review.
     } catch (error) {
       totals.failed++;
       const code = clean(error?.message || 'ERROR', 100);
@@ -338,5 +341,5 @@ export default async function handler(req, res) {
     catch (error) { totals.reviewTriggered = false; totals.reviewTriggerError = clean(error?.code || error?.name || 'REVIEW_TRIGGER_FAILED', 80); console.error('aliexpress review trigger failed', totals.reviewTriggerError); }
   }
   totals.ok = totals.failed === 0 && !totals.reviewTriggerError;
-  return res.json({ ...totals, discovery: { standardKeywordSearches: 3, advancedMethodsAttempted: ['smartmatch', 'hotProducts'], maxDiscoveryCallsPerAccount: 8, affiliateLinkGenerationCap: 3 }, publicationEnabled: true, humanReviewRequired: 'REJECTED_ONLY', note: 'Busca combina três pesquisas padrão com Smart Match e Hot Products quando a permissão da conta estiver disponível. Deduplicação por ID, ranking por qualidade e limite de três novas ofertas por conta/execução. Todas as ofertas permanecem pendentes de revisão humana; nenhum autopilot, aprovação ou publicação é acionado.' });
+  return res.json({ ...totals, discovery: { standardKeywordSearches: 3, advancedMethodsAttempted: ['smartmatch', 'hotProducts'], maxDiscoveryCallsPerAccount: 8, affiliateLinkGenerationCap: 3 }, publicationEnabled: true, humanReviewRequired: 'ONLY_FAILED_REQUIREMENTS_OR_LOW_KNOWN_QUALITY', note: 'Ofertas que passam os requisitos serão aprovadas e enviadas ao fluxo automático; as que falham requisitos ou têm comissão/avaliação conhecida abaixo do limite ficam para revisão humana.' });
 }
