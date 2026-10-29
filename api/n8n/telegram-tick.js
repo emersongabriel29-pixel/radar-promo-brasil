@@ -2,6 +2,7 @@ import { db, config, webhooks } from 'hatchable';
 import { configuredBotToken, sendTelegramOffer } from 'lib/telegram.js';
 import { eligiblePublication, claimPublication } from 'lib/delivery.js';
 import { offerImage } from 'lib/offer-images.js';
+import { enqueueMatches } from 'lib/autopilot.js';
 
 export const access = 'public';
 export const methods = ['POST'];
@@ -49,20 +50,42 @@ export default async function(req, res) {
     stage = 'verify_account';
     if (!(await db.query("SELECT id FROM accounts WHERE id=$1 AND status='ACTIVE'", [accountId])).rows.length) return res.status(404).json({ error: 'Conta inválida.' });
 
+    if (body.dryRun === true) {
+      stage = 'dry_run_queue_check';
+      const available = await db.query(`SELECT count(*)::int AS total
+        FROM publications p
+        LEFT JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id
+        JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id
+        WHERE p.account_id=$1 AND p.status IN ('READY','RETRY')
+          AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now())
+          AND g.status='ACTIVE' AND g.platform='TELEGRAM'
+          AND NULLIF(trim(g.external_id),'') IS NOT NULL
+          AND (p.content_type='MESSAGE' OR p.image_storage_key IS NOT NULL OR o.image_storage_key IS NOT NULL
+            OR lower(split_part(p.image_url, '?', 1)) LIKE ANY (ARRAY['%.jpg','%.jpeg','%.png','%.webp','%.gif','%.avif','%.bmp'])
+            OR lower(p.image_url) LIKE 'https://cf.shopee.com.br/file/%')
+          AND ${eligiblePublication}`, [accountId]);
+      return res.json({ ok: true, dryRun: true, sideEffects: false, queuedAvailable: Number(available.rows[0]?.total || 0) });
+    }
+
     stage = 'deduplicate_event';
     const event = await remember(eventKey, accountId);
     if (event.duplicate) return res.json({ ok: true, ...event.response, duplicateEvent: true });
     if (event.busy) return res.status(409).json({ error: 'Evento em processamento ou repetido.' });
     eventId = event.id;
 
+    // Run account-scoped autopilot on each authenticated 10-minute tick so fresh offers do not wait for the hourly cron.
+    // Dry runs remain read-only, and an autopilot error must not block already queued Telegram deliveries.
+    let autopilot = null;
+    if (body.dryRun !== true) {
+      stage = 'enqueue_eligible_offers';
+      try { autopilot = await enqueueMatches(accountId, ''); }
+      catch (error) { console.error('n8n telegram tick autopilot', String(error?.code || error?.name || 'ERROR').slice(0, 60)); }
+    }
+
     stage = 'load_publication_queue';
     const origin = String(await config.get('public_app_url') || 'https://radar-promo-brasil.hatchable.site').replace(/\/$/, '');
-    const rows = (await db.query(`SELECT p.id,p.content_type AS "contentType",p.account_id AS "accountId",p.message,p.image_url AS "imageUrl",COALESCE(p.image_storage_key,o.image_storage_key) AS "imageStorageKey",p.attempts,o.affiliate_url AS "affiliateUrl",o.coupon_code AS "couponCode",o.coupon_url AS "couponUrl",g.external_id AS "groupExternalId" FROM publications p LEFT JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id WHERE p.account_id=$1 AND p.status IN ('READY','RETRY') AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now()) AND g.status='ACTIVE' AND g.platform='TELEGRAM' AND NULLIF(trim(g.external_id),'') IS NOT NULL AND (p.content_type='MESSAGE' OR p.image_storage_key IS NOT NULL OR o.image_storage_key IS NOT NULL OR lower(split_part(p.image_url, '?', 1)) LIKE ANY (ARRAY['%.jpg','%.jpeg','%.png','%.webp','%.gif','%.avif','%.bmp'])) AND ${eligiblePublication} ORDER BY p.priority DESC,p.created_at LIMIT 1`, [accountId])).rows;
-    if (body.dryRun === true) {
-      const result = { ok: true, dryRun: true, queuedAvailable: rows.length };
-      await db.query("UPDATE webhook_events SET status='PROCESSED',response=$2,item_count=0,processed_at=now(),updated_at=now() WHERE id=$1", [eventId, JSON.stringify(result)]);
-      return res.json(result);
-    }
+    const rows = (await db.query(`SELECT p.id,p.content_type AS "contentType",p.account_id AS "accountId",p.message,p.image_url AS "imageUrl",COALESCE(p.image_storage_key,o.image_storage_key) AS "imageStorageKey",p.attempts,o.affiliate_url AS "affiliateUrl",o.coupon_code AS "couponCode",o.coupon_url AS "couponUrl",g.external_id AS "groupExternalId" FROM publications p LEFT JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id WHERE p.account_id=$1 AND p.status IN ('READY','RETRY') AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now()) AND g.status='ACTIVE' AND g.platform='TELEGRAM' AND NULLIF(trim(g.external_id),'') IS NOT NULL AND (p.content_type='MESSAGE' OR p.image_storage_key IS NOT NULL OR o.image_storage_key IS NOT NULL OR lower(split_part(p.image_url, '?', 1)) LIKE ANY (ARRAY['%.jpg','%.jpeg','%.png','%.webp','%.gif','%.avif','%.bmp']) OR lower(p.image_url) LIKE 'https://cf.shopee.com.br/file/%') AND ${eligiblePublication} ORDER BY p.priority DESC,p.created_at LIMIT 1`, [accountId])).rows;
+    // dryRun is handled before event persistence above; normal delivery continues here.
     let published = 0, failed = 0, unconfirmed = 0, processed = 0;
     stage = 'process_publications';
     for (const item of rows) {
@@ -75,13 +98,11 @@ export default async function(req, res) {
         let providerAccepted = false;
         try {
           const token = await configuredBotToken(connection.secretSlot, item.accountId);
-          const trackingUrl = origin + '/api/r/' + encodeURIComponent(item.id);
-          const useShort = /^https:\/\/(?:lmdee\.link|meli\.la|amzn\.to|s\.shopee\.com\.br|shope\.ee|ali\.ski)(?:\/|$)/i.test(item.affiliateUrl || '');
-          const effectiveAffiliate = useShort ? item.affiliateUrl : trackingUrl;
-          const baseMessage = item.affiliateUrl ? String(item.message || '').split(item.affiliateUrl).join(effectiveAffiliate) : String(item.message || '');
+          const effectiveAffiliate = String(item.affiliateUrl || '').trim();
+          const baseMessage = String(item.message || '').replace(/https?:\/\/[^\s]+\/api\/r\/[0-9a-f-]+/gi, effectiveAffiliate);
           const couponUrl = String(item.couponUrl || '').trim();
           const trackedMessage = item.couponCode && couponUrl && !baseMessage.includes(couponUrl) ? baseMessage + String.fromCharCode(10, 10) + '🎟️ Resgate o cupom aqui: ' + couponUrl : baseMessage;
-          const external = await sendTelegramOffer(token, { ...item, imageUrl: item.contentType === 'MESSAGE' ? null : new URL(await offerImage(item), origin).toString(), message: trackedMessage, affiliateUrl: effectiveAffiliate });
+          const external = await sendTelegramOffer(token, { ...item, imageUrl: item.contentType === 'MESSAGE' ? null : new URL(await offerImage(item, { publicAccess: true }), origin).toString(), message: trackedMessage, affiliateUrl: effectiveAffiliate });
           providerAccepted = true;
           await db.transaction([
             { sql: "UPDATE publications SET status='PUBLISHED',published_at=now(),error_message=NULL,telegram_connection_id=$3,external_message_id=$4 WHERE id=$1 AND account_id=$2 AND status='DISPATCHING'", params: [item.id, item.accountId, connection.id, String(external?.message_id || '')] },
