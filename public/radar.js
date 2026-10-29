@@ -11,6 +11,7 @@ var D = {
     leadStats: [],
     activity: [],
     integrations: [],
+    integrationHealth: { items: [], interval: "hourly", alert: false },
     automation: {},
     suite: {
       marketplaces: [],
@@ -369,6 +370,7 @@ function dashboard() {
     metric("Envios na fila", ready, "prontos ou agendados") +
     metric("Cliques rastreados", clicks, "links publicados") +
     "</div>" +
+    integrationHealthPanel() +
     section(
       "Fluxo de trabalho",
       "Escolha como capturar, preparar e distribuir ofertas.",
@@ -424,6 +426,38 @@ function dashboard() {
       : '<li><i class="a-dot"></i><div><b>Sistema pronto</b><div class="muted">Configure as integrações para iniciar.</div></div></li>') +
     "</ul></div></div></div>"
   );
+}
+function integrationHealthPanel() {
+  var health = D.integrationHealth || {};
+  var items = Array.isArray(health.items) ? health.items.slice(0, 6) : [];
+  var rows = items.map(function (item) {
+    var status = String(item.status || "NOT_REPORTED").trim();
+    var details = String(item.details || "").trim();
+    var checked = item.lastCheckedAt ? new Date(item.lastCheckedAt) : null;
+    var checkedLabel = checked && !Number.isNaN(checked.getTime())
+      ? "Verificado em " + checked.toLocaleString("pt-BR")
+      : "Sem horário de verificação registrado";
+    var statusLabel = status === "CONNECTED" ? "CONECTADO"
+      : status === "ERROR" ? "FALHA"
+      : status === "NOT_CONFIGURED" ? "NÃO CONFIGURADO"
+      : status === "PENDING_VALIDATION" ? "PENDENTE DE VALIDAÇÃO"
+      : status;
+    return '<li><i class="a-dot"></i><div><b>' +
+      esc(item.name || "Integração sem nome") +
+      '</b><div class="muted">' + esc(details || "Sem detalhes de diagnóstico registrados.") +
+      '</div><small class="muted">' + esc(checkedLabel) +
+      '</small></div><span class="pill">' + esc(statusLabel) + '</span></li>';
+  }).join("");
+  var alert = health.alert
+    ? '<p role="alert" class="partial-error">O monitoramento registrou uma falha. Confira os detalhes antes de confiar na conexão.</p>'
+    : "";
+  var interval = health.interval ? " Frequência informada: " + String(health.interval) + "." : "";
+  return section(
+    "Saúde das integrações",
+    "Diagnóstico automático registrado pelo Radar. Conectado não significa que uma publicação foi testada ou enviada."
+  ) + alert + '<div class="card"><ul class="activity">' +
+    (rows || '<li><i class="a-dot"></i><div><b>Nenhum diagnóstico registrado</b><div class="muted">Aguardando dados do monitor de saúde; não há confirmação de funcionamento externo.</div></div></li>') +
+    '</ul><small class="muted">' + esc(interval) + '</small></div>';
 }
 function metric(a, b, c) {
   return (
@@ -1362,6 +1396,13 @@ function integrations() {
       "Importar link criado no Centro de Afiliados; API pública automática não confirmada.",
       "Preparar oferta manual",
       "openMarketplaceSetup('SHEIN')",
+    ) +
+    integration(
+      "TMU",
+      "Temu Afiliados",
+      "Importar link/código oficial e preparar rascunho; API pública de afiliados não confirmada.",
+      "Preparar oferta manual",
+      "openTemuTools()",
     ) +
     integration(
       "MAG",
@@ -3162,6 +3203,15 @@ async function convertLink() {
     box.textContent = e.message;
   }
 }
+var lastMeliSearchResults = [];
+function copyMeliSearchUrls() {
+  var urls = (lastMeliSearchResults || []).map(function(item) { return String(item.productUrl || "").trim(); }).filter(function(url) { return /^https:\/\/(www\.|produto\.)?mercadolivre\.com\.br\//i.test(url); });
+  if (!urls.length) { toast("Faça uma busca primeiro; nenhum link de produto válido foi encontrado."); return; }
+  navigator.clipboard.writeText(urls.join("\n")).then(function() { toast(urls.length + " links de produto copiados. No Gerador oficial, cole a lista para gerar links em lote, se disponível para sua conta."); }).catch(function() { toast("Não foi possível copiar automaticamente. Selecione os links exibidos e copie manualmente."); });
+}
+function openMeliAffiliateGenerator() {
+  window.open("https://www.mercadolivre.com.br/l/afiliados-gere-seus-links", "_blank", "noopener,noreferrer");
+}
 async function searchMercadoLivreProducts(button) {
   var input = document.getElementById("marketSearchQuery");
   var target = document.getElementById("marketSearchResults");
@@ -3174,7 +3224,8 @@ async function searchMercadoLivreProducts(button) {
     var response = await fetch("/api/mercadolivre/products?q=" + encodeURIComponent(q));
     var data = await response.json();
     if (!response.ok) throw Error(data.error || "Não foi possível buscar produtos.");
-    target.innerHTML = (data.results || []).length ? (data.results || []).slice(0, 12).map(function(item) {
+    lastMeliSearchResults = (data.results || []).slice(0, 12);
+    target.innerHTML = lastMeliSearchResults.length ? '<div class="row csp-margin-bottom-12px"><button class="btn secondary" type="button" data-action="copyMeliSearchUrls()">Copiar URLs para gerar em lote</button> <button class="btn secondary" type="button" data-action="openMeliAffiliateGenerator()">Abrir gerador oficial</button></div>' + lastMeliSearchResults.map(function(item) {
       var price = item.price != null ? Number(item.price).toLocaleString("pt-BR", {style:"currency",currency:"BRL"}) : "Preço não confirmado";
       var stock = item.availableQuantity == null ? "Estoque não confirmado" : (item.availableQuantity > 0 ? "Estoque informado: " + item.availableQuantity : "Sem estoque");
       var image = item.imageUrl ? '<img class="thumb" src="' + esc(item.imageUrl) + '" alt="Imagem do produto">' : '<div class="thumb"></div>';
@@ -3801,8 +3852,8 @@ async function loadNow(){
   try{
     var data=await readJSON('/api/data');
     // Serialize dashboard reads to avoid bursts against the project's shared DB query limit.
-    var paths=['/api/suite','/api/reports?days='+reportDays,'/api/growth','/api/social/autopilot','/api/compliance/messaging?days=7','/api/readiness'];
-    var keys=['suite','reportsData','growth','social','compliance','readiness'],failures=[];
+    var paths=['/api/suite','/api/reports?days='+reportDays,'/api/growth','/api/social/autopilot','/api/compliance/messaging?days=7','/api/readiness','/api/integrations/health-summary'];
+    var keys=['suite','reportsData','growth','social','compliance','readiness','integrationHealth'],failures=[];
     for(var index=0;index<paths.length;index++){
       try{data[keys[index]]=await readJSON(paths[index]);}
       catch(error){data[keys[index]]=D[keys[index]];failures.push(keys[index]);}
@@ -3939,12 +3990,12 @@ async function loadMarketplaceStatus(){
   var data=await operationRequest('/api/integrations/marketplaces');
   root.innerHTML=(data.items||[]).map(function(item){
    var fieldsArray=item.credentialFields||[],hasFields=fieldsArray.length>0;
-   var manualOnly=['SHEIN','CASAS_BAHIA','HOTMART','KABUM','AMERICANAS'].indexOf(item.id)!==-1;
-   var status=item.status==='CONNECTED'?'Conta autorizada':item.status==='VALIDATED'?'API testada com sucesso':item.status==='READ_ONLY_VALIDATED'?'Leitura validada · automação bloqueada':item.status==='ERROR'?'Falha na última validação':item.status==='PENDING_VALIDATION'?'Credenciais salvas · falta testar':item.id==='SHEIN'?'Fluxo manual · sem API pública confirmada':manualOnly?'API de afiliados não confirmada':hasFields?'Credenciais salvas · conexão não comprovada':'Não configurada';
+   var manualOnly=['SHEIN','TEMU','CASAS_BAHIA','HOTMART','KABUM','AMERICANAS'].indexOf(item.id)!==-1;
+   var status=item.id==='MERCADOLIVRE'?(item.status==='CONNECTED'?'API conectada · afiliado separado':'Conta afiliada ≠ conexão API'):item.status==='CONNECTED'?'Conta autorizada':item.status==='VALIDATED'?'API testada com sucesso':item.status==='READ_ONLY_VALIDATED'?'Leitura validada · automação bloqueada':item.status==='ERROR'?'Falha na última validação':item.status==='PENDING_VALIDATION'?'Credenciais salvas · falta testar':item.id==='SHEIN'?'Fluxo manual · sem API pública confirmada':item.id==='TEMU'?'Fluxo manual · API de afiliados não confirmada':manualOnly?'API de afiliados não confirmada':hasFields?'Credenciais salvas · conexão não comprovada':'Não configurada';
    var cls=(item.status==='VALIDATED'||item.status==='CONNECTED')?'live':item.status==='ERROR'?'danger':'warn';
    var nextStep=item.id==='MAGALU'?(item.status==='CONNECTED'?'Próximo: executar Testar OAuth + API seller.': 'Próximo: configurar Client ID/Secret OAuth, cadastrar callback, autorizar a conta e testar API seller.'):
-    item.id==='MERCADOLIVRE'?(item.status==='CONNECTED'?'Próximo: testar endpoint de leitura e confirmar permissões de afiliado.':'Próximo: iniciar OAuth no portal e concluir o retorno de autorização.'):
-    item.id==='SHEIN'?'Próximo: importar link oficial criado no Centro de Afiliados; não há conexão automática confirmada.':
+    item.id==='MERCADOLIVRE'?(item.status==='CONNECTED'?'Conta de afiliado separada da API: testar a conexão de leitura e validar o uso da API.':'Sua conta do Programa de Afiliados pode estar ativa. Este status verifica apenas a conexão OAuth do Radar; para pesquisar produtos pela API, conecte a conta do Mercado Livre aqui.'):
+    item.id==='SHEIN'?'Próximo: importar link oficial criado no Centro de Afiliados; não há conexão automática confirmada.':item.id==='TEMU'?'Próximo: importar link/código do portal oficial de Afiliados Temu; rastreamento e comissão precisam ser confirmados no portal.':
     item.id==='CASAS_BAHIA'||item.id==='KABUM'?'Próximo: confirmar acesso a programa de afiliados; API de seller não equivale a API de afiliado.':
     item.id==='HOTMART'?'Próximo: identificar API/escopo oficial compatível com ofertas de afiliados antes de configurar.':
     item.id==='AMERICANAS'?'Próximo: confirmar a rede de afiliados e sua documentação oficial.':
@@ -3963,17 +4014,18 @@ async function loadMarketplaceStatus(){
    var shopeeActions=item.id==='SHOPEE'&&(item.credentialFields||[]).indexOf('appId')!==-1&&(item.credentialFields||[]).indexOf('apiSecret')!==-1?'<button class="btn secondary" type="button" data-action="openShopeeTools()">Ferramentas Shopee</button>':'';
    var amazonActions=item.id==='AMAZON'&&(item.credentialFields||[]).indexOf('clientId')!==-1&&(item.credentialFields||[]).indexOf('clientSecret')!==-1?'<button class="btn secondary" type="button" data-action="openAmazonTools()">Ferramentas Amazon</button>':'';
    var sheinActions=item.id==='SHEIN'?'<button class="btn secondary" type="button" data-action="openSheinTools()">Ferramentas SHEIN</button>':'';
+   var temuActions=item.id==='TEMU'?'<button class="btn secondary" type="button" data-action="openTemuTools()">Ferramentas Temu</button>':'';
    var aliexpressActions=item.id==='ALIEXPRESS'&&(item.credentialFields||[]).indexOf('appId')!==-1&&(item.credentialFields||[]).indexOf('apiSecret')!==-1?'<button class="btn secondary" type="button" data-action="openAliExpressTools()">Ferramentas AliExpress</button>':'';
    var awinActions=item.id==='AWIN'&&(item.credentialFields||[]).indexOf('accessToken')!==-1&&(item.credentialFields||[]).indexOf('affiliateId')!==-1?'<button class="btn secondary" type="button" data-action="openAwinTools()">Ferramentas Awin</button>':'';
    var rakutenActions=item.id==='RAKUTEN'&&(item.credentialFields||[]).indexOf('accessToken')!==-1?'<button class="btn secondary" type="button" data-action="openRakutenTools()">Ferramentas Rakuten</button>':'';
    var admitadActions=item.id==='ADMITAD'&&(item.credentialFields||[]).indexOf('clientId')!==-1&&(item.credentialFields||[]).indexOf('clientSecret')!==-1?'<button class="btn secondary" type="button" data-action="openAdmitadTools()">Ferramentas Admitad</button>':'';
-   return '<div class="integration"><div class="grow"><b>'+esc(item.name)+'</b><div class="muted">'+(item.id==='SHEIN'?'Importe links gerados no Centro de Afiliados.':item.id==='MAGALU'?(fields.indexOf('apiKey')!==-1&&fields.indexOf('apiKeyId')!==-1&&fields.indexOf('apiKeySecret')!==-1?'API Magalu: três chaves salvas; autenticação e teste oficial ainda pendentes.':'API Key, API Key ID e API Key Secret ainda não cadastradas. Links de afiliado são um fluxo separado.'):(fields?'Campos cadastrados: '+fields:'Nenhuma credencial cadastrada.'))+'</div>'+ '<div class="muted csp-margin-top-10px"><b>Próxima etapa:</b> '+esc(nextStep)+'</div>'+(item.lastError?'<div class="muted" role="status"><b>Último erro:</b> '+esc(item.lastError)+'</div>':'')+(item.updatedAt?'<small class="muted">Atualizado em '+esc(new Date(item.updatedAt).toLocaleDateString('pt-BR'))+'</small>':'')+'<div class="csp-margin-top-10px"><a class="btn secondary" href="'+esc(item.portalUrl)+'" target="_blank" rel="noopener noreferrer">'+(item.id==='SHEIN'?'Acessar conta de afiliados ↗':'Abrir portal ↗')+'</a> <button class="btn secondary" type="button" data-action="'+(item.id==='MAGALU'?'connectMagaluAccount()':item.id==='MERCADOLIVRE'?'connectMercadoLivre()':'openMarketplaceSetup(\''+esc(item.id)+'\')')+'">'+((item.id==='MAGALU'||item.id==='MERCADOLIVRE')?'Conectar conta':['CASAS_BAHIA','HOTMART','KABUM','AMERICANAS'].indexOf(item.id)!==-1?'Ver situação':item.id==='SHEIN'?'Preparar oferta':(fields?'Atualizar chaves':'Conectar conta'))+'</button> '+(item.id==='MAGALU'?'<button class="btn secondary" type="button" data-action="openMagaluApiCredentials()">Atualizar chaves API</button> <button class="btn secondary" type="button" data-action="testMagaluApi()">Testar OAuth + API seller</button> <button class="btn secondary" type="button" data-action="openMagaluTools()">Importar link de afiliado</button>':'')+' '+lomadeeActions+' '+shopeeActions+' '+amazonActions+' '+sheinActions+' '+aliexpressActions+' '+awinActions+' '+rakutenActions+' '+admitadActions+'</div></div><span class="pill '+cls+'">'+status+'</span></div>';
+   return '<div class="integration"><div class="grow"><b>'+esc(item.name)+'</b><div class="muted">'+(item.id==='SHEIN'?'Importe links gerados no Centro de Afiliados.':item.id==='MAGALU'?(fields.indexOf('apiKey')!==-1&&fields.indexOf('apiKeyId')!==-1&&fields.indexOf('apiKeySecret')!==-1?'API Magalu: três chaves salvas; autenticação e teste oficial ainda pendentes.':'API Key, API Key ID e API Key Secret ainda não cadastradas. Links de afiliado são um fluxo separado.'):(fields?'Campos cadastrados: '+fields:'Nenhuma credencial cadastrada.'))+'</div>'+ '<div class="muted csp-margin-top-10px"><b>Próxima etapa:</b> '+esc(nextStep)+'</div>'+(item.lastError?'<div class="muted" role="status"><b>Último erro:</b> '+esc(item.lastError)+'</div>':'')+(item.updatedAt?'<small class="muted">Atualizado em '+esc(new Date(item.updatedAt).toLocaleDateString('pt-BR'))+'</small>':'')+'<div class="csp-margin-top-10px"><a class="btn secondary" href="'+esc(item.portalUrl)+'" target="_blank" rel="noopener noreferrer">'+(item.id==='SHEIN'?'Acessar conta de afiliados ↗':'Abrir portal ↗')+'</a> <button class="btn secondary" type="button" data-action="'+(item.id==='MAGALU'?'connectMagaluAccount()':item.id==='MERCADOLIVRE'?'connectMercadoLivre()':'openMarketplaceSetup(\''+esc(item.id)+'\')')+'">'+(item.id==='MERCADOLIVRE'?'Conectar API do Radar':item.id==='MAGALU'?'Conectar conta':['CASAS_BAHIA','HOTMART','KABUM','AMERICANAS'].indexOf(item.id)!==-1?'Ver situação':item.id==='SHEIN'?'Preparar oferta':(fields?'Atualizar chaves':'Conectar conta'))+'</button> '+(item.id==='MAGALU'?'<button class="btn secondary" type="button" data-action="openMagaluApiCredentials()">Atualizar chaves API</button> <button class="btn secondary" type="button" data-action="testMagaluApi()">Testar OAuth + API seller</button> <button class="btn secondary" type="button" data-action="openMagaluTools()">Importar link de afiliado</button>':'')+' '+lomadeeActions+' '+shopeeActions+' '+amazonActions+' '+sheinActions+' '+temuActions+' '+aliexpressActions+' '+awinActions+' '+rakutenActions+' '+admitadActions+'</div></div><span class="pill '+cls+'">'+status+'</span></div>';
   }).join('')||'<div class="empty">Nenhuma loja disponível.</div>';
-  var overviewCode={MERCADOLIVRE:'ML',SHOPEE:'SH',AMAZON:'AMZ',ALIEXPRESS:'ALI',SHEIN:'SHN',MAGALU:'MAG',CASAS_BAHIA:'CB',HOTMART:'HOT',KABUM:'KB',AMERICANAS:'AME',LOMADEE:'LOM',AWIN:'AWIN',RAKUTEN:'RAK',ADMITAD:'ADM'};
+  var overviewCode={MERCADOLIVRE:'ML',SHOPEE:'SH',AMAZON:'AMZ',ALIEXPRESS:'ALI',SHEIN:'SHN',TEMU:'TMU',MAGALU:'MAG',CASAS_BAHIA:'CB',HOTMART:'HOT',KABUM:'KB',AMERICANAS:'AME',LOMADEE:'LOM',AWIN:'AWIN',RAKUTEN:'RAK',ADMITAD:'ADM'};
   (data.items||[]).forEach(function(item){
    var code=overviewCode[item.id],card=code?document.querySelector('.integration[data-integration-code="'+code+'"]'):null,pill=card&&card.querySelector('.pill');
    if(!pill)return;
-   var label=item.id==='SHEIN'?'Fluxo manual':item.id==='MAGALU'&&item.status==='CONNECTED'?'Conta conectada':item.id==='MAGALU'?(item.credentialFields||[]).indexOf('apiKey')!==-1&&(item.credentialFields||[]).indexOf('apiKeyId')!==-1&&(item.credentialFields||[]).indexOf('apiKeySecret')!==-1?'Conecte a conta':'Chaves pendentes':['CASAS_BAHIA','HOTMART','KABUM','AMERICANAS'].indexOf(item.id)!==-1&&item.status!=='NOT_CONFIGURED'?'Sem teste automático':item.status==='CONNECTED'?'Conta conectada':item.status==='VALIDATED'?'Validada':item.status==='READ_ONLY_VALIDATED'?'Leitura validada':item.status==='ERROR'?'Erro':item.status==='PENDING_VALIDATION'?'Validação pendente':item.status==='NOT_CONFIGURED'?'Não configurada':item.status;
+   var label=item.id==='MERCADOLIVRE'?(item.status==='CONNECTED'?'API conectada':'Afiliado configurado · API separada'):item.id==='SHEIN'?'Fluxo manual':item.id==='MAGALU'&&item.status==='CONNECTED'?'Conta conectada':item.id==='MAGALU'?(item.credentialFields||[]).indexOf('apiKey')!==-1&&(item.credentialFields||[]).indexOf('apiKeyId')!==-1&&(item.credentialFields||[]).indexOf('apiKeySecret')!==-1?'Conecte a conta':'Chaves pendentes':['CASAS_BAHIA','HOTMART','KABUM','AMERICANAS'].indexOf(item.id)!==-1&&item.status!=='NOT_CONFIGURED'?'Sem teste automático':item.status==='CONNECTED'?'Conta conectada':item.status==='VALIDATED'?'Validada':item.status==='READ_ONLY_VALIDATED'?'Leitura validada':item.status==='ERROR'?'Erro':item.status==='PENDING_VALIDATION'?'Validação pendente':item.status==='NOT_CONFIGURED'?'Não configurada':item.status;
    pill.textContent=label;pill.className='pill '+((item.status==='VALIDATED'||item.status==='CONNECTED')?'live':'warn');
   });
  }catch(error){root.innerHTML='<div class="empty" role="alert">'+esc(error.message)+'</div>';}
@@ -4472,8 +4524,44 @@ async function openSheinTools(){
   });
   var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Executar';
 }
+async function openTemuTools(){
+  var body='<label for="temuAction">Operação Temu</label><select id="temuAction" name="action" required><option value="validate_link">Validar link (sem salvar)</option><option value="create_draft">Criar rascunho pendente</option></select>'+
+    field('Título do produto','title','text','maxlength="220" placeholder="Nome do produto"')+
+    field('Link de afiliado gerado no portal oficial Temu','affiliateUrl','url','maxlength="2000" placeholder="https://www.temu.com/... ou https://temu.to/..."')+
+    field('Link do produto (opcional)','productUrl','url','maxlength="2000" placeholder="https://www.temu.com/..."')+
+    field('Preço atual em reais','currentPrice','number','min="0.01" step="0.01"')+
+    field('Preço original em reais (opcional)','originalPrice','number','min="0.01" step="0.01"')+
+    field('URL HTTPS da imagem do produto','imageUrl','url','maxlength="1200" placeholder="https://...')+
+    '<label class="csp-margin-top-10px"><input type="checkbox" name="affiliateLinkConfirmed" value="true"> Confirmei que o link foi gerado no Programa de Afiliados Temu da minha conta.</label>'+
+    '<div class="callout">O Radar valida o domínio e pode criar um rascunho. Isso não comprova rastreamento, venda ou comissão. A geração automática via API de afiliados não está disponível sem acesso oficial confirmado. A oferta fica pendente e não é publicada.</div>';
+  openModal('Ferramentas · Temu Afiliados','Use somente links gerados na sua conta oficial. Não cole senha, cookies ou códigos de acesso.',body,async function(event){
+    event.preventDefault();
+    var fd=new FormData(event.target),action=String(fd.get('action')||'validate_link');
+    var payload={action:action,affiliateUrl:String(fd.get('affiliateUrl')||'').trim(),productUrl:String(fd.get('productUrl')||'').trim()};
+    try{
+      if(action==='validate_link'){
+        var check=await operationRequest('/api/integrations/temu',payload);
+        closeModal();
+        openModal('Validação de link Temu','Domínio conferido; rastreamento não foi verificado pela API.','<pre style="white-space:pre-wrap;max-height:55vh;overflow:auto;word-break:break-word">'+esc(JSON.stringify(check,null,2))+'</pre>',function(e){e.preventDefault();closeModal();});
+        var validateSubmit=document.querySelector('#form button[type="submit"]');if(validateSubmit)validateSubmit.textContent='Fechar';
+        return;
+      }
+      payload.title=String(fd.get('title')||'').trim();
+      payload.currentPrice=String(fd.get('currentPrice')||'').trim();
+      payload.originalPrice=String(fd.get('originalPrice')||'').trim();
+      payload.imageUrl=String(fd.get('imageUrl')||'').trim();
+      payload.affiliateLinkConfirmed=fd.get('affiliateLinkConfirmed')==='true';
+      var result=await operationRequest('/api/integrations/temu',payload);
+      closeModal();await load();await loadMarketplaceStatus();
+      toast('Rascunho Temu criado; aprovação e publicação continuam desativadas.');
+      openModal('Rascunho Temu criado','A oferta foi salva como pendente e não foi publicada.','<p><b>ID:</b> '+esc(result.offerId)+'</p><p><b>Status:</b> '+esc(result.status)+'</p><p>'+esc(result.message)+'</p>',function(e){e.preventDefault();closeModal();});
+      var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Fechar';
+    }catch(error){toast(error.message||'Não foi possível validar ou preparar a oferta Temu.');}
+  });
+  var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Executar';
+}
 async function openAliExpressTools(){
-  var body='<label for="aliAction">Operação AliExpress</label><select id="aliAction" name="action" required><option value="test">Validar conexão (consulta somente leitura)</option><option value="products">Buscar produtos (somente consulta)</option><option value="importOffers">Buscar e importar ofertas para revisão manual</option><option value="smartMatch">Recomendação inteligente</option><option value="hotProducts">Produtos em destaque</option><option value="hotProductsDownload">Baixar produtos em destaque</option><option value="productDetail">Detalhes de produtos por ID</option><option value="categories">Categorias</option><option value="campaigns">Campanhas em destaque</option><option value="campaignProducts">Produtos de uma campanha</option><option value="generateLink">Gerar link de afiliado</option><option value="generateLinkAfilimax">Gerar link com provider Afilimax (experimental)</option><option value="orders">Consultar pedidos/comissões (API legada)</option><option value="orderDetail">Detalhes de pedidos por ID</option><option value="ordersByCursor">Consultar pedidos por cursor</option></select>'+field('Palavra-chave','keyword','text','maxlength="120" placeholder="Ex.: fone bluetooth"')+field('IDs dos produtos (separados por vírgula)','productIds','text','maxlength="500"')+field('ID de produto para recomendação inteligente','productId','text','maxlength="30"')+field('IDs dos pedidos (separados por vírgula)','orderIds','text','maxlength="500"')+field('Cursor start_query_index_id (relatórios)','cursor','text','maxlength="200"')+field('Site/região do portal (ex.: global)','localeSite','text','maxlength="30" value="global"')+field('IDs das categorias (separados por vírgula)','categoryIds','text','maxlength="200"')+field('ID da categoria para campanha','categoryId','text','maxlength="80"')+field('Nome exato da campanha','promotionName','text','maxlength="180"')+field('URL original do produto (gerar link)','productUrl','url','maxlength="2000" placeholder="https://www.aliexpress.com/item/..."')+field('País de entrega (ISO, padrão BR)','country','text','maxlength="2" value="BR"')+field('Página','page','number','min="1" max="1000" value="1"')+field('Itens por página (1–50)','pageSize','number','min="1" max="50" value="20"')+field('Desconto mínimo para importar (%)','minDiscountPercent','number','min="0" max="90" value="10"')+field('Comissão mínima para importar (%)','minCommissionRate','number','min="0" max="100" value="3"')+field('Avaliação mínima se fornecida (%)','minimumRating','number','min="0" max="100" value="90"')+field('Preço mínimo (opcional)','minPrice','number','min="0" step="0.01"')+field('Preço máximo (opcional)','maxPrice','number','min="0" step="0.01"')+field('Início do relatório (AAAA-MM-DD HH:mm:ss)','startTime','text','maxlength="19" placeholder="2026-10-01 00:00:00"')+field('Fim do relatório (AAAA-MM-DD HH:mm:ss)','endTime','text','maxlength="19" placeholder="2026-10-02 23:59:59"')+field('Status do pedido','orderStatus','text','maxlength="50" value="Payment Completed"')+'<div class="callout"><b>Atenção:</b> a documentação pública dos métodos Affiliate API está marcada como descontinuada. Todas as consultas dependem de a sua conta ainda ter acesso. Busca, detalhes, categorias, campanhas e relatórios são somente leitura. Gerar link cria apenas um link rastreável; não publica em WhatsApp ou Telegram. O provider Afilimax usa endpoint alternativo não validado com esta conta; use apenas para teste manual e confirme que o portal mantém a API habilitada.</div>';
+  var body='<label for="aliAction">Operação AliExpress</label><select id="aliAction" name="action" required><option value="test">Validar conexão (consulta somente leitura)</option><option value="products">Buscar produtos (somente consulta)</option><option value="importOffers">Buscar e importar ofertas para revisão manual</option><option value="smartMatch">Recomendação inteligente</option><option value="hotProducts">Produtos em destaque</option><option value="hotProductsDownload">Baixar produtos em destaque</option><option value="productDetail">Detalhes de produtos por ID</option><option value="categories">Categorias</option><option value="campaigns">Campanhas em destaque</option><option value="campaignProducts">Produtos de uma campanha</option><option value="generateLink">Gerar link de afiliado</option><option value="generateLinkAfilimax">Gerar link com provider Afilimax (experimental)</option><option value="orders">Consultar pedidos/comissões (API legada)</option><option value="orderDetail">Detalhes de pedidos por ID</option><option value="ordersByCursor">Consultar pedidos por cursor</option></select>'+field('Palavra-chave','keyword','text','maxlength="120" placeholder="Ex.: fone bluetooth"')+field('IDs dos produtos (separados por vírgula)','productIds','text','maxlength="500"')+field('ID de produto para recomendação inteligente','productId','text','maxlength="30"')+field('IDs dos pedidos (separados por vírgula)','orderIds','text','maxlength="500"')+field('Cursor start_query_index_id (relatórios)','cursor','text','maxlength="200"')+field('Site/região do portal (ex.: global)','localeSite','text','maxlength="30" value="global"')+field('IDs das categorias (separados por vírgula)','categoryIds','text','maxlength="200"')+field('ID da categoria para campanha','categoryId','text','maxlength="80"')+field('Nome exato da campanha','promotionName','text','maxlength="180"')+field('URL original do produto (gerar link)','productUrl','url','maxlength="2000" placeholder="https://www.aliexpress.com/item/..."')+field('País de entrega (ISO, padrão BR)','country','text','maxlength="2" value="BR"')+field('Página','page','number','min="1" max="1000" value="1"')+field('Itens por página (1–50)','pageSize','number','min="1" max="50" value="20"')+field('Desconto mínimo para importar (%)','minDiscountPercent','number','min="0" max="90" value="0"')+field('Comissão mínima para importar (%)','minCommissionRate','number','min="0" max="100" value="3"')+field('Avaliação mínima se fornecida (%)','minimumRating','number','min="0" max="100" value="90"')+field('Preço mínimo (opcional)','minPrice','number','min="0" step="0.01"')+field('Preço máximo (opcional)','maxPrice','number','min="0" step="0.01"')+field('Início do relatório (AAAA-MM-DD HH:mm:ss)','startTime','text','maxlength="19" placeholder="2026-10-01 00:00:00"')+field('Fim do relatório (AAAA-MM-DD HH:mm:ss)','endTime','text','maxlength="19" placeholder="2026-10-02 23:59:59"')+field('Status do pedido','orderStatus','text','maxlength="50" value="Payment Completed"')+'<div class="callout"><b>Atenção:</b> a documentação pública dos métodos Affiliate API está marcada como descontinuada. Todas as consultas dependem de a sua conta ainda ter acesso. Busca, detalhes, categorias, campanhas e relatórios são somente leitura. Gerar link cria apenas um link rastreável; não publica em WhatsApp ou Telegram. O provider Afilimax usa endpoint alternativo não validado com esta conta; use apenas para teste manual e confirme que o portal mantém a API habilitada.</div>';
   openModal('Ferramentas · AliExpress Afiliados','Use apenas credenciais oficiais do portal. Não informe sua senha de login nem cookies.',body,async function(event){
     event.preventDefault();var fd=new FormData(event.target),action=String(fd.get('action')||'test'),payload={action:action};
     ['keyword','productIds','productId','orderIds','cursor','localeSite','categoryIds','categoryId','promotionName','productUrl','country','page','pageSize','minDiscountPercent','minCommissionRate','minimumRating','minPrice','maxPrice','startTime','endTime','orderStatus'].forEach(function(key){var v=String(fd.get(key)||'').trim();if(v)payload[key]=v;});
@@ -4510,7 +4598,7 @@ async function openAdmitadTools(){
     field('SubID 2','subid2','text','maxlength="50"')+
     field('SubID 3','subid3','text','maxlength="50"')+
     field('SubID 4','subid4','text','maxlength="120"')+
-    field('Filtro de programas','hasTool','text','maxlength="20" placeholder="deeplink, products ou coupons"')+
+    '<label for="admitadHasTool">Filtrar programas com ferramenta</label><select id="admitadHasTool" name="hasTool"><option value="">Todos</option><option value="coupons">Programas com cupons</option><option value="products">Catálogo de produtos</option><option value="deeplink">Links profundos</option></select>'+
     field('Limite de programas (1–50)','limit','number','min="1" max="50" value="20"')+
     field('Deslocamento/página','offset','number','min="0" max="100000" value="0"')+
     '<div class="callout">O token OAuth é renovado automaticamente no servidor e guardado criptografado. O Website ID precisa pertencer à sua conta. O catálogo não retorna URLs de feeds que possam conter credenciais. Gerar deeplink não publica oferta.</div>';
@@ -4522,22 +4610,41 @@ async function openAdmitadTools(){
   });var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Executar';
 }
 async function openShopeeTools(){
-  var body='<label for="shopeeAction">Operação da Open API</label><select id="shopeeAction" name="action" required><option value="test">Validar conexão (somente leitura)</option><option value="offers">Consultar ofertas</option><option value="create_link">Gerar link de afiliado</option><option value="conversions">Consultar conversões</option><option value="validated">Consultar relatório validado</option></select>'+
+  var body='<label for="shopeeAction">Operação da Open API</label><select id="shopeeAction" name="action" required><option value="test">Validar conexão (somente leitura)</option><option value="offers">Consultar ofertas</option><option value="create_link">Gerar link de afiliado</option><option value="conversions">Consultar conversões</option><option value="validated">Consultar relatório validado</option><option value="batch_links">Gerar vários links de afiliado</option><option value="feeds">Listar feeds de catálogo</option><option value="feed_data">Ler itens de um feed</option></select>'+
     '<label for="shopeeKind">Tipo de oferta</label><select id="shopeeKind" name="kind"><option value="product">Produtos</option><option value="shop">Lojas</option><option value="brand">Marcas</option><option value="shopee">Campanhas Shopee</option></select>'+
     field('Palavra-chave para ofertas','keyword','text','maxlength="80" placeholder="Ex.: fone bluetooth"')+
+    '<label for="shopeeSort">Ordenar por</label><select id="shopeeSort" name="sortType"><option value="5">Maior comissão</option><option value="2">Mais vendidos (ordenação Shopee)</option><option value="1">Relevância</option><option value="3">Maior preço</option><option value="4">Menor preço</option></select>'+
+    '<label for="shopeeListType">Lista de produtos</label><select id="shopeeListType" name="listType"><option value="1">Maior comissão</option><option value="2">Melhor desempenho</option><option value="0">Recomendados</option></select>'+
+    field('ID da loja (opcional)','shopId','text','inputmode="numeric" maxlength="20"')+
+    field('ID do produto (opcional)','itemId','text','inputmode="numeric" maxlength="20"')+
+    '<label for="shopeeAms">Elegibilidade para comissão extra (AMS)</label><select id="shopeeAms" name="isAMSOffer"><option value="">Sem filtro</option><option value="true">Sim</option><option value="false">Não</option></select>'+
+    '<label for="shopeeKeySeller">Somente vendedor estratégico (Key Seller)</label><select id="shopeeKeySeller" name="isKeySeller"><option value="">Sem filtro</option><option value="true">Sim</option><option value="false">Não</option></select>'+
+    field('Página','page','number','min="1" max="1000" value="1"')+
+    field('Resultados por página (1–500)','limit','number','min="1" max="500" value="50"')+
     field('URL original shopee.com.br (para gerar link)','originUrl','url','maxlength="2000" placeholder="https://shopee.com.br/..."')+
     field('SubIDs separados por vírgula (opcional, até 5)','subIds','text','maxlength="300"')+
     field('Data inicial do relatório (opcional)','startDate','date','')+
     field('Data final do relatório (opcional)','endDate','date','')+
+    field('Status do pedido (opcional)','orderStatus','text','maxlength="20" placeholder="COMPLETED, PENDING, UNPAID ou CANCELLED"')+
+    field('Tipo de comprador (opcional)','buyerType','text','maxlength="20" placeholder="NEW ou EXISTING"')+
+    field('Dispositivo (opcional)','device','text','maxlength="10" placeholder="APP ou WEB"')+
     field('Validation ID do relatório de pagamentos','validationId','text','inputmode="numeric" pattern="[0-9]{1,18}" maxlength="18"')+
-    field('Limite de resultados (1–100)','limit','number','min="1" max="100" value="20"')+
-    '<div class="callout">O teste consulta uma oferta sem publicar nem criar links. Consultas de ofertas e relatórios são somente leitura. Gerar link chama a mutação oficial para criar um link de afiliado, mas não publica em WhatsApp ou Telegram.</div>';
+    '<label for="shopeeBatchUrls">URLs para lote (uma por linha, até 20)</label><textarea id="shopeeBatchUrls" name="batchUrls" rows="4" placeholder="https://shopee.com.br/..."></textarea>'+
+    '<label for="shopeeFeedMode">Modo do feed (opcional)</label><select id="shopeeFeedMode" name="feedMode"><option value="">Listar todos</option><option value="FULL">FULL</option><option value="DELTA">DELTA</option></select>'+
+    field('ID do feed para leitura','datafeedId','text','inputmode="numeric" maxlength="24"')+
+    field('Offset do feed','offset','number','min="0" max="1000000" value="0"')+
+    '<div class="callout">Use filtros para buscar produtos por comissão, desempenho, loja e elegibilidade de comissão extra. Para ranking, selecione Produtos e ordene por Mais vendidos. O filtro AMS indica elegibilidade para comissão extra, não garantia de comissão em toda venda. A API de Afiliados não possui busca direta de códigos de cupom. Shopee Video continua em rascunhos até existir acesso autorizado à API própria de vídeo. O relatório validado exige o Validation ID exibido no painel da Shopee. As consultas não publicam ofertas.</div>';
   openModal('Ferramentas · Shopee Afiliados','Use apenas recursos liberados pela Open API da sua conta. Nenhuma operação publica ofertas nos canais.',body,async function(event){
     event.preventDefault();
     var fd=new FormData(event.target),action=String(fd.get('action')||'test'),payload={action:action};
-    if(action==='offers'){payload.kind=String(fd.get('kind')||'product');payload.keyword=String(fd.get('keyword')||'');payload.limit=Number(fd.get('limit')||10);}
+    if(action==='offers'){
+      ['kind','keyword','sortType','listType','shopId','itemId','isAMSOffer','isKeySeller','page','limit'].forEach(function(key){var value=String(fd.get(key)||'').trim();if(value!=='')payload[key]=['sortType','listType','page','limit'].includes(key)?Number(value):value;});
+    }
     if(action==='create_link'){payload.originUrl=String(fd.get('originUrl')||'');payload.subIds=String(fd.get('subIds')||'');}
-    if(action==='conversions'){payload.startDate=String(fd.get('startDate')||'');payload.endDate=String(fd.get('endDate')||'');payload.limit=Number(fd.get('limit')||20);}
+    if(action==='batch_links'){payload.subIds=String(fd.get('subIds')||'');payload.items=String(fd.get('batchUrls')||'').split(/\r?\n/).map(function(url){return url.trim();}).filter(Boolean).slice(0,20).map(function(url){return {originUrl:url};});}
+    if(action==='feeds'){payload.feedMode=String(fd.get('feedMode')||'');}
+    if(action==='feed_data'){payload.datafeedId=String(fd.get('datafeedId')||'');payload.offset=Number(fd.get('offset')||0);payload.limit=Number(fd.get('limit')||100);}
+    if(action==='conversions'){['startDate','endDate','orderStatus','buyerType','device'].forEach(function(key){var value=String(fd.get(key)||'').trim();if(value)payload[key]=value;});payload.limit=Number(fd.get('limit')||20);}
     if(action==='validated'){payload.validationId=String(fd.get('validationId')||'');payload.limit=Number(fd.get('limit')||20);}
     try{
       var result=await operationRequest('/api/integrations/shopee',payload);
