@@ -54,6 +54,6 @@ test('escapes special characters in optional font paths for the FFmpeg filtergra
 });
 
 test('wraps long titles and calls to action without splitting words unnecessarily', () => {
-  assert.equal(wrapText('Kit de cozinha completo com vários acessórios', 18), 'Kit de cozinha\\ncompleto com\\nvários acessórios');
-  assert.equal(wrapText('ABCDEFGHIJK', 4), 'ABCD\\nEFGH\\nIJK');
+  assert.equal(wrapText('Kit de cozinha completo com vários acessórios', 18), 'Kit de cozinha\ncompleto com\nvários acessórios');
+  assert.equal(wrapText('ABCDEFGHIJK', 4), 'ABCD\nEFGH\nIJK');
 });
