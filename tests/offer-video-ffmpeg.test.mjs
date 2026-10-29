@@ -42,5 +42,5 @@ test('offer video prototype uses text files with expansion disabled', () => {
 });
 
 test('offer video prototype wraps long display text', () => {
-  assert.equal(wrapText('Oferta especial para sua casa hoje', 16), 'Oferta especial\npara sua casa hoje');
+  assert.equal(wrapText('Oferta especial para sua casa hoje', 16), 'Oferta especial\npara sua casa\nhoje');
 });
