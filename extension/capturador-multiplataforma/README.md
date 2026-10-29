@@ -50,6 +50,9 @@ A interface permite configurar endpoint HTTPS independente para Mercado Livre, A
 
 ## Envio HTTPS para o Radar (configurado)
 
+- O campo do token não bloqueia o formulário quando a seção de configuração está recolhida; salve o token pela própria seção de configuração.
+- O token `rpb_ext_` é exclusivo para recebimento de ofertas. A área de conectores na extensão é informativa; configure e opere as APIs de marketplace pelo painel do Radar, com as credenciais oficiais de cada programa.
+
 - Endpoint de ofertas: `https://radar-promo-brasil.hatchable.site/api/extension-offers`.
 - O endpoint é específico da extensão e não usa a rota web `/api/data`, que exige sessão de membro.
 - No painel do Radar, abra **Integrações → Extensão Capturador Multiplataforma → Gerar / renovar token da extensão**. Copie o token exibido uma única vez.
