@@ -4,11 +4,31 @@ export const access = 'public';
 export const methods = ['GET', 'POST'];
 
 const clean = (value, max = 500) => String(value ?? '').trim().slice(0, max);
+const SUPPORTED_TOPICS = new Set(['items', 'items_prices']);
 const dateOrNull = value => {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 };
+
+function supportedResource(resource, topic) {
+  const raw = String(resource || '').trim();
+  let pathname = raw;
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      const url = new URL(raw);
+      if (url.protocol !== 'https:' || url.hostname.toLowerCase() !== 'api.mercadolibre.com') return false;
+      pathname = url.pathname;
+    } catch { return false; }
+  }
+  const parts = pathname.split('/').filter(Boolean);
+  if (parts.length === 2 && parts[0].toLowerCase() === 'items') return /^MLB\d+$/i.test(parts[1]);
+  return String(topic || '').toLowerCase() === 'items_prices'
+    && parts.length === 3
+    && parts[0].toLowerCase() === 'items'
+    && /^MLB\d+$/i.test(parts[1])
+    && parts[2].toLowerCase() === 'prices';
+}
 
 async function digest(value) {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
@@ -25,6 +45,9 @@ function normalize(input, applicationId) {
   }
   if (incomingAppId !== applicationId) {
     throw Object.assign(new Error('application_id não corresponde à aplicação configurada.'), { status: 403 });
+  }
+  if (!SUPPORTED_TOPICS.has(topic.toLowerCase()) || !supportedResource(resource, topic)) {
+    throw Object.assign(new Error('Tópico ou recurso não suportado pelo processador do Radar Promo Brasil.'), { status: 400 });
   }
   const rawActions = Array.isArray(input?.actions) ? input.actions : [];
   const actions = rawActions.slice(0, 20).map(value => clean(value, 80)).filter(Boolean);
