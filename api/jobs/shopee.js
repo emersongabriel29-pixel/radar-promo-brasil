@@ -14,12 +14,23 @@ const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padSt
 const list = body => Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : Array.isArray(body?.items) ? body.items : [];
 
 async function credentials(row) {
-  let master = String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '');
-  if (master.length < 32) master = String(await config.get('API_CREDENTIALS_MASTER_KEY') || '');
-  if (master.length < 32) throw new Error('credential_key_missing');
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(master+'|radar-marketplace-credentials|'+row.account_id+'|SHOPEE'));
-  const key = await crypto.subtle.importKey('raw', digest, {name:'AES-GCM'}, false, ['decrypt']);
-  const plain = await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(row.nonce)},key,fromB64(row.credentials_enc));
+  const masters = [
+    String(await config.get('API_CREDENTIALS_MASTER_KEY') || ''),
+    String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '')
+  ].filter((value, index, all) => value.length >= 32 && all.indexOf(value) === index);
+  if (!masters.length) throw new Error('credential_key_missing');
+  let plain = null;
+  for (const master of masters) {
+    try {
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(master+'|radar-marketplace-credentials|'+row.account_id+'|SHOPEE'));
+      const key = await crypto.subtle.importKey('raw', digest, {name:'AES-GCM'}, false, ['decrypt']);
+      plain = await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(row.nonce)},key,fromB64(row.credentials_enc));
+      break;
+    } catch {
+      // Try the next configured key to preserve credentials encrypted by the legacy key.
+    }
+  }
+  if (!plain) throw new Error('credential_decryption_failed');
   return JSON.parse(new TextDecoder().decode(plain));
 }
 async function request(creds, query, variables) {
