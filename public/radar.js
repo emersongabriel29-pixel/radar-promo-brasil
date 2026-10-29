@@ -3941,7 +3941,7 @@ async function loadNow(){
       if(sequence!==loadSequence)return;
     }
     if(data.messageTemplatesData&&Array.isArray(data.messageTemplatesData.templates))data.messageTemplates=data.messageTemplatesData.templates;
-    D=Object.assign({},data.messageTemplatesData?{messageTemplates:data.messageTemplatesData.templates}: {},D,data);D.loadFailures=failures;
+    D=Object.assign({},D,data,data.messageTemplatesData?{messageTemplates:data.messageTemplatesData.templates}: {});D.loadFailures=failures;
     var hash=decodeURIComponent(location.hash.slice(1));
     if(hash)show(hash);else render();
     if(failures.length)document.getElementById('content').insertAdjacentHTML('afterbegin','<div role="alert" class="partial-error">Algumas áreas não puderam ser atualizadas: '+esc(failures.join(', '))+'. <button class="btn secondary" data-action="load()">Tentar novamente</button></div>');
