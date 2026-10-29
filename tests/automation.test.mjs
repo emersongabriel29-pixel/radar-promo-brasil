@@ -125,6 +125,6 @@ test('AliExpress auto-publication queue is source-isolated and does not enqueue 
   const review = await readFile(new URL('../api/jobs/aliexpress-review.js', import.meta.url), 'utf8');
   const autopilot = await readFile(new URL('../lib/autopilot.js', import.meta.url), 'utf8');
   assert.match(review, /enqueueMatches\(accountId, '', \{ source: 'ALIEXPRESS' \}\)/);
-  assert.match(autopilot, /AND \(\$2='' OR source=\$2\)/);
+  assert.match(autopilot, /AND \(\$2='' OR source=\$2\) AND \(\$2<>'ALIEXPRESS' OR validation_status='VALIDATED'\)/);
   assert.match(autopilot, /evaluateMatches\(accountId, options\?\.source \|\| ''\)/);
 });
