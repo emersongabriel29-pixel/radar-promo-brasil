@@ -9,14 +9,14 @@ async function store(offer,status="Salva localmente"){
  await chrome.storage.local.set({offers});return {ok:true,count:offers.length};
 }
 async function sendToApi(offer){
- const config=await chrome.storage.local.get({apiBase:"",apiToken:""});
+ const config=await chrome.storage.local.get({apiBase:"https://radar-promo-brasil.hatchable.site/api/extension-offers",apiToken:""});
  const endpoint=clean(config.apiBase,2000);
  let rawPrice=String(offer.price||"").replace(/[^\d,.-]/g,"");if(rawPrice.includes(",")&&rawPrice.includes("."))rawPrice=rawPrice.lastIndexOf(",")>rawPrice.lastIndexOf(".")?rawPrice.replace(/\./g,"").replace(",","."):rawPrice.replace(/,/g,"");else if(rawPrice.includes(","))rawPrice=rawPrice.replace(",",".");const price=Number(rawPrice);
- if(!endpoint.startsWith("https://"))return {ok:false,status:"API não configurada: informe endpoint HTTPS."};
+ if(!endpoint.startsWith("https://")||!endpoint.endsWith("/api/extension-offers"))return {ok:false,status:"Configure o endpoint HTTPS oficial /api/extension-offers."};if(!config.apiToken)return {ok:false,status:"Token da extensão ausente. Gere-o no painel do Radar."};
  if(!offer.title||!validUrl(offer.affiliateUrl)||!validUrl(offer.imageUrl)||!Number.isFinite(price)||price<=0)return {ok:false,status:"Revisão necessária: título, preço, link afiliado e imagem são obrigatórios."};
  const sourceMap={"Mercado Livre":"MERCADO_LIVRE","Amazon":"AMAZON","SHEIN":"SHEIN","Magalu":"MAGALU","Temu":"TEMU","Outra":"Outro","Shopee":"SHOPEE","AliExpress":"ALIEXPRESS"};
  const payload={entity:"offer",title:offer.title,source:sourceMap[offer.platform]||offer.platform||"Outro",currentPrice:price,originalPrice:offer.originalPrice?Number(String(offer.originalPrice).replace(/[^\d,.-]/g,"").replace(",", ".")):null,imageUrl:offer.imageUrl,affiliateUrl:offer.affiliateUrl,productUrl:offer.productUrl||offer.sourceUrl,sourceCategory:offer.category||"",description:offer.notes||"",subId:offer.subId||"",message:"",storefrontVisible:false};
- const headers={"Content-Type":"application/json"};if(config.apiToken)headers.Authorization="Bearer "+config.apiToken;
+ const headers={"Content-Type":"application/json","Authorization":"Bearer "+config.apiToken};
  try{const response=await fetch(endpoint,{method:"POST",headers,credentials:"omit",body:JSON.stringify(payload)});const body=await response.text();let data;try{data=JSON.parse(body)}catch{data={message:body.slice(0,150)}};if(!response.ok)return {ok:false,status:response.status===409?"Oferta duplicada (409).":"API HTTP "+response.status+": "+clean(data.message||data.error,120)};return {ok:true,status:"API aceitou HTTP "+response.status+"; confirme a gravação no catálogo."};}
  catch(error){return {ok:false,status:"Falha de rede/CORS: "+clean(error.message,120)};}
 }
