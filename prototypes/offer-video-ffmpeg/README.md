@@ -18,12 +18,12 @@ O Radar já tem uma tela de Radar Vídeo IA e uma prévia no navegador, além de
 Na raiz do repositório:
 
 ```bash
-node prototypes/offer-video-ffmpeg/render.mjs \
-  --input ./produto.jpg \
-  --output ./oferta.mp4 \
-  --title "Nome do produto" \
-  --price "R$ 49,90" \
-  --cta "Confira os detalhes no link da publicação" \
+node prototypes/offer-video-ffmpeg/render.mjs \\
+  --input ./produto.jpg \\
+  --output ./oferta.mp4 \\
+  --title "Nome do produto" \\
+  --price "R$ 49,90" \\
+  --cta "Confira os detalhes no link da publicação" \\
   --duration 15
 ```
 
@@ -48,8 +48,18 @@ Opções:
 
 ## Testes
 
+Testes unitários e de construção do comando:
+
 ```bash
 node --test prototypes/offer-video-ffmpeg/render.test.mjs
 ```
 
-Os testes cobrem parsing de argumentos, validações e construção segura do comando. Eles não substituem um teste de renderização real com FFmpeg instalado. Este protótipo não deve ser implantado na Hatchable nem no servidor de produção sem uma decisão e uma integração separadas.
+Teste de integração que executa o renderizador com FFmpeg real e valida o MP4 com `ffprobe` (requer ambos instalados):
+
+```bash
+RUN_FFMPEG_INTEGRATION=1 node --test prototypes/offer-video-ffmpeg/render.integration.test.mjs
+```
+
+A CI instala FFmpeg/ffprobe e executa os dois conjuntos de testes. A execução de CI #931, no commit `d7a1079417cdf4f022ad229c60014c162bd6e2cc`, passou. Qualquer novo commit exige nova execução da CI antes de considerar a revisão final concluída.
+
+Este protótipo não deve ser implantado na Hatchable nem no servidor de produção sem uma decisão e uma integração separadas.
