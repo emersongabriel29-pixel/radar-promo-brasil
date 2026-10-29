@@ -4,6 +4,7 @@
   "version": "1.5.0",
   "description": "Captura ofertas ao copiar links de afiliado e identifica marketplaces automaticamente.",
   "permissions": ["activeTab", "storage", "downloads", "tabs", "clipboardRead"],
+  "optional_host_permissions": ["https://*/*"],
   "host_permissions": [
     "https://*.mercadolivre.com.br/*", "https://*.mercadolibre.com/*", "https://meli.la/*",
     "https://*.amazon.com.br/*", "https://*.amazon.com/*", "https://amzn.to/*", "https://a.co/*",
