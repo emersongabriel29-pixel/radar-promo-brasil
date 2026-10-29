@@ -11,6 +11,7 @@ var D = {
     leadStats: [],
     activity: [],
     integrations: [],
+    messageTemplates: [],
     integrationHealth: { items: [], interval: "hourly", alert: false },
     automation: {},
     suite: {
@@ -97,6 +98,7 @@ var GROUPS = {
     ["security", "Segurança e LGPD", "SX", "security"],
     ["integrations", "Integrações", "IN", "integrations"],
     ["account", "Conta, vitrine e planos", "CT", "accountView"],
+    ["templates", "Modelos de mensagem", "TM", "messageTemplatesView"],
   ],
 };
 var LABEL = {
@@ -2331,6 +2333,83 @@ function accountView() {
     '<button class="btn csp-margin-top-12px"  data-action="openTelegramConnection()">+ Conectar bot</button></div></div><div class="callout csp-margin-top-14px" >O bot do Telegram precisa ser administrador do grupo ou canal. Credenciais nunca aparecem novamente na tela.</div>'
   );
 }
+
+var editingMessageTemplateId = '';
+function messageTemplatesView() {
+  var rows = (D.messageTemplates || []).map(function(item) {
+    return '<article class="card csp-margin-top-12px"><div class="sectionhead"><div><h3>' + esc(item.name) + '</h3><p class="muted">' + (item.isActive ? 'Ativo' : 'Pausado') + ' · atualizado em ' + esc(item.updatedAt ? new Date(item.updatedAt).toLocaleString('pt-BR') : '—') + '</p></div><div class="actions"><button type="button" class="btn secondary" data-action="editMessageTemplate(\'' + esc(item.id) + '\')">Editar</button><button type="button" class="btn danger" data-action="deleteMessageTemplate(\'' + esc(item.id) + '\')">Excluir</button></div></div><pre class="template-preview">' + esc(item.body) + '</pre></article>';
+  }).join('');
+  return section('Modelos de mensagem', 'Crie modelos personalizados salvos no banco e isolados por conta. Eles não enviam nem publicam mensagens.', '+ Novo modelo', 'newMessageTemplate()') +
+    '<div class="grid two"><section class="card"><h3 id="message-template-form-title">Novo modelo</h3><form id="message-template-form" onsubmit="return false"><div class="field"><label for="message-template-name">Nome</label><input id="message-template-name" class="input" maxlength="80" required placeholder="Ex.: Oferta de eletrônicos"></div><div class="field csp-margin-top-12px"><label for="message-template-body">Texto do modelo</label><textarea id="message-template-body" class="input" rows="9" maxlength="3000" required placeholder="🔥 {{produto}} por {{preco}}&#10;Compre: {{link_afiliado}}"></textarea></div><p class="muted">Variáveis: {{produto}}, {{preco}}, {{preco_anterior}}, {{desconto}}, {{loja}}, {{link_afiliado}}, {{cupom}}, {{link_cupom}}, {{categoria}}.</p><label class="checkline"><input id="message-template-active" type="checkbox" checked> Modelo ativo</label><div class="actions csp-margin-top-12px"><button type="button" class="btn" data-action="saveMessageTemplate()">Salvar modelo</button><button type="button" class="btn secondary" data-action="previewSavedMessageTemplate()">Pré-visualizar</button><button type="button" class="btn secondary" data-action="resetMessageTemplateForm()">Limpar</button></div><div id="message-template-preview" class="callout csp-hidden csp-margin-top-12px" role="status"></div></form></section><section><h3>Modelos salvos (' + (D.messageTemplates || []).length + ')</h3>' + (rows || '<div class="empty"><b>Nenhum modelo personalizado</b><p>Crie um modelo à esquerda. Os modelos padrão do Radar continuam disponíveis na criação de ofertas.</p></div>') + '</section></div>';
+}
+function newMessageTemplate() {
+  editingMessageTemplateId = '';
+  var title = document.getElementById('message-template-form-title');
+  if (title) title.textContent = 'Novo modelo';
+  resetMessageTemplateForm();
+  var name = document.getElementById('message-template-name');
+  if (name) name.focus();
+}
+function resetMessageTemplateForm() {
+  editingMessageTemplateId = '';
+  var form = document.getElementById('message-template-form');
+  if (!form) return;
+  form.reset();
+  document.getElementById('message-template-active').checked = true;
+  document.getElementById('message-template-form-title').textContent = 'Novo modelo';
+  var preview = document.getElementById('message-template-preview');
+  preview.classList.add('csp-hidden');
+  preview.textContent = '';
+}
+function editMessageTemplate(templateId) {
+  var item = (D.messageTemplates || []).find(function(entry) { return entry.id === templateId; });
+  if (!item) return toast('Modelo não encontrado. Atualize a tela e tente novamente.');
+  editingMessageTemplateId = item.id;
+  document.getElementById('message-template-name').value = item.name;
+  document.getElementById('message-template-body').value = item.body;
+  document.getElementById('message-template-active').checked = Boolean(item.isActive);
+  document.getElementById('message-template-form-title').textContent = 'Editar modelo';
+  document.getElementById('message-template-form-title').scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function saveMessageTemplate() {
+  var name = document.getElementById('message-template-name').value.trim();
+  var body = document.getElementById('message-template-body').value.trim();
+  var isActive = document.getElementById('message-template-active').checked;
+  try {
+    var response = await fetch('/api/messages/templates', {method: editingMessageTemplateId ? 'PUT' : 'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:editingMessageTemplateId || undefined,name,body,isActive})});
+    var result = await response.json();
+    if (!response.ok) throw Error(result.error || 'Não foi possível salvar o modelo.');
+    var data = await readJSON('/api/messages/templates');
+    D.messageTemplates = data.templates || [];
+    resetMessageTemplateForm();
+    render();
+    toast('Modelo salvo na conta.');
+  } catch(error) { toast(error.message || 'Não foi possível salvar o modelo.'); }
+}
+async function deleteMessageTemplate(templateId) {
+  if (!confirm('Excluir este modelo desta conta? Esta ação não envia mensagens.')) return;
+  try {
+    var response = await fetch('/api/messages/templates?id=' + encodeURIComponent(templateId), {method:'DELETE'});
+    var result = await response.json();
+    if (!response.ok) throw Error(result.error || 'Não foi possível excluir o modelo.');
+    D.messageTemplates = (D.messageTemplates || []).filter(function(item){return item.id !== templateId;});
+    render();
+    toast('Modelo excluído.');
+  } catch(error) { toast(error.message || 'Não foi possível excluir o modelo.'); }
+}
+function previewSavedMessageTemplate() {
+  var body = document.getElementById('message-template-body').value;
+  var values = {produto:'Produto de exemplo',preco:'R$ 99,90',preco_anterior:'R$ 149,90',desconto:'33%',loja:'Shopee',link_afiliado:'https://exemplo.invalid/link',cupom:'CUPOM10',link_cupom:'https://exemplo.invalid/cupom',categoria:'Tecnologia'};
+  var preview = document.getElementById('message-template-preview');
+  var tokens = [...body.matchAll(/{{\s*([a-zA-Z_]+)\s*}}/g)].map(function(match){return match[1].toLowerCase();});
+  var allowed = ['produto','preco','preco_anterior','desconto','loja','link_afiliado','cupom','link_cupom','categoria'];
+  var unknown = tokens.filter(function(token){return !allowed.includes(token);});
+  if (!body.trim()) return toast('Escreva o texto do modelo antes de pré-visualizar.');
+  if (unknown.length || /{{|}}/.test(body.replace(/{{\s*[a-zA-Z_]+\s*}}/g,''))) return toast('Corrija as variáveis inválidas antes de pré-visualizar.');
+  preview.textContent = body.replace(/{{\s*([a-zA-Z_]+)\s*}}/g,function(_match,token){return values[token.toLowerCase()] || '';});
+  preview.classList.remove('csp-hidden');
+}
+
 function render() {
   nav();
   var globalOfferAction=document.getElementById("global-create-offer");
@@ -2354,6 +2433,7 @@ function render() {
     settings: function () {
       return groupPage("settings");
     },
+    templates: messageTemplatesView,
     quick: quick,
     monitoring: monitoring,
   };
@@ -2942,6 +3022,7 @@ function openOffer(prefill) {
         "messageTemplate",
         '<option value="AUTO">Automático pela categoria</option><option value="IMPACT">Impactante</option><option value="COMPLETE">Oferta completa</option><option value="BABY">Bebês e família</option><option value="IMPORTED">Produtos importados</option><option value="CLEAN">Direto e limpo</option>',
       ) +
+      '<div class="field"><label for="customMessageTemplateId">Modelo personalizado salvo</label><select class="input" id="customMessageTemplateId"><option value="">Selecione um modelo salvo...</option>' + (D.messageTemplates || []).filter(function(item){return item.isActive;}).map(function(item){return '<option value="' + esc(item.id) + '">' + esc(item.name) + '</option>';}).join('') + '</select><button type="button" class="btn secondary csp-margin-top-8px" data-action="applySavedOfferTemplate()">Usar modelo salvo</button><small class="muted">Gerencie os modelos em Configurações → Modelos de mensagem.</small></div>' +
       '<div class="field"><div class="csp-field-heading"><label>Mensagem da promoção</label><div class="actions"><button type="button" class="btn secondary" data-action="previewMessage()">Montar modelo</button><button type="button" class="btn secondary" data-action="generateAI()">Melhorar com IA</button></div></div><textarea class="input" name="message" rows="12" placeholder="Clique em Montar modelo ou Melhorar com IA.">' + esc(prefill.message || "") + '</textarea></div>',
     async function (e) {
       e.preventDefault();
@@ -3070,6 +3151,35 @@ function offerMessageData() {
     template: f.elements.messageTemplate.value,
   };
 }
+
+function applySavedOfferTemplate() {
+  var form = document.getElementById('form');
+  var selected = document.getElementById('customMessageTemplateId');
+  var template = (D.messageTemplates || []).find(function(item){return item.id === (selected && selected.value);});
+  if (!template) return toast('Selecione um modelo personalizado ativo.');
+  var data = offerMessageData();
+  var money = function(value) {
+    var number = Number(String(value || '').replace(',', '.'));
+    return Number.isFinite(number) && number > 0 ? number.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : '';
+  };
+  var current = Number(String(data.currentPrice || '').replace(',', '.'));
+  var original = Number(String(data.originalPrice || '').replace(',', '.'));
+  var discount = Number.isFinite(current) && Number.isFinite(original) && original > current ? Math.round((original-current)*100/original) + '%' : '';
+  var values = {
+    produto: data.title || '',
+    preco: money(data.currentPrice),
+    preco_anterior: money(data.originalPrice),
+    desconto: discount,
+    loja: data.source || '',
+    link_afiliado: data.affiliateUrl || '',
+    cupom: data.couponCode || '',
+    link_cupom: data.couponUrl || '',
+    categoria: data.category || ''
+  };
+  form.elements.message.value = template.body.replace(/{{\s*([a-zA-Z_]+)\s*}}/g,function(_match,token){return values[token.toLowerCase()] || '';});
+  toast('Modelo personalizado aplicado. Revise o texto antes de salvar a oferta.');
+}
+
 async function previewMessage() {
   var f = document.getElementById("form"),
     x = offerMessageData();
@@ -3853,14 +3963,15 @@ async function loadNow(){
   try{
     var data=await readJSON('/api/data');
     // Serialize dashboard reads to avoid bursts against the project's shared DB query limit.
-    var paths=['/api/suite','/api/reports?days='+reportDays,'/api/growth','/api/social/autopilot','/api/compliance/messaging?days=7','/api/readiness','/api/integrations/health-summary'];
-    var keys=['suite','reportsData','growth','social','compliance','readiness','integrationHealth'],failures=[];
+    var paths=['/api/suite','/api/reports?days='+reportDays,'/api/growth','/api/social/autopilot','/api/compliance/messaging?days=7','/api/readiness','/api/integrations/health-summary','/api/messages/templates'];
+    var keys=['suite','reportsData','growth','social','compliance','readiness','integrationHealth','messageTemplatesData'],failures=[];
     for(var index=0;index<paths.length;index++){
       try{data[keys[index]]=await readJSON(paths[index]);}
       catch(error){data[keys[index]]=D[keys[index]];failures.push(keys[index]);}
       if(sequence!==loadSequence)return;
     }
-    D=Object.assign({},D,data);D.loadFailures=failures;
+    if(data.messageTemplatesData&&Array.isArray(data.messageTemplatesData.templates))data.messageTemplates=data.messageTemplatesData.templates;
+    D=Object.assign({},D,data,data.messageTemplatesData?{messageTemplates:data.messageTemplatesData.templates}: {});D.loadFailures=failures;
     var hash=decodeURIComponent(location.hash.slice(1));
     if(hash)show(hash);else render();
     if(failures.length)document.getElementById('content').insertAdjacentHTML('afterbegin','<div role="alert" class="partial-error">Algumas áreas não puderam ser atualizadas: '+esc(failures.join(', '))+'. <button class="btn secondary" data-action="load()">Tentar novamente</button></div>');
