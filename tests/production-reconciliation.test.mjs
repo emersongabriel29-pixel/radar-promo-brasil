@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [ui, shell, theme, shopee, shopeeJob, readiness] = await Promise.all([
+const [ui, shell, theme, shopee, shopeeJob, readiness, healthEndpoint] = await Promise.all([
   readFile('public/radar.js', 'utf8'),
   readFile('pages/index.js', 'utf8'),
   readFile('public/radar-theme-v5.css', 'utf8'),
   readFile('api/integrations/shopee.js', 'utf8'),
   readFile('api/jobs/shopee.js', 'utf8'),
-  readFile('api/readiness.js', 'utf8')
+  readFile('api/readiness.js', 'utf8'),
+  readFile('api/integrations/health-summary.js', 'utf8')
 ]);
 
 test('painel de saúde é síncrono e usa o endpoint de diagnóstico de leitura', () => {
@@ -17,6 +18,16 @@ test('painel de saúde é síncrono e usa o endpoint de diagnóstico de leitura'
   assert.match(ui, /integrationHealthPanel\(\) \+/);
   assert.match(ui, /\/api\/integrations\/health-summary/);
   assert.match(ui, /'integrationHealth'/);
+});
+
+test('monitoramento identifica explicitamente o escopo limitado ao n8n', () => {
+  assert.match(ui, /Monitoramento do n8n/);
+  assert.match(ui, /API REST e o MCP do n8n/);
+  assert.match(healthEndpoint, /export const access = 'member'/);
+  assert.match(healthEndpoint, /export const methods = \['GET'\]/);
+  assert.match(healthEndpoint, /n8n_api_rest/);
+  assert.match(healthEndpoint, /n8n_mcp/);
+  assert.doesNotMatch(healthEndpoint, /INSERT|UPDATE|DELETE/i);
 });
 
 test('padrão do filtro de desconto preserva o comportamento da produção', () => {
