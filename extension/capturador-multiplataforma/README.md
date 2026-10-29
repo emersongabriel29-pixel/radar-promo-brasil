@@ -1,4 +1,4 @@
-# Capturador Multiplataforma v1.5.0
+# Capturador Multiplataforma v1.6.0
 
 ## Captura ao copiar link
 - O content script observa o evento de cópia nas páginas de marketplaces compatíveis e extrai somente uma URL do texto exposto nesse evento.
@@ -22,9 +22,10 @@ Mercado Livre, Amazon, Shopee, AliExpress, Temu, SHEIN e Magalu. A identificaç�
 3. Selecione a pasta que contém `manifest.json`.
 
 ## API
-- Configure o endpoint HTTPS real da API.
-- O Bearer Token só funciona se o destino aceitar esse método. A rota Hatchable `/api/data` usa autenticação de membro e não aceita automaticamente token standalone.
-- Respostas HTTP 2xx indicam aceitação da solicitação, não comprovam publicação nem persistência final. Confira o catálogo.
+- Configure o endpoint HTTPS `/api/extension-offers` e o token Bearer exclusivo gerado no painel do Radar.
+- O envio usa `credentials: omit`: não depende de cookies nem de sessão do navegador.
+- Não use o token da extensão em `/api/data` nem como credencial de marketplace.
+- HTTP 201 confirma recebimento como rascunho; a oferta fica `PENDING` e precisa ser revisada no catálogo. Não há publicação automática.
 - O capturador não publica diretamente no Telegram/WhatsApp; segue o fluxo de aprovação e publicação do Radar.
 
 ## Privacidade e limites
@@ -43,7 +44,7 @@ A interface permite configurar endpoint HTTPS independente para Mercado Livre, A
 - Amazon, Shopee e AliExpress têm operações de leitura e geração de links implementadas no backend, sujeitas às credenciais e permissões de cada programa.
 - Mercado Livre, SHEIN, Temu e Magalu têm fluxos que distinguem OAuth/conta de links de afiliado; onde não há API pública de geração validada, a extensão orienta a importar o link oficial gerado no portal.
 - Credenciais oficiais ficam criptografadas no backend. O token da extensão autentica no Radar, não no marketplace.
-- A autenticação Bearer da extensão é compatível com instalações standalone configuradas para API token. Em hospedagem Hatchable com sessão de membro, chamadas cross-origin da extensão podem exigir um fluxo de autorização específico.
+- A autenticação Bearer desta integração vale exclusivamente para o envio de ofertas em `/api/extension-offers`; não autentica as rotas dos conectores de marketplace. A conexão individual de Amazon, Shopee, AliExpress e demais lojas permanece uma etapa separada.
 - Consulte `INTEGRACOES_MARKETPLACES.md` para capacidades, rotas e limitações por loja.
 
 
