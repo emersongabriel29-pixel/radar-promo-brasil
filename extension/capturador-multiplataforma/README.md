@@ -45,3 +45,17 @@ A interface permite configurar endpoint HTTPS independente para Mercado Livre, A
 - Credenciais oficiais ficam criptografadas no backend. O token da extensão autentica no Radar, não no marketplace.
 - A autenticação Bearer da extensão é compatível com instalações standalone configuradas para API token. Em hospedagem Hatchable com sessão de membro, chamadas cross-origin da extensão podem exigir um fluxo de autorização específico.
 - Consulte `INTEGRACOES_MARKETPLACES.md` para capacidades, rotas e limitações por loja.
+
+
+## Envio HTTPS para o Radar (configurado)
+
+- Endpoint de ofertas: `https://radar-promo-brasil.hatchable.site/api/extension-offers`.
+- O endpoint é específico da extensão e não usa a rota web `/api/data`, que exige sessão de membro.
+- No painel do Radar, abra **Integrações → Extensão Capturador Multiplataforma → Gerar / renovar token da extensão**. Copie o token exibido uma única vez.
+- Na extensão, abra **Configuração da API**, mantenha o endpoint HTTPS acima e cole o token. Salve a configuração.
+- O token é individual por conta; o backend armazena somente SHA-256 e permite revogar/rotacionar pelo painel. O token fica em `chrome.storage.local` restrito a contextos confiáveis do Chrome.
+- Ofertas recebidas são criadas como `PENDING`, com `validation_status=PENDING` e `storefront_visible=false`. A extensão não publica nem aprova automaticamente.
+- O backend limita a 30 ofertas por minuto por conta e rejeita token ausente/revogado, links que não sejam HTTPS e ofertas duplicadas.
+- A rota de recebimento foi testada com token válido: HTTP 201; a oferta de teste foi removida após a verificação e o token de teste foi revogado. Sem token, a rota responde HTTP 401.
+
+**Atenção:** o token acima autentica apenas o envio de ofertas ao Radar. As ações de consulta/geração nas APIs de cada marketplace continuam dependendo de autenticação e permissões próprias; não reutilize o token da extensão como credencial de marketplace.
