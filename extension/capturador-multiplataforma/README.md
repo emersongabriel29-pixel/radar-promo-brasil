@@ -1,9 +1,10 @@
 # Capturador Multiplataforma v1.4.0
 
-## Busca e extração de cupons (v1.4.0)
+## Busca, extração e validação assistida de cupons (v1.4.0)
 - A extensão pesquisa páginas públicas de sites de cupons e tenta extrair códigos, descontos e datas de validade do HTML acessível.
 - O resultado separa códigos expirados, páginas que declaram o código ativo e códigos sem confirmação suficiente.
-- “Fonte declara ativo” significa apenas que o texto público da página indica atividade. A extensão não confirma aplicação real no checkout, pois isso depende de loja, produto, conta, região, valor mínimo e regras do cupom.
+- “Fonte declara ativo” significa apenas que o texto público da página indica atividade. A extensão não confirma aplicação real no checkout automaticamente, pois isso depende de loja, produto, conta, região, valor mínimo e regras do cupom.
+- Para testar, use **Abrir produto para testar**: a extensão copia o código e abre a URL do produto; aplique o cupom no carrinho da loja e depois registre **Funcionou no carrinho** ou **Loja recusou**. O registro é uma confirmação manual do usuário, não uma leitura automática do checkout.
 - Algumas fontes bloqueiam requisições ou carregam dados via JavaScript; nesses casos, a busca pode não retornar códigos. Nunca trate a ausência de resultados como prova de que não existem cupons.
 
 ## Busca automática de cupons (v1.3.0)
