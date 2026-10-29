@@ -1,8 +1,14 @@
 import { db } from 'hatchable';
 import { offerScore } from 'lib/automation.js';
+import { isMedicationProduct } from 'lib/product-safety.js';
 
 export const access = 'scheduler';
 export const methods = ['POST'];
+
+const isAliExpressUrl = value => {
+  try { const url = new URL(String(value || '')); const host = url.hostname.toLowerCase(); return url.protocol === 'https:' && !url.username && !url.password && (host === 'aliexpress.com' || host.endsWith('.aliexpress.com') || host === 'aliexpress.us' || host.endsWith('.aliexpress.us')); }
+  catch { return false; }
+};
 
 const isHttps = value => {
   try { const url = new URL(String(value || '')); return url.protocol === 'https:' && !url.username && !url.password; }
@@ -24,8 +30,9 @@ export default async function handler(req, res) {
       const discount = original > current && original > 0 ? Math.round((original - current) * 100 / original) : 0;
       let reason = '';
       if (!String(offer.title || '').trim()) reason = 'Título ausente';
-      else if (!isHttps(offer.affiliate_url) || !isHttps(offer.product_url) || !isHttps(offer.image_url)) reason = 'Link de afiliado, produto ou imagem HTTPS ausente/inválido';
+      else if (!isHttps(offer.affiliate_url) || !isAliExpressUrl(offer.product_url) || !isHttps(offer.image_url)) reason = 'Link de afiliado, produto AliExpress ou imagem HTTPS ausente/inválido';
       else if (!Number.isFinite(current) || !Number.isFinite(original) || current <= 0 || original <= current) reason = 'Preço atual/original inválido ou desconto não verificável';
+      else if (isMedicationProduct({ title: offer.title, product_url: offer.product_url })) reason = 'Produto bloqueado pela política de segurança';
       // Descontos abaixo de 10% são permitidos; preços ainda precisam ser válidos.
       if (reason) {
         await db.query(
