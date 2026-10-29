@@ -40,3 +40,15 @@ test('uses text files with expansion disabled so user text is not interpreted as
   assert.match(graph, /scale=720:1280/);
   assert.match(graph, /format=yuv420p/);
 });
+
+
+test('escapes special characters in optional font paths for the FFmpeg filtergraph', () => {
+  const graph = buildFilterGraph({
+    titleFile: '/tmp/title.txt',
+    priceFile: '',
+    ctaFile: '/tmp/cta.txt',
+    font: "/tmp/Font, [test];it's.ttf",
+    duration: 15
+  });
+  assert.ok(graph.includes("fontfile='/tmp/Font\\, \\[test\\]\\;it\\'s.ttf':"));
+});
