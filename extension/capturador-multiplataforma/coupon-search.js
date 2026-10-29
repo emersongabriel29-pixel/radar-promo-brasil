@@ -1,6 +1,6 @@
 (() => {
   const $ = id => document.getElementById(id);
-  const clean = v => String(v || "").replace(/\\s+/g, " ").trim();
+  const clean = v => String(v || "").replace(/\s+/g, " ").trim();
   const couponSources = ["promobit.com.br","pelando.com.br","cuponomia.com.br","melhorescupons.com.br","cupom.org","méliuz.com.br","melhoresdestinos.com.br"];
   const statusText = (s, t) => { if ($("status")) $("status").textContent = s; if ($("couponStatus")) $("couponStatus").textContent = t || s; };
   const currentTitle = () => clean($("title")?.value);
