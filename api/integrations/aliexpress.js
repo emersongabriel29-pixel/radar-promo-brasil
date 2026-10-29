@@ -3,6 +3,7 @@ import { signTopParams } from 'lib/top-signature.js';
 import { createAliExpressAffiliateUrl, signAliExpressParams, validateAliExpressProductUrl } from 'lib/afilimax-aliexpress-provider.js';
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
+import { isMedicationProduct } from 'lib/product-safety.js';
 import { formatPromo } from 'lib/promo-message.js';
 
 export const access = 'member';
@@ -294,6 +295,7 @@ export default async function handler(req,res){
         const discount=originalPrice>0&&currentPrice>0?Math.round((originalPrice-currentPrice)*100/originalPrice):0;
         let reason='';
         if(!title)reason='Título ausente';
+        else if(isMedicationProduct({title,sourceCategory:'AliExpress',product_url:productUrl}))reason='Medicamentos excluídos pelas regras do Radar Promo Brasil';
         else if(!/^https:\/\//i.test(productUrl)||!/^https:\/\//i.test(affiliateUrl)||!/^https:\/\//i.test(imageUrl))reason='Produto sem link original, link de afiliado ou imagem HTTPS válida';
         else if(!Number.isSafeInteger(currentPrice)||currentPrice<=0||!Number.isSafeInteger(originalPrice)||originalPrice<=currentPrice)reason='Preço atual/original inválido ou sem desconto verificável';
         else if(discount<minDiscount)reason='Desconto abaixo do mínimo de '+minDiscount+'%';
