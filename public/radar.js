@@ -3022,6 +3022,7 @@ function openOffer(prefill) {
         "messageTemplate",
         '<option value="AUTO">Automático pela categoria</option><option value="IMPACT">Impactante</option><option value="COMPLETE">Oferta completa</option><option value="BABY">Bebês e família</option><option value="IMPORTED">Produtos importados</option><option value="CLEAN">Direto e limpo</option>',
       ) +
+      '<div class="field"><label for="customMessageTemplateId">Modelo personalizado salvo</label><select class="input" id="customMessageTemplateId"><option value="">Selecione um modelo salvo...</option>' + (D.messageTemplates || []).filter(function(item){return item.isActive;}).map(function(item){return '<option value="' + esc(item.id) + '">' + esc(item.name) + '</option>';}).join('') + '</select><button type="button" class="btn secondary csp-margin-top-8px" data-action="applySavedOfferTemplate()">Usar modelo salvo</button><small class="muted">Gerencie os modelos em Configurações → Modelos de mensagem.</small></div>' +
       '<div class="field"><div class="csp-field-heading"><label>Mensagem da promoção</label><div class="actions"><button type="button" class="btn secondary" data-action="previewMessage()">Montar modelo</button><button type="button" class="btn secondary" data-action="generateAI()">Melhorar com IA</button></div></div><textarea class="input" name="message" rows="12" placeholder="Clique em Montar modelo ou Melhorar com IA.">' + esc(prefill.message || "") + '</textarea></div>',
     async function (e) {
       e.preventDefault();
@@ -3150,6 +3151,35 @@ function offerMessageData() {
     template: f.elements.messageTemplate.value,
   };
 }
+
+function applySavedOfferTemplate() {
+  var form = document.getElementById('form');
+  var selected = document.getElementById('customMessageTemplateId');
+  var template = (D.messageTemplates || []).find(function(item){return item.id === (selected && selected.value);});
+  if (!template) return toast('Selecione um modelo personalizado ativo.');
+  var data = offerMessageData();
+  var money = function(value) {
+    var number = Number(String(value || '').replace(',', '.'));
+    return Number.isFinite(number) && number > 0 ? number.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : '';
+  };
+  var current = Number(String(data.currentPrice || '').replace(',', '.'));
+  var original = Number(String(data.originalPrice || '').replace(',', '.'));
+  var discount = Number.isFinite(current) && Number.isFinite(original) && original > current ? Math.round((original-current)*100/original) + '%' : '';
+  var values = {
+    produto: data.title || '',
+    preco: money(data.currentPrice),
+    preco_anterior: money(data.originalPrice),
+    desconto: discount,
+    loja: data.source || '',
+    link_afiliado: data.affiliateUrl || '',
+    cupom: data.couponCode || '',
+    link_cupom: data.couponUrl || '',
+    categoria: data.category || ''
+  };
+  form.elements.message.value = template.body.replace(/{{\s*([a-zA-Z_]+)\s*}}/g,function(_match,token){return values[token.toLowerCase()] || '';});
+  toast('Modelo personalizado aplicado. Revise o texto antes de salvar a oferta.');
+}
+
 async function previewMessage() {
   var f = document.getElementById("form"),
     x = offerMessageData();
