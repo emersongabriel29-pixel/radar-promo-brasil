@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [ui, shell, theme, shopee, readiness] = await Promise.all([
+const [ui, shell, theme, shopee, shopeeJob, readiness] = await Promise.all([
   readFile('public/radar.js', 'utf8'),
   readFile('pages/index.js', 'utf8'),
   readFile('public/radar-theme-v5.css', 'utf8'),
   readFile('api/integrations/shopee.js', 'utf8'),
+  readFile('api/jobs/shopee.js', 'utf8'),
   readFile('api/readiness.js', 'utf8')
 ]);
 
@@ -37,6 +38,15 @@ test('tema contém a área de trabalho de Ofertas da produção', () => {
 test('Shopee continua em modo de teste somente leitura e não publica', () => {
   assert.match(shopee, /readOnlyTest: true/);
   assert.match(shopee, /publicationEnabled: false/);
+});
+
+test('consulta e ingestão Shopee tentam ambas as chaves de criptografia sem depender da precedência', () => {
+  for (const source of [shopee, shopeeJob]) {
+    assert.match(source, /API_CREDENTIALS_MASTER_KEY/);
+    assert.match(source, /CONNECTOR_ENCRYPTION_KEY/);
+    assert.match(source, /for \(const master of masters\)/);
+    assert.match(source, /credential.*decript|descriptografar|legacy key/i);
+  }
 });
 
 test('prontidão inclui verificações separadas de Runway e Gemini', () => {
