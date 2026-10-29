@@ -18,12 +18,23 @@ async function getCredentials(accountId) {
     [accountId]
   )).rows[0];
   if (!row) return null;
-  let master = String(await config.get('API_CREDENTIALS_MASTER_KEY') || '');
-  if (master.length < 32) master = String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '');
-  if (master.length < 32) throw Object.assign(new Error('Configure API_CREDENTIALS_MASTER_KEY ou CONNECTOR_ENCRYPTION_KEY nos segredos do projeto.'), { status: 412 });
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(master + '|radar-marketplace-credentials|' + accountId + '|SHOPEE'));
-  const key = await crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['decrypt']);
-  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(row.nonce) }, key, fromB64(row.credentials_enc));
+  const masters = [
+    String(await config.get('API_CREDENTIALS_MASTER_KEY') || ''),
+    String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '')
+  ].filter((value, index, all) => value.length >= 32 && all.indexOf(value) === index);
+  if (!masters.length) throw Object.assign(new Error('Configure API_CREDENTIALS_MASTER_KEY ou CONNECTOR_ENCRYPTION_KEY nos segredos do projeto.'), { status: 412 });
+  let plain = null;
+  for (const master of masters) {
+    try {
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(master + '|radar-marketplace-credentials|' + accountId + '|SHOPEE'));
+      const key = await crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['decrypt']);
+      plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(row.nonce) }, key, fromB64(row.credentials_enc));
+      break;
+    } catch {
+      // Try the next configured key to preserve credentials encrypted by the legacy key.
+    }
+  }
+  if (!plain) throw Object.assign(new Error('Não foi possível descriptografar as credenciais Shopee com as chaves configuradas.'), { status: 412 });
   return { credentials: JSON.parse(new TextDecoder().decode(plain)), status: row.status };
 }
 
