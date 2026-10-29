@@ -16,7 +16,6 @@ function private6(ip){
   if(parts.length>2) return true;
   const expand=part=>part?part.split(':'): [];
   let left=expand(parts[0]), right=expand(parts[1]||'');
-  const dotted=(right.length?right[left.length?right.length-1:0]:left[left.length-1]||'');
   const mappedDotted=v.match(/::ffff:(\\d+\\.\\d+\\.\\d+\\.\\d+)$/);
   if(mappedDotted) return private4(mappedDotted[1]);
   const full=[...left,...Array(Math.max(0,8-left.length-right.length)).fill('0'),...right];
