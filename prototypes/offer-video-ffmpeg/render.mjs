@@ -8,6 +8,7 @@ import { mkdtemp, rm, writeFile, access } from 'node:fs/promises';
 import { extname, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
+import { fetchOfferImage } from './fetch-image.mjs';
 
 export function parseArgs(argv) {
   const result = {};
@@ -15,13 +16,15 @@ export function parseArgs(argv) {
     const token = argv[i];
     if (!token.startsWith('--')) throw new Error(`Argumento inesperado: ${token}`);
     const key = token.slice(2);
-    if (!['input', 'output', 'title', 'price', 'cta', 'duration', 'font'].includes(key)) {
+    if (!['input', 'image-url', 'offer-url', 'output', 'title', 'price', 'cta', 'duration', 'font'].includes(key)) {
       throw new Error(`Argumento não reconhecido: --${key}`);
     }
     const value = argv[++i];
     if (!value || value.startsWith('--')) throw new Error(`Informe um valor para --${key}`);
     result[key] = value;
   }
+  if (result.input && (result['image-url'] || result['offer-url'])) throw new Error('Use apenas uma origem: --input, --image-url ou --offer-url.');
+  if (result['image-url'] && result['offer-url']) throw new Error('Use --image-url ou --offer-url, não ambos.');
   return result;
 }
 
@@ -33,7 +36,7 @@ export function validateOptions(options) {
   const cta = String(options.cta || 'Confira os detalhes no link da publicação').trim();
   const duration = Number(options.duration ?? 15);
 
-  if (!title || title.length > 120) throw new Error('O título é obrigatório e deve ter até 120 caracteres.');
+  if (!title || title.length > 120) throw new Error('O título é obrigatório (ou deve ser extraído do link) e deve ter até 120 caracteres.');
   if (!input) throw new Error('Informe a imagem local com --input.');
   if (!output) throw new Error('Informe o destino MP4 com --output.');
   if (!['.png', '.jpg', '.jpeg', '.webp'].includes(extname(input).toLowerCase())) {
@@ -152,13 +155,25 @@ export async function render(options) {
 }
 
 async function main() {
+  let remoteDir = '';
   try {
     const options = parseArgs(process.argv.slice(2));
+    if (!options.input) {
+      if (!options['offer-url'] && !options['image-url']) throw new Error('Informe --input, --offer-url ou --image-url.');
+      remoteDir = await mkdtemp(resolve(tmpdir(), 'radar-offer-source-'));
+      const source = await fetchOfferImage({ offerUrl: options['offer-url'], imageUrl: options['image-url'], dir: remoteDir });
+      options.input = source.imagePath;
+      if (!options.title && source.title) options.title = source.title;
+      process.stdout.write(`Imagem obtida: ${source.imageUrl}\\nBytes: ${source.bytes}\\n`);
+    }
+    if (!options.title) throw new Error('Informe --title ou use --offer-url para extrair o título da página.');
     const result = await render(options);
-    process.stdout.write(`Vídeo renderizado localmente: ${result.outputPath}\nFormato: ${result.width}x${result.height}, ${result.fps} fps, ${result.duration}s, sem áudio.\nNenhuma publicação foi realizada.\n`);
+    process.stdout.write(`Vídeo renderizado localmente: ${result.outputPath}\\nFormato: ${result.width}x${result.height}, ${result.fps} fps, ${result.duration}s, sem áudio.\\nNenhuma publicação foi realizada.\\n`);
   } catch (error) {
-    process.stderr.write(`Erro: ${error.message}\n\nExemplo:\nnode prototypes/offer-video-ffmpeg/render.mjs --input ./produto.jpg --output ./oferta.mp4 --title "Nome do produto" --price "R$ 49,90" --duration 15\n`);
+    process.stderr.write(`Erro: ${error.message}\\n\\nExemplos:\\nnode prototypes/offer-video-ffmpeg/render.mjs --offer-url "https://loja.example/oferta" --output ./oferta.mp4\\nnode prototypes/offer-video-ffmpeg/render.mjs --image-url "https://cdn.example/produto.jpg" --output ./oferta.mp4 --title "Nome do produto"\\n`);
     process.exitCode = 1;
+  } finally {
+    if (remoteDir) await rm(remoteDir, { recursive: true, force: true });
   }
 }
 
