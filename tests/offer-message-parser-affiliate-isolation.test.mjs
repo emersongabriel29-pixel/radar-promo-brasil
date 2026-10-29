@@ -14,13 +14,24 @@ test('does not attach an affiliate link from a different marketplace', () => {
   assert.equal(parsed.requiresManualReview, true);
 });
 
-test('accepts an affiliate signal only when it belongs to the product marketplace', () => {
+test('does not attach a tracking URL for a different product from the same marketplace', () => {
   const parsed = parseOfferMessage(
-    'Fone Bluetooth\nR$ 99,90\nhttps://shopee.com.br/product/123?shop=1\nhttps://shopee.com.br/product/123?shop=1&af=affiliate-code'
+    'Fone Bluetooth\nR$ 99,90\nhttps://shopee.com.br/product/123?shop=1\nhttps://shopee.com.br/product/999?shop=2&af=affiliate-code'
+  );
+  assert.equal(parsed.marketplace, 'SHOPEE');
+  assert.equal(parsed.affiliateLinkDetected, false);
+  assert.equal(parsed.affiliateUrl, '');
+  assert.equal(parsed.needsAffiliateLink, true);
+  assert.equal(parsed.requiresManualReview, true);
+});
+
+test('recognizes affiliate tracking only on the selected product URL itself', () => {
+  const parsed = parseOfferMessage(
+    'Fone Bluetooth\nR$ 99,90\nhttps://shopee.com.br/product/123?shop=1&af=affiliate-code'
   );
   assert.equal(parsed.marketplace, 'SHOPEE');
   assert.equal(parsed.affiliateLinkDetected, true);
-  assert.match(parsed.affiliateUrl, /af=affiliate-code/);
+  assert.match(parsed.affiliateUrl, /product\/123.*af=affiliate-code/);
   assert.equal(parsed.requiresManualReview, true);
 });
 
