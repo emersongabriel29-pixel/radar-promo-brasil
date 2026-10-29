@@ -1,4 +1,4 @@
-# Capturador Multiplataforma v1.6.0
+# Capturador Multiplataforma v1.6.1
 
 ## Captura ao copiar link
 - O content script observa o evento de cópia nas páginas de marketplaces compatíveis e extrai somente uma URL do texto exposto nesse evento.
