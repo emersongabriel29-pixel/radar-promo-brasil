@@ -10,7 +10,7 @@ function private6(ip){const v=ip.toLowerCase().split('%')[0];if(v==='::'||v===':
 async function resolvePublicTarget(value){
   let u; try { u=new URL(value); } catch { throw new Error('Informe um link HTTP/HTTPS válido.'); }
   if(!['http:','https:'].includes(u.protocol)||u.username||u.password) throw new Error('A origem deve ser HTTP/HTTPS pública, sem credenciais.');
-  const host=u.hostname.replace(/^\\[|\\]$/g,'').toLowerCase();
+  const host=u.hostname.replace(/^\[|\]$/g,'').toLowerCase();
   if(!host||host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||host.endsWith('.internal')||host==='metadata.google.internal') throw new Error('Endereços locais/internos não são permitidos.');
   const family=isIP(host);
   const ips=family?[{address:host,family}]:await lookup(host,{all:true,verbatim:true}).catch(()=>[]);
