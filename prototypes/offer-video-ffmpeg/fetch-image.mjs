@@ -6,7 +6,29 @@ import { resolve, extname } from 'node:path';
 import { writeFile } from 'node:fs/promises';
 const MAX_IMG=8*1024*1024, MAX_HTML=2*1024*1024, MAX_REDIRECTS=5;
 function private4(ip){const p=ip.split('.').map(Number);if(p.length!==4||p.some(n=>!Number.isInteger(n)||n<0||n>255))return true;const[a,b]=p;return a===0||a===10||a===127||a>=224||(a===100&&b>=64&&b<=127)||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&b===168)||(a===192&&b===0)||(a===198&&(b===18||b===19||b===51))||(a===203&&b===0);}
-function private6(ip){const v=ip.toLowerCase().split('%')[0];if(v==='::'||v==='::1'||v.startsWith('fc')||v.startsWith('fd')||/^fe[89ab]/.test(v)||v.startsWith('ff'))return true;const m=v.match(/::ffff:(\d+\.\d+\.\d+\.\d+)$/);return m?private4(m[1]):false;}
+function private6(ip){
+  const v=ip.toLowerCase().split('%')[0];
+  if(v==='::'||v==='::1') return true;
+  // Only globally routable IPv6 unicast (2000::/3) is allowed.
+  if(!/^[23]/.test(v)) return true;
+  // Block IPv4-mapped IPv6, including hexadecimal forms such as ::ffff:7f00:1.
+  const parts=v.split('::');
+  if(parts.length>2) return true;
+  const expand=part=>part?part.split(':'): [];
+  let left=expand(parts[0]), right=expand(parts[1]||'');
+  const dotted=(right.length?right[left.length?right.length-1:0]:left[left.length-1]||'');
+  const mappedDotted=v.match(/::ffff:(\\d+\\.\\d+\\.\\d+\\.\\d+)$/);
+  if(mappedDotted) return private4(mappedDotted[1]);
+  const full=[...left,...Array(Math.max(0,8-left.length-right.length)).fill('0'),...right];
+  if(full.length!==8) return true;
+  if(full.slice(0,5).every(x=>parseInt(x||'0',16)===0)&&parseInt(full[5],16)===0xffff){
+    const a=parseInt(full[6],16), b=parseInt(full[7],16);
+    return private4([(a>>8)&255,a&255,(b>>8)&255,b&255].join('.'));
+  }
+  // Documentation-only prefix is not a public destination.
+  if(full[0]==='2001'&&full[1]==='0db8') return true;
+  return false;
+}
 async function resolvePublicTarget(value){
   let u; try { u=new URL(value); } catch { throw new Error('Informe um link HTTP/HTTPS válido.'); }
   if(!['http:','https:'].includes(u.protocol)||u.username||u.password) throw new Error('A origem deve ser HTTP/HTTPS pública, sem credenciais.');
