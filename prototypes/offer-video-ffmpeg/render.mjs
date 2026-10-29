@@ -20,6 +20,7 @@ export function parseArgs(argv) {
     if (!['input', 'image-url', 'offer-url', 'output', 'title', 'price', 'cta', 'duration', 'font'].includes(key)) {
       throw new Error(`Argumento não reconhecido: --${key}`);
     }
+    if (Object.hasOwn(result, key)) throw new Error(`Argumento duplicado: --${key}`);
     const value = argv[++i];
     if (!value || value.startsWith('--')) throw new Error(`Informe um valor para --${key}`);
     result[key] = value;
