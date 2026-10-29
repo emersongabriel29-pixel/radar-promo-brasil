@@ -1,12 +1,69 @@
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
+import http from 'node:http';
+import https from 'node:https';
 import { resolve, extname } from 'node:path';
 import { writeFile } from 'node:fs/promises';
 const MAX_IMG=8*1024*1024, MAX_HTML=2*1024*1024, MAX_REDIRECTS=5;
 function private4(ip){const p=ip.split('.').map(Number);if(p.length!==4||p.some(n=>!Number.isInteger(n)||n<0||n>255))return true;const[a,b]=p;return a===0||a===10||a===127||a>=224||(a===100&&b>=64&&b<=127)||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&b===168)||(a===192&&b===0)||(a===198&&(b===18||b===19||b===51))||(a===203&&b===0);}
 function private6(ip){const v=ip.toLowerCase().split('%')[0];if(v==='::'||v==='::1'||v.startsWith('fc')||v.startsWith('fd')||/^fe[89ab]/.test(v)||v.startsWith('ff'))return true;const m=v.match(/::ffff:(\d+\.\d+\.\d+\.\d+)$/);return m?private4(m[1]):false;}
-export async function assertPublicHttpUrl(value){let u;try{u=new URL(value)}catch{throw new Error('Informe um link HTTP/HTTPS válido.')}if(!['http:','https:'].includes(u.protocol)||u.username||u.password)throw new Error('A origem deve ser HTTP/HTTPS pública, sem credenciais.');const host=u.hostname.replace(/^\[|\]$/g,'').toLowerCase();if(!host||host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||host.endsWith('.internal')||host==='metadata.google.internal')throw new Error('Endereços locais/internos não são permitidos.');const family=isIP(host),ips=family?[{address:host,family}]:await lookup(host,{all:true,verbatim:true}).catch(()=>[]);if(!ips.length)throw new Error('Não foi possível resolver o domínio.');for(const x of ips)if((x.family===4&&private4(x.address))||(x.family===6&&private6(x.address)))throw new Error('Link para endereço privado/reservado bloqueado.');return u;}
-async function safeFetch(start,accept,max){let current=start;for(let hop=0;hop<=MAX_REDIRECTS;hop++){await assertPublicHttpUrl(current);const r=await fetch(current,{redirect:'manual',signal:AbortSignal.timeout(12000),headers:{'user-agent':'RadarPromoBrasil-OfferVideoPrototype/1.0',accept}});if([301,302,303,307,308].includes(r.status)){const loc=r.headers.get('location');if(!loc||hop===MAX_REDIRECTS)throw new Error('Redirecionamentos inválidos/excessivos.');current=new URL(loc,current).href;continue;}if(!r.ok)throw new Error(`O link respondeu HTTP ${r.status}.`);if(Number(r.headers.get('content-length')||0)>max)throw new Error('Conteúdo remoto acima do limite.');const bytes=new Uint8Array(await r.arrayBuffer());if(bytes.byteLength>max)throw new Error('Conteúdo remoto acima do limite.');return{response:r,bytes,url:current};}throw new Error('Não foi possível abrir o link.');}
+async function resolvePublicTarget(value){
+  let u; try { u=new URL(value); } catch { throw new Error('Informe um link HTTP/HTTPS válido.'); }
+  if(!['http:','https:'].includes(u.protocol)||u.username||u.password) throw new Error('A origem deve ser HTTP/HTTPS pública, sem credenciais.');
+  const host=u.hostname.replace(/^\\[|\\]$/g,'').toLowerCase();
+  if(!host||host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||host.endsWith('.internal')||host==='metadata.google.internal') throw new Error('Endereços locais/internos não são permitidos.');
+  const family=isIP(host);
+  const ips=family?[{address:host,family}]:await lookup(host,{all:true,verbatim:true}).catch(()=>[]);
+  if(!ips.length) throw new Error('Não foi possível resolver o domínio.');
+  for(const x of ips) if((x.family===4&&private4(x.address))||(x.family===6&&private6(x.address))) throw new Error('Link para endereço privado/reservado bloqueado.');
+  return { url:u, address:ips[0].address, family:ips[0].family };
+}
+export async function assertPublicHttpUrl(value){ return (await resolvePublicTarget(value)).url; }
+
+// The socket uses the exact IP that was validated; no second DNS lookup occurs.
+// The original hostname remains in use for Host, TLS SNI, and certificate validation.
+function requestPinned(target,accept,max){
+  return new Promise((resolve,reject)=>{
+    const {url,address,family}=target, transport=url.protocol==='https:'?https:http;
+    let settled=false, size=0; const chunks=[];
+    const finish=(fn,value)=>{if(!settled){settled=true;fn(value);}};
+    const req=transport.request(url,{
+      method:'GET',
+      headers:{'user-agent':'RadarPromoBrasil-OfferVideoPrototype/1.0',accept},
+      lookup:(_hostname,_options,callback)=>callback(null,address,family),
+      timeout:12000,
+    },res=>{
+      const status=res.statusCode||0, headers=res.headers;
+      if([301,302,303,307,308].includes(status)){res.resume();finish(resolve,{status,headers,bytes:new Uint8Array(),url:url.href});return;}
+      if(status<200||status>=300){res.resume();finish(reject,new Error(`O link respondeu HTTP ${status}.`));return;}
+      if(Number(headers['content-length']||0)>max){res.destroy();finish(reject,new Error('Conteúdo remoto acima do limite.'));return;}
+      res.on('data',chunk=>{
+        size+=chunk.length;
+        if(size>max){res.destroy();finish(reject,new Error('Conteúdo remoto acima do limite.'));return;}
+        chunks.push(chunk);
+      });
+      res.on('end',()=>finish(resolve,{status,headers,bytes:new Uint8Array(Buffer.concat(chunks)),url:url.href}));
+      res.on('error',err=>finish(reject,err));
+    });
+    req.on('timeout',()=>req.destroy(new Error('Tempo limite ao acessar o link remoto.')));
+    req.on('error',err=>finish(reject,err));
+    req.end();
+  });
+}
+async function safeFetch(start,accept,max){
+  let current=start;
+  for(let hop=0;hop<=MAX_REDIRECTS;hop++){
+    const target=await resolvePublicTarget(current);
+    const r=await requestPinned(target,accept,max);
+    if([301,302,303,307,308].includes(r.status)){
+      const loc=r.headers.location;
+      if(!loc||hop===MAX_REDIRECTS) throw new Error('Redirecionamentos inválidos/excessivos.');
+      current=new URL(loc,current).href; continue;
+    }
+    return {response:{status:r.status,headers:{get:name=>String(r.headers[String(name).toLowerCase()]||'')}},bytes:r.bytes,url:r.url};
+  }
+  throw new Error('Não foi possível abrir o link.');
+}
 const decode=s=>s.replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>');
 export function extractOfferMetadata(html,pageUrl){const metas=[];for(const tag of html.match(/<meta\b[^>]*>/gi)||[]){const a={};for(const m of tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g))a[m[1].toLowerCase()]=decode(m[2]??m[3]??m[4]??'');const k=(a.property||a.name||a.itemprop||'').toLowerCase();if(k&&a.content)metas.push([k,a.content]);}const get=(...keys)=>metas.find(([k])=>keys.includes(k))?.[1]||'';const t=html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);const title=get('og:title','twitter:title','product:name')||(t?decode(t[1].replace(/<[^>]*>/g,' ').trim()):'');const image=get('og:image','og:image:url','twitter:image','twitter:image:src','product:image','image');return{title:title.replace(/\s+/g,' ').trim().slice(0,120),imageUrl:image?new URL(image,pageUrl).href:''};}
 function ext(type,url){const t=(type||'').split(';')[0].trim().toLowerCase();if(['image/jpeg','image/jpg'].includes(t))return'.jpg';if(t==='image/png')return'.png';if(t==='image/webp')return'.webp';const e=extname(new URL(url).pathname).toLowerCase();if(['.jpg','.jpeg','.png','.webp'].includes(e))return e;throw new Error('Origem não forneceu PNG, JPEG ou WebP reconhecível.');}
