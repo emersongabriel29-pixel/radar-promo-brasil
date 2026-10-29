@@ -63,3 +63,20 @@ RUN_FFMPEG_INTEGRATION=1 node --test prototypes/offer-video-ffmpeg/render.integr
 A CI instala FFmpeg/ffprobe e executa os dois conjuntos de testes. A execução de CI #933, no commit `47e8bb1c56082b4997098c1aad5d58f01080e916`, passou. Qualquer novo commit exige nova execução da CI antes de considerar a revisão final concluída.
 
 Este protótipo não deve ser implantado na Hatchable nem no servidor de produção sem uma decisão e uma integração separadas.
+
+
+## Entrada por link de oferta ou API
+
+Também é possível gerar o vídeo sem baixar a imagem manualmente:
+
+```bash
+# Extrai og:image/Twitter Card e tenta aproveitar o título da página
+node prototypes/offer-video-ffmpeg/render.mjs --offer-url "https://loja.example/oferta" --output ./oferta.mp4 --duration 15
+
+# Use a URL direta da imagem que uma API de ofertas retornou
+node prototypes/offer-video-ffmpeg/render.mjs --image-url "https://cdn.example/produto.jpg" --output ./oferta.mp4 --title "Nome do produto" --price "R$ 49,90"
+```
+
+O modo de link procura `og:image`, Twitter Card e metadados equivalentes; se o site não expuser imagem, passe a URL de imagem retornada pela API usando `--image-url`. O preço não é extraído automaticamente nem considerado validado: só informe um preço que o Radar já tenha confirmado. Use exatamente uma origem: `--input`, `--offer-url` ou `--image-url`.
+
+As URLs remotas são limitadas a HTTP/HTTPS, endereços locais/privados são bloqueados, redirecionamentos são revalidados, a página tem limite de 2 MB e a imagem de 8 MB. São aceitos PNG, JPEG e WebP com assinatura de arquivo conferida. A imagem é baixada para um diretório temporário, usada na renderização local e apagada ao final. A funcionalidade não publica vídeos, não envia mensagens e não chama APIs de geração de vídeo.
