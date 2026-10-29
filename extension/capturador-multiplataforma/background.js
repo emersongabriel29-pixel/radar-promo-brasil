@@ -1,3 +1,4 @@
+chrome.storage.local.setAccessLevel({accessLevel:"TRUSTED_CONTEXTS"}).catch(()=>{});
 const clean=(v,n=400)=>String(v??"").trim().slice(0,n);
 const validUrl=value=>{try{return ["http:","https:"].includes(new URL(value).protocol)}catch{return false}};
 async function store(offer,status="Salva localmente"){
