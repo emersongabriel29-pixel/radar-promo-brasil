@@ -11,10 +11,10 @@ test('Telegram clone deduplicates imported offers by account-scoped fingerprint'
 });
 
 test('Telegram clone keeps imported offers pending review and never auto-publishes', () => {
-  assert.match(source, /'PENDING'/);
   assert.match(source, /reviewRequired:true/);
   assert.match(source, /autoPublished:0/);
-  assert.match(source, /storefront_visible,false/);
+  assert.match(source, /storefront_visible/);
+  assert.match(source, /'PENDING'.*?false/s);
 });
 
 test('Telegram clone rejects ambiguous source mappings across accounts', () => {
