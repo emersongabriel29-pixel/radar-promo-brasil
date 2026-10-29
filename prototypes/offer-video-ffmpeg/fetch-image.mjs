@@ -46,6 +46,13 @@ async function resolvePublicTarget(value){
 }
 export async function assertPublicHttpUrl(value){ return (await resolvePublicTarget(value)).url; }
 
+// Resolve and validates every redirect destination before the next socket is opened.
+export async function validateRedirectTarget(location, currentUrl) {
+  const next = new URL(location, currentUrl).href;
+  await resolvePublicTarget(next);
+  return next;
+}
+
 // The socket uses the exact IP that was validated; no second DNS lookup occurs.
 // The original hostname remains in use for Host, TLS SNI, and certificate validation.
 export function requestPinned(target,accept,max){
@@ -84,7 +91,7 @@ async function safeFetch(start,accept,max){
     if([301,302,303,307,308].includes(r.status)){
       const loc=r.headers.location;
       if(!loc||hop===MAX_REDIRECTS) throw new Error('Redirecionamentos inválidos/excessivos.');
-      current=new URL(loc,current).href; continue;
+      current=await validateRedirectTarget(loc,current); continue;
     }
     return {response:{status:r.status,headers:{get:name=>String(r.headers[String(name).toLowerCase()]||'')}},bytes:r.bytes,url:r.url};
   }
