@@ -106,3 +106,25 @@ test('modelo automático reconhece importados e omite fatos ausentes',()=>{
 test('bloqueia link inseguro na mensagem',()=>{
   assert.throws(()=>formatPromo({title:'Produto',currentPrice:1000,affiliateUrl:'http://inseguro.example'}),/obrigatórios/);
 });
+
+
+test('AliExpress auto-approves only qualifying offers and leaves known low-quality offers for human review', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const review = await readFile(new URL('../api/jobs/aliexpress-review.js', import.meta.url), 'utf8');
+  const ingestion = await readFile(new URL('../api/jobs/aliexpress.js', import.meta.url), 'utf8');
+  assert.match(review, /status='APPROVED',validation_status='VALIDATED'/);
+  assert.match(review, /validation_status='NEEDS_REVIEW'/);
+  assert.match(review, /discount < 10/);
+  assert.match(review, /isMedicationProduct/);
+  assert.match(ingestion, /LOW_COMMISSION/);
+  assert.match(ingestion, /LOW_RATING/);
+});
+
+test('AliExpress auto-publication queue is source-isolated and does not enqueue other marketplaces', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const review = await readFile(new URL('../api/jobs/aliexpress-review.js', import.meta.url), 'utf8');
+  const autopilot = await readFile(new URL('../lib/autopilot.js', import.meta.url), 'utf8');
+  assert.match(review, /enqueueMatches\(accountId, '', \{ source: 'ALIEXPRESS' \}\)/);
+  assert.match(autopilot, /AND \(\$2='' OR source=\$2\)/);
+  assert.match(autopilot, /evaluateMatches\(accountId, options\?\.source \|\| ''\)/);
+});
