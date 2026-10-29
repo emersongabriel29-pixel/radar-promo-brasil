@@ -29,7 +29,6 @@ test('agendamento recorrente cria publicação idempotente e avança a próxima 
   assert.match(source, /s\.next_run_at=\$5/);
   assert.match(source, /s\.next_run_at<=now\(\)/);
   assert.match(source, /s\.next_run_at>now\(\)-interval '60 minutes'/);
-  assert.match(source, /recurrence:'?\+?id/); // the stable key is checked below without relying on formatting
   assert.match(source, /'recurrence:'\+id\+':'\+localParts\(due,row\.timezone\)\.day/);
 });
 
