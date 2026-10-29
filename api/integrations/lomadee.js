@@ -242,6 +242,7 @@ export default async function handler(req, res) {
           const option = (Array.isArray(product.options) ? product.options : []).find(o => o.available) || product.options?.[0] || {};
           const pricing = Array.isArray(option.pricing) ? option.pricing[0] : {};
           const title = clean(option.name || product.name, 220);
+          if (isMedicationProduct({ title, description: option.description || product.description, sourceCategory: Array.isArray(option.categories) ? option.categories.join(' ') : '', product_url: product.url })) { skipped.push({ id: clean(product.id, 120), reason: 'Medicamentos excluídos pelas regras do Radar Promo Brasil.' }); continue; }
           const imageUrl = product.images?.[0]?.url || option.images?.[0]?.url || '';
           const productUrl = typeof product.url === 'string' && /^https:\/\//i.test(product.url) ? product.url : '';
           const currentPrice = priceCents(pricing.price), originalPrice = priceCents(pricing.listPrice);
