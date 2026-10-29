@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { createServer } from 'node:http';
 import { buildFfmpegArgs, buildFilterGraph, parseArgs, validateOptions, wrapText } from './render.mjs';
-import { assertPublicHttpUrl, extractOfferMetadata, requestPinned } from './fetch-image.mjs';
+import { assertPublicHttpUrl, assertImageDimensions, extractOfferMetadata, imageDimensions, requestPinned } from './fetch-image.mjs';
 
 test('parses supported CLI options', () => {
   assert.deepEqual(parseArgs(['--input', 'produto.jpg', '--output', 'oferta.mp4', '--title', 'Produto', '--duration', '15']), {
@@ -78,6 +78,20 @@ test('extracts title and Open Graph image, including relative URLs', () => {
   assert.deepEqual(extractOfferMetadata(html, 'https://shop.example/oferta/123'), {
     title: 'Produto & Oferta', imageUrl: 'https://shop.example/assets/item.jpg'
   });
+});
+
+test('rejects invalid and oversized image dimensions before FFmpeg processing', () => {
+  assert.deepEqual(assertImageDimensions({ width: 720, height: 1280 }), { width: 720, height: 1280 });
+  assert.throws(() => assertImageDimensions({ width: 10000, height: 10000 }), /40 megapixels/);
+  assert.throws(() => assertImageDimensions({ width: 0, height: 1280 }), /40 megapixels/);
+  const png = Buffer.alloc(24);
+  Buffer.from('89504e470d0a1a0a', 'hex').copy(png, 0);
+  png.writeUInt32BE(720, 16);
+  png.writeUInt32BE(1280, 20);
+  assert.deepEqual(imageDimensions(png, '.png'), { width: 720, height: 1280 });
+  png.writeUInt32BE(10000, 16);
+  png.writeUInt32BE(10000, 20);
+  assert.throws(() => assertImageDimensions(imageDimensions(png, '.png')), /40 megapixels/);
 });
 
 test('blocks local and private URL targets before fetching', async () => {
