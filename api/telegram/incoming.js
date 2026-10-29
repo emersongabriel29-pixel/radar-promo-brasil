@@ -24,7 +24,7 @@ export default async function(req,res){
    const username=String(message.chat.username||'').toLowerCase().replace(/^@/,'');
    const candidates=[groupId,username,username?'@'+username:'',username?'https://t.me/'+username:'',username?'http://t.me/'+username:''].filter(Boolean).map(x=>x.toLowerCase());
    if(candidates.length){
-    const sources=(await db.query("SELECT id,account_id,name FROM monitors WHERE status='ACTIVE' AND source_authorized=true AND lower(trim(source_url))=ANY($1::text[]) ORDER BY created_at DESC LIMIT 2",[candidates])).rows;
+    const sources=(await db.query("SELECT id,account_id,name FROM monitors WHERE source_type='TELEGRAM_CHANNEL' AND status='ACTIVE' AND source_authorized=true AND lower(trim(source_url))=ANY($1::text[]) ORDER BY created_at DESC LIMIT 2",[candidates])).rows;
     groups=sources.map(row=>({id:row.id,monitorId:row.id,accountId:row.account_id,name:row.name}));
    }
   }
