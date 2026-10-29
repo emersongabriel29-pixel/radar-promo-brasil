@@ -94,7 +94,7 @@ export function buildFilterGraph({ titleFile, priceFile, ctaFile, font, duration
     'drawbox=x=0:y=100:w=iw:h=270:color=black@0.48:t=fill',
     textFileFilter(titleFile, { font, size: 38, y: 125 }),
     'drawbox=x=0:y=900:w=iw:h=310:color=black@0.58:t=fill',
-    ...(priceFile ? [textFileFilter(priceFile, { font, size: 48, y: 925, color: 'white' })] : []),
+    ...(priceFile ? [textFileFilter(priceFile, { font, size: 42, y: 925, color: 'white' })] : []),
     textFileFilter(ctaFile, { font, size: 28, y: 1090 }),
     'format=yuv420p'
   ];
