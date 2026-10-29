@@ -39,6 +39,22 @@ async function capture(){
   msg("Captura concluída. Categoria, Sub_id e link rastreado foram preenchidos quando encontrados.");
  }catch{msg("Captura indisponível nesta página. Atualize a aba e tente novamente.")}
 }
+function couponSearchQuery(){
+ const title=val("title")||captured.title||"";
+ const store=val("platform")||captured.platform||"";
+ const terms=[title,store,"cupom OR cupons OR desconto OR código promocional"].filter(Boolean).join(" ");
+ const sites="(site:promobit.com.br OR site:pelando.com.br OR site:cuponomia.com.br OR site:melhorescupons.com.br OR site:cupom.org)";
+ return "https://www.google.com/search?q="+encodeURIComponent(terms+" "+sites);
+}
+async function searchCoupons(){
+ const title=val("title")||captured.title;
+ if(!title){msg("Capture uma página de produto ou informe o nome do produto antes de buscar cupons.");return;}
+ const query=couponSearchQuery();
+ try{
+  await chrome.tabs.create({url:query,active:true});
+  msg("Busca de cupons aberta para "+(val("platform")||captured.platform||"a loja")+". Confira validade, regras e valor mínimo antes de usar.");
+ }catch(err){msg("Não foi possível abrir a busca de cupons: "+String(err));}
+}
 function offer(){return{...captured,platform:val("platform"),title:val("title"),price:val("price"),originalPrice:val("originalPrice"),productUrl:val("productUrl"),affiliateUrl:val("affiliateUrl"),imageUrl:val("imageUrl"),subId:val("subId"),category:val("category"),notes:val("notes"),reviewed:true}}
 async function refresh(){
  const {offers=[]}=await send({type:"GET_OFFERS"});
@@ -46,6 +62,7 @@ async function refresh(){
  $("offers").innerHTML=offers.slice(0,15).map(o=>'<div class="item"><strong>'+esc(o.title)+'</strong><small>'+esc(o.platform)+' · '+esc(o.price)+'<br>'+esc(o.syncStatus||"Salva localmente")+'<br>'+esc(o.productUrl)+'</small></div>').join("")||"<p>Nenhuma oferta.</p>";
 }
 $("capture").onclick=capture;
+$("searchCoupons").onclick=searchCoupons;
 ["productUrl","subId","affiliateTemplate"].forEach(id=>$(id).addEventListener("change",fillAffiliate));
 $("saveConfig").onclick=async()=>{
  const base=val("apiBase"),template=val("affiliateTemplate");
