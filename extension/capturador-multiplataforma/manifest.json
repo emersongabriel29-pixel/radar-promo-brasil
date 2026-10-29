@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Radar Promo Brasil — Capturador Multiplataforma",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Captura ofertas ao copiar links de afiliado e identifica marketplaces automaticamente.",
   "permissions": [
     "activeTab",
