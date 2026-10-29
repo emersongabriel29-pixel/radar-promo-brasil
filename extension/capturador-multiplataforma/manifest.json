@@ -1,50 +1,18 @@
 {
   "manifest_version": 3,
   "name": "Radar Promo Brasil — Capturador Multiplataforma",
-  "version": "1.4.0",
-  "description": "Captura ofertas e pesquisa/extrai códigos de cupons de fontes públicas.",
-  "permissions": [
-    "activeTab",
-    "storage",
-    "downloads",
-    "tabs"
-  ],
-  "host_permissions": [
-    "https://*.mercadolivre.com.br/*",
-    "https://*.mercadolibre.com/*",
-    "https://*.amazon.com.br/*",
-    "https://*.amazon.com/*",
-    "https://*.temu.com/*",
-    "https://*.shein.com/*",
-    "https://*.br.shein.com/*",
-    "https://*.magazineluiza.com.br/*",
-    "https://*.magalu.com/*",
-    "https://*/*"
-  ],
+  "version": "1.5.0",
+  "description": "Captura ofertas ao copiar links de afiliado e identifica marketplaces automaticamente.",
+  "permissions": ["activeTab", "storage", "downloads", "tabs", "clipboardRead"],
+  "host_permissions": ["https://*/*", "http://*/*"],
   "action": {
     "default_title": "Radar Promo Brasil",
     "default_popup": "popup.html"
   },
-  "background": {
-    "service_worker": "background.js"
-  },
-  "content_scripts": [
-    {
-      "matches": [
-        "https://*.mercadolivre.com.br/*",
-        "https://*.mercadolibre.com/*",
-        "https://*.amazon.com.br/*",
-        "https://*.amazon.com/*",
-        "https://*.temu.com/*",
-        "https://*.shein.com/*",
-        "https://*.br.shein.com/*",
-        "https://*.magazineluiza.com.br/*",
-        "https://*.magalu.com/*"
-      ],
-      "js": [
-        "content.js"
-      ],
-      "run_at": "document_idle"
-    }
-  ]
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [{
+    "matches": ["http://*/*", "https://*/*"],
+    "js": ["content.js"],
+    "run_at": "document_idle"
+  }]
 }
