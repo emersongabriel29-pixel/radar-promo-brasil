@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Radar Promo Brasil — Capturador Multiplataforma",
-  "version": "1.3.0",
-  "description": "Captura ofertas, rastreamento e busca rápida de cupons para o Radar Promo Brasil.",
+  "version": "1.4.0",
+  "description": "Captura ofertas e pesquisa/extrai códigos de cupons de fontes públicas.",
   "permissions": [
     "activeTab",
     "storage",
