@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { buildFfmpegArgs, buildFilterGraph, parseArgs, validateOptions, wrapText } from './render.mjs';
+import { assertPublicHttpUrl, extractOfferMetadata } from './fetch-image.mjs';
 
 test('parses supported CLI options', () => {
   assert.deepEqual(parseArgs(['--input', 'produto.jpg', '--output', 'oferta.mp4', '--title', 'Produto', '--duration', '15']), {
@@ -56,4 +57,28 @@ test('escapes special characters in optional font paths for the FFmpeg filtergra
 test('wraps long titles and calls to action without splitting words unnecessarily', () => {
   assert.equal(wrapText('Kit de cozinha completo com vários acessórios', 18), 'Kit de cozinha\ncompleto com\nvários acessórios');
   assert.equal(wrapText('ABCDEFGHIJK', 4), 'ABCD\nEFGH\nIJK');
+});
+
+test('accepts offer URL or direct image URL as source', () => {
+  assert.deepEqual(parseArgs(['--offer-url', 'https://shop.example/item', '--output', 'out.mp4']), {
+    'offer-url': 'https://shop.example/item', output: 'out.mp4'
+  });
+  assert.deepEqual(parseArgs(['--image-url', 'https://cdn.example/item.jpg', '--output', 'out.mp4', '--title', 'Item']), {
+    'image-url': 'https://cdn.example/item.jpg', output: 'out.mp4', title: 'Item'
+  });
+  assert.throws(() => parseArgs(['--input', 'item.jpg', '--offer-url', 'https://shop.example/item']), /apenas uma origem/);
+  assert.throws(() => parseArgs(['--offer-url', 'https://shop.example/item', '--image-url', 'https://cdn.example/item.jpg']), /não ambos/);
+});
+
+test('extracts title and Open Graph image, including relative URLs', () => {
+  const html = '<html><head><title>Fallback</title><meta property="og:title" content="Produto &amp; Oferta"><meta property="og:image" content="/assets/item.jpg"></head></html>';
+  assert.deepEqual(extractOfferMetadata(html, 'https://shop.example/oferta/123'), {
+    title: 'Produto & Oferta', imageUrl: 'https://shop.example/assets/item.jpg'
+  });
+});
+
+test('blocks local and private URL targets before fetching', async () => {
+  await assert.rejects(assertPublicHttpUrl('http://127.0.0.1/admin'), /local|privado|reservado/i);
+  await assert.rejects(assertPublicHttpUrl('http://localhost/'), /local|internos/i);
+  await assert.rejects(assertPublicHttpUrl('file:///etc/passwd'), /HTTP\/HTTPS/);
 });
