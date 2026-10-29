@@ -22,7 +22,7 @@ const isHttps = value => {
  */
 export default async function handler(req, res) {
   const rows = (await db.query(
-    "SELECT id,account_id,title,original_price,current_price,discount_percent,affiliate_url,image_url,product_url,status,classification_reason FROM offers WHERE source='ALIEXPRESS' AND status='PENDING' AND COALESCE(validation_status,'') IN ('PENDING','PENDING_REVIEW','') ORDER BY created_at ASC LIMIT 200"
+    "SELECT id,account_id,title,original_price,current_price,discount_percent,affiliate_url,image_url,product_url,status,classification_reason FROM offers WHERE source='ALIEXPRESS' AND status='PENDING' AND COALESCE(validation_status,'') IN ('PENDING','PENDING_REVIEW','VALIDATED','') ORDER BY created_at ASC LIMIT 200"
   )).rows;
   const result = { ok: true, scanned: rows.length, validated: 0, approved: 0, needsReview: 0, rejected: 0, unchanged: 0, failed: 0, publicationTriggered: false, queued: 0, telegramQueued: 0, whatsappQueued: 0, messagesSent: 0 };
   const approvedAccounts = new Set();
