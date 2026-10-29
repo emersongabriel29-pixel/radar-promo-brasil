@@ -13,7 +13,17 @@ async function capture(){const [tab]=await chrome.tabs.query({active:true,curren
 function couponSearchQuery(){const title=val("title")||captured.title||"",store=val("platform")||captured.platform||"",sites="(site:promobit.com.br OR site:pelando.com.br OR site:cuponomia.com.br OR site:melhorescupons.com.br OR site:cupom.org)";return "https://www.google.com/search?q="+encodeURIComponent([title,store,"cupom OR cupons OR desconto OR código promocional",sites].filter(Boolean).join(" "))}
 async function searchCoupons(){if(!(val("title")||captured.title))return msg("Capture um produto ou informe seu nome.");try{await chrome.tabs.create({url:couponSearchQuery(),active:true});msg("Busca de cupons aberta. Confira validade e regras.")}catch(e){msg("Falha ao abrir busca: "+String(e))}}
 function offer(){return{...captured,platform:val("platform"),title:val("title"),price:val("price"),originalPrice:val("originalPrice"),productUrl:val("productUrl"),affiliateUrl:val("affiliateUrl"),imageUrl:val("imageUrl"),subId:val("subId"),category:val("category"),notes:val("notes"),reviewed:true}}
-async function refresh(){const {offers=[]}=await send({type:"GET_OFFERS"});$("count").textContent=offers.length;$("offers").innerHTML=offers.slice(0,15).map(o=>'<div class="item"><strong>'+esc(o.title)+'</strong><small>'+esc(o.platform)+' · '+esc(o.price)+'<br>'+esc(o.syncStatus||"Salva localmente")+'<br>'+esc(o.productUrl)+'</small></div>').join("")||"<p>Nenhuma oferta.</p>"}
+async function refresh(){
+ const {offers=[]}=await send({type:"GET_OFFERS"});
+ $("count").textContent=offers.length;
+ $("offers").innerHTML=offers.slice(0,15).map(o=>'<div class="item"><strong>'+esc(o.title)+'</strong><small>'+esc(o.platform)+' · '+esc(o.price)+'<br>'+esc(o.syncStatus||"Salva localmente")+'<br>'+esc(o.productUrl)+'</small><button type="button" data-load-offer="'+esc(o.id)+'">Revisar oferta</button></div>').join("")||"<p>Nenhuma oferta.</p>";
+ $("offers").querySelectorAll("[data-load-offer]").forEach(button=>button.addEventListener("click",()=>{
+  const item=offers.find(o=>o.id===button.dataset.loadOffer);if(!item)return;
+  captured=item;generatedAffiliate="";
+  for(const key of ["platform","title","price","originalPrice","productUrl","affiliateUrl","imageUrl","subId","category","notes"])set(key,item[key]);
+  msg("Oferta carregada para revisão. Confira os dados antes de enviar.");
+ }));
+}
 $("capture").onclick=capture;$("readClipboard").onclick=readClipboard;$("saveCaptureSettings").onclick=saveCaptureSettings;$("searchCoupons").onclick=searchCoupons;
 ["productUrl","subId","affiliateTemplate"].forEach(id=>$(id).addEventListener("change",fillAffiliate));
 $("saveConfig").onclick=async()=>{const base=val("apiBase"),template=val("affiliateTemplate");if(base&&!validHttps(base))return msg("O endpoint deve usar HTTPS.");if(template&&(!validHttps(template)||!template.includes("{url}")))return msg("O modelo precisa ser HTTPS e conter {url}.");await chrome.storage.local.set({apiBase:base.replace(/\/$/,""),apiToken:val("apiToken"),defaultSubId:val("defaultSubId"),affiliateTemplate:template});if(!val("subId"))set("subId",val("defaultSubId"));fillAffiliate();msg("Configuração da API salva.")};
