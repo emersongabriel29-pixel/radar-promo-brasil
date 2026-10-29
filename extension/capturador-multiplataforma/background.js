@@ -8,6 +8,18 @@ async function store(offer,status="Salva localmente"){
  if(index>=0)offers[index]={...offers[index],...saved};else offers.unshift(saved);
  await chrome.storage.local.set({offers});return {ok:true,count:offers.length};
 }
+async function sendToApi(offer){
+ const config=await chrome.storage.local.get({apiBase:"",apiToken:""});
+ const endpoint=clean(config.apiBase,2000);
+ const price=Number(String(offer.price||"").replace(/[^\d,.-]/g,"").replace(",","."));
+ if(!endpoint.startsWith("https://"))return {ok:false,status:"API não configurada: informe endpoint HTTPS."};
+ if(!offer.title||!validUrl(offer.affiliateUrl)||!validUrl(offer.imageUrl)||!Number.isFinite(price)||price<=0)return {ok:false,status:"Revisão necessária: título, preço, link afiliado e imagem são obrigatórios."};
+ const sourceMap={"Mercado Livre":"MERCADO_LIVRE","Amazon":"AMAZON","SHEIN":"SHEIN","Magalu":"MAGALU","Temu":"TEMU","Outra":"Outro"};
+ const payload={entity:"offer",title:offer.title,source:sourceMap[offer.platform]||offer.platform||"Outro",currentPrice:price,originalPrice:offer.originalPrice?Number(String(offer.originalPrice).replace(/[^\d,.-]/g,"").replace(",", ".")):null,imageUrl:offer.imageUrl,affiliateUrl:offer.affiliateUrl,productUrl:offer.productUrl||offer.sourceUrl,sourceCategory:offer.category||"",description:offer.notes||"",subId:offer.subId||"",message:"",storefrontVisible:false};
+ const headers={"Content-Type":"application/json"};if(config.apiToken)headers.Authorization="Bearer "+config.apiToken;
+ try{const response=await fetch(endpoint,{method:"POST",headers,credentials:"omit",body:JSON.stringify(payload)});const body=await response.text();let data;try{data=JSON.parse(body)}catch{data={message:body.slice(0,150)}};if(!response.ok)return {ok:false,status:response.status===409?"Oferta duplicada (409).":"API HTTP "+response.status+": "+clean(data.message||data.error,120)};return {ok:true,status:"API aceitou HTTP "+response.status+"; confirme a gravação no catálogo."};}
+ catch(error){return {ok:false,status:"Falha de rede/CORS: "+clean(error.message,120)};}
+}
 async function copied(url,sourceTabId){
  if(!validUrl(url))return {ok:false,reason:"Link inválido."};
  const config=await chrome.storage.local.get({copyCaptureEnabled:true,autoOpenOnCopy:true,captureMode:"assisted"});
@@ -25,21 +37,20 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
  if(message?.type==="RADAR_COPIED_LINK"){
   const match=String(message.text||message.url||"").match(/https?:\/\/[^\s<>"']+/i);
   const url=match?.[0]?.replace(/[),.;\]}]+$/,"")||"";
-  copied(url,message.sourceTabId||sender.tab?.id||null).then(reply).catch(e=>reply({ok:false,reason:clean(e.message)}));
-  return true;
+  copied(url,message.sourceTabId||sender.tab?.id||null).then(reply).catch(e=>reply({ok:false,reason:clean(e.message)}));return true;
  }
  if(message?.type==="RADAR_AUTO_CAPTURE_RESULT"){
   (async()=>{
-   const tabId=sender.tab?.id;
-   const data=tabId?await chrome.storage.session.get("pending_"+tabId):{};
-   const job=tabId?data["pending_"+tabId]:null;
+   const tabId=sender.tab?.id,data=tabId?await chrome.storage.session.get("pending_"+tabId):{},job=tabId?data["pending_"+tabId]:null;
    if(tabId)await chrome.storage.session.remove("pending_"+tabId);
    const offer={...message.offer,affiliateUrl:job?.affiliateUrl||message.offer?.affiliateUrl||"",copiedAffiliateUrl:job?.affiliateUrl||""};
-   const status=job?.mode==="assisted"?"Capturada — revise antes de enviar":"Capturada automaticamente — salva localmente";
-   const result=await store(offer,status);
-   reply({ok:true,...result,status});
-  })().catch(e=>reply({ok:false,reason:clean(e.message)}));
-  return true;
+   let status=job?.mode==="assisted"?"Capturada — revise antes de enviar":"Capturada automaticamente — salva localmente";
+   if(job?.mode==="intelligent"){
+    const settings=await chrome.storage.local.get({autoSendOnCapture:false});
+    if(settings.autoSendOnCapture){const sent=await sendToApi(offer);status=sent.status;}
+   }
+   const result=await store(offer,status);reply({ok:true,...result,status});
+  })().catch(e=>reply({ok:false,reason:clean(e.message)}));return true;
  }
  if(message?.type==="SAVE_OFFER"){store(message.offer||{}).then(reply);return true;}
  if(message?.type==="GET_OFFERS"){chrome.storage.local.get({offers:[]},d=>reply({offers:d.offers||[]}));return true;}
