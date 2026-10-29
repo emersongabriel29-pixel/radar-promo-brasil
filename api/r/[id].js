@@ -4,7 +4,7 @@ export const access = "public";
 export const methods = ["GET"];
 export default async function(req,res){
   const id=String(req.params.id||"");
-  const count=shouldCountClick(req,id);
+  const count=await shouldCountClick(req,id);
   const q=await db.query("SELECT p.id,p.account_id,p.offer_id,p.group_id,o.affiliate_url,o.source FROM publications p JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id JOIN accounts a ON a.id=p.account_id WHERE p.id=$1 AND p.status IN ('DISPATCHING','WAITING_CONFIRMATION','PUBLISHED') AND o.status IN ('APPROVED','PUBLISHED') AND a.status='ACTIVE'",[id]);
   if(!q.rows.length){
     const social=await db.query("SELECT sp.id,sp.affiliate_url FROM social_posts sp JOIN accounts a ON a.id=sp.account_id JOIN offers o ON o.id=sp.offer_id AND o.account_id=sp.account_id WHERE sp.id=$1 AND sp.status='PUBLISHED' AND sp.published_at IS NOT NULL AND o.status IN ('APPROVED','PUBLISHED') AND a.status='ACTIVE'",[id]);
