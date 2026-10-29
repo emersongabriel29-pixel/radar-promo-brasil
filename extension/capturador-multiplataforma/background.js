@@ -22,6 +22,9 @@ async function sendToApi(offer){
 }
 async function copied(url,sourceTabId){
  if(!validUrl(url))return {ok:false,reason:"Link inválido."};
+ const host=new URL(url).hostname.toLowerCase();
+ const supported=/(mercadolivre|mercadolibre|meli\.la|amazon|amzn\.to|a\.co|shopee|shope\.ee|aliexpress|temu|shein|magalu|magazineluiza)/.test(host);
+ if(!supported)return {ok:false,reason:"O domínio copiado não é um marketplace compatível."};
  const config=await chrome.storage.local.get({copyCaptureEnabled:true,autoOpenOnCopy:true,captureMode:"assisted"});
  if(!config.copyCaptureEnabled)return {ok:false,reason:"Captura por cópia desativada."};
  const {lastCopy={}}=await chrome.storage.session.get({lastCopy:{}});
