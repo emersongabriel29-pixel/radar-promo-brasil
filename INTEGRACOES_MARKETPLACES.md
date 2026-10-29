@@ -1,54 +1,36 @@
-# Integrações oficiais por marketplace — contrato do Radar
+# Integrações de marketplaces do Radar Promo Brasil
 
-## Arquitetura
+## Integração com a API existente
 
-A extensão **não chama diretamente** as APIs oficiais dos marketplaces. Cada programa possui autenticação, assinatura, permissões, limites e regras próprias. A extensão envia um contrato normalizado ao endpoint HTTPS do backend; o backend guarda os segredos e conversa com a plataforma. Isso evita expor App Secret/Client Secret em arquivos da extensão ou no armazenamento local do navegador.
+A extensão utiliza as rotas de integração que já existem no backend do Radar, em vez de exigir endpoints arbitrários por loja. Configure na extensão a URL-base da API central e o token de autenticação compatível com a instalação. A URL-base pode ser o endereço raiz ou o endpoint antigo terminado em `/api/data`; a extensão normaliza a origem e chama as rotas abaixo.
 
-Marketplaces previstos: Mercado Livre, Amazon Associates/PA-API, Shopee Open Platform/Affiliate, AliExpress Portals/Affiliate, SHEIN Open Platform, Temu Affiliate e Magalu. A disponibilidade de cada operação depende da aprovação da conta e dos escopos concedidos pelo programa.
+- `GET/POST /api/integrations/marketplaces`: catálogo de programas e credenciais protegidas.
+- `GET/POST /api/integrations/amazon`: Amazon Creators API.
+- `GET/POST /api/integrations/shopee`: Shopee Afiliados Open API.
+- `GET/POST /api/integrations/aliexpress`: AliExpress Open Platform (legada, sujeita à disponibilidade da conta).
+- `GET/POST /api/integrations/shein`: validação/importação de links oficiais, sem API pública de afiliados confirmada.
+- `GET/POST /api/integrations/temu`: validação/importação de links oficiais, sem API pública de afiliados confirmada.
+- `GET/POST /api/integrations/magalu`: validação/importação de links do Parceiro Magalu, sem API pública de afiliados confirmada.
+- Mercado Livre: cadastro/estado via `/api/integrations/marketplaces`; OAuth de catálogo e Programa de Afiliados são fluxos distintos. A conversão automática de link do Programa de Afiliados permanece desativada; importe o link gerado no portal oficial.
 
-## Configuração
+## O que a extensão solicita
 
-Na extensão, selecione a loja, informe o endpoint HTTPS do conector e ative-o. O endpoint é por loja. O campo identificador da conexão é apenas um alias público; não é segredo. Não salve Client Secret, App Secret, refresh token ou senha na extensão.
+- **Verificar conexão:** executa consulta de leitura autenticada para Amazon, Shopee e AliExpress; para os outros, consulta estado e capacidades declaradas no backend.
+- **Consultar produtos:** usa pesquisa Amazon, ofertas de produtos Shopee e busca AliExpress, quando a conta possui permissões.
+- **Gerar link:** usa `create_link` da Shopee, `generateLink` do AliExpress e `detailPageURL` retornada pela Amazon Creators API. Mercado Livre, SHEIN, Temu e Magalu permanecem em fluxo de link oficial importado/manual quando não há geração automática pública validada.
 
-## Contrato HTTP
+## Credenciais e segurança
 
-A extensão envia POST JSON para o endpoint configurado:
+As credenciais oficiais são cadastradas no painel do Radar e criptografadas no backend. Não inserir App Secret, Client Secret ou refresh token na extensão. O token usado pela extensão autentica no Radar; não é o token do marketplace. A autenticação Bearer depende do modo de hospedagem: o standalone privado aceita o token configurado para a API; instalações Hatchable que exigem sessão de membro podem não aceitar chamadas cross-origin da extensão com Bearer. Nessa situação, é necessário um fluxo seguro de autorização da extensão, sem compartilhar cookies ou segredos.
 
-```json
-{
-  "provider": "MERCADO_LIVRE",
-  "action": "product_lookup",
-  "account": "conta-principal",
-  "offer": {
-    "title": "Produto capturado",
-    "productUrl": "https://...",
-    "affiliateUrl": "https://...",
-    "price": "199,90",
-    "subId": "telegram"
-  },
-  "requestedAt": "ISO-8601"
-}
-```
+## Limites reais por loja
 
-Ações:
-- `test`: valida credenciais, acesso e escopos. Responder `{ "ok": true, "message": "..." }`.
-- `product_lookup`: consulta produto e responde com `offer` ou `product`, contendo opcionalmente `title`, `price`, `originalPrice`, `imageUrl`, `productUrl`, `category`, `affiliateUrl`.
-- `create_affiliate_link`: gera link conforme programa e responde com `affiliateUrl` (HTTPS).
-- `coupon_search`: opcional; retorna `coupons[]` com código, validade, regras e URL de origem.
+- **Mercado Livre:** OAuth de conta não concede automaticamente acesso ao Programa de Afiliados. Não alterar parâmetros do link de afiliado oficial.
+- **Amazon:** Creators API exige Credential ID, Credential Secret, versão e Partner Tag. A disponibilidade depende da elegibilidade e dos limites da conta.
+- **Shopee:** exige App ID/App Secret e habilitação da Open API de Afiliados.
+- **AliExpress:** métodos da Affiliate API são legados/descontinuados em parte da documentação. O backend exige confirmação explícita da limitação; teste real e permissões da conta são indispensáveis.
+- **SHEIN, Temu e Magalu:** o backend identifica fluxo de importação de links gerados nos respectivos portais; não apresentar isso como API oficial de geração.
 
-## Implementação obrigatória no servidor
+## Não confundir os estados
 
-Cada adaptador do backend deve implementar assinatura/OAuth e renovação de token conforme documentação oficial; validar domínio e URL; aplicar rate limit e timeout; registrar request-id, status e erro sanitizado; nunca registrar segredos; respeitar políticas do programa; não simular respostas. Para operações não autorizadas ou indisponíveis, retornar HTTP 501/403 com mensagem clara. Não usar scraping como se fosse API oficial.
-
-## Segurança
-
-- Segredos somente em variáveis de ambiente/secret manager no servidor.
-- HTTPS obrigatório; CORS restrito ao necessário.
-- Autorização própria do Radar entre extensão e backend (token curto/usuário autenticado); não confundir com o token do marketplace.
-- Não usar credenciais de um marketplace em outro.
-- Validar toda resposta antes de alterar oferta.
-- O botão de teste comprova apenas a resposta do endpoint; só comprova acesso à API oficial se o backend realmente executar a verificação autenticada.
-
-## Estado atual
-
-A extensão oferece configuração por marketplace e chama um gateway normalizado. Isso **não significa que os sete conectores oficiais já estejam autenticados**: as credenciais, a aprovação dos programas e a implementação server-side de cada adaptador ainda são necessárias. A API central do Radar continua separada e recebe ofertas já normalizadas.
+Salvar credenciais não valida uma API. Um status `VALIDATED` deve resultar de chamada oficial de leitura. Uma consulta bem-sucedida não significa publicação, comissão garantida ou relatório de conversões habilitado. A API central do Radar e os conectores de marketplace são camadas diferentes.
