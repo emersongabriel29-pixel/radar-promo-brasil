@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
+import { createServer } from 'node:http';
 import { buildFfmpegArgs, buildFilterGraph, parseArgs, validateOptions, wrapText } from './render.mjs';
-import { assertPublicHttpUrl, extractOfferMetadata } from './fetch-image.mjs';
+import { assertPublicHttpUrl, extractOfferMetadata, requestPinned } from './fetch-image.mjs';
 
 test('parses supported CLI options', () => {
   assert.deepEqual(parseArgs(['--input', 'produto.jpg', '--output', 'oferta.mp4', '--title', 'Produto', '--duration', '15']), {
@@ -81,4 +82,33 @@ test('blocks local and private URL targets before fetching', async () => {
   await assert.rejects(assertPublicHttpUrl('http://127.0.0.1/admin'), /local|privado|reservado/i);
   await assert.rejects(assertPublicHttpUrl('http://localhost/'), /local|internos/i);
   await assert.rejects(assertPublicHttpUrl('file:///etc/passwd'), /HTTP\/HTTPS/);
+});
+
+
+test('pinned HTTP request uses the supplied address instead of resolving the hostname again', async () => {
+  const server = createServer((_req, res) => {
+    res.writeHead(200, { 'content-type': 'text/plain' });
+    res.end('pinned');
+  });
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  try {
+    const port = server.address().port;
+    let lookupCalled = false;
+    // Use a hostname that must not be resolved by DNS; requestPinned's custom
+    // lookup must supply the validated IP directly to the socket connection.
+    const result = await requestPinned({
+      url: new URL(`http://pin-test.invalid:${port}/`),
+      address: '127.0.0.1',
+      family: 4
+    }, 'text/plain', 1024);
+    lookupCalled = true;
+    assert.equal(result.status, 200);
+    assert.equal(new TextDecoder().decode(result.bytes), 'pinned');
+    assert.equal(lookupCalled, true);
+  } finally {
+    await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+  }
 });
