@@ -52,8 +52,15 @@ export function validateOptions(options) {
 }
 
 function filterPath(value) {
-  // FFmpeg filtergraph escaping; paths are passed as an argv item, never through a shell.
-  return value.replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'");
+  // Escape FFmpeg filtergraph delimiters even though the process is spawned without a shell.
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/:/g, '\\:')
+    .replace(/,/g, '\\,')
+    .replace(/\[/g, '\\[')
+    .replace(/\]/g, '\\]')
+    .replace(/;/g, '\\;');
 }
 
 function textFileFilter(file, { font, size, y, color = 'white' }) {
