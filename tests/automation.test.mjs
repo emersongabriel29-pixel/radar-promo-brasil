@@ -130,3 +130,23 @@ test('AliExpress auto-publication queue is source-isolated and does not enqueue 
   assert.match(autopilot, /if \(scoreUpdates\.length && options\?\.dryRun !== true\) \{/);
   assert.match(autopilot, /export async function evaluateMatches\(accountId, sourceFilter = '', options = \{\}\)/);
 });
+
+
+test('Telegram autopilot applies bounded queue backpressure and deduplicates uncertain deliveries', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const autopilot = await readFile(new URL('../lib/autopilot.js', import.meta.url), 'utf8');
+  assert.match(autopilot, /const maxPendingTelegram = 10/);
+  assert.match(autopilot, /p\.status IN \('READY','RETRY','DISPATCHING','PUBLISHED','WAITING_CONFIRMATION'\)/);
+  assert.match(autopilot, /\(\$10 <> 'TELEGRAM' OR[\s\S]*< \$11\)/);
+  assert.match(autopilot, /queueBackpressure: \{ pendingTelegram, limit: maxPendingTelegram, capacity: queueCapacity, blockedByCapacity: blockedQueueCapacity \}/);
+});
+
+test('Telegram tick dryRun returns before event persistence and performs no side effects', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const tick = await readFile(new URL('../api/n8n/telegram-tick.js', import.meta.url), 'utf8');
+  const dryRun = tick.indexOf('if (body.dryRun === true)');
+  const eventPersistence = tick.indexOf('const event = await remember(eventKey, accountId)');
+  assert.ok(dryRun >= 0 && eventPersistence > dryRun);
+  assert.match(tick, /sideEffects: false, queuedAvailable:/);
+  assert.match(tick, /if \(body\.dryRun !== true\)[\s\S]*enqueueMatches/);
+});
