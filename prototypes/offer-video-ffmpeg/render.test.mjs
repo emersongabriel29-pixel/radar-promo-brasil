@@ -98,7 +98,6 @@ test('pinned HTTP request uses the supplied address instead of resolving the hos
   });
   try {
     const port = server.address().port;
-    let lookupCalled = false;
     // Use a hostname that must not be resolved by DNS; requestPinned's custom
     // lookup must supply the validated IP directly to the socket connection.
     const result = await requestPinned({
@@ -106,10 +105,8 @@ test('pinned HTTP request uses the supplied address instead of resolving the hos
       address: '127.0.0.1',
       family: 4
     }, 'text/plain', 1024);
-    lookupCalled = true;
     assert.equal(result.status, 200);
     assert.equal(new TextDecoder().decode(result.bytes), 'pinned');
-    assert.equal(lookupCalled, true);
   } finally {
     await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
   }
