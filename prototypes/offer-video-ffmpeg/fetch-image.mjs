@@ -8,24 +8,25 @@ const MAX_IMG=8*1024*1024, MAX_HTML=2*1024*1024, MAX_REDIRECTS=5;
 function private4(ip){const p=ip.split('.').map(Number);if(p.length!==4||p.some(n=>!Number.isInteger(n)||n<0||n>255))return true;const[a,b]=p;return a===0||a===10||a===127||a>=224||(a===100&&b>=64&&b<=127)||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&b===168)||(a===192&&b===0)||(a===198&&(b===18||b===19||b===51))||(a===203&&b===0);}
 function private6(ip){
   const v=ip.toLowerCase().split('%')[0];
-  if(v==='::'||v==='::1') return true;
-  // Only globally routable IPv6 unicast (2000::/3) is allowed.
-  if(!/^[23]/.test(v)) return true;
-  // Block IPv4-mapped IPv6, including hexadecimal forms such as ::ffff:7f00:1.
+  // Parse IPv6 first so special and mapped forms are rejected before public-range checks.
   const parts=v.split('::');
   if(parts.length>2) return true;
   const expand=part=>part?part.split(':'): [];
-  let left=expand(parts[0]), right=expand(parts[1]||'');
-  const mappedDotted=v.match(/::ffff:(\\d+\\.\\d+\\.\\d+\\.\\d+)$/);
-  if(mappedDotted) return private4(mappedDotted[1]);
+  const left=expand(parts[0]), right=expand(parts[1]||'');
   const full=[...left,...Array(Math.max(0,8-left.length-right.length)).fill('0'),...right];
   if(full.length!==8) return true;
-  if(full.slice(0,5).every(x=>parseInt(x||'0',16)===0)&&parseInt(full[5],16)===0xffff){
-    const a=parseInt(full[6],16), b=parseInt(full[7],16);
+  const words=full.map(x=>parseInt(x||'0',16));
+  if(words.some(x=>!Number.isInteger(x)||x<0||x>0xffff)) return true;
+  if(words.every(x=>x===0)||(words.slice(0,7).every(x=>x===0)&&words[7]===1)) return true;
+  // IPv4-mapped IPv6 (including hexadecimal and dotted-decimal forms).
+  if(words.slice(0,5).every(x=>x===0)&&words[5]===0xffff){
+    const a=words[6], b=words[7];
     return private4([(a>>8)&255,a&255,(b>>8)&255,b&255].join('.'));
   }
-  // Documentation-only prefix is not a public destination.
-  if(full[0]==='2001'&&full[1]==='0db8') return true;
+  // Documentation-only IPv6 prefix is not a public destination.
+  if(words[0]===0x2001&&words[1]===0x0db8) return true;
+  // Only globally routable IPv6 unicast (2000::/3) is allowed.
+  if(words[0]<0x2000||words[0]>0x3fff) return true;
   return false;
 }
 async function resolvePublicTarget(value){
