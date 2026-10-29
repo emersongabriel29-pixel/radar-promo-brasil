@@ -37,10 +37,17 @@ test('Modo clone reconhece marketplace sem afirmar que link é afiliado válido'
   assert.equal(result.body.canPublish, false);
 });
 
-test('Modo clone bloqueia URL HTTP, domínio arbitrário e destinos internos', async () => {
+test('Modo clone classifica domínio desconhecido como não suportado, sem tentar importar', async () => {
+  const result = await invoke('https://example.org/item');
+  assert.equal(result.status, 200);
+  assert.equal(result.body.kind, 'PUBLIC_URL');
+  assert.equal(result.body.status, 'PUBLIC_URL_UNSUPPORTED_FOR_AUTOMATIC_IMPORT');
+  assert.equal(result.body.canPublish, false);
+});
+
+test('Modo clone bloqueia URL HTTP e destinos internos', async () => {
   for (const url of [
     'http://chat.whatsapp.com/AbcdefghijklMNOP',
-    'https://example.org/item',
     'https://localhost/admin',
     'https://127.0.0.1/private',
     'https://user:pass@shopee.com.br/product/123',
