@@ -150,3 +150,10 @@ test('Telegram tick dryRun returns before event persistence and performs no side
   assert.match(tick, /sideEffects: false, queuedAvailable:/);
   assert.match(tick, /if \(body\.dryRun !== true\)[\s\S]*enqueueMatches/);
 });
+
+
+test('AliExpress capability audit correctly recognizes numeric product IDs', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const integration = await readFile(new URL('../api/integrations/aliexpress.js', import.meta.url), 'utf8');
+  assert.match(integration, /hasProductId:items\.some\(x=>\/\^\\d\+\$\/\.test/);
+});
