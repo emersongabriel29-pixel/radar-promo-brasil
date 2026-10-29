@@ -93,9 +93,9 @@ export function buildFilterGraph({ titleFile, priceFile, ctaFile, font, duration
     `zoompan=z='min(zoom+0.00025,1.035)':d=${frames}:s=720x1280:fps=30`,
     'drawbox=x=0:y=40:w=iw:h=250:color=black@0.48:t=fill',
     textFileFilter(titleFile, { font, size: 32, y: 58 }),
-    'drawbox=x=0:y=1000:w=iw:h=220:color=black@0.72:t=fill',
-    ...(priceFile ? [textFileFilter(priceFile, { font, size: 34, y: 1018, color: 'white' })] : []),
-    textFileFilter(ctaFile, { font, size: 24, y: 1100 }),
+    'drawbox=x=0:y=960:w=iw:h=280:color=black@0.72:t=fill',
+    ...(priceFile ? [textFileFilter(priceFile, { font, size: 34, y: 975, color: 'white' })] : []),
+    textFileFilter(ctaFile, { font, size: 24, y: 1125 }),
     'format=yuv420p'
   ];
   return filters.join(',');
