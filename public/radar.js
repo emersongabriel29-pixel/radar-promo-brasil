@@ -453,8 +453,8 @@ function integrationHealthPanel() {
     : "";
   var interval = health.interval ? " Frequência informada: " + String(health.interval) + "." : "";
   return section(
-    "Saúde das integrações",
-    "Diagnóstico automático registrado pelo Radar. Conectado não significa que uma publicação foi testada ou enviada."
+    "Monitoramento do n8n",
+    "Este painel mostra apenas os diagnósticos registrados para a API REST e o MCP do n8n. Conectado não significa que uma publicação foi testada ou enviada."
   ) + alert + '<div class="card"><ul class="activity">' +
     (rows || '<li><i class="a-dot"></i><div><b>Nenhum diagnóstico registrado</b><div class="muted">Aguardando dados do monitor de saúde; não há confirmação de funcionamento externo.</div></div></li>') +
     '</ul><small class="muted">' + esc(interval) + '</small></div>';
