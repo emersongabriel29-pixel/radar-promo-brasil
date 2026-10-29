@@ -1,4 +1,4 @@
-# Capturador Multiplataforma v1.3.0
+# Capturador Multiplataforma v1.4.0
 
 ## Busca e extração de cupons (v1.4.0)
 - A extensão pesquisa páginas públicas de sites de cupons e tenta extrair códigos, descontos e datas de validade do HTML acessível.
