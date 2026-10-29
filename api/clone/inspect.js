@@ -19,7 +19,7 @@ function parseUrl(value) {
   let url;
   try { url = new URL(String(value || '').trim().slice(0, 2000)); }
   catch { throw fail('Cole uma URL completa e válida.'); }
-  if (url.protocol !== 'https:' || url.username || url.password || url.port || url.hostname.includes('.local') || url.hostname === 'localhost' || /^\d+(\.\d+){3}$/.test(url.hostname)) {
+  if (url.protocol !== 'https:' || url.username || url.password || url.port || url.hostname.includes('.local') || url.hostname === 'localhost' || url.hostname.startsWith('[') || /^\d+(\.\d+){3}$/.test(url.hostname)) {
     throw fail('Por segurança, use um link público HTTPS válido.');
   }
   return url;
