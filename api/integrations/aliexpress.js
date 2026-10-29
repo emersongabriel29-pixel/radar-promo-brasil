@@ -217,7 +217,7 @@ export default async function handler(req,res){
           if(auditAction==='products'&&items[0]?.id)discoveredProductId=items[0].id;
           if(auditAction==='campaigns'&&items[0]?.title)discoveredCampaign=items[0].title;
           if(auditAction==='orders'&&items[0]?.id)discoveredOrderId=items[0].id;
-          report.push({action:auditAction,api:spec.api,status:'OK',returnedCount:items.length,hasProductId:items.some(x=>/^\\d+$/.test(x.id||'')),hasAffiliateLink:items.some(x=>Boolean(x.affiliateUrl)),hasPrice:items.some(x=>x.price!==null&&x.price!==undefined),hasCommission:items.some(x=>x.commissionRate!==null&&x.commissionRate!==undefined)});
+          report.push({action:auditAction,api:spec.api,status:'OK',returnedCount:items.length,hasProductId:items.some(x=>/^\d+$/.test(x.id||'')),hasAffiliateLink:items.some(x=>Boolean(x.affiliateUrl)),hasPrice:items.some(x=>x.price!==null&&x.price!==undefined),hasCommission:items.some(x=>x.commissionRate!==null&&x.commissionRate!==undefined)});
         }catch(error){
           const message=clean(error?.message||'Falha na chamada',300);
           report.push({action:auditAction,status:'ERROR',httpStatus:Number(error?.status)||502,permissionDenied:/InsufficientPermission|insufficient permission|permission/i.test(message),error:message});
