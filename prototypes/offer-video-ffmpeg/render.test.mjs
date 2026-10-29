@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
+import { createServer } from 'node:http';
 import { buildFfmpegArgs, buildFilterGraph, parseArgs, validateOptions, wrapText } from './render.mjs';
+import { assertPublicHttpUrl, assertImageDimensions, extractOfferMetadata, imageDimensions, requestPinned, validateRedirectTarget } from './fetch-image.mjs';
 
 test('parses supported CLI options', () => {
   assert.deepEqual(parseArgs(['--input', 'produto.jpg', '--output', 'oferta.mp4', '--title', 'Produto', '--duration', '15']), {
@@ -9,9 +11,11 @@ test('parses supported CLI options', () => {
   });
 });
 
-test('rejects unknown and missing CLI options', () => {
+test('rejects unknown, missing and duplicate CLI options', () => {
   assert.throws(() => parseArgs(['--publish', 'true']), /não reconhecido/);
   assert.throws(() => parseArgs(['--title']), /Informe um valor/);
+  assert.throws(() => parseArgs(['--title', 'Produto A', '--title', 'Produto B']), /Argumento duplicado: --title/);
+  assert.throws(() => parseArgs(['--output', 'a.mp4', '--output', 'b.mp4']), /Argumento duplicado: --output/);
 });
 
 test('validates image, output, title, duration and overwrite protection', () => {
@@ -60,4 +64,81 @@ test('escapes special characters in optional font paths for the FFmpeg filtergra
 test('wraps long titles and calls to action without splitting words unnecessarily', () => {
   assert.equal(wrapText('Kit de cozinha completo com vários acessórios', 18), 'Kit de cozinha\ncompleto com\nvários acessórios');
   assert.equal(wrapText('ABCDEFGHIJK', 4), 'ABCD\nEFGH\nIJK');
+});
+
+test('accepts offer URL or direct image URL as source', () => {
+  assert.deepEqual(parseArgs(['--offer-url', 'https://shop.example/item', '--output', 'out.mp4']), {
+    'offer-url': 'https://shop.example/item', output: 'out.mp4'
+  });
+  assert.deepEqual(parseArgs(['--image-url', 'https://cdn.example/item.jpg', '--output', 'out.mp4', '--title', 'Item']), {
+    'image-url': 'https://cdn.example/item.jpg', output: 'out.mp4', title: 'Item'
+  });
+  assert.throws(() => parseArgs(['--input', 'item.jpg', '--offer-url', 'https://shop.example/item']), /apenas uma origem/);
+  assert.throws(() => parseArgs(['--offer-url', 'https://shop.example/item', '--image-url', 'https://cdn.example/item.jpg']), /não ambos/);
+});
+
+test('extracts title and Open Graph image, including relative URLs', () => {
+  const html = '<html><head><title>Fallback</title><meta property="og:title" content="Produto &amp; Oferta"><meta property="og:image" content="/assets/item.jpg"></head></html>';
+  assert.deepEqual(extractOfferMetadata(html, 'https://shop.example/oferta/123'), {
+    title: 'Produto & Oferta', imageUrl: 'https://shop.example/assets/item.jpg'
+  });
+});
+
+test('rejects invalid and oversized image dimensions before FFmpeg processing', () => {
+  assert.deepEqual(assertImageDimensions({ width: 720, height: 1280 }), { width: 720, height: 1280 });
+  assert.throws(() => assertImageDimensions({ width: 10000, height: 10000 }), /40 megapixels/);
+  assert.throws(() => assertImageDimensions({ width: 0, height: 1280 }), /40 megapixels/);
+  const png = Buffer.alloc(24);
+  Buffer.from('89504e470d0a1a0a', 'hex').copy(png, 0);
+  png.writeUInt32BE(720, 16);
+  png.writeUInt32BE(1280, 20);
+  assert.deepEqual(imageDimensions(png, '.png'), { width: 720, height: 1280 });
+  png.writeUInt32BE(10000, 16);
+  png.writeUInt32BE(10000, 20);
+  assert.throws(() => assertImageDimensions(imageDimensions(png, '.png')), /40 megapixels/);
+});
+
+test('blocks local and private URL targets before fetching', async () => {
+  await assert.rejects(assertPublicHttpUrl('http://127.0.0.1/admin'), /local|privado|reservado/i);
+  await assert.rejects(assertPublicHttpUrl('http://localhost/'), /local|internos/i);
+  await assert.rejects(assertPublicHttpUrl('file:///etc/passwd'), /HTTP\/HTTPS/);
+  await assert.rejects(assertPublicHttpUrl('http://[::ffff:7f00:1]/admin'), /local|privado|reservado/i);
+  await assert.rejects(assertPublicHttpUrl('http://[2001:db8::1]/'), /local|privado|reservado/i);
+  await assert.rejects(assertPublicHttpUrl('http://[2001:1::1]/'), /local|privado|reservado/i);
+  await assert.rejects(assertPublicHttpUrl('http://[2002:c0a8:0101::1]/'), /local|privado|reservado/i);
+  await assert.rejects(assertPublicHttpUrl('http://[3fff::1]/'), /local|privado|reservado/i);
+  await assert.rejects(assertPublicHttpUrl('http://192.88.99.1/'), /local|privado|reservado/i);
+});
+
+
+test('validates redirect destinations and blocks redirects to private targets', async () => {
+  await assert.rejects(validateRedirectTarget('http://127.0.0.1/admin', 'https://shop.example/item'), /local|privado|reservado/i);
+  await assert.rejects(validateRedirectTarget('//192.168.1.10/private', 'https://shop.example/item'), /local|privado|reservado/i);
+  await assert.rejects(validateRedirectTarget('http://[::ffff:7f00:1]/admin', 'https://shop.example/item'), /local|privado|reservado/i);
+  await assert.rejects(validateRedirectTarget('file:///etc/passwd', 'https://shop.example/item'), /HTTP\/HTTPS/);
+});
+
+test('pinned HTTP request uses the supplied address instead of resolving the hostname again', async () => {
+  const server = createServer((_req, res) => {
+    res.writeHead(200, { 'content-type': 'text/plain' });
+    res.end('pinned');
+  });
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  try {
+    const port = server.address().port;
+    // Use a hostname that must not be resolved by DNS; requestPinned's custom
+    // lookup must supply the validated IP directly to the socket connection.
+    const result = await requestPinned({
+      url: new URL(`http://pin-test.invalid:${port}/`),
+      address: '127.0.0.1',
+      family: 4
+    }, 'text/plain', 1024);
+    assert.equal(result.status, 200);
+    assert.equal(new TextDecoder().decode(result.bytes), 'pinned');
+  } finally {
+    await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+  }
 });

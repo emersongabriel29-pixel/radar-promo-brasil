@@ -21,6 +21,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
+      - run: node --test prototypes/offer-video-ffmpeg/*.test.mjs
       - run: RUN_FFMPEG_INTEGRATION=1 node --test prototypes/offer-video-ffmpeg/render.integration.test.mjs
       - run: npm audit --audit-level=moderate
       - run: npx playwright install --with-deps chromium

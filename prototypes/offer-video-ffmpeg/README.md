@@ -42,7 +42,7 @@ Opções:
 - Faz um movimento de zoom discreto na imagem e quebra automaticamente títulos, preços e chamadas longas em linhas; não gera novas cenas ou avatar por IA.
 - Reserva mais área central para a imagem do produto: faixa superior de título reduzida e painel inferior de preço/CTA de 280 px, com espaçamento entre preço multilinha e CTA, para diminuir a chance de cobrir detalhes importantes.
 - O texto é escrito em arquivos temporários e usado com `expansion=none`; o comando é executado sem shell.
-- Só aceita caminhos de arquivos locais e não faz requisições HTTP.
+- No modo `--input`, usa uma imagem local e não faz requisições HTTP. Os modos `--offer-url` e `--image-url` fazem download remoto.
 - Não lê links de afiliados, não verifica preços, não envia o arquivo para serviços externos e não publica nada.
 - Não adiciona dependências, não altera variáveis de ambiente, credenciais, tabelas ou integrações do Radar.
 - O resultado é um rascunho e precisa de revisão visual/manual antes de qualquer uso.
@@ -64,3 +64,20 @@ RUN_FFMPEG_INTEGRATION=1 node --test prototypes/offer-video-ffmpeg/render.integr
 A CI instala FFmpeg/ffprobe e executa os dois conjuntos de testes. A CI precisa ser executada novamente após cada alteração; confira o resultado mais recente associado ao commit da branch antes de considerar a revisão concluída.
 
 Este protótipo não deve ser implantado na Hatchable nem no servidor de produção sem uma decisão e uma integração separadas.
+
+
+## Entrada por link de oferta ou API
+
+Também é possível gerar o vídeo sem baixar a imagem manualmente:
+
+```bash
+# Extrai og:image/Twitter Card e tenta aproveitar o título da página
+node prototypes/offer-video-ffmpeg/render.mjs --offer-url "https://loja.example/oferta" --output ./oferta.mp4 --duration 15
+
+# Use a URL direta da imagem que uma API de ofertas retornou
+node prototypes/offer-video-ffmpeg/render.mjs --image-url "https://cdn.example/produto.jpg" --output ./oferta.mp4 --title "Nome do produto" --price "R$ 49,90"
+```
+
+O modo de link procura `og:image`, Twitter Card e metadados equivalentes; se o site não expuser imagem, passe a URL de imagem retornada pela API usando `--image-url`. O preço não é extraído automaticamente nem considerado validado: só informe um preço que o Radar já tenha confirmado. Use exatamente uma origem: `--input`, `--offer-url` ou `--image-url`.
+
+As URLs remotas são limitadas a HTTP/HTTPS, endereços locais/privados/reservados são rejeitados e cada redirecionamento é validado novamente. Para domínios, a conexão HTTP(S) usa o mesmo IP público escolhido na validação DNS, evitando uma segunda resolução entre validação e conexão; o hostname original continua sendo usado para Host, SNI e validação do certificado TLS. A página tem limite de 2 MB e a imagem de 8 MB. Imagens remotas com dimensões inválidas ou acima de 40 megapixels também são rejeitadas antes de chamar o FFmpeg. Isso reduz o risco de DNS rebinding/SSRF, mas não substitui defesa em profundidade nem uma revisão de segurança antes de expor o protótipo como serviço público. Use apenas URLs confiáveis. São aceitos PNG, JPEG e WebP com assinatura de arquivo conferida. A imagem é baixada para um diretório temporário, usada na renderização local e apagada ao final. A funcionalidade não publica vídeos, não envia mensagens e não chama APIs de geração de vídeo.
