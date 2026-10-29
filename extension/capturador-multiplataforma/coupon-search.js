@@ -79,9 +79,10 @@
       const settled=await Promise.allSettled(links.map(async link=>({link,coupons:extractCoupons(await fetchText(link.url),link.title+" — "+new URL(link.url).hostname)})));
       const all=[];
       for(const result of settled) if(result.status==="fulfilled") all.push(...result.value.coupons);
-      const unique=[...new Map(all.map(c=>[c.code+"|"+c.source,c])).values()].slice(0,30);
       const stored=await chrome.storage.local.get({couponResults:[]});
-      const merged=[...unique,...(stored.couponResults||[])].filter((c,i,a)=>a.findIndex(x=>x.code===c.code&&x.source===c.source)===i).slice(0,100);
+      const previous=stored.couponResults||[];
+      const unique=[...new Map(all.map(c=>{const old=previous.find(x=>x.code===c.code&&x.source===c.source);return [c.code+"|"+c.source,old&&old.validation&&old.validation!=="PENDENTE"?{...c,validation:old.validation,status:old.status}:c];})).values()].slice(0,30);
+      const merged=[...unique,...previous].filter((c,i,a)=>a.findIndex(x=>x.code===c.code&&x.source===c.source)===i).slice(0,100);
       await chrome.storage.local.set({couponResults:merged});
       renderCouponResults(unique);
       const active=unique.filter(c=>c.status==="FONTE DECLARA ATIVO").length;
