@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
-import { buildFfmpegArgs, buildFilterGraph, parseArgs, validateOptions } from './render.mjs';
+import { buildFfmpegArgs, buildFilterGraph, parseArgs, validateOptions, wrapText } from './render.mjs';
 
 test('parses supported CLI options', () => {
   assert.deepEqual(parseArgs(['--input', 'produto.jpg', '--output', 'oferta.mp4', '--title', 'Produto', '--duration', '15']), {
@@ -51,4 +51,9 @@ test('escapes special characters in optional font paths for the FFmpeg filtergra
     duration: 15
   });
   assert.ok(graph.includes("fontfile='/tmp/Font\\, \\[test\\]\\;it\\'s.ttf':"));
+});
+
+test('wraps long titles and calls to action without splitting words unnecessarily', () => {
+  assert.equal(wrapText('Kit de cozinha completo com vários acessórios', 18), 'Kit de cozinha\\ncompleto com\\nvários acessórios');
+  assert.equal(wrapText('ABCDEFGHIJK', 4), 'ABCD\\nEFGH\\nIJK');
 });
