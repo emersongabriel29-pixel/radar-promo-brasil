@@ -1,6 +1,11 @@
 # Capturador Multiplataforma v1.3.0
 
-## Busca automática de cupons (v1.3.0)\n- Depois de capturar ou informar o nome de um produto, clique em **Buscar cupons automaticamente**.\n- A extensão abre uma pesquisa web com o nome do produto, loja e termos de cupom/desconto, priorizando resultados de Promobit, Pelando, Cuponomia, Melhores Cupons e Cupom.org.\n- A extensão não aplica cupons nem garante que um código ainda esteja ativo; confira validade, elegibilidade, valor mínimo e regras na página de origem antes de publicar ou comprar. A busca depende do mecanismo de pesquisa e da disponibilidade dos sites.\n\n## Instalação
+## Busca automática de cupons (v1.3.0)
+- Depois de capturar ou informar o nome de um produto, clique em **Buscar cupons automaticamente**.
+- A extensão abre uma pesquisa web com o nome do produto, loja e termos de cupom/desconto, priorizando resultados de Promobit, Pelando, Cuponomia, Melhores Cupons e Cupom.org.
+- A extensão não aplica cupons nem garante que um código ainda esteja ativo; confira validade, elegibilidade, valor mínimo e regras na página de origem antes de publicar ou comprar. A busca depende do mecanismo de pesquisa e da disponibilidade dos sites.
+
+## Instalação
 1. Baixe o ZIP desta branch e extraia-o.
 2. Abra `chrome://extensions`, habilite **Modo do desenvolvedor** e clique em **Carregar sem compactação**.
 3. Selecione a pasta que contém `manifest.json`.
