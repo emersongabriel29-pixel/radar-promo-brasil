@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Standalone, local-only prototype for rendering a product-offer video.
- * No network requests, provider APIs, publishing, or Radar runtime imports.
+ * Standalone prototype for rendering a product-offer video.
+ * Local-image mode makes no network requests. Remote-image mode fetches public HTTP(S)
+ * sources only; no provider APIs, publishing, or Radar runtime imports.
  */
 import { spawn } from 'node:child_process';
 import { mkdtemp, rm, writeFile, access } from 'node:fs/promises';
@@ -37,7 +38,7 @@ export function validateOptions(options) {
   const duration = Number(options.duration ?? 15);
 
   if (!title || title.length > 120) throw new Error('O título é obrigatório (ou deve ser extraído do link) e deve ter até 120 caracteres.');
-  if (!input) throw new Error('Informe a imagem local com --input.');
+  if (!input) throw new Error('Informe --input, --offer-url ou --image-url.');
   if (!output) throw new Error('Informe o destino MP4 com --output.');
   if (!['.png', '.jpg', '.jpeg', '.webp'].includes(extname(input).toLowerCase())) {
     throw new Error('A imagem deve ser PNG, JPG ou WebP.');
@@ -164,13 +165,13 @@ async function main() {
       const source = await fetchOfferImage({ offerUrl: options['offer-url'], imageUrl: options['image-url'], dir: remoteDir });
       options.input = source.imagePath;
       if (!options.title && source.title) options.title = source.title;
-      process.stdout.write(`Imagem obtida: ${source.imageUrl}\\nBytes: ${source.bytes}\\n`);
+      process.stdout.write(`Imagem obtida: ${source.imageUrl}\nBytes: ${source.bytes}\n`);
     }
     if (!options.title) throw new Error('Informe --title ou use --offer-url para extrair o título da página.');
     const result = await render(options);
-    process.stdout.write(`Vídeo renderizado localmente: ${result.outputPath}\\nFormato: ${result.width}x${result.height}, ${result.fps} fps, ${result.duration}s, sem áudio.\\nNenhuma publicação foi realizada.\\n`);
+    process.stdout.write(`Vídeo renderizado localmente: ${result.outputPath}\nFormato: ${result.width}x${result.height}, ${result.fps} fps, ${result.duration}s, sem áudio.\nNenhuma publicação foi realizada.\n`);
   } catch (error) {
-    process.stderr.write(`Erro: ${error.message}\\n\\nExemplos:\\nnode prototypes/offer-video-ffmpeg/render.mjs --offer-url "https://loja.example/oferta" --output ./oferta.mp4\\nnode prototypes/offer-video-ffmpeg/render.mjs --image-url "https://cdn.example/produto.jpg" --output ./oferta.mp4 --title "Nome do produto"\\n`);
+    process.stderr.write(`Erro: ${error.message}\n\nExemplos:\nnode prototypes/offer-video-ffmpeg/render.mjs --offer-url "https://loja.example/oferta" --output ./oferta.mp4\nnode prototypes/offer-video-ffmpeg/render.mjs --image-url "https://cdn.example/produto.jpg" --output ./oferta.mp4 --title "Nome do produto"\n`);
     process.exitCode = 1;
   } finally {
     if (remoteDir) await rm(remoteDir, { recursive: true, force: true });
