@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { resolve } from 'node:path';
 import { buildFfmpegArgs, buildFilterGraph, parseArgs, validateOptions } from '../prototypes/offer-video-ffmpeg/render.mjs';
 
 test('offer video prototype parses supported CLI options', () => {
@@ -28,7 +29,7 @@ test('offer video prototype builds a vertical H.264 command without audio or net
   assert.ok(args.includes('-an'));
   assert.match(args[args.indexOf('-vf') + 1], /scale=720:1280/);
   assert.ok(args.includes('15'));
-  assert.ok(args.includes('./oferta.mp4'));
+  assert.ok(args.includes(resolve('./oferta.mp4')));
   assert.equal(args.some(value => /https?:\/\//i.test(value)), false);
 });
 
