@@ -29,7 +29,7 @@ node prototypes/offer-video-ffmpeg/render.mjs \
 
 Opções:
 - `--input`: imagem local original.
-- `--output`: caminho do MP4 de saída; não pode ser o mesmo arquivo da imagem.
+- `--output`: caminho do MP4 de saída; não pode ser o mesmo arquivo da imagem nem um arquivo já existente (para evitar sobrescrita).
 - `--title`: título obrigatório, até 120 caracteres.
 - `--price`: preço opcional, até 50 caracteres. Só informe preço previamente confirmado.
 - `--cta`: chamada para ação, até 100 caracteres.
@@ -39,7 +39,7 @@ Opções:
 ## Saída e limites
 
 - MP4 H.264, 720×1280 (9:16), 30 fps, sem áudio.
-- Faz um movimento de zoom discreto na imagem; não gera novas cenas ou avatar por IA.
+- Faz um movimento de zoom discreto na imagem e quebra automaticamente títulos, preços e chamadas longas em linhas; não gera novas cenas ou avatar por IA.
 - O texto é escrito em arquivos temporários e usado com `expansion=none`; o comando é executado sem shell.
 - Só aceita caminhos de arquivos locais e não faz requisições HTTP.
 - Não lê links de afiliados, não verifica preços, não envia o arquivo para serviços externos e não publica nada.
