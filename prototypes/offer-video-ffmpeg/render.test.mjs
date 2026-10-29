@@ -111,7 +111,7 @@ test('validates redirect destinations and blocks redirects to private targets', 
   await assert.rejects(validateRedirectTarget('http://127.0.0.1/admin', 'https://shop.example/item'), /local|privado|reservado/i);
   await assert.rejects(validateRedirectTarget('//192.168.1.10/private', 'https://shop.example/item'), /local|privado|reservado/i);
   await assert.rejects(validateRedirectTarget('http://[::ffff:7f00:1]/admin', 'https://shop.example/item'), /local|privado|reservado/i);
-  await assert.rejects(validateRedirectTarget('file:///etc/passwd', 'https://shop.example/item'), /HTTP\\/HTTPS/);
+  await assert.rejects(validateRedirectTarget('file:///etc/passwd', 'https://shop.example/item'), /HTTP\/HTTPS/);
 });
 
 test('pinned HTTP request uses the supplied address instead of resolving the hostname again', async () => {
