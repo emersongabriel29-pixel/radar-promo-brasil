@@ -39,7 +39,6 @@ export function validateOptions(options) {
   if (!['.png', '.jpg', '.jpeg', '.webp'].includes(extname(input).toLowerCase())) {
     throw new Error('A imagem deve ser PNG, JPG ou WebP.');
   }
-  if (extname(output).toLowerCase() !== '.mp4') throw new Error('O arquivo de saída deve terminar em .mp4.');
   if (price.length > 50) throw new Error('O preço deve ter até 50 caracteres.');
   if (!cta || cta.length > 100) throw new Error('A chamada para ação deve ter até 100 caracteres.');
   if (![10, 15, 20, 30].includes(duration)) throw new Error('A duração permitida é 10, 15, 20 ou 30 segundos.');
@@ -47,6 +46,7 @@ export function validateOptions(options) {
   const inputPath = resolve(input);
   const outputPath = resolve(output);
   if (inputPath === outputPath) throw new Error('A saída não pode sobrescrever a imagem de entrada.');
+  if (extname(outputPath).toLowerCase() !== '.mp4') throw new Error('O arquivo de saída deve terminar em .mp4.');
 
   return { inputPath, outputPath, title, price, cta, duration, font: options.font ? resolve(options.font) : '' };
 }
