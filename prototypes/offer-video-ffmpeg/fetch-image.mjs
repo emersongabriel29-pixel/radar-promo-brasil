@@ -23,8 +23,12 @@ function private6(ip){
     const a=words[6], b=words[7];
     return private4([(a>>8)&255,a&255,(b>>8)&255,b&255].join('.'));
   }
-  // Documentation-only IPv6 prefix is not a public destination.
-  if(words[0]===0x2001&&words[1]===0x0db8) return true;
+  // Reject IPv6 special-purpose and transition ranges, even when inside 2000::/3.
+  // 2001::/23 contains IETF protocol assignments; 2002::/16 is 6to4 and can
+  // encode an IPv4 destination; 3fff::/20 is documentation-only.
+  if(words[0]===0x2001&&words[1]<=0x01ff) return true;
+  if(words[0]===0x2002) return true;
+  if(words[0]===0x3fff&&(words[1]&0xfff0)===0x0000) return true;
   // Only globally routable IPv6 unicast (2000::/3) is allowed.
   if(words[0]<0x2000||words[0]>0x3fff) return true;
   return false;
