@@ -1,40 +1,34 @@
-# Capturador Multiplataforma v1.4.0
+# Capturador Multiplataforma v1.5.0
 
-## Busca, extração e validação assistida de cupons (v1.4.0)
-- A extensão pesquisa páginas públicas de sites de cupons e tenta extrair códigos, descontos e datas de validade do HTML acessível.
-- O resultado separa códigos expirados, páginas que declaram o código ativo e códigos sem confirmação suficiente.
-- “Fonte declara ativo” significa apenas que o texto público da página indica atividade. A extensão não confirma aplicação real no checkout automaticamente, pois isso depende de loja, produto, conta, região, valor mínimo e regras do cupom.
-- Para testar, use **Abrir produto para testar**: a extensão copia o código e abre a URL do produto; aplique o cupom no carrinho da loja e depois registre **Funcionou no carrinho** ou **Loja recusou**. O registro é uma confirmação manual do usuário, não uma leitura automática do checkout.
-- Algumas fontes bloqueiam requisições ou carregam dados via JavaScript; nesses casos, a busca pode não retornar códigos. Nunca trate a ausência de resultados como prova de que não existem cupons.
+## Captura ao copiar link
+- O content script observa o evento de cópia nas páginas HTTP/HTTPS e extrai somente uma URL do texto exposto nesse evento.
+- Quando encontra um link, pode abrir o destino em nova aba e, após o carregamento, extrair título, preço, preço anterior, imagem, categoria, marketplace e URL do produto.
+- O link originalmente copiado é preservado como link de afiliado para revisão. A extensão não garante elegibilidade nem comissão.
+- O botão “Ler link copiado agora” oferece leitura explícita do clipboard, após clique do usuário. Não há monitoramento contínuo da área de transferência.
+- Se a página copiar via API sem disparar evento `copy`, use o botão de leitura explícita.
 
-## Busca automática de cupons (v1.3.0)
-- Depois de capturar ou informar o nome de um produto, clique em **Buscar cupons automaticamente**.
-- A extensão abre uma pesquisa web com o nome do produto, loja e termos de cupom/desconto, priorizando resultados de Promobit, Pelando, Cuponomia, Melhores Cupons e Cupom.org.
-- A extensão não aplica cupons nem garante que um código ainda esteja ativo; confira validade, elegibilidade, valor mínimo e regras na página de origem antes de publicar ou comprar. A busca depende do mecanismo de pesquisa e da disponibilidade dos sites.
+## Modos
+- **Assistido:** captura e salva como rascunho local para revisão.
+- **Automático:** captura e salva localmente sem exigir clique em “Capturar página atual”.
+- **Inteligente:** modo preparado para envio à API conforme as opções de configuração. O envio automático permanece desativado por padrão.
+
+## Marketplaces
+O domínio final carregado é identificado como Mercado Livre, Amazon, Temu, SHEIN, Magalu ou Outra. A extração usa metadados públicos, JSON-LD e DOM; pode exigir ajustes se a loja mudar a página.
 
 ## Instalação
-1. Baixe o ZIP desta branch e extraia-o.
+1. Extraia o ZIP.
 2. Abra `chrome://extensions`, habilite **Modo do desenvolvedor** e clique em **Carregar sem compactação**.
 3. Selecione a pasta que contém `manifest.json`.
 
-## Captura automática
-- Nome, preço, preço anterior, imagem e URL são extraídos dos metadados públicos, JSON-LD e elementos visíveis da página.
-- Categoria é obtida de metadados e breadcrumbs da loja. Se não houver informação confiável, o campo fica vazio para revisão; a API do Radar também classifica pelo título e descrição.
-- Sub_id/canal é lido de parâmetros conhecidos da URL quando disponíveis; caso contrário, usa o canal padrão salvo na configuração, por exemplo `telegram`.
-- O link de afiliado é reaproveitado quando a URL atual contém parâmetros de rastreamento reconhecíveis. Também é possível configurar um modelo HTTPS que contenha `{url}` e opcionalmente `{subId}`.
-- **Não existe um formato universal de link afiliado.** O modelo precisa ser fornecido e validado pelo programa de afiliados usado. Quando a plataforma exige uma API oficial, essa API e suas credenciais precisam ser integradas; a extensão não inventa links nem confirma comissões por conta própria.
-
-## API e autenticação
+## API
 - Configure o endpoint HTTPS real da API.
-- O campo Bearer só funciona se a API de destino aceitar esse método. A rota Hatchable `/api/data` usa autenticação de membro (`req.member`) e não aceita automaticamente um token standalone.
-- A extensão envia `subId` e o backend o persiste em `offers.sub_id`; a migração `041_offer_sub_id.sql` adiciona a coluna e o índice no banco standalone. Em ambientes já existentes, confirme que as migrações foram aplicadas antes de enviar ofertas.
-- O envio da oferta não publica automaticamente no Telegram/WhatsApp. A publicação segue o fluxo de aprovação e conectores oficiais.
+- O Bearer Token só funciona se o destino aceitar esse método. A rota Hatchable `/api/data` usa autenticação de membro e não aceita automaticamente token standalone.
+- Respostas HTTP 2xx indicam aceitação da solicitação, não comprovam publicação nem persistência final. Confira o catálogo.
+- O capturador não publica diretamente no Telegram/WhatsApp; segue o fluxo de aprovação e publicação do Radar.
 
-## Diagnóstico
-- **401/403:** autenticação recusada.
-- **404:** endpoint/domínio incorreto.
-- **409:** possível oferta duplicada.
-- **Erro de rede/CORS:** confira endpoint, CORS e permissões.
-- Resposta HTTP 2xx indica que a API aceitou a solicitação; confirme no catálogo se a oferta foi gravada.
-
-A captura depende da estrutura pública das páginas e deve ser testada em páginas reais de cada loja.
+## Privacidade e limites
+- A extensão não lê senhas, cookies ou tokens dos marketplaces.
+- O observador só processa texto disponibilizado pelo evento `copy`; a leitura direta do clipboard acontece apenas após clique no botão.
+- Não usa endpoints privados nem contorna bloqueios.
+- Links encurtados e redirecionamentos dependem de a navegação chegar a uma página de produto compatível.
+- Preços e imagens podem não estar disponíveis em todas as páginas; revise os dados antes de enviar.
