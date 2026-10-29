@@ -11,7 +11,7 @@ async function store(offer,status="Salva localmente"){
 }
 async function sendToApi(offer){
  const config=await chrome.storage.local.get({apiBase:"https://radar-promo-brasil.hatchable.site/api/extension-offers",apiToken:""});
- const endpoint=clean(config.apiBase,2000);
+ const endpoint=clean(config.apiBase,2000)||"https://radar-promo-brasil.hatchable.site/api/extension-offers";
  let rawPrice=String(offer.price||"").replace(/[^\d,.-]/g,"");if(rawPrice.includes(",")&&rawPrice.includes("."))rawPrice=rawPrice.lastIndexOf(",")>rawPrice.lastIndexOf(".")?rawPrice.replace(/\./g,"").replace(",","."):rawPrice.replace(/,/g,"");else if(rawPrice.includes(","))rawPrice=rawPrice.replace(",",".");const price=Number(rawPrice);
  if(!endpoint.startsWith("https://")||!endpoint.endsWith("/api/extension-offers"))return {ok:false,status:"Configure o endpoint HTTPS oficial /api/extension-offers."};if(!config.apiToken)return {ok:false,status:"Token da extensão ausente. Gere-o no painel do Radar."};
  if(!offer.title||!validUrl(offer.affiliateUrl)||!validUrl(offer.imageUrl)||!Number.isFinite(price)||price<=0)return {ok:false,status:"Revisão necessária: título, preço, link afiliado e imagem são obrigatórios."};
