@@ -6,7 +6,7 @@
   "permissions": ["activeTab", "storage", "downloads", "tabs", "clipboardRead"],
   "optional_host_permissions": ["https://*/*"],
   "host_permissions": [
-    "https://*.mercadolivre.com.br/*", "https://*.mercadolibre.com/*", "https://meli.la/*",
+    "https://radar-promo-brasil.hatchable.site/*", "https://*.mercadolivre.com.br/*", "https://*.mercadolibre.com/*", "https://meli.la/*",
     "https://*.amazon.com.br/*", "https://*.amazon.com/*", "https://amzn.to/*", "https://a.co/*",
     "https://*.shopee.com.br/*", "https://shope.ee/*",
     "https://*.aliexpress.com/*",
