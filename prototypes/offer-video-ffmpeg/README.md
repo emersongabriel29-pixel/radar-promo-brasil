@@ -41,7 +41,7 @@ Opções:
 - MP4 H.264, 720×1280 (9:16), 30 fps, sem áudio.
 - Faz um movimento de zoom discreto na imagem e quebra automaticamente títulos, preços e chamadas longas em linhas; não gera novas cenas ou avatar por IA.
 - O texto é escrito em arquivos temporários e usado com `expansion=none`; o comando é executado sem shell.
-- Só aceita caminhos de arquivos locais e não faz requisições HTTP.
+- No modo `--input`, usa uma imagem local e não faz requisições HTTP. Os modos `--offer-url` e `--image-url` fazem download remoto.
 - Não lê links de afiliados, não verifica preços, não envia o arquivo para serviços externos e não publica nada.
 - Não adiciona dependências, não altera variáveis de ambiente, credenciais, tabelas ou integrações do Radar.
 - O resultado é um rascunho e precisa de revisão visual/manual antes de qualquer uso.
@@ -79,4 +79,4 @@ node prototypes/offer-video-ffmpeg/render.mjs --image-url "https://cdn.example/p
 
 O modo de link procura `og:image`, Twitter Card e metadados equivalentes; se o site não expuser imagem, passe a URL de imagem retornada pela API usando `--image-url`. O preço não é extraído automaticamente nem considerado validado: só informe um preço que o Radar já tenha confirmado. Use exatamente uma origem: `--input`, `--offer-url` ou `--image-url`.
 
-As URLs remotas são limitadas a HTTP/HTTPS, endereços locais/privados são bloqueados, redirecionamentos são revalidados, a página tem limite de 2 MB e a imagem de 8 MB. São aceitos PNG, JPEG e WebP com assinatura de arquivo conferida. A imagem é baixada para um diretório temporário, usada na renderização local e apagada ao final. A funcionalidade não publica vídeos, não envia mensagens e não chama APIs de geração de vídeo.
+As URLs remotas são limitadas a HTTP/HTTPS, há verificações de endereços locais/privados e cada redirecionamento é revalidado; a página tem limite de 2 MB e a imagem de 8 MB. **A validação DNS atual não fixa o IP usado na conexão e, portanto, ainda não elimina completamente o risco de DNS rebinding/SSRF.** Trate o recurso como protótipo local, use apenas URLs confiáveis e não o exponha como serviço público até que a conexão seja fixada a um IP público validado e testada. São aceitos PNG, JPEG e WebP com assinatura de arquivo conferida. A imagem é baixada para um diretório temporário, usada na renderização local e apagada ao final. A funcionalidade não publica vídeos, não envia mensagens e não chama APIs de geração de vídeo.
