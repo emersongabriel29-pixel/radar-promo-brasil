@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
-import { buildFfmpegArgs, buildFilterGraph, parseArgs, validateOptions } from '../prototypes/offer-video-ffmpeg/render.mjs';
+import { buildFfmpegArgs, buildFilterGraph, parseArgs, validateOptions, wrapText } from '../prototypes/offer-video-ffmpeg/render.mjs';
 
 test('offer video prototype parses supported CLI options', () => {
   assert.deepEqual(parseArgs(['--input', 'produto.jpg', '--output', 'oferta.mp4', '--title', 'Produto', '--duration', '15']), {
@@ -39,4 +39,8 @@ test('offer video prototype uses text files with expansion disabled', () => {
   assert.match(graph, /expansion=none/);
   assert.match(graph, /scale=720:1280/);
   assert.match(graph, /format=yuv420p/);
+});
+
+test('offer video prototype wraps long display text', () => {
+  assert.equal(wrapText('Oferta especial para sua casa hoje', 16), 'Oferta especial\\npara sua casa\\nhoje');
 });
