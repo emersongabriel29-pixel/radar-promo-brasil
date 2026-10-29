@@ -319,7 +319,7 @@ export default async function handler(req, res) {
         if (!inserted.rows.length) { totals.duplicates++; continue; }
         try {
           await db.query("INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,$4,$5,'OFFICIAL_API',$6,now())", [crypto.randomUUID(), row.account_id, offerId, p.currentPrice, p.originalPrice, 'ALIEXPRESS:' + p.id]);
-          await db.query("UPDATE offers SET status='PENDING',validation_status='PENDING_REVIEW',classification_status='REVIEW',classification_reason=$3,updated_at=now() WHERE id=$1 AND account_id=$2 AND status='PENDING'", [offerId, row.account_id, 'Importação automática enriquecida pela API AliExpress; exige revisão humana antes de aprovação/publicação.']);
+          await db.query("UPDATE offers SET status='PENDING',validation_status='PENDING_REVIEW',classification_status=$3,classification_reason=$4,updated_at=now() WHERE id=$1 AND account_id=$2 AND status='PENDING'", [offerId, row.account_id, p.qualityFlags.length ? 'REVIEW' : 'AUTO', p.qualityFlags.length ? p.qualityFlags.join('|') : 'Importação automática via API oficial; aguardando validação de requisitos.']);
           totals.imported++;
           accountImported++;
         } catch (error) {
