@@ -130,7 +130,8 @@ async function runFfmpeg(args) {
 
 export async function render(options) {
   const valid = validateOptions(options);
-  await access(valid.inputPath);\n  try { await access(valid.outputPath); throw new Error('O arquivo de saída já existe; escolha outro caminho para não sobrescrevê-lo.'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  await access(valid.inputPath);
+  try { await access(valid.outputPath); throw new Error('O arquivo de saída já existe; escolha outro caminho para não sobrescrevê-lo.'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   const workDir = await mkdtemp(resolve(tmpdir(), 'radar-offer-video-'));
   try {
     const titleFile = resolve(workDir, 'title.txt');
