@@ -26,7 +26,7 @@ function private6(ip){
   // Reject IPv6 special-purpose and transition ranges, even when inside 2000::/3.
   // 2001::/23 contains IETF protocol assignments; 2002::/16 is 6to4 and can
   // encode an IPv4 destination; 3fff::/20 is documentation-only.
-  if(words[0]===0x2001&&words[1]<=0x01ff) return true;
+  if(words[0]===0x2001&&(words[1]<=0x01ff||words[1]===0x0db8)) return true;
   if(words[0]===0x2002) return true;
   if(words[0]===0x3fff&&(words[1]&0xfff0)===0x0000) return true;
   // Only globally routable IPv6 unicast (2000::/3) is allowed.
