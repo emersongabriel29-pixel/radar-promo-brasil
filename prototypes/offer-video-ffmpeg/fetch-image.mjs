@@ -22,7 +22,7 @@ export async function assertPublicHttpUrl(value){ return (await resolvePublicTar
 
 // The socket uses the exact IP that was validated; no second DNS lookup occurs.
 // The original hostname remains in use for Host, TLS SNI, and certificate validation.
-function requestPinned(target,accept,max){
+export function requestPinned(target,accept,max){
   return new Promise((resolve,reject)=>{
     const {url,address,family}=target, transport=url.protocol==='https:'?https:http;
     let settled=false, size=0; const chunks=[];
