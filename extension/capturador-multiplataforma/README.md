@@ -33,3 +33,7 @@ Mercado Livre, Amazon, Shopee, AliExpress, Temu, SHEIN e Magalu. A identificaç�
 - A extensão limita sua permissão aos domínios dos marketplaces compatíveis.
 - Não usa endpoints privados nem contorna bloqueios.
 - Preços e imagens podem não estar disponíveis em todas as páginas; revise os dados antes de enviar.
+
+## Conectores por marketplace
+
+A interface permite configurar endpoint HTTPS independente para Mercado Livre, Amazon, Shopee, AliExpress, SHEIN, Temu e Magalu. Os endpoints devem apontar para adaptadores do backend do Radar que implementem o contrato documentado em `INTEGRACOES_MARKETPLACES.md`. Os segredos oficiais ficam no servidor, nunca na extensão. Configurar um endpoint não ativa por si só acesso à API oficial; são necessárias credenciais, aprovação e implementação do adaptador no servidor.
