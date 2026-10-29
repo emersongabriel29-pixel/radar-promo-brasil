@@ -60,6 +60,6 @@ Teste de integração que executa o renderizador com FFmpeg real e valida o MP4 
 RUN_FFMPEG_INTEGRATION=1 node --test prototypes/offer-video-ffmpeg/render.integration.test.mjs
 ```
 
-A CI instala FFmpeg/ffprobe e executa os dois conjuntos de testes. A execução de CI #932, no commit `f70bbb10a109cc855e95c3984d6ddf256e5d0697`, passou. Qualquer novo commit exige nova execução da CI antes de considerar a revisão final concluída.
+A CI instala FFmpeg/ffprobe e executa os dois conjuntos de testes. A execução de CI #933, no commit `47e8bb1c56082b4997098c1aad5d58f01080e916`, passou. Qualquer novo commit exige nova execução da CI antes de considerar a revisão final concluída.
 
 Este protótipo não deve ser implantado na Hatchable nem no servidor de produção sem uma decisão e uma integração separadas.
