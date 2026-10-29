@@ -52,13 +52,14 @@ export default async function handler(req, res) {
       const response = await request('/affiliate/products', apiKey, { page, limit: 5, isAvailable: true });
       const products = list(response).slice(0, 5);
       totals.scanned += products.length;
-      totals.skipReasons ||= { unavailable: 0, missingTitle: 0, missingOrganization: 0, missingProductUrl: 0, missingImage: 0, invalidPrice: 0, missingPricing: 0, noDiscount: 0, noAffiliateLink: 0 };
+      totals.skipReasons ||= { unavailable: 0, missingTitle: 0, missingOrganization: 0, missingProductUrl: 0, missingImage: 0, invalidPrice: 0, missingPricing: 0, noDiscount: 0, noAffiliateLink: 0, medicationExcluded: 0 };
       totals.priceDiagnostics ||= [];
       for (const product of products) {
         if (accountImported >= 2) break;
         const option = (Array.isArray(product.options) ? product.options : []).find(x => x.available) || product.options?.[0] || {};
         const pricing = Array.isArray(option.pricing) ? option.pricing[0] : {};
         const title = clean(option.name || product.name, 220);
+        if (isMedicationProduct({ title, description: option.description || product.description, sourceCategory: Array.isArray(option.categories) ? option.categories.join(' ') : '', product_url: product.url })) { totals.skipped++; totals.skipReasons.medicationExcluded++; continue; }
         const productUrl = typeof product.url === 'string' && /^https:\/\//i.test(product.url) ? product.url : '';
         const imageUrl = product.images?.[0]?.url || option.images?.[0]?.url || '';
         const originalPrice = priceCents(pricing.listPrice), currentPrice = priceCents(pricing.price);
