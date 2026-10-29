@@ -1549,6 +1549,7 @@ function integration(code, name, desc, state, action) {
     desc +
     '</div>' +
     (action ? '<button type="button" class="btn secondary csp-margin-top-10px" data-action="' + action + '">' + actionLabel + '</button>' : '') +
+    (code === "ALI" ? '<div class="row csp-margin-top-10px"><button type="button" class="btn secondary" data-action="auditAliExpress()">Auditar API avançada</button><button type="button" class="btn secondary" data-action="generateAliExpressLinksBatch()">Gerar links em lote</button></div>' : '') +
     '</div><span class="pill ' +
     (initialStatus === "Testado" || initialStatus === "Disponível" ? "live" : "warn") +
     '">' +
@@ -4248,6 +4249,30 @@ async function connectOrTestAliExpress(){
   }
 }
 window.connectOrTestAliExpress = connectOrTestAliExpress;
+async function auditAliExpress(){
+  if(!confirm('Executar até oito chamadas reais somente de leitura para auditar as permissões da API AliExpress? Pode consumir cota de API. Nenhuma oferta será publicada.'))return;
+  try{
+    var result=await operationRequest('/api/integrations/aliexpress',{action:'audit'});
+    var rows=(result.checks||[]).map(function(x){
+      var state=x.status==='OK'?'OK':x.status==='SKIPPED'?'Ignorado':'Falhou';
+      return '<li><b>'+esc(x.action)+'</b> — '+esc(state)+(x.api?' · <code>'+esc(x.api)+'</code>':'')+(x.returnedCount!==undefined?' · itens: '+esc(x.returnedCount):'')+(x.permissionDenied?' · permissão ausente provável':'')+(x.error?' · '+esc(x.error):'')+(x.reason?' · '+esc(x.reason):'')+'</li>';
+    }).join('');
+    openModal('Auditoria da API AliExpress', 'Resultado das chamadas reais somente de leitura. Um método implementado não significa que a permissão foi concedida.', '<div class="callout"><b>Verificadas:</b> '+esc(result.summary?.checked||0)+'<br><b>Falhas:</b> '+esc(result.summary?.failed||0)+'<br><b>Ignoradas:</b> '+esc(result.summary?.skipped||0)+'<br><b>Auditoria completa:</b> '+(result.complete?'sim':'não')+'</div><ul>'+rows+'</ul><p class="muted">Nenhuma oferta foi aprovada, importada ou publicada por esta auditoria.</p>',function(e){e.preventDefault();closeModal();});
+  }catch(error){toast('Falha na auditoria AliExpress: '+(error.message||'verifique credenciais e permissões.'));}
+}
+window.auditAliExpress=auditAliExpress;
+async function generateAliExpressLinksBatch(){
+  var raw=window.prompt('Cole de 1 a 10 URLs de produtos AliExpress, uma por linha. Serão gerados links individualmente; nenhuma oferta será publicada.','');
+  if(raw===null)return;
+  var urls=raw.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean).slice(0,10);
+  if(!urls.length){toast('Informe ao menos uma URL.');return;}
+  try{
+    var result=await operationRequest('/api/integrations/aliexpress',{action:'generateLinksBatch',productUrls:urls});
+    var rows=(result.results||[]).map(function(x){return '<li><b>'+esc(x.status==='OK'?'Gerado':'Falhou')+'</b> — '+esc(x.productUrl||urls[x.index]||'URL')+(x.affiliateUrl?'<br><input readonly value="'+esc(x.affiliateUrl)+'" aria-label="Link de afiliado gerado">':'')+(x.error?'<br>'+esc(x.error):'')+'</li>';}).join('');
+    openModal('Links AliExpress em lote','Cada URL foi processada individualmente. Confira os links antes de usar.', '<div class="callout"><b>Gerados:</b> '+esc(result.created||0)+'<br><b>Falhas:</b> '+esc(result.failed||0)+'<br><b>Publicação:</b> desativada</div><ol>'+rows+'</ol>',function(e){e.preventDefault();closeModal();});
+  }catch(error){toast('Falha ao gerar links AliExpress: '+(error.message||'verifique credenciais e permissões.'));}
+}
+window.generateAliExpressLinksBatch=generateAliExpressLinksBatch;
 async function testLomadeeConnection(){
   try{
     var result=await operationRequest('/api/integrations/lomadee',{action:'validate'});

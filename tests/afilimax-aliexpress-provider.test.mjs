@@ -9,6 +9,8 @@ import {
 
 test('allows only HTTPS product URLs on official AliExpress domains', () => {
   assert.equal(validateAliExpressProductUrl('https://pt.aliexpress.com/item/123.html'), 'https://pt.aliexpress.com/item/123.html');
+  assert.equal(validateAliExpressProductUrl('https://s.click.aliexpress.com/e/_test123'), 'https://s.click.aliexpress.com/e/_test123');
+  assert.equal(validateAliExpressProductUrl('https://s.click.aliexpress.com.attacker.example/e/_test123'), '');
   assert.equal(validateAliExpressProductUrl('http://aliexpress.com/item/123'), '');
   assert.equal(validateAliExpressProductUrl('https://aliexpress.com.attacker.example/item/123'), '');
   assert.equal(validateAliExpressProductUrl('https://user:pass@aliexpress.com/item/123'), '');
