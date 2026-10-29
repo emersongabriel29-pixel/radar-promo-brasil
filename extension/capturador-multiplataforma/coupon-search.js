@@ -39,24 +39,23 @@
       /(?:c[oó]digo|cupom)\s*[:：-]\s*([A-Z0-9][A-Z0-9_-]{3,19})/gi
     ];
     for (const re of patterns) { let m, guard=0; while ((m=re.exec(text)) && guard++<40) add(m[1],text.slice(Math.max(0,m.index-100),Math.min(text.length,m.index+220))); }
-    const expiryMatch = text.match(/(?:v[aá]lido\s+at[eé]|expira\s+em|expira[cç][aã]o|validade\s*:?)\s*(\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}|\d{4}-\d{2}-\d{2})/i);
-    let expiry = "";
-    if (expiryMatch) {
-      const raw = expiryMatch[1]; let d;
-      if (/^\d{4}-/.test(raw)) d = new Date(raw+"T23:59:59");
-      else { const p=raw.split(/[\/.-]/).map(Number); let y=p[2]; if(y<100)y+=2000; d=new Date(y,p[1]-1,p[0],23,59,59); }
-      if (!Number.isNaN(d.getTime())) expiry = d.toISOString().slice(0,10);
-    }
-    const past = expiry && new Date(expiry+"T23:59:59") < new Date();
-    const explicitExpired = /cupom\s+(?:expirado|vencido)|(?:expirado|vencido)\s+(?:em|desde)|n[aã]o\s+est[aá]\s+mais\s+v[aá]lido/i.test(text);
-    const explicitActive = /(?:cupom|c[oó]digo).{0,40}(?:ativo|v[aá]lido|funcionando)|(?:ativo|v[aá]lido).{0,30}(?:cupom|c[oó]digo)/i.test(text);
-    const discountMatch = text.match(/(?:at[eé]|desconto de|economize|off)\s*(\d{1,2}\s?%|R\$\s?\d[\d.,]*)/i);
-    return candidates.slice(0,12).map(c => ({
-      code:c.code, source, context:c.context, expiry,
-      discount:discountMatch ? clean(discountMatch[1]) : "",
-      status: past || explicitExpired ? "EXPIRADO" : explicitActive ? "FONTE DECLARA ATIVO" : "NÃO CONFIRMADO",
-      evidence: past ? "Data de validade encontrada e vencida." : explicitExpired ? "A página informa que o cupom expirou." : explicitActive ? "A página descreve o cupom como ativo; não houve teste no carrinho." : "Código encontrado na página, sem evidência suficiente de validade."
-    }));
+    return candidates.slice(0,12).map(c => {
+      const context = c.context || "";
+      const expiryMatch = context.match(/(?:v[aá]lido\s+at[eé]|expira\s+em|expira[cç][aã]o|validade\s*:?)\s*(\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}|\d{4}-\d{2}-\d{2})/i);
+      let expiry = "";
+      if (expiryMatch) {
+        const raw=expiryMatch[1]; let d;
+        if (/^\d{4}-/.test(raw)) d=new Date(raw+"T23:59:59");
+        else { const p=raw.split(/[\/.-]/).map(Number); let y=p[2]; if(y<100)y+=2000; d=new Date(y,p[1]-1,p[0],23,59,59); }
+        if (!Number.isNaN(d.getTime())) expiry=d.toISOString().slice(0,10);
+      }
+      const past=expiry && new Date(expiry+"T23:59:59") < new Date();
+      const explicitExpired=/cupom\s+(?:expirado|vencido)|(?:expirado|vencido)\s+(?:em|desde)|n[aã]o\s+est[aá]\s+mais\s+v[aá]lido/i.test(context);
+      const explicitActive=/(?:cupom|c[oó]digo).{0,40}(?:ativo|v[aá]lido|funcionando)|(?:ativo|v[aá]lido).{0,30}(?:cupom|c[oó]digo)/i.test(context);
+      const discountMatch=context.match(/(?:at[eé]|desconto de|economize|off)\s*(\d{1,2}\s?%|R\$\s?\d[\d.,]*)/i);
+      const expired=Boolean(past||explicitExpired), active=Boolean(explicitActive&&!expired);
+      return {code:c.code,source,context,expiry,discount:discountMatch?clean(discountMatch[1]):"",status:expired?"EXPIRADO":active?"FONTE DECLARA ATIVO":"NÃO CONFIRMADO",evidence:past?"Data de validade encontrada e vencida.":explicitExpired?"O trecho associado ao código informa que expirou.":active?"O trecho associado ao código descreve-o como ativo; não houve teste no carrinho.":"Código encontrado na página, sem evidência suficiente de validade."};
+    });
   }
   async function fetchText(url) {
     const res = await fetch(url,{credentials:"omit",redirect:"follow",cache:"no-store"});
