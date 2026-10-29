@@ -4,11 +4,10 @@
  * No network requests, provider APIs, publishing, or Radar runtime imports.
  */
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { access } from 'node:fs/promises';
-import { dirname, extname, isAbsolute, resolve } from 'node:path';
+import { mkdtemp, rm, writeFile, access } from 'node:fs/promises';
+import { extname, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 
 export function parseArgs(argv) {
   const result = {};
@@ -65,7 +64,7 @@ function textFileFilter(file, { font, size, y, color = 'white' }) {
 export function buildFilterGraph({ titleFile, priceFile, ctaFile, font, duration }) {
   const frames = duration * 30;
   const filters = [
-    `scale=720:1280:force_original_aspect_ratio=increase`,
+    'scale=720:1280:force_original_aspect_ratio=increase',
     'crop=720:1280',
     `zoompan=z='min(zoom+0.00025,1.035)':d=${frames}:s=720x1280:fps=30`,
     'drawbox=x=0:y=100:w=iw:h=270:color=black@0.48:t=fill',
