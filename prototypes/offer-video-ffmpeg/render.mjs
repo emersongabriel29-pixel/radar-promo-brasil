@@ -69,7 +69,7 @@ function textFileFilter(file, { font, size, y, color = 'white' }) {
 }
 
 export function wrapText(value, maxChars) {
-  const words = String(value || '').replace(/[\\r\\n]+/g, ' ').trim().split(/\\s+/).filter(Boolean);
+  const words = String(value || '').replace(/[\r\n]+/g, ' ').trim().split(/\s+/).filter(Boolean);
   const lines = [];
   let line = '';
   for (const originalWord of words) {
@@ -82,7 +82,7 @@ export function wrapText(value, maxChars) {
     }
   }
   if (line) lines.push(line);
-  return lines.join('\\n');
+  return lines.join('\n');
 }
 
 export function buildFilterGraph({ titleFile, priceFile, ctaFile, font, duration }) {
@@ -137,9 +137,9 @@ export async function render(options) {
     const priceFile = resolve(workDir, 'price.txt');
     const ctaFile = resolve(workDir, 'cta.txt');
     await Promise.all([
-      writeFile(titleFile, valid.title.replace(/[\r\n]+/g, ' ').trim(), 'utf8'),
-      writeFile(priceFile, valid.price.replace(/[\r\n]+/g, ' ').trim(), 'utf8'),
-      writeFile(ctaFile, valid.cta.replace(/[\r\n]+/g, ' ').trim(), 'utf8')
+      writeFile(titleFile, wrapText(valid.title, 30), 'utf8'),
+      writeFile(priceFile, wrapText(valid.price, 24), 'utf8'),
+      writeFile(ctaFile, wrapText(valid.cta, 42), 'utf8')
     ]);
     const args = buildFfmpegArgs(valid, { titleFile, priceFile, ctaFile });
     await runFfmpeg(args);
