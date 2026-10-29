@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { createServer } from 'node:http';
 import { buildFfmpegArgs, buildFilterGraph, parseArgs, validateOptions, wrapText } from './render.mjs';
-import { assertPublicHttpUrl, assertImageDimensions, extractOfferMetadata, imageDimensions, requestPinned } from './fetch-image.mjs';
+import { assertPublicHttpUrl, assertImageDimensions, extractOfferMetadata, imageDimensions, requestPinned, validateRedirectTarget } from './fetch-image.mjs';
 
 test('parses supported CLI options', () => {
   assert.deepEqual(parseArgs(['--input', 'produto.jpg', '--output', 'oferta.mp4', '--title', 'Produto', '--duration', '15']), {
@@ -106,6 +106,13 @@ test('blocks local and private URL targets before fetching', async () => {
   await assert.rejects(assertPublicHttpUrl('http://192.88.99.1/'), /local|privado|reservado/i);
 });
 
+
+test('validates redirect destinations and blocks redirects to private targets', async () => {
+  await assert.rejects(validateRedirectTarget('http://127.0.0.1/admin', 'https://shop.example/item'), /local|privado|reservado/i);
+  await assert.rejects(validateRedirectTarget('//192.168.1.10/private', 'https://shop.example/item'), /local|privado|reservado/i);
+  await assert.rejects(validateRedirectTarget('http://[::ffff:7f00:1]/admin', 'https://shop.example/item'), /local|privado|reservado/i);
+  await assert.rejects(validateRedirectTarget('file:///etc/passwd', 'https://shop.example/item'), /HTTP\\/HTTPS/);
+});
 
 test('pinned HTTP request uses the supplied address instead of resolving the hostname again', async () => {
   const server = createServer((_req, res) => {
