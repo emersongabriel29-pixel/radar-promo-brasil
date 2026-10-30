@@ -2,6 +2,7 @@ import { db, config, webhooks } from 'hatchable';
 import { configuredBotToken, sendTelegramOffer } from 'lib/telegram.js';
 import { eligiblePublication, claimPublication } from 'lib/delivery.js';
 import { cacheOfferImage } from 'lib/offer-images.js';
+import { formatPromo } from 'lib/promo-message.js';
 import { enqueueMatches } from 'lib/autopilot.js';
 
 export const access = 'public';
@@ -60,7 +61,7 @@ export default async function(req, res) {
           AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now())
           AND g.status='ACTIVE' AND g.platform='TELEGRAM'
           AND NULLIF(trim(g.external_id),'') IS NOT NULL
-          AND (p.content_type='MESSAGE' OR p.image_storage_key IS NOT NULL OR o.image_storage_key IS NOT NULL
+          AND (p.content_type='MESSAGE' OR p.image_storage_key IS NOT NULL OR o.image_storage_key IS NOT NULL OR o.image_url IS NOT NULL
             OR lower(split_part(p.image_url, '?', 1)) LIKE ANY (ARRAY['%.jpg','%.jpeg','%.png','%.webp','%.gif','%.avif','%.bmp'])
             OR lower(p.image_url) LIKE 'https://cf.shopee.com.br/file/%')
           AND ${eligiblePublication}`, [accountId]);
@@ -83,7 +84,12 @@ export default async function(req, res) {
     }
 
     stage = 'load_publication_queue';
-    const rows = (await db.query(`SELECT p.id,p.offer_id AS "offerId",p.content_type AS "contentType",p.account_id AS "accountId",p.message,COALESCE(p.image_url,o.image_url) AS "imageUrl",COALESCE(p.image_storage_key,o.image_storage_key) AS "imageStorageKey",p.attempts,o.affiliate_url AS "affiliateUrl",o.coupon_code AS "couponCode",o.coupon_url AS "couponUrl",g.external_id AS "groupExternalId" FROM publications p LEFT JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id WHERE p.account_id=$1 AND p.status IN ('READY','RETRY') AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now()) AND g.status='ACTIVE' AND g.platform='TELEGRAM' AND NULLIF(trim(g.external_id),'') IS NOT NULL AND (p.content_type='MESSAGE' OR p.image_storage_key IS NOT NULL OR o.image_storage_key IS NOT NULL OR lower(split_part(p.image_url, '?', 1)) LIKE ANY (ARRAY['%.jpg','%.jpeg','%.png','%.webp','%.gif','%.avif','%.bmp']) OR lower(p.image_url) LIKE 'https://cf.shopee.com.br/file/%') AND ${eligiblePublication} ORDER BY p.priority DESC,p.created_at LIMIT 1`, [accountId])).rows;
+    const origin = String(await config.get('public_app_url') || 'https://radar-promo-brasil.hatchable.site').replace(/\/$/, '');
+    const rotationState=(await db.query("SELECT last_source,consecutive_count FROM marketplace_rotation_state WHERE account_id=$1 AND group_id=(SELECT id FROM promo_groups WHERE account_id=$1 AND status='ACTIVE' AND platform='TELEGRAM' AND NULLIF(trim(external_id),'') IS NOT NULL ORDER BY id LIMIT 1)",[accountId])).rows[0];
+    const sourceOrder=['ALIEXPRESS','SHOPEE','LOMADEE','AMAZON','MERCADOLIVRE','CASAS_BAHIA','MAGALU','RAKUTEN'];
+    const lastIndex=sourceOrder.indexOf(rotationState?.last_source||'');
+    const preferredSource=rotationState?.consecutive_count>=10?sourceOrder[(lastIndex+1+sourceOrder.length)%sourceOrder.length]:(rotationState?.last_source||'');
+    const rows = (await db.query(`SELECT p.id,p.group_id AS "groupId",p.content_type AS "contentType",p.account_id AS "accountId",p.message,COALESCE(p.image_url,o.image_url) AS "imageUrl",COALESCE(p.image_storage_key,o.image_storage_key) AS "imageStorageKey",p.attempts,o.title AS "offerTitle",o.source,o.current_price AS "currentPrice",o.original_price AS "originalPrice",o.affiliate_url AS "affiliateUrl",o.coupon_code AS "couponCode",o.coupon_url AS "couponUrl",c.name AS "category",g.external_id AS "groupExternalId" FROM publications p LEFT JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id LEFT JOIN categories c ON c.id=o.category_id AND c.account_id=o.account_id JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id WHERE p.account_id=$1 AND p.status IN ('READY','RETRY') AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now()) AND g.status='ACTIVE' AND g.platform='TELEGRAM' AND NULLIF(trim(g.external_id),'') IS NOT NULL AND (p.content_type='MESSAGE' OR p.image_storage_key IS NOT NULL OR o.image_storage_key IS NOT NULL OR o.image_url IS NOT NULL OR lower(split_part(p.image_url, '?', 1)) LIKE ANY (ARRAY['%.jpg','%.jpeg','%.png','%.webp','%.gif','%.avif','%.bmp']) OR lower(p.image_url) LIKE 'https://cf.shopee.com.br/file/%') AND ${eligiblePublication} ORDER BY CASE WHEN o.source=$2 THEN 0 ELSE 1 END,p.priority DESC,p.created_at LIMIT 1`, [accountId,preferredSource])).rows;
     // dryRun is handled before event persistence above; normal delivery continues here.
     let published = 0, failed = 0, unconfirmed = 0, processed = 0;
     stage = 'process_publications';
@@ -100,12 +106,13 @@ export default async function(req, res) {
           const effectiveAffiliate = String(item.affiliateUrl || '').trim();
           const baseMessage = String(item.message || '').replace(/https?:\/\/[^\s]+\/api\/r\/[0-9a-f-]+/gi, effectiveAffiliate);
           const couponUrl = String(item.couponUrl || '').trim();
-          const trackedMessage = item.couponCode && couponUrl && !baseMessage.includes(couponUrl) ? baseMessage + String.fromCharCode(10, 10) + '🎟️ Resgate o cupom aqui: ' + couponUrl : baseMessage;
-          const external = await sendTelegramOffer(token, { ...item, imageUrl: item.contentType === 'MESSAGE' ? null : await cacheOfferImage(item, db), message: trackedMessage, affiliateUrl: effectiveAffiliate });
+          const trackedMessage = item.contentType === 'MESSAGE' ? (item.couponCode && couponUrl && !baseMessage.includes(couponUrl) ? baseMessage + String.fromCharCode(10, 10) + '🎟️ Resgate o cupom aqui: ' + couponUrl : baseMessage) : formatPromo({ title: item.offerTitle, source: item.source, category: item.category, currentPrice: Number(item.currentPrice) || 0, originalPrice: Number(item.originalPrice) || 0, affiliateUrl: effectiveAffiliate, couponCode: item.couponCode, couponUrl }).message;
+          const external = await sendTelegramOffer(token, { ...item, imageUrl: item.contentType === 'MESSAGE' ? null : await cacheOfferImage({ ...item, imageUrl: item.imageUrl || item.offerImageUrl }, db), message: trackedMessage, affiliateUrl: effectiveAffiliate });
           providerAccepted = true;
           await db.transaction([
             { sql: "UPDATE publications SET status='PUBLISHED',published_at=now(),error_message=NULL,telegram_connection_id=$3,external_message_id=$4 WHERE id=$1 AND account_id=$2 AND status='DISPATCHING'", params: [item.id, item.accountId, connection.id, String(external?.message_id || '')] },
-            { sql: "UPDATE telegram_connections SET failure_count=0,last_seen_at=now(),status='ACTIVE',updated_at=now() WHERE id=$1 AND account_id=$2", params: [connection.id, item.accountId] }
+            { sql: "UPDATE telegram_connections SET failure_count=0,last_seen_at=now(),status='ACTIVE',updated_at=now() WHERE id=$1 AND account_id=$2", params: [connection.id, item.accountId] },
+            { sql: "INSERT INTO marketplace_rotation_state(account_id,group_id,last_source,consecutive_count,updated_at) VALUES($1,$2,$3,1,now()) ON CONFLICT(account_id,group_id) DO UPDATE SET consecutive_count=CASE WHEN marketplace_rotation_state.last_source=EXCLUDED.last_source THEN marketplace_rotation_state.consecutive_count+1 ELSE 1 END,last_source=EXCLUDED.last_source,updated_at=now()", params: [item.accountId,item.groupId,item.source||'UNKNOWN'] }
           ]);
           sent = true; published++; break;
         } catch (error) {
