@@ -4087,7 +4087,7 @@ async function share(id) {
   }
 }
 
-var selectedGroups = {}, loadSequence = 0, modalReturnFocus = null, drawerReturnFocus = null, fieldSequence = 0;
+var selectedGroups = {}, loadSequence = 0, modalReturnFocus = null, drawerReturnFocus = null, fieldSequence = 0, modalInertRestore = [];
 var navPaths = {
   dashboard:'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',
   radar:'M12 3a9 9 0 1 0 9 9 M12 7a5 5 0 1 0 5 5 M12 12l8-8',
@@ -4172,6 +4172,24 @@ function toast(message){
   var error=document.getElementById('formError');if(error&&document.getElementById('modal').classList.contains('on')){error.textContent=message;error.tabIndex=-1;error.focus();}
   clearTimeout(window.toastTimeout);window.toastTimeout=setTimeout(function(){element.classList.remove('on');},4500);
 }
+function setModalBackgroundInert(active){
+  if(active){
+    if(modalInertRestore.length)return;
+    var node=document.getElementById('modal');
+    while(node&&node!==document.body){
+      var parent=node.parentElement;if(!parent)break;
+      Array.from(parent.children).forEach(function(sibling){
+        if(sibling===node)return;
+        modalInertRestore.push({element:sibling,inert:sibling.inert});
+        sibling.inert=true;
+      });
+      node=parent;
+    }
+  }else{
+    modalInertRestore.forEach(function(entry){if(entry.element.isConnected)entry.element.inert=entry.inert;});
+    modalInertRestore=[];
+  }
+}
 function openModal(title,hint,body,submit){
   modalReturnFocus=document.activeElement;
   document.getElementById('modalTitle').textContent=title;document.getElementById('modalHint').textContent=hint;
@@ -4184,11 +4202,11 @@ function openModal(title,hint,body,submit){
     try{await submit(event);}catch(error){toast(error.message||'Não foi possível salvar.');}
     finally{form.removeAttribute('aria-busy');buttons.forEach(function(button){button.disabled=false;});}
   };
-  var modal=document.getElementById('modal');modal.classList.add('on');modal.setAttribute('aria-hidden','false');document.getElementById('main').inert=true;document.getElementById('side').inert=true;
+  var modal=document.getElementById('modal');modal.classList.add('on');modal.setAttribute('aria-hidden','false');modal.setAttribute('aria-modal','true');setModalBackgroundInert(true);
   labelFields(form);(form.querySelector('input,select,textarea')||modal.querySelector('button')).focus();
 }
 function closeModal(){
-  var modal=document.getElementById('modal');modal.classList.remove('on');modal.setAttribute('aria-hidden','true');document.getElementById('main').inert=false;syncDrawer();
+  var modal=document.getElementById('modal');modal.classList.remove('on');modal.setAttribute('aria-hidden','true');modal.setAttribute('aria-modal','false');setModalBackgroundInert(false);
   if(modalReturnFocus?.isConnected)modalReturnFocus.focus();else document.getElementById('content').focus();
   modalReturnFocus=null;whatsappPairing=null;
 }
