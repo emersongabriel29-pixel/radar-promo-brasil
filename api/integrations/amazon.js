@@ -2,6 +2,7 @@ import { config, db } from 'hatchable';
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 import { isMedicationProduct } from 'lib/product-safety.js';
+// API catalog items are not filtered by product category.
 import { formatPromo } from 'lib/promo-message.js';
 
 export const access = 'member';
@@ -184,20 +185,21 @@ export default async function handler(req, res) {
         try { parsed = new URL(productUrl); } catch {}
         const tag = parsed?.searchParams?.get('tag') || '';
         let reason = '';
-        if (!asin || !title) reason = 'ASIN ou título ausente.';
+        if (isMedicationProduct({title,productUrl})) reason = 'Medicamentos e produtos farmacêuticos são bloqueados pela política do Radar.';
+        else if (!asin || !title) reason = 'ASIN ou título ausente.';
         else if (!parsed || parsed.protocol !== 'https:' || !ALLOWED_MARKETPLACES.has(parsed.hostname.toLowerCase()) || tag.toLowerCase() !== c.partnerTag.toLowerCase()) reason = 'URL sem Partner Tag válido do marketplace configurado.';
         else if (!/^https:\/\//i.test(imageUrl)) reason = 'Imagem do produto ausente.';
         else if (!Number.isSafeInteger(currentPrice) || currentPrice <= 0 || !Number.isSafeInteger(originalPrice) || originalPrice <= currentPrice) reason = 'Preço atual/original indisponível ou sem desconto verificável.';
-        else if (isMedicationProduct({title,sourceCategory:'Amazon',product_url:productUrl})) reason = 'Produto excluído pelas regras de segurança do Radar.';
+        // No internal category exclusion.
         if (reason) { skipped.push({asin,title,reason}); continue; }
-        const classification = classifyProduct({title,sourceCategory:'Amazon'});
+        const classification = classifyProduct({title});
         const category = categories.find(x=>x.name.toLowerCase()===String(classification.category||'').toLowerCase()) || categories.find(x=>x.name.toLowerCase().includes('gerais')) || null;
         const fp = await fingerprint({source:'AMAZON',externalId:asin,productUrl,title});
         const discount = Math.round((originalPrice-currentPrice)*100/originalPrice);
         const score = offerScore({title,currentPrice,originalPrice});
         const promo = formatPromo({title,source:'AMAZON',category:classification.category,currentPrice,originalPrice,affiliateUrl:productUrl,imageUrl,productUrl});
         const savedOffer = await db.query(
-          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,subcategory,classification_tags,classification_confidence,classification_status,classification_reason,source_category) VALUES($1,$2,$3,'AMAZON',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'VALIDATED','AMAZON_CREATORS_API',false,$14,$15::jsonb,$16,'REVIEW','Imported as draft; human review required','Amazon') ON CONFLICT DO NOTHING RETURNING id",
+          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,subcategory,classification_tags,classification_confidence,classification_status,classification_reason,source_category) VALUES($1,$2,$3,'AMAZON',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'VALIDATED','AMAZON_CREATORS_API',false,$14,$15::jsonb,$16,'REVIEW','Imported as draft; human review required',NULL) ON CONFLICT DO NOTHING RETURNING id",
           [crypto.randomUUID(),account.id,title,originalPrice,currentPrice,category?.id||null,productUrl,imageUrl,productUrl,discount,score,promo.message,fp,classification.subcategory||null,JSON.stringify(classification.tags||[]),classification.confidence||0]
         );
         if (!savedOffer.rows.length) { skipped.push({asin,title,reason:'Produto duplicado.'}); continue; }
