@@ -314,7 +314,6 @@ export default async function handler(req,res){
       items=normalize(listOf(result));
       fallback={used:true,requestedAction:action,actualApi:fallbackSpec.api,reason:'A API avançada recusou a operação por falta de permissão; foi usada a busca padrão de produtos. Os itens não são garantidos como produtos em alta nem como correspondência inteligente.',keyword:fallbackSpec.params.keywords||null};
     }
-
     if(req.body?.persistDiscovery===true||req.body?.persistDiscovery==='true'){
       const pagedActions=new Set(['products','hotProducts','hotProductsDownload','campaignProducts']);
       if(pagedActions.has(action)){
@@ -339,28 +338,6 @@ export default async function handler(req,res){
       }
     }
 
-    const spec=build(actionName,orderBody,c);if(!spec)return res.status(400).json({error:'Parâmetros inválidos.'});
-    let data, result, items, fallback=null;
-    try {
-      data=await topRequest(c,spec.api,spec.params);
-      result=unwrap(data,spec.api);
-      items=normalize(listOf(result));
-    } catch (apiError) {
-      const permissionDenied=/InsufficientPermission|insufficient permission|permission/i.test(String(apiError?.message||''));
-      const canFallback=['hotProducts','hotProductsDownload','smartMatch','campaignProducts'].includes(action);
-      if(!permissionDenied||!canFallback)throw apiError;
-      let fallbackSpec;
-      if(action==='smartMatch'&&!clean(req.body?.keyword,120)&&/^\d{1,30}$/.test(clean(req.body?.productId,30))){
-        fallbackSpec=build('productDetail',{...req.body,productIds:req.body.productId},c);
-      } else {
-        const fallbackKeyword=clean(req.body?.keyword||(action==='campaignProducts'?req.body?.promotionName:'ofertas'),120);
-        fallbackSpec=build('products',{...req.body,keyword:fallbackKeyword,sort:clean(req.body?.sort||'SALE_PRICE_ASC',40)},c);
-      }
-      data=await topRequest(c,fallbackSpec.api,fallbackSpec.params);
-      result=unwrap(data,fallbackSpec.api);
-      items=normalize(listOf(result));
-      fallback={used:true,requestedAction:action,actualApi:fallbackSpec.api,reason:'A API avançada recusou a operação por falta de permissão; foi usada a busca padrão de produtos. Os itens não são garantidos como produtos em alta nem como correspondência inteligente.',keyword:fallbackSpec.params.keywords||null};
-    }
     if(req.body?.persistDiscovery===true||req.body?.persistDiscovery==='true'){
       if(saved.status!=='VALIDATED')return res.status(412).json({error:'Valide a credencial AliExpress antes de persistir o catálogo.'});
       const kindMap={products:'PRODUCT',smartMatch:'PRODUCT',hotProducts:'PRODUCT',hotProductsDownload:'PRODUCT',productDetail:'PRODUCT',categories:'CATEGORY',campaigns:'CAMPAIGN',campaignProducts:'PRODUCT'};
