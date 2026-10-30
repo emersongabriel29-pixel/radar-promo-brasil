@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildShopeeKeywordCatalog, selectShopeeKeywords, shopeeKeywordCatalogSize, isRelevantShopeeProduct } from '../lib/shopee-keywords.js';
+import { buildShopeeKeywordCatalog, selectShopeeKeywords, shopeeKeywordCatalogSize, isRelevantShopeeProduct, getShopeeKeywordQualityPenalty } from '../lib/shopee-keywords.js';
 
 test('Shopee keyword catalog expands curated products into thousands of searchable phrases', () => {
   const catalog = buildShopeeKeywordCatalog();
@@ -35,4 +35,11 @@ test('keyword relevance rejects fuzzy notebook matches and keeps real product ma
   assert.equal(isRelevantShopeeProduct('Gabinete Gamer Aquário Aigo Apollo', 'notebook gamer'), false);
   assert.equal(isRelevantShopeeProduct('Smartphone Motorola Moto G06', 'smartphone'), true);
   assert.equal(isRelevantShopeeProduct('Forma de silicone para fritadeira', 'air fryer'), true);
+});
+
+test('accessories are downranked behind the main product in broad product searches', () => {
+  assert.equal(getShopeeKeywordQualityPenalty('Suporte adesivo para celular smartphone', 'smartphone'), -18);
+  assert.equal(getShopeeKeywordQualityPenalty('Kit formas de silicone para air fryer', 'air fryer'), -25);
+  assert.equal(getShopeeKeywordQualityPenalty('Smartphone Motorola Moto G06', 'smartphone'), 0);
+  assert.equal(getShopeeKeywordQualityPenalty('Air fryer Mondial 5L', 'air fryer'), 0);
 });
