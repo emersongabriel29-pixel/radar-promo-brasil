@@ -45,6 +45,10 @@ Consultas somente leitura executadas pela rota já implantada confirmaram:
 
 As migrations `050_affiliate_discovery.sql` e `051_affiliate_sales.sql` foram adicionadas ao GitHub para reproduzir as tabelas já existentes no banco ativo. Elas não foram aplicadas.
 
+## Feeds de catálogo
+
+A consulta real `listItemFeeds` retornou feeds FULL e DELTA, incluindo um feed `Shopee Oficial BR` com 100.000 registros FULL e 173.056 registros DELTA na resposta consultada. A rota `feed_data` rejeitava os IDs compostos retornados pelo próprio `listItemFeeds`, pois aceitava somente números. A PR passa a validar e normalizar o identificador composto para o formato de data aceito pelo GraphQL e atualiza o campo da interface para receber o ID completo. O conteúdo de `getItemFeedData` ainda precisa ser inspecionado após publicar a versão candidata; só então decidiremos como normalizar os produtos do feed para importação automática, sem inventar campos.
+
 ## Validação necessária
 
 Os testes automatizados cobrem a geração e rotação determinística do catálogo. A confirmação de permissões e resultados reais de `shopOfferV2`, `shopeeOfferV2` e `brandOffer` depende de executar o worker em dry-run com a credencial da conta no ambiente Hatchable. Nenhuma chamada real de produção foi feita nesta alteração.
