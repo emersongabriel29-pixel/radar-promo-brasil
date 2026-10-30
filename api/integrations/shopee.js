@@ -3,6 +3,7 @@ import { normalizeShopeeSales, upsertAffiliateSales } from 'lib/affiliate-sales.
 import { persistDiscoveryPage } from 'lib/affiliate-discovery.js';
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
+import { isMedicationProduct } from 'lib/product-safety.js';
 // API catalog items are not filtered by product category.
 import { formatPromo } from 'lib/promo-message.js';
 
@@ -150,21 +151,22 @@ export default async function handler(req, res) {
         try { const parsed=new URL(productUrl); if(parsed.protocol==='https:') productHost=parsed.hostname.toLowerCase(); } catch {}
         try { const parsed=new URL(affiliateUrl); if(parsed.protocol==='https:') affiliateHost=parsed.hostname.toLowerCase(); } catch {}
         let reason='';
-        if(!title||!item.itemId) reason='Produto sem título ou identificador.';
+        if(isMedicationProduct({title,productUrl})) reason='Medicamentos e produtos farmacêuticos são bloqueados pela política do Radar.';
+        else if(!title||!item.itemId) reason='Produto sem título ou identificador.';
         else if(!(productHost==='shopee.com.br'||productHost.endsWith('.shopee.com.br'))) reason='Link original não pertence à Shopee Brasil.';
         else if(!(affiliateHost==='shope.ee'||affiliateHost.endsWith('.shopee.com.br'))) reason='Link de afiliado Shopee ausente ou inválido.';
         else if(!/^https:\/\//i.test(imageUrl)) reason='Imagem ausente.';
         else if(!Number.isSafeInteger(currentPrice)||currentPrice<=0||!Number.isSafeInteger(originalPrice)||originalPrice<=currentPrice) reason='Preço ou desconto verificável ausente.';
         // No internal category exclusion.
         if(reason){skipped.push({itemId:item.itemId,title,reason});continue;}
-        const classification=classifyProduct({title,sourceCategory:'Shopee'});
+        const classification=classifyProduct({title});
         const category=categories.find(x=>x.name.toLowerCase()===String(classification.category||'').toLowerCase())||categories.find(x=>x.name.toLowerCase().includes('gerais'))||null;
         const fp=await fingerprint({source:'SHOPEE',externalId:item.itemId,productUrl,title});
         const discount=Math.round((originalPrice-currentPrice)*100/originalPrice);
         const score=offerScore({title,currentPrice,originalPrice});
         const promo=formatPromo({title,source:'SHOPEE',category:classification.category,currentPrice,originalPrice,affiliateUrl,imageUrl,productUrl});
         const savedOffer=await db.query(
-          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,subcategory,classification_tags,classification_confidence,classification_status,classification_reason,source_category) VALUES($1,$2,$3,'SHOPEE',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'VALIDATED','SHOPEE_AFFILIATE_API',false,$14,$15::jsonb,$16,'REVIEW','Imported as draft; human review required','Shopee') ON CONFLICT DO NOTHING RETURNING id",
+          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,subcategory,classification_tags,classification_confidence,classification_status,classification_reason,source_category) VALUES($1,$2,$3,'SHOPEE',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'VALIDATED','SHOPEE_AFFILIATE_API',false,$14,$15::jsonb,$16,'REVIEW','Imported as draft; human review required',NULL) ON CONFLICT DO NOTHING RETURNING id",
           [crypto.randomUUID(),account.id,title,originalPrice,currentPrice,category?.id||null,affiliateUrl,imageUrl,productUrl,discount,score,promo.message,fp,classification.subcategory||null,JSON.stringify(classification.tags||[]),classification.confidence||0]
         );
         if(!savedOffer.rows.length){skipped.push({itemId:item.itemId,title,reason:'Produto duplicado.'});continue;}
@@ -231,9 +233,9 @@ export default async function handler(req, res) {
         }
         return res.json({kind,items:allItems,pageInfo:{...finalPageInfo,page:currentPage,hasNextPage},discovery:discoveries,pagesCompleted,nextPage:hasNextPage?currentPage+1:null,readOnly:true,publicationEnabled:false});
       }
-      result=await signedRequest(credentials,{query,variables});
-      const normalized=safeOfferRows(kind,result);
-      return res.json({kind,...normalized,discovery:null,readOnly:true,publicationEnabled:false});
+      result = await signedRequest(credentials, { query, variables });
+      const normalized = safeOfferRows(kind, result);
+      return res.json({ kind, ...normalized, readOnly: true, publicationEnabled: false });
     }
 
     if (action === 'batch_links') {
