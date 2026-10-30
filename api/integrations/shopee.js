@@ -1,4 +1,8 @@
 import { config, db } from 'hatchable';
+import { fingerprint, offerScore } from 'lib/automation.js';
+import { classifyProduct } from 'lib/category-classifier.js';
+import { isMedicationProduct } from 'lib/product-safety.js';
+import { formatPromo } from 'lib/promo-message.js';
 
 export const access = 'member';
 export const methods = ['GET', 'POST'];
