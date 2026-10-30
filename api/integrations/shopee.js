@@ -2,6 +2,7 @@ import { config, db } from 'hatchable';
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 import { isMedicationProduct } from 'lib/product-safety.js';
+// API catalog items are not filtered by product category.
 import { formatPromo } from 'lib/promo-message.js';
 
 export const access = 'member';
@@ -107,7 +108,7 @@ export default async function handler(req, res) {
       return res.json({
         provider: 'SHOPEE',
         status: saved?.status || 'NOT_CONFIGURED',
-        capabilities: ['product_offers', 'shop_offers', 'brand_offers', 'shopee_campaign_offers', 'affiliate_short_links', 'batch_affiliate_links', 'conversion_reports', 'validated_reports', 'catalog_feeds'],
+        capabilities: ['product_offers', 'shop_offers', 'shopee_campaign_offers', 'affiliate_short_links', 'batch_affiliate_links', 'conversion_reports', 'validated_reports', 'catalog_feeds'],
         readOnlyTest: true,
         publicationEnabled: false
       });
@@ -148,21 +149,22 @@ export default async function handler(req, res) {
         try { const parsed=new URL(productUrl); if(parsed.protocol==='https:') productHost=parsed.hostname.toLowerCase(); } catch {}
         try { const parsed=new URL(affiliateUrl); if(parsed.protocol==='https:') affiliateHost=parsed.hostname.toLowerCase(); } catch {}
         let reason='';
-        if(!title||!item.itemId) reason='Produto sem título ou identificador.';
+        if(isMedicationProduct({title,productUrl})) reason='Medicamentos e produtos farmacêuticos são bloqueados pela política do Radar.';
+        else if(!title||!item.itemId) reason='Produto sem título ou identificador.';
         else if(!(productHost==='shopee.com.br'||productHost.endsWith('.shopee.com.br'))) reason='Link original não pertence à Shopee Brasil.';
         else if(!(affiliateHost==='shope.ee'||affiliateHost.endsWith('.shopee.com.br'))) reason='Link de afiliado Shopee ausente ou inválido.';
         else if(!/^https:\/\//i.test(imageUrl)) reason='Imagem ausente.';
         else if(!Number.isSafeInteger(currentPrice)||currentPrice<=0||!Number.isSafeInteger(originalPrice)||originalPrice<=currentPrice) reason='Preço ou desconto verificável ausente.';
-        else if(isMedicationProduct({title,sourceCategory:'Shopee',product_url:productUrl})) reason='Produto excluído pelas regras de segurança do Radar.';
+        // No internal category exclusion.
         if(reason){skipped.push({itemId:item.itemId,title,reason});continue;}
-        const classification=classifyProduct({title,sourceCategory:'Shopee'});
+        const classification=classifyProduct({title});
         const category=categories.find(x=>x.name.toLowerCase()===String(classification.category||'').toLowerCase())||categories.find(x=>x.name.toLowerCase().includes('gerais'))||null;
         const fp=await fingerprint({source:'SHOPEE',externalId:item.itemId,productUrl,title});
         const discount=Math.round((originalPrice-currentPrice)*100/originalPrice);
         const score=offerScore({title,currentPrice,originalPrice});
         const promo=formatPromo({title,source:'SHOPEE',category:classification.category,currentPrice,originalPrice,affiliateUrl,imageUrl,productUrl});
         const savedOffer=await db.query(
-          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,subcategory,classification_tags,classification_confidence,classification_status,classification_reason,source_category) VALUES($1,$2,$3,'SHOPEE',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'VALIDATED','SHOPEE_AFFILIATE_API',false,$14,$15::jsonb,$16,'REVIEW','Imported as draft; human review required','Shopee') ON CONFLICT DO NOTHING RETURNING id",
+          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,subcategory,classification_tags,classification_confidence,classification_status,classification_reason,source_category) VALUES($1,$2,$3,'SHOPEE',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'VALIDATED','SHOPEE_AFFILIATE_API',false,$14,$15::jsonb,$16,'REVIEW','Imported as draft; human review required',NULL) ON CONFLICT DO NOTHING RETURNING id",
           [crypto.randomUUID(),account.id,title,originalPrice,currentPrice,category?.id||null,affiliateUrl,imageUrl,productUrl,discount,score,promo.message,fp,classification.subcategory||null,JSON.stringify(classification.tags||[]),classification.confidence||0]
         );
         if(!savedOffer.rows.length){skipped.push({itemId:item.itemId,title,reason:'Produto duplicado.'});continue;}
@@ -174,7 +176,7 @@ export default async function handler(req, res) {
       return res.json({ok:true,action:'import_offers',imported:imported.length,skipped:skipped.length,items:imported,skippedItems:skipped,reviewRequired:true,autopilotTriggered:false,publicationTriggered:false,note:'Ofertas Shopee importadas como rascunhos com preço oficial e link de afiliado. A publicação depende de aprovação humana e das regras do canal.'});
     }
     if (action === 'offers') {
-      const kindMap = { product: 'productOfferV2', shop: 'shopOfferV2', brand: 'brandOffer', shopee: 'shopeeOfferV2' };
+      const kindMap = { product: 'productOfferV2', shop: 'shopOfferV2', shopee: 'shopeeOfferV2' };
       const kind = kindMap[clean(req.body?.kind, 20).toLowerCase()];
       if (!kind) return res.status(400).json({ error: 'Escolha ofertas de produto, loja ou campanha Shopee.' });
       const keyword = clean(req.body?.keyword || 'phone', 80).replace(/[\r\n]/g, ' ').trim() || 'phone';
@@ -205,7 +207,7 @@ export default async function handler(req, res) {
         if (shopType.length) variables.shopType = shopType;
         if (req.body?.isKeySeller !== undefined && req.body?.isKeySeller !== '') variables.isKeySeller = isKeySeller;
       } else if (kind === 'brandOffer') {
-        query = 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { brandOffer(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { brandName offerName offerLink commissionRate } pageInfo { page limit hasNextPage } } }';
+        query = 'query($sortType: Int, $page: Int, $limit: Int) { brandOffer(sortType: $sortType, page: $page, limit: $limit) { nodes { brandName offerName offerLink commissionRate } pageInfo { page limit hasNextPage } } }';
       } else {
         query = 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { shopeeOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { offerName offerLink originalLink imageUrl commissionRate offerType categoryId collectionId periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
       }
@@ -244,10 +246,10 @@ export default async function handler(req, res) {
     if (action === 'feeds') {
       const feedMode = clean(req.body?.feedMode, 10).toUpperCase();
       if (feedMode && !['FULL', 'DELTA'].includes(feedMode)) return res.status(400).json({ error: 'feedMode deve ser FULL ou DELTA.' });
-      const query = 'query($feedMode: FeedMode) { listItemFeeds(feedMode: $feedMode) { nodes { datafeedId feedMode } } }';
+      const query = 'query($feedMode: FeedMode) { listItemFeeds(feedMode: $feedMode) { feeds { datafeedId referenceId datafeedName description totalCount date feedMode } } }';
       result = await signedRequest(credentials, { query, variables: feedMode ? { feedMode } : {} });
       const root = result?.data?.listItemFeeds || {};
-      return res.json({ report: 'listItemFeeds', items: Array.isArray(root.nodes) ? root.nodes : [], readOnly: true });
+      return res.json({ report: 'listItemFeeds', items: Array.isArray(root.feeds) ? root.feeds : [], readOnly: true });
     }
 
     if (action === 'feed_data') {
@@ -255,10 +257,10 @@ export default async function handler(req, res) {
       if (!/^\d{1,24}$/.test(datafeedId)) return res.status(400).json({ error: 'Informe o datafeedId retornado por listItemFeeds.' });
       const offset = Math.min(1000000, Math.max(0, Math.floor(Number(req.body?.offset) || 0)));
       const limit = Math.min(500, Math.max(1, Math.floor(Number(req.body?.limit) || 100)));
-      const query = 'query($datafeedId: Int!, $offset: Int!, $limit: Int!) { getItemFeedData(datafeedId: $datafeedId, offset: $offset, limit: $limit) { nodes { itemId productName productLink offerLink imageUrl priceMin priceMax commissionRate sales ratingStar shopId shopName } pageInfo { offset limit hasNextPage } } }';
-      result = await signedRequest(credentials, { query, variables: { datafeedId: Number(datafeedId), offset, limit } });
+      const query = 'query($datafeedId: String!, $offset: Int, $limit: Int) { getItemFeedData(datafeedId: $datafeedId, offset: $offset, limit: $limit) { rows { columns updateType } pageInfo { offset limit totalCount hasMore } } }';
+      result = await signedRequest(credentials, { query, variables: { datafeedId, offset, limit } });
       const root = result?.data?.getItemFeedData || {};
-      return res.json({ report: 'getItemFeedData', items: Array.isArray(root.nodes) ? root.nodes : [], pageInfo: root.pageInfo || null, readOnly: true });
+      return res.json({ report: 'getItemFeedData', items: Array.isArray(root.rows) ? root.rows : [], pageInfo: root.pageInfo || null, readOnly: true });
     }
 
     if (action === 'create_link') {
