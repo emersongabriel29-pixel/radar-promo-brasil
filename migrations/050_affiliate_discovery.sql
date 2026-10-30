@@ -13,7 +13,7 @@ CREATE INDEX IF NOT EXISTS affiliate_discovery_runs_provider_time ON affiliate_d
 CREATE TABLE IF NOT EXISTS affiliate_discovery_items (
  id text PRIMARY KEY, account_id text NOT NULL,
  marketplace text NOT NULL CHECK(marketplace IN ('LOMADEE','ALIEXPRESS','SHOPEE')),
- kind text NOT NULL CHECK(kind IN ('PRODUCT','BRAND','CAMPAIGN','SHOP','CATEGORY','LINK')),
+ kind text NOT NULL CHECK(kind IN ('PRODUCT','BRAND','CAMPAIGN','SHOP','CATEGORY','CHANNEL','LINK')),
  external_id text NOT NULL, title text NOT NULL DEFAULT '', brand_name text NOT NULL DEFAULT '',
  campaign_id text NOT NULL DEFAULT '', product_url text NOT NULL DEFAULT '', affiliate_url text NOT NULL DEFAULT '',
  image_url text NOT NULL DEFAULT '', price_cents bigint, commission_rate numeric, rating numeric,

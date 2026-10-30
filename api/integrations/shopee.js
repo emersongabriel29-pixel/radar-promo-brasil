@@ -1,5 +1,6 @@
 import { config, db } from 'hatchable';
 import { normalizeShopeeSales, upsertAffiliateSales } from 'lib/affiliate-sales.js';
+import { persistDiscoveryPage } from 'lib/affiliate-discovery.js';
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 // API catalog items are not filtered by product category.
@@ -212,7 +213,13 @@ export default async function handler(req, res) {
       }
       result = await signedRequest(credentials, { query, variables });
       const normalized = safeOfferRows(kind, result);
-      return res.json({ kind, ...normalized, readOnly: true, publicationEnabled: false });
+      let discovery = null;
+      if (req.body?.persistDiscovery === true || req.body?.persistDiscovery === 'true') {
+        if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'Valide a credencial Shopee antes de persistir o catálogo.' });
+        const discoveryKind = kind === 'productOfferV2' ? 'PRODUCT' : kind === 'shopOfferV2' ? 'SHOP' : 'CAMPAIGN';
+        discovery = await persistDiscoveryPage(db, { accountId: account.id, marketplace: 'SHOPEE', operation: kind, kind: discoveryKind, items: normalized.items, cursorIn: String(page), cursorOut: normalized.pageInfo?.hasNextPage ? String(page + 1) : null });
+      }
+      return res.json({ kind, ...normalized, discovery, readOnly: true, publicationEnabled: false });
     }
 
     if (action === 'batch_links') {

@@ -22,12 +22,12 @@
 <section class="section card">
 <h2>Explorador de recursos</h2>
 <p>Consultas manuais somente leitura. As operações dependem dos escopos ativos de cada conta e podem consumir cotas das APIs. Nenhuma ação abaixo publica ofertas ou envia mensagens.</p>
-<div class="actions">
+<div class="page-picker"><label for="catalogPage">Página inicial da consulta</label><input id="catalogPage" type="number" min="1" max="1000" value="1"><span class="small">Lomadee percorre até 10 páginas por recurso; Shopee e AliExpress consultam a página escolhida.</span></div><div class="actions">
 <button type="button" data-op="lomadee">Auditar recursos Lomadee</button>
-<button type="button" data-op="aliexpress">Auditar API AliExpress</button>
-<button type="button" data-op="shopee-products">Consultar produtos Shopee</button>
-<button type="button" data-op="shopee-shops">Consultar lojas Shopee</button>
-<button type="button" data-op="shopee-campaigns">Consultar campanhas Shopee</button>
+<button type="button" data-op="aliexpress">Auditar API AliExpress</button><button type="button" data-op="lomadee-catalog">Persistir catálogo Lomadee</button><button type="button" data-op="aliexpress-products">Persistir produtos AliExpress</button><button type="button" data-op="aliexpress-campaigns">Persistir campanhas AliExpress</button><button type="button" data-op="aliexpress-categories">Persistir categorias AliExpress</button>
+<button type="button" data-op="shopee-products">Persistir produtos Shopee</button>
+<button type="button" data-op="shopee-shops">Persistir lojas Shopee</button>
+<button type="button" data-op="shopee-campaigns">Persistir campanhas Shopee</button>
 <button type="button" data-op="shopee-feeds">Consultar feeds FULL/DELTA</button>
 <button type="button" data-op="shopee-conversions">Sincronizar conversões Shopee</button><button type="button" data-op="lomadee-sales">Sincronizar pedidos Lomadee</button><button type="button" data-op="aliexpress-sales">Sincronizar pedidos AliExpress</button>
 </div>

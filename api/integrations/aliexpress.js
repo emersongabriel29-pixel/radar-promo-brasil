@@ -6,6 +6,7 @@ import { classifyProduct } from 'lib/category-classifier.js';
 // API catalog items are not filtered by product category.
 import { formatPromo } from 'lib/promo-message.js';
 import { normalizeAliExpressSales, upsertAffiliateSales } from 'lib/affiliate-sales.js';
+import { persistDiscoveryPage } from 'lib/affiliate-discovery.js';
 
 export const access = 'member';
 export const methods = ['GET', 'POST'];
@@ -302,6 +303,16 @@ export default async function handler(req,res){
     if(action==='syncOrders'){
       const ledgerSync=await upsertAffiliateSales(db,account.id,'ALIEXPRESS',normalizeAliExpressSales(items));
       return res.json({ok:true,action:'syncOrders',received:items.length,ledgerSync,page:Number(orderBody.page)||1,pageSize:Number(orderBody.pageSize)||20,readOnlySource:true,publicationEnabled:false,note:'Pedidos lidos da API e registrados no livro de vendas do Radar. Nenhuma oferta foi publicada.'});
+    }
+    if(req.body?.persistDiscovery===true||req.body?.persistDiscovery==='true'){
+      if(saved.status!=='VALIDATED')return res.status(412).json({error:'Valide a credencial AliExpress antes de persistir o catálogo.'});
+      const kindMap={products:'PRODUCT',smartMatch:'PRODUCT',hotProducts:'PRODUCT',hotProductsDownload:'PRODUCT',productDetail:'PRODUCT',categories:'CATEGORY',campaigns:'CAMPAIGN',campaignProducts:'PRODUCT'};
+      const discoveryKind=kindMap[action];
+      if(!discoveryKind)return res.status(400).json({error:'Esta operação não é um recurso de catálogo persistível.'});
+      const discoveryItems=action==='campaignProducts'?items.map(item=>({...item,campaignId:clean(req.body?.promotionName,180)}):items;
+      const page=Number(orderBody.page)||1,pageSize=Number(orderBody.pageSize)||20;
+      const discovery=await persistDiscoveryPage(db,{accountId:account.id,marketplace:'ALIEXPRESS',operation:action,kind:discoveryKind,items:discoveryItems,cursorIn:String(page),cursorOut:items.length>=pageSize?String(page+1):null});
+      return res.json({ok:true,action,items,discovery,page,pageSize,readOnlySource:true,publicationEnabled:false,note:'Itens de catálogo persistidos para análise. Nenhuma oferta foi criada ou publicada.'});
     }
     if(action==='importOffers'){
       const minDiscount=Math.max(0,Math.min(90,Number(req.body?.minDiscountPercent??0)||0));
