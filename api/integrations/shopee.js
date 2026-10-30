@@ -1,4 +1,6 @@
 import { config, db } from 'hatchable';
+import { normalizeShopeeSales, upsertAffiliateSales } from 'lib/affiliate-sales.js';
+import { persistDiscoveryPage } from 'lib/affiliate-discovery.js';
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 import { isMedicationProduct } from 'lib/product-safety.js';
@@ -211,6 +213,26 @@ export default async function handler(req, res) {
       } else {
         query = 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { shopeeOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { offerName offerLink originalLink imageUrl commissionRate offerType categoryId collectionId periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
       }
+      const shouldPersist=req.body?.persistDiscovery===true||req.body?.persistDiscovery==='true';
+      if(shouldPersist){
+        if(saved.status!=='VALIDATED')return res.status(412).json({error:'Valide a credencial Shopee antes de persistir o catálogo.'});
+        const discoveryKind=kind==='productOfferV2'?'PRODUCT':kind==='shopOfferV2'?'SHOP':kind==='brandOffer'?'BRAND':'CAMPAIGN';
+        const maxPages=Math.min(5,Math.max(1,Math.floor(Number(req.body?.maxPages)||3)));
+        let currentPage=page,pagesCompleted=0,hasNextPage=false,finalPageInfo=null;
+        const allItems=[],discoveries=[];
+        while(pagesCompleted<maxPages){
+          const pageVariables={...variables,page:currentPage};
+          const pageResult=await signedRequest(credentials,{query,variables:pageVariables});
+          const pageNormalized=safeOfferRows(kind,pageResult);
+          allItems.push(...pageNormalized.items);finalPageInfo=pageNormalized.pageInfo;
+          hasNextPage=Boolean(finalPageInfo?.hasNextPage);
+          discoveries.push(await persistDiscoveryPage(db,{accountId:account.id,marketplace:'SHOPEE',operation:kind,kind:discoveryKind,items:pageNormalized.items,cursorIn:String(currentPage),cursorOut:hasNextPage?String(currentPage+1):null}));
+          pagesCompleted++;
+          if(!hasNextPage)break;
+          currentPage++;
+        }
+        return res.json({kind,items:allItems,pageInfo:{...finalPageInfo,page:currentPage,hasNextPage},discovery:discoveries,pagesCompleted,nextPage:hasNextPage?currentPage+1:null,readOnly:true,publicationEnabled:false});
+      }
       result = await signedRequest(credentials, { query, variables });
       const normalized = safeOfferRows(kind, result);
       return res.json({ kind, ...normalized, readOnly: true, publicationEnabled: false });
@@ -294,10 +316,26 @@ export default async function handler(req, res) {
       if (orderStatus && !['UNPAID','PENDING','COMPLETED','CANCELLED'].includes(orderStatus)) return res.status(400).json({ error: 'Status deve ser UNPAID, PENDING, COMPLETED ou CANCELLED.' });
       if (buyerType && !['NEW','EXISTING'].includes(buyerType)) return res.status(400).json({ error: 'Tipo de comprador deve ser NEW ou EXISTING.' });
       if (device && !['APP','WEB'].includes(device)) return res.status(400).json({ error: 'Dispositivo deve ser APP ou WEB.' });
-      const query = 'query($start: Int!, $end: Int!, $limit: Int!, $scrollId: String, $orderStatus: String, $buyerType: String, $device: String) { conversionReport(purchaseTimeStart: $start, purchaseTimeEnd: $end, limit: $limit, scrollId: $scrollId, orderStatus: $orderStatus, buyerType: $buyerType, device: $device) { nodes { conversionId clickTime purchaseTime totalCommission sellerCommission shopeeCommissionCapped buyerType device utmContent orders { orderId orderStatus items { itemId itemName shopName itemPrice qty itemTotalCommission attributionType } } } pageInfo { limit hasNextPage scrollId } } }';
-      result = await signedRequest(credentials, { query, variables: { start, end, limit, ...(scrollId ? { scrollId } : {}), ...(orderStatus ? { orderStatus } : {}), ...(buyerType ? { buyerType } : {}), ...(device ? { device } : {}) } });
-      const root = result?.data?.conversionReport || {};
-      return res.json({ report: 'conversionReport', items: Array.isArray(root.nodes) ? root.nodes : [], pageInfo: root.pageInfo || null, readOnly: true, nextScrollId: root.pageInfo?.hasNextPage ? (root.pageInfo.scrollId || null) : null });
+      const query = 'query($start: Int64!, $end: Int64!, $limit: Int!, $scrollId: String, $orderStatus: String, $buyerType: String, $device: String) { conversionReport(purchaseTimeStart: $start, purchaseTimeEnd: $end, limit: $limit, scrollId: $scrollId, orderStatus: $orderStatus, buyerType: $buyerType, device: $device) { nodes { conversionId clickTime purchaseTime totalCommission sellerCommission shopeeCommissionCapped buyerType device utmContent orders { orderId orderStatus items { itemId itemName shopName itemPrice qty itemTotalCommission attributionType } } } pageInfo { limit hasNextPage scrollId } } }';
+      const maxPages = Math.min(5, Math.max(1, Math.floor(Number(req.body?.maxPages) || 3)));
+      let currentScrollId = clean(req.body?.scrollId, 1000), pagesCompleted = 0, hasMore = false;
+      const conversionItems = [];
+      while (pagesCompleted < maxPages) {
+        const pageResult = await signedRequest(credentials, { query, variables: { start, end, limit, ...(currentScrollId ? { scrollId: currentScrollId } : {}), ...(orderStatus ? { orderStatus } : {}), ...(buyerType ? { buyerType } : {}), ...(device ? { device } : {}) } });
+        const root = pageResult?.data?.conversionReport || {};
+        const pageItems = Array.isArray(root.nodes) ? root.nodes : [];
+        conversionItems.push(...pageItems); pagesCompleted++;
+        hasMore = Boolean(root.pageInfo?.hasNextPage && root.pageInfo?.scrollId);
+        currentScrollId = hasMore ? clean(root.pageInfo.scrollId, 1000) : '';
+        if (!hasMore || !currentScrollId) break;
+      }
+      let ledgerSync = null;
+      if (req.body?.syncToLedger === true || req.body?.syncToLedger === 'true') {
+        if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'Valide a credencial Shopee antes de sincronizar pedidos.' });
+        ledgerSync = await upsertAffiliateSales(db, account.id, 'SHOPEE', normalizeShopeeSales(conversionItems));
+      }
+      return res.json({ report: 'conversionReport', items: conversionItems, pagesCompleted, startDate: startDate.toISOString(), endDate: endDate.toISOString(), pageInfo: { hasNextPage: hasMore, scrollId: hasMore ? currentScrollId : null }, readOnlySource: true, ledgerSync, nextScrollId: hasMore ? currentScrollId : null });
+
     }
 
     if (action === 'validated') {
