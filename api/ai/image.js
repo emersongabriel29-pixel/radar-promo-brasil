@@ -39,11 +39,13 @@ async function startRunway({accountId,title,prompt,style,ratio,reason}){
 }
 
 export default async function(req,res){
-  const b=req.body||{},title=clean(b.title,220),style=clean(b.style,180)||'publicidade moderna brasileira',requestedAspect=clean(b.aspect,10)||'1:1',ratio=mediaRatio(requestedAspect,'IMAGE'),channel=clean(b.channel,30)||'INSTAGRAM';
-  if(!title)return res.status(400).json({error:'Informe o produto ou tema da arte.'});
+  const b=req.body||{},title=clean(b.title,220),style=clean(b.style,180)||'publicidade moderna brasileira',requestedAspect=clean(b.aspect,10)||'1:1',ratio=mediaRatio(requestedAspect,'IMAGE'),channel=clean(b.channel,30)||'INSTAGRAM',purpose=clean(b.purpose,30).toUpperCase();
+  if(!['COUPON_GROUP','SPECIAL_DATE'].includes(purpose))return res.status(400).json({error:'A geração de imagens é permitida somente para divulgação de cupons/grupos ou campanhas de datas especiais. Para produtos, use a imagem original do anúncio.'});
+  if(!title)return res.status(400).json({error:'Informe o tema da divulgação.'});
   const account=(await db.query('SELECT id FROM accounts WHERE owner_member_id=$1',[String(req.member.id)])).rows[0];
   if(!account)return res.status(412).json({error:'Abra o painel uma vez para criar sua conta.'});
-  const prompt='Crie uma arte publicitária premium para redes sociais sobre: '+title+'. Estilo: '+style+'. Fundo limpo, composição profissional, alto contraste, espaço seguro para texto. Não inclua marcas registradas, logotipos, preço, porcentagem, cupom, selo, letras ou palavras. Não invente aparência exata de um produto específico.';
+  const purposeBrief=purpose==='COUPON_GROUP'?'Arte de divulgação de cupom e convite para entrar em grupo de ofertas; não representar um produto específico.':'Arte temática de campanha sazonal/data especial para divulgação de ofertas; não representar um produto específico.';
+  const prompt='Crie uma arte gráfica original para redes sociais. Finalidade: '+purposeBrief+' Tema informado: '+title+'. Estilo: '+style+'. Fundo limpo, composição profissional, alto contraste, espaço seguro para texto. Não imite marcas, não invente preços, percentuais, cupons ou condições. Não use fotos de produtos nem simule a foto de um produto à venda.';
   try{
     const result=await ai.generateImage({prompt,aspect:ratio,signal:AbortSignal.timeout(60000)}),image=result.images?.[0];
     if(!image?.data)throw new Error('A IA não retornou a imagem.');
