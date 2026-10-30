@@ -4,6 +4,7 @@ import { createAliExpressAffiliateUrl, signAliExpressParams, validateAliExpressP
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 import { isMedicationProduct } from 'lib/product-safety.js';
+// API catalog items are not filtered by product category.
 import { formatPromo } from 'lib/promo-message.js';
 
 export const access = 'member';
@@ -185,17 +186,23 @@ export default async function handler(req,res){
 
     if(action==='audit'){
       // Explicit, bounded, read-only capability audit. Never return raw order/product data.
-      const requested=Array.isArray(req.body?.actions)?req.body.actions.map(x=>clean(x,40)).filter(Boolean):['products','smartMatch','hotProducts','categories','campaigns','productDetail','campaignProducts','orders'];
-      const allowed=new Set(['products','smartMatch','hotProducts','categories','campaigns','productDetail','campaignProducts','orders','orderDetail','ordersByCursor']);
-      const selected=[...new Set(requested)].filter(x=>allowed.has(x)).slice(0,8);
+      const requested=Array.isArray(req.body?.actions)?req.body.actions.map(x=>clean(x,40)).filter(Boolean):['products','smartMatch','hotProducts','hotProductsDownload','categories','campaigns','campaignProducts','productDetail','orders','orderDetail','ordersByCursor'];
+      const allowed=new Set(['products','smartMatch','hotProducts','hotProductsDownload','categories','campaigns','productDetail','campaignProducts','orders','orderDetail','ordersByCursor']);
+      const selected=[...new Set(requested)].filter(x=>allowed.has(x)).slice(0,10);
       const now=Date.now();
       const dateText=ms=>new Date(ms).toISOString().slice(0,19).replace('T',' ');
       const report=[];
-      let discoveredProductId='',discoveredCampaign='',discoveredOrderId='';
+      let discoveredProductId='',discoveredCampaign='',discoveredOrderId='',discoveredCategoryId='';
+      const auditOrder=['categories','products','productDetail','smartMatch','hotProducts','hotProductsDownload','campaigns','campaignProducts','orders','orderDetail','ordersByCursor'];
+      selected.sort((a,b)=>auditOrder.indexOf(a)-auditOrder.indexOf(b));
       for(const auditAction of selected){
         try{
           let body={page:1,pageSize:1,keyword:clean(req.body?.keyword||'fone bluetooth',120)};
           if(auditAction==='orders')body={...body,startTime:dateText(now-7*86400000),endTime:dateText(now),orderStatus:'Payment Completed'};
+          if(auditAction==='hotProductsDownload'){
+            if(!discoveredCategoryId){report.push({action:auditAction,status:'SKIPPED',reason:'Nenhum ID de categoria descoberto na consulta de categorias.'});continue;}
+            body.categoryId=discoveredCategoryId;
+          }
           if(auditAction==='productDetail'){
             if(!discoveredProductId){report.push({action:auditAction,status:'SKIPPED',reason:'Nenhum ID de produto descoberto nesta auditoria.'});continue;}
             body.productIds=discoveredProductId;
@@ -215,6 +222,7 @@ export default async function handler(req,res){
           const data=await topRequest(c,spec.api,spec.params);
           const result=unwrap(data,spec.api),items=normalize(listOf(result));
           if(auditAction==='products'&&items[0]?.id)discoveredProductId=items[0].id;
+          if(auditAction==='categories'&&items[0]?.id)discoveredCategoryId=items[0].id;
           if(auditAction==='campaigns'&&items[0]?.title)discoveredCampaign=items[0].title;
           if(auditAction==='orders'&&items[0]?.id)discoveredOrderId=items[0].id;
           report.push({action:auditAction,api:spec.api,status:'OK',returnedCount:items.length,hasProductId:items.some(x=>/^\d+$/.test(x.id||'')),hasAffiliateLink:items.some(x=>Boolean(x.affiliateUrl)),hasPrice:items.some(x=>x.price!==null&&x.price!==undefined),hasCommission:items.some(x=>x.commissionRate!==null&&x.commissionRate!==undefined)});
@@ -294,21 +302,22 @@ export default async function handler(req,res){
         const rating=Number.parseFloat(String(item.rating??'').replace('%','').replace(',','.'));
         const discount=originalPrice>0&&currentPrice>0?Math.round((originalPrice-currentPrice)*100/originalPrice):0;
         let reason='';
-        if(!title)reason='Título ausente';
-        else if(isMedicationProduct({title,sourceCategory:'AliExpress',product_url:productUrl}))reason='Medicamentos excluídos pelas regras do Radar Promo Brasil';
+        if(isMedicationProduct({title,productUrl}))reason='Medicamentos e produtos farmacêuticos são bloqueados pela política do Radar.';
+        else if(!title)reason='Título ausente';
+        // No internal category exclusion.
         else if(!/^https:\/\//i.test(productUrl)||!/^https:\/\//i.test(affiliateUrl)||!/^https:\/\//i.test(imageUrl))reason='Produto sem link original, link de afiliado ou imagem HTTPS válida';
         else if(!Number.isSafeInteger(currentPrice)||currentPrice<=0||!Number.isSafeInteger(originalPrice)||originalPrice<=currentPrice)reason='Preço atual/original inválido ou sem desconto verificável';
         else if(discount<minDiscount)reason='Desconto abaixo do mínimo de '+minDiscount+'%';
         else if(!Number.isFinite(commission)||commission<minCommission)reason='Comissão ausente ou abaixo do mínimo de '+minCommission+'%';
         else if(Number.isFinite(rating)&&rating<maxRating)reason='Indicador de avaliação abaixo de '+maxRating+'%';
         if(reason){skipped.push({id:item.id,title,reason});continue;}
-        const classification=classifyProduct({title,sourceCategory:'AliExpress'});
+        const classification=classifyProduct({title,sourceCategory:item.rawType||''});
         const category=cats.find(c=>c.name.toLowerCase()===String(classification.category||'').toLowerCase())||cats.find(c=>c.name.toLowerCase().includes('gerais'))||null;
         const fp=await fingerprint({source:'ALIEXPRESS',externalId:item.id,productUrl,title});
         const promo=formatPromo({title,source:'ALIEXPRESS',category:classification.category,currentPrice,originalPrice,affiliateUrl,imageUrl,productUrl});
         const score=offerScore({title,currentPrice,originalPrice});
         const saved=await db.query(
-          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,subcategory,classification_tags,classification_confidence,classification_status,classification_reason,source_category) VALUES($1,$2,$3,'ALIEXPRESS',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'VALIDATED','ALIEXPRESS_API',false,$14,$15::jsonb,$16,'REVIEW','Imported as draft; human review required','AliExpress') ON CONFLICT DO NOTHING RETURNING id",
+          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,subcategory,classification_tags,classification_confidence,classification_status,classification_reason,source_category) VALUES($1,$2,$3,'ALIEXPRESS',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'VALIDATED','ALIEXPRESS_API',false,$14,$15::jsonb,$16,'REVIEW','Imported as draft; human review required',NULL) ON CONFLICT DO NOTHING RETURNING id",
           [crypto.randomUUID(),account.id,title,originalPrice,currentPrice,category?.id||null,affiliateUrl,imageUrl,productUrl,discount,score,promo.message,fp,classification.subcategory||null,JSON.stringify(classification.tags||[]),classification.confidence||0]
         );
         if(!saved.rows.length){skipped.push({id:item.id,title,reason:'Produto duplicado; não foi importado novamente.'});continue;}
