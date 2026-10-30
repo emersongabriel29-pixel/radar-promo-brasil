@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildShopeeKeywordCatalog, selectShopeeKeywords, shopeeKeywordCatalogSize } from '../lib/shopee-keywords.js';
+import { buildShopeeKeywordCatalog, selectShopeeKeywords, shopeeKeywordCatalogSize, isRelevantShopeeProduct } from '../lib/shopee-keywords.js';
 
 test('Shopee keyword catalog expands curated products into thousands of searchable phrases', () => {
   const catalog = buildShopeeKeywordCatalog();
@@ -21,4 +21,13 @@ test('keyword rotation is deterministic, bounded, and changes between slots', ()
   assert.equal(new Set(first).size, first.length);
   assert.equal(selectShopeeKeywords(1, 99).length, 12);
   assert.deepEqual(selectShopeeKeywords(1, 0), []);
+});
+
+test('keyword relevance rejects fuzzy notebook matches and keeps real product matches', () => {
+  assert.equal(isRelevantShopeeProduct('Papel Fotográfico 180g Glossy A4', 'notebook'), false);
+  assert.equal(isRelevantShopeeProduct('Kit 300 Folhas Notas Adesivas', 'notebook'), false);
+  assert.equal(isRelevantShopeeProduct('Notebook Lenovo IdeaPad Intel i5', 'notebook intel i5'), true);
+  assert.equal(isRelevantShopeeProduct('Laptop Dell Inspiron', 'notebook'), true);
+  assert.equal(isRelevantShopeeProduct('Smartphone Motorola Moto G06', 'smartphone'), true);
+  assert.equal(isRelevantShopeeProduct('Forma de silicone para fritadeira', 'air fryer'), true);
 });
