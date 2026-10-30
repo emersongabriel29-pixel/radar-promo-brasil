@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Inteligência de Afiliados · Radar Promo Brasil</title>
+<link rel="stylesheet" href="/affiliate-intelligence.css">
+<script src="/affiliate-intelligence.js" defer></script>
+</head>
+<body>
+<main class="wrap">
+<header><div class="brand">RADAR <span>PROMO BRASIL</span></div><a class="back" href="/">Voltar ao Radar</a></header>
+<div class="head"><div><h1>Inteligência de afiliados</h1><p>Explore recursos autorizados, acompanhe desempenho e priorize oportunidades com evidências.</p></div><button id="refresh" class="primary" type="button">Atualizar indicadores</button></div>
+<div id="status" class="status" role="status" aria-live="polite">Carregando dados…</div>
+<section class="grid" aria-label="Indicadores dos últimos 30 dias">
+<div class="card"><div class="kicker">Ofertas aprovadas</div><div id="offers" class="value">—</div></div>
+<div class="card"><div class="kicker">Cliques · 30 dias</div><div id="clicks" class="value">—</div></div>
+<div class="card"><div class="kicker">Pedidos · 30 dias</div><div id="orders" class="value">—</div></div>
+<div class="card"><div class="kicker">Comissões registradas</div><div id="commission" class="value">—</div><div class="small">Não equivale a lucro líquido.</div></div>
+</section>
+<section class="section card">
+<h2>Explorador de recursos</h2>
+<p>Consultas manuais somente leitura. As operações dependem dos escopos ativos de cada conta e podem consumir cotas das APIs. Nenhuma ação abaixo publica ofertas ou envia mensagens.</p>
+<div class="page-picker"><label for="catalogPage">Página inicial da consulta</label><input id="catalogPage" type="number" min="1" max="1000" value="1"><span class="small">Lomadee percorre até 10 páginas por recurso; Shopee e AliExpress consultam até 3 páginas por lote e oferecem continuação.</span></div><div class="actions">
+<button type="button" data-op="lomadee">Auditar recursos Lomadee</button>
+<button type="button" data-op="aliexpress">Auditar API AliExpress</button><button type="button" data-op="lomadee-catalog">Persistir catálogo Lomadee</button><button type="button" data-op="aliexpress-products">Persistir produtos AliExpress</button><button type="button" data-op="aliexpress-campaigns">Persistir campanhas AliExpress</button><button type="button" data-op="aliexpress-categories">Persistir categorias AliExpress</button>
+<button type="button" data-op="shopee-products">Persistir produtos Shopee</button>
+<button type="button" data-op="shopee-shops">Persistir lojas Shopee</button>
+<button type="button" data-op="shopee-campaigns">Persistir campanhas Shopee</button>
+<button type="button" data-op="shopee-feeds">Consultar feeds FULL/DELTA</button>
+<button type="button" data-op="shopee-conversions">Sincronizar conversões Shopee</button><button type="button" data-op="lomadee-sales">Sincronizar pedidos Lomadee</button><button type="button" data-op="aliexpress-sales">Sincronizar pedidos AliExpress</button>
+</div>
+<pre id="operationResult" class="result" role="status" aria-live="polite">Selecione uma operação para consultar a API oficial.</pre>
+</section>
+<section class="two section">
+<div class="card"><h2>Integrações</h2><div id="providers">—</div></div>
+<div class="card"><h2>Catálogo descoberto</h2><div id="catalog">—</div></div>
+</section>
+<section class="section"><h2>Auditorias recentes</h2><div class="tablewrap"><table><thead><tr><th>API</th><th>Recurso</th><th>Status</th><th>Registros</th><th>Páginas</th><th>Data</th></tr></thead><tbody id="audits"></tbody></table></div></section>
+<section class="section"><h2>Oportunidades priorizadas</h2><p class="small">Pontuação de prioridade, não lucro. Conversão só aparece quando há cliques observados.</p><div class="tablewrap"><table><thead><tr><th>Produto</th><th>Origem</th><th>Prioridade</th><th>Cliques</th><th>Pedidos</th><th>Conversão</th><th>Comissão</th></tr></thead><tbody id="ranked"></tbody></table></div></section>
+</main>
+</body>
+</html>
