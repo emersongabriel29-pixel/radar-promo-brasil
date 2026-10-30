@@ -99,6 +99,10 @@ function normalize(items) {
     discount: x.discount??null,
     status:clean(x.order_status||x.status,80),
     createdAt:clean(x.created_time||x.createdTime,80),
+    grossValue:x.product_price??x.productPrice??null,
+    commissionValue:x.commission??null,
+    quantity:x.product_count??x.productCount??1,
+    subId:clean(x.sub_id||x.subId,120),
     rawType:clean(x.type||x.category_name,100)
   }));
 }
