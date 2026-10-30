@@ -8,7 +8,7 @@ import { cacheOfferImage } from 'lib/offer-images.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 import { isMedicationProduct } from 'lib/product-safety.js';
 import { selectDiverseCandidates } from 'lib/catalog-diversity.js';
-import { selectShopeeKeywords } from 'lib/shopee-keywords.js';
+import { selectShopeeKeywords, isRelevantShopeeProduct } from 'lib/shopee-keywords.js';
 
 export const access = 'scheduler';
 export const methods = ['POST'];
@@ -74,6 +74,7 @@ export default async function handler(req,res) {
         for (const product of list(nodes).slice(0,50)) {
           const key = clean(product.itemId,80) || clean(product.productLink,2000) || clean(product.productName,220);
           if (!key || seen.has(key)) continue;
+          if (discoverySource === 'keyword' && !isRelevantShopeeProduct(product.productName,discoveryKeyword)) continue;
           seen.add(key);
           product.__radarKeyword = discoveryKeyword;
           product.__discoverySource = discoverySource;
@@ -100,8 +101,8 @@ export default async function handler(req,res) {
         const shops = list(shopData.data?.shopOfferV2?.nodes);
         totals.shopsDiscovered = (totals.shopsDiscovered||0)+shops.length;
         for (const shop of shops.slice(0,2)) {
-          const shopId = Number(shop.shopId);
-          if (!Number.isSafeInteger(shopId) || shopId<=0) continue;
+          const shopId = clean(shop.shopId,80);
+          if (!/^\\d{1,18}$/.test(shopId)) continue;
           try {
             const shopProducts = await request(creds,productQuery,{shopId,listType:2,sortType:2,page:1,limit:50});
             addProducts(shopProducts.data?.productOfferV2?.nodes,'loja:'+clean(shop.shopName,80),'partner_shop');
