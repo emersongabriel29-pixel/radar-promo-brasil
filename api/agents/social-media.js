@@ -1,5 +1,6 @@
 import { ai, db } from 'hatchable';
 import {safeCreative} from 'lib/creative.js';
+import { checkGeminiCooldown, registerGeminiQuotaError } from 'lib/radar-ai-guard.js';
 
 export const access='member';
 export const methods=['GET','POST'];
@@ -31,12 +32,14 @@ export default async function(req,res){
   const link=clean(b.link,1200);if(link&&!https(link))return res.status(400).json({error:'Use um link HTTPS válido.'});
   const facts=[clean(b.product,220)&&'Produto confirmado: '+clean(b.product,220),clean(b.price,60)&&'Preço confirmado: '+clean(b.price,60),clean(b.coupon,100)&&'Cupom confirmado: '+clean(b.coupon,100),link&&'Link confirmado: '+link].filter(Boolean).join('\n');
   const prompt=['Tarefa: '+task,'Canal: '+channel,'Tema: '+topic,'Objetivo: '+goal,'Público: '+audience,facts,'Crie uma entrega prática em português do Brasil. Quando for perfil, entregue nome, categoria, usuário, bio, pilares e identidade. Quando for conteúdo, entregue formatos, textos e calendário. Quando for tráfego, mantenha campanhas como rascunho e inclua métricas, teste e critérios de pausa.'].filter(Boolean).join('\n');
+  const cooldown=await checkGeminiCooldown();
+  if(cooldown){const content=fallback(task,topic,goal,channel);return res.json({ok:true,agent:'Radar Social',task,channel,content,model:'template-local',notice:'Gemini em pausa para respeitar a cota gratuita; conteúdo gerado pelo modo local.',externalPublishing:'AWAITING_META_OAUTH'});}
   let content='',model='automatic',notice='';
   try{
     const result=await ai.generateText({purpose:'social-media-specialist',model:'gemini',userId:String(req.member.id),maxTokens:5000,system:'Você é Radar Social, estrategista sênior de Instagram, Facebook, design de performance e tráfego pago para afiliados. Seja específico, ético e orientado a conversão. Não invente preço, desconto, cupom, estoque, frete, avaliações ou resultados. Não diga que publicou ou ativou campanhas. Respeite LGPD, políticas da Meta e transparência de link afiliado.',prompt,signal:AbortSignal.timeout(60000)});
     if(result.finishReason==='length')throw new Error('length');
     content=safeCreative(result.text,10000);if(!content)throw new Error('Unsupported factual claims');model=clean(result.model,80)||'gemini';
-  }catch(e){content=fallback(task,topic,goal,channel);notice='O plano foi concluído pelo modo automático seguro.'}
+  }catch(e){if(/429|quota|rate.?limit|resource_exhausted/i.test(String(e?.message||'')))await registerGeminiQuotaError();content=fallback(task,topic,goal,channel);notice='O plano foi concluído pelo modo automático seguro.'}
   if(facts)content+='\n\nDADOS CONFIRMADOS\n'+facts+'\nAviso: link de afiliado; condições podem mudar.';
   const saved=(await db.query('INSERT INTO content_assets(id,account_id,kind,channel,provider_model,content,status) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id,created_at AS "createdAt"',[uid(),a.id,'SOCIAL_AGENT',channel,model,content,'DRAFT'])).rows[0];
   return res.json({ok:true,id:saved.id,agent:'Radar Social',task,channel,content,model,notice,externalPublishing:'AWAITING_META_OAUTH',createdAt:saved.createdAt});

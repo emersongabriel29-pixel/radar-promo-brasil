@@ -32,6 +32,11 @@ required = false
 description = "Client Secret do aplicativo criado no ID Magalu para OAuth 2.0 seller; manter somente no servidor."
 
 [[secret]]
+name = "MAGALU_TENANT_ID"
+required = false
+description = "Tenant ID autorizado da conta/seller Magalu, usado no cabeçalho X-Tenant-Id nas consultas oficiais. Obtenha no ID Magalu/conta autorizada; não confundir com Client ID, API Key ID ou número de pedido."
+
+[[secret]]
 name = "CONNECTOR_ENCRYPTION_KEY"
 required = true
 description = "Chave com pelo menos 32 caracteres para proteger tokens OAuth no banco."
@@ -118,6 +123,17 @@ default = "https://radar-promo-brasil.hatchable.site"
 description = "Endereço público usado nos links enviados pelo Telegram."
 
 [[config]]
+name = "whatsapp_channel_api_url"
+required = false
+default = ""
+description = "URL HTTPS da API comunitária auto-hospedada para publicar em Canal do WhatsApp."
+
+[[secret]]
+name = "WHATSAPP_CHANNEL_API_KEY"
+required = false
+description = "Chave privada da API auto-hospedada do Canal do WhatsApp. Nunca exponha no navegador ou no GitHub."
+
+[[config]]
 name = "meli_redirect_uri"
 required = false
 default = "https://radar-promo-brasil.hatchable.site/api/mercadolivre/callback"
@@ -128,8 +144,28 @@ path = "/api/jobs/hourly"
 schedule = "0 * * * *"
 
 [[cron]]
+path = "/api/jobs/marketplace-ingestion"
+schedule = "0 * * * *"
+
+[[cron]]
+path = "/api/jobs/lomadee"
+schedule = "15 * * * *"
+
+[[cron]]
+path = "/api/jobs/aliexpress"
+schedule = "25 * * * *"
+
+[[cron]]
+path = "/api/jobs/aliexpress-review"
+schedule = "45 * * * *"
+
+[[cron]]
 path = "/api/jobs/telegram"
 schedule = "0 * * * *"
+
+[[cron]]
+path = "/api/jobs/whatsapp-channel"
+schedule = "2 * * * *"
 
 [[cron]]
 path = "/api/jobs/autopilot"
@@ -138,3 +174,7 @@ schedule = "5 * * * *"
 [[cron]]
 path = "/api/jobs/social"
 schedule = "10 * * * *"
+
+[[cron]]
+path = "/api/jobs/api-health"
+schedule = "30 * * * *"
