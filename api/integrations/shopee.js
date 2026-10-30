@@ -321,7 +321,7 @@ export default async function handler(req, res) {
       let currentScrollId = clean(req.body?.scrollId, 1000), pagesCompleted = 0, hasMore = false;
       const conversionItems = [];
       while (pagesCompleted < maxPages) {
-        const pageResult = await signedRequest(credentials, { query, variables: { start: String(start), end: String(end), limit, ...(currentScrollId ? { scrollId: currentScrollId } : {}) } });
+        const pageResult = await signedRequest(credentials, { query, variables: { start, end, limit, ...(currentScrollId ? { scrollId: currentScrollId } : {}) } });
         const root = pageResult?.data?.conversionReport || {};
         const pageItems = Array.isArray(root.nodes) ? root.nodes : [];
         conversionItems.push(...pageItems); pagesCompleted++;
