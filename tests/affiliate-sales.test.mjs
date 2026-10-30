@@ -19,3 +19,5 @@ test('sales ledger upsert is idempotent and skips records without an order date'
  const result=await upsertAffiliateSales(fakeDb,'account-1','SHOPEE',[{externalId:'order-1',status:'COMPLETED',orderedAt:'2026-10-29T10:00:00Z',grossCents:1000,commissionCents:100},{externalId:'order-2',status:'UNKNOWN',orderedAt:null}]);
  assert.equal(result.stored,1);assert.equal(result.skipped,1);assert.match(calls[0].sql,/ON CONFLICT\(account_id,marketplace,external_id\) DO UPDATE/);assert.equal(calls[0].params[3],'SHOPEE');assert.equal(calls[0].params[7],'APPROVED');
 });
+
+test('Shopee conversions without an order object are not recorded as sales',()=>{ assert.deepEqual(normalizeShopeeSales([{conversionId:'click-only',purchaseTime:1793337600,totalCommission:3.5,orders:[]}]),[]); });

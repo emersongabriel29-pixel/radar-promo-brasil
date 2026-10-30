@@ -204,7 +204,7 @@ export default async function handler(req, res) {
         }
       }
       if (action === 'sync_orders') {
-        if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'A sincronização de pedidos exige a credencial Lomadee VALIDATED, com escopo orders:read confirmado.' });
+        if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'A sincronização exige credencial VALIDATED. A permissão de leitura de pedidos será verificada pela própria consulta oficial; a validação de produtos não comprova orders:read.' });
         const from = clean(req.body?.from || new Date(Date.now() - 7 * 86400000).toISOString().slice(0,10), 10);
         const to = clean(req.body?.to || new Date().toISOString().slice(0,10), 10);
         const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value + 'T00:00:00Z'));
