@@ -8,7 +8,7 @@ import { cacheOfferImage } from 'lib/offer-images.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 import { isMedicationProduct } from 'lib/product-safety.js';
 import { selectDiverseCandidates } from 'lib/catalog-diversity.js';
-import { selectShopeeKeywords, isRelevantShopeeProduct } from 'lib/shopee-keywords.js';
+import { selectShopeeKeywords, isRelevantShopeeProduct, getShopeeKeywordQualityPenalty } from 'lib/shopee-keywords.js';
 
 export const access = 'scheduler';
 export const methods = ['POST'];
@@ -170,6 +170,8 @@ export default async function handler(req,res) {
         score += sales >= 1000 ? 15 : sales >= 100 ? 10 : sales >= 20 ? 5 : 0;
         score += rating === null ? -2 : rating >= 4.7 ? 8 : rating >= 4.4 ? 6 : rating >= 4.0 ? 3 : rating >= 3.5 ? 0 : -8;
         score += title.length >= 18 ? 3 : 0;
+        const keywordQualityPenalty = getShopeeKeywordQualityPenalty(title,p.__radarKeyword);
+        score += keywordQualityPenalty;
         score += productUrl && affiliateUrl && imageUrl ? 6 : 0;
         score = Math.max(0, Math.min(100, Math.round(score)));
         const reasons = [];
@@ -177,6 +179,7 @@ export default async function handler(req,res) {
         if (commissionPercent > 0) reasons.push('comissão informada pela Shopee');
         if (sales >= 20) reasons.push('popularidade informada pela Shopee');
         if (rating !== null) reasons.push('avaliação Shopee: ' + rating.toFixed(1) + '/5');
+        if (keywordQualityPenalty < 0) reasons.push('produto acessório rebaixado em busca de produto principal');
         if (productUrl && affiliateUrl && imageUrl) reasons.push('link, link de afiliado e imagem presentes');
         const fp = await fingerprint({source:'SHOPEE',externalId:clean(p.itemId,80),productUrl,title});
         const classified = classifyProduct({title});
