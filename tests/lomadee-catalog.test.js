@@ -24,6 +24,16 @@ test('usa o slug da URL apenas como apoio para nomes curtos de variação', () =
   assert.equal(result.confidence, 0.72);
 });
 
+test('reconhece sabores de whey pelo slug do produto, não como alimento comum', () => {
+  const result = classifyLomadeeProduct({
+    name: 'Chocolate',
+    url: 'https://loja.example/produtos/100-whey-double-tasty-chocolate',
+    options: [{ name: 'Chocolate', available: true }]
+  });
+  assert.equal(result.category, 'Esporte e lazer');
+  assert.equal(result.rule, 'short-title-url-slug');
+});
+
 test('não força classificação quando o título é curto e a URL não explica o produto', () => {
   const result = classifyLomadeeProduct({
     name: 'U',
