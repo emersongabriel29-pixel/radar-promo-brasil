@@ -67,7 +67,7 @@ export default async function handler(req,res) {
       // Keep each run bounded to protect Shopee quotas; expand discovery across sort modes and partner shops.
       const slot = Math.floor(Date.now()/1800000);
       const selectedKeywords = selectShopeeKeywords(slot,3);
-      const productQuery = 'query($keyword: String, $shopId: Int, $sortType: Int, $page: Int, $limit: Int) { productOfferV2(keyword: $keyword, shopId: $shopId, sortType: $sortType, page: $page, limit: $limit) { nodes { itemId shopId shopName productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate commissionRate sales ratingStar } pageInfo { page limit hasNextPage } } }';
+      const productQuery = 'query($keyword: String, $shopId: Int64, $listType: Int, $sortType: Int, $page: Int, $limit: Int, $isAMSOffer: Boolean, $isKeySeller: Boolean) { productOfferV2(keyword: $keyword, shopId: $shopId, listType: $listType, sortType: $sortType, page: $page, limit: $limit, isAMSOffer: $isAMSOffer, isKeySeller: $isKeySeller) { nodes { itemId shopId shopName productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate commissionRate sales ratingStar } pageInfo { page limit hasNextPage } } }';
       const seen = new Set();
       const products = [];
       const addProducts = (nodes, discoveryKeyword, discoverySource) => {
@@ -84,7 +84,8 @@ export default async function handler(req,res) {
       for (const keyword of selectedKeywords) {
         for (const sortType of [2,5]) {
           const page = sortType === 2 ? 1 : (Math.floor(slot/3)%3)+1;
-          const data = await request(creds,productQuery,{keyword,sortType,page,limit:50});
+          const listType = sortType === 2 ? 2 : 1;
+          const data = await request(creds,productQuery,{keyword,listType,sortType,page,limit:50});
           addProducts(data.data?.productOfferV2?.nodes,keyword,'keyword');
           totals.productSearchCalls = (totals.productSearchCalls||0)+1;
         }
@@ -102,7 +103,7 @@ export default async function handler(req,res) {
           const shopId = Number(shop.shopId);
           if (!Number.isSafeInteger(shopId) || shopId<=0) continue;
           try {
-            const shopProducts = await request(creds,productQuery,{shopId,sortType:2,page:1,limit:50});
+            const shopProducts = await request(creds,productQuery,{shopId,listType:2,sortType:2,page:1,limit:50});
             addProducts(shopProducts.data?.productOfferV2?.nodes,'loja:'+clean(shop.shopName,80),'partner_shop');
             totals.shopProductCalls = (totals.shopProductCalls||0)+1;
           } catch (shopProductError) {
@@ -124,6 +125,17 @@ export default async function handler(req,res) {
       } catch (campaignError) {
         totals.campaignDiscoveryUnavailable = true;
         console.error('shopee campaign discovery skipped',String(campaignError?.message||'ERROR').slice(0,80));
+      }
+
+      // Brand partner offers are a separate official discovery surface. Record discovery only;
+      // a brand offer is not a priced product and must not enter the Telegram product pipeline.
+      const brandQuery = 'query($sortType: Int, $page: Int, $limit: Int) { brandOffer(sortType: $sortType, page: $page, limit: $limit) { nodes { brandName offerName offerLink commissionRate } pageInfo { page limit hasNextPage } } }';
+      try {
+        const brandData = await request(creds,brandQuery,{sortType:2,page:1,limit:30});
+        totals.brandOffersDiscovered = (totals.brandOffersDiscovered||0)+list(brandData.data?.brandOffer?.nodes).length;
+      } catch (brandError) {
+        totals.brandOfferDiscoveryUnavailable = true;
+        console.error('shopee brand offer discovery skipped',String(brandError?.message||'ERROR').slice(0,80));
       }
       totals.scanned += products.length;
       const cats = (await db.query('SELECT id,name FROM categories WHERE account_id=$1',[row.account_id])).rows;
