@@ -238,6 +238,7 @@ function normalize(p) {
     rating: ratingPercent(p.evaluate_rate ?? p.evaluateRate),
     sales: Math.max(0, Number(p.lastest_volume ?? p.lastestVolume) || 0),
     categoryId: clean(p.second_level_category_id || p.first_level_category_id, 80),
+    firstLevelCategoryId: clean(p.first_level_category_id, 80),
     shopId: clean(p.shop_id || p.shopId, 80),
     shopUrl: clean(p.shop_url, 1000)
   };
@@ -309,7 +310,7 @@ export default async function handler(req, res) {
       totals.scanned += products.length;
       const safeProducts = products.filter(raw => {
         const normalized = normalize(raw);
-        normalized.sourceCategory = categoryNames.get(normalized.categoryId) || '';
+        normalized.sourceCategory = categoryNames.get(normalized.categoryId) || categoryNames.get(normalized.firstLevelCategoryId) || '';
         if (isMedicationProduct({ title: normalized.title, productUrl: normalized.productUrl, sourceCategory: normalized.sourceCategory })) {
           totals.rejectedBy.safetyFilter++;
           totals.safetyBlocked++;
@@ -337,7 +338,7 @@ export default async function handler(req, res) {
       }
       for (const raw of safeProducts.slice(0, 20)) {
         const p = normalize(raw);
-        p.sourceCategory = categoryNames.get(p.categoryId) || '';
+        p.sourceCategory = categoryNames.get(p.categoryId) || categoryNames.get(p.firstLevelCategoryId) || '';
         const sourceUrl = httpsUrl(raw.product_detail_url || raw.productDetailUrl);
         const sourceIndex = productUrls.indexOf(sourceUrl);
         const generated = sourceIndex >= 0 ? safeAliExpressAffiliateUrl(generatedLinks[sourceIndex]) : '';
