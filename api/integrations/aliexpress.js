@@ -311,7 +311,7 @@ export default async function handler(req,res){
       if(!discoveryKind)return res.status(400).json({error:'Esta operação não é um recurso de catálogo persistível.'});
       const discoveryItems=action==='campaignProducts'?items.map(item=>({...item,campaignId:clean(req.body?.promotionName,180)}):items;
       const page=Number(orderBody.page)||1,pageSize=Number(orderBody.pageSize)||20;
-      const discovery=await persistDiscoveryPage(db,{accountId:account.id,marketplace:'ALIEXPRESS',operation:action,kind:discoveryKind,items:discoveryItems,cursorIn:String(page),cursorOut:items.length>=pageSize?String(page+1):null});
+      const discovery=await persistDiscoveryPage(db,{accountId:account.id,marketplace:'ALIEXPRESS',operation:action,kind:discoveryKind,items:discoveryItems,cursorIn:String(page),cursorOut:['products','smartMatch','hotProducts','hotProductsDownload','campaignProducts'].includes(action)&&items.length>=pageSize?String(page+1):null});
       return res.json({ok:true,action,items,discovery,page,pageSize,readOnlySource:true,publicationEnabled:false,note:'Itens de catálogo persistidos para análise. Nenhuma oferta foi criada ou publicada.'});
     }
     if(action==='importOffers'){

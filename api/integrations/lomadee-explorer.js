@@ -18,6 +18,10 @@ export default async function handler(req,res){
   if(!account)return res.status(412).json({error:'Conta Radar não encontrada.'});
   if(req.method==='GET')return res.json({provider:'LOMADEE',baseUrl:'https://api.lomadee.com.br',status:'READY',rateLimit:'60 requests/60 seconds per key and IP',resources:['products','brands','channels','campaigns','orders','shortener'],actions:['audit','catalog','sync_catalog','orders','links'],readOnly:true});
   const action=clean(req.body?.action,30);
+  if(action==='sync_catalog'){
+    const credential=(await db.query("SELECT status FROM marketplace_api_credentials WHERE account_id=$1 AND marketplace='LOMADEE' LIMIT 1",[account.id])).rows[0];
+    if(!credential||credential.status!=='VALIDATED')return res.status(412).json({error:'Valide a credencial Lomadee antes de persistir o catálogo.'});
+  }
   if(!['audit','catalog','sync_catalog','orders','links'].includes(action))return res.status(400).json({error:'Ação inválida.'});
   const specs={
     products:{path:'/affiliate/products',limit:100,params:{isAvailable:true},kind:'PRODUCT'},
