@@ -39,7 +39,7 @@
 - A tabela `affiliate_sales` já existe no banco ativo e sua chave única foi conferida.
 - `migrations/050_affiliate_discovery.sql` cria `affiliate_discovery_runs` e `affiliate_discovery_items`. Essas tabelas ainda não existem no banco ativo; a migration está apenas no workspace/branch.
 - Dry-run Hatchable: **0 erros**, 3 avisos preexistentes de respostas SSE bufferizadas em `api/jobs/api-health.js`. Próxima versão prevista: v507, 101 funções, 11 arquivos públicos e 52 migrations.
-- CI atual: run #41007586854, commit `d7e8cbf`; build, testes unitários e auditoria passaram. Testes E2E ainda em execução no momento desta atualização.
+- CI #41007586854, commit `d7e8cbf`: build, testes unitários, auditoria de dependências e Playwright E2E concluídos com sucesso. A CI #41007726177 valida o commit posterior de documentação.
 - Nenhuma migration foi aplicada, nenhum deploy foi feito, nenhum agendamento foi alterado, nenhuma oferta foi publicada e nenhuma mensagem foi enviada.
 - A branch e a PR continuam isoladas/draft; `main` não foi alterada por esta PR.
 
