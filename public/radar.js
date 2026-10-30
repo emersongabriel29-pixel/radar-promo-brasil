@@ -74,7 +74,6 @@ var NAV = [
   ["publishing", "Publicações", "PB", "Operação"],
   ["channels", "Canais", "CN", "Análise"],
   ["reports", "Relatórios", "BI", "Análise"],
-  ["aiusage", "Consumo de IA", "AI", "Análise"],
   ["settings", "Configurações", "CT", "Gestão"],
 ];
 var GROUPS = {
@@ -102,6 +101,7 @@ var GROUPS = {
     ["account", "Conta, vitrine e planos", "CT", "accountView"],
     ["templates", "Modelos de mensagem", "TM", "messageTemplatesView"],
     ["scheduler", "Escalonador de publicações", "10", "publicationSchedulerView"],
+    ["aiusage", "Consumo de IA", "AI", "aiUsageView"],
   ],
 };
 var LABEL = {
@@ -2566,7 +2566,7 @@ function render() {
   loadMarketplaceStatus();
   if(current==='templates'||current==='settings'&&selectedGroups.settings==='templates')loadOfferBuilderSettings();
   if(current==='settings'&&selectedGroups.settings==='scheduler')loadPublicationSchedulerSettings();
-  if(current==='aiusage')loadAIUsage();
+  if(current==='aiusage'||(current==='settings'&&selectedGroups.settings==='aiusage'))loadAIUsage();
 }
 function catOpts() {
   return D.categories
