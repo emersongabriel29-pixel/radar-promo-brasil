@@ -4203,7 +4203,7 @@ function openModal(title,hint,body,submit){
     finally{form.removeAttribute('aria-busy');buttons.forEach(function(button){button.disabled=false;});}
   };
   var modal=document.getElementById('modal');modal.classList.add('on');modal.setAttribute('aria-hidden','false');modal.setAttribute('aria-modal','true');setModalBackgroundInert(true);
-  labelFields(form);(form.querySelector('input,select,textarea')||modal.querySelector('button')).focus();
+  labelFields(form);var initialFocus=form.querySelector('input[type="file"]')||form.querySelector('input,select,textarea')||modal.querySelector('button');requestAnimationFrame(function(){if(modal.classList.contains('on')&&initialFocus)initialFocus.focus();});
 }
 function closeModal(){
   var modal=document.getElementById('modal');modal.classList.remove('on');modal.setAttribute('aria-hidden','true');modal.setAttribute('aria-modal','false');setModalBackgroundInert(false);
