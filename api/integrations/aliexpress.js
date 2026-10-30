@@ -314,6 +314,7 @@ export default async function handler(req,res){
       items=normalize(listOf(result));
       fallback={used:true,requestedAction:action,actualApi:fallbackSpec.api,reason:'A API avançada recusou a operação por falta de permissão; foi usada a busca padrão de produtos. Os itens não são garantidos como produtos em alta nem como correspondência inteligente.',keyword:fallbackSpec.params.keywords||null};
     }
+
     if(req.body?.persistDiscovery===true||req.body?.persistDiscovery==='true'){
       const pagedActions=new Set(['products','hotProducts','hotProductsDownload','campaignProducts']);
       if(pagedActions.has(action)){
@@ -337,6 +338,7 @@ export default async function handler(req,res){
         return res.json({ok:true,action,items:allItems,discovery:discoveries,page:startPage,pagesCompleted,pageSize,nextPage:hasMore?page:null,hasMore,readOnlySource:true,publicationEnabled:false,note:'Catálogo lido em páginas sequenciais e persistido para análise. Nenhuma oferta foi criada ou publicada.'});
       }
     }
+
     const spec=build(actionName,orderBody,c);if(!spec)return res.status(400).json({error:'Parâmetros inválidos.'});
     let data, result, items, fallback=null;
     try {
