@@ -1,6 +1,7 @@
 import { config, db } from 'hatchable';
 import { normalizeShopeeSales, upsertAffiliateSales } from 'lib/affiliate-sales.js';
 import { persistDiscoveryPage } from 'lib/affiliate-discovery.js';
+import { normalizeShopeeDatafeedId } from 'lib/shopee-feed.js';
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 import { isMedicationProduct } from 'lib/product-safety.js';
@@ -275,8 +276,8 @@ export default async function handler(req, res) {
     }
 
     if (action === 'feed_data') {
-      const datafeedId = String(req.body?.datafeedId || '').trim();
-      if (!/^\d{1,24}$/.test(datafeedId)) return res.status(400).json({ error: 'Informe o datafeedId retornado por listItemFeeds.' });
+      const datafeedId = normalizeShopeeDatafeedId(req.body?.datafeedId);
+      if (!datafeedId) return res.status(400).json({ error: 'Cole o datafeedId completo retornado por listItemFeeds (ID_FULL_YYYY-MM-DD ou ID_DELTA_YYYYMMDD).' });
       const offset = Math.min(1000000, Math.max(0, Math.floor(Number(req.body?.offset) || 0)));
       const limit = Math.min(500, Math.max(1, Math.floor(Number(req.body?.limit) || 100)));
       const query = 'query($datafeedId: String!, $offset: Int, $limit: Int) { getItemFeedData(datafeedId: $datafeedId, offset: $offset, limit: $limit) { rows { columns updateType } pageInfo { offset limit totalCount hasMore } } }';
