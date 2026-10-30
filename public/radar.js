@@ -74,6 +74,7 @@ var NAV = [
   ["publishing", "Publicações", "PB", "Operação"],
   ["channels", "Canais", "CN", "Análise"],
   ["reports", "Relatórios", "BI", "Análise"],
+  // Consumo de IA fica como subárea de Configurações.
   ["settings", "Configurações", "CT", "Gestão"],
 ];
 var GROUPS = {
