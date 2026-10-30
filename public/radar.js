@@ -74,6 +74,7 @@ var NAV = [
   ["publishing", "Publicações", "PB", "Operação"],
   ["channels", "Canais", "CN", "Análise"],
   ["reports", "Relatórios", "BI", "Análise"],
+  ["aiusage", "Consumo de IA", "AI", "Análise"],
   ["settings", "Configurações", "CT", "Gestão"],
 ];
 var GROUPS = {
@@ -88,6 +89,7 @@ var GROUPS = {
     ["studio", "Estúdio de IA", "AI", "studio"],
     ["growth", "Tráfego e redes sociais", "AD", "growth"],
     ["socialagent", "Agente Radar Social", "RS", "socialAgent"],
+    ["assistant", "Assistente Radar", "AI", "assistantView"],
   ],
   publishing: [["queues", "Filas e agendamento", "FQ", "queues"]],
   channels: [
@@ -99,6 +101,7 @@ var GROUPS = {
     ["integrations", "Integrações", "IN", "integrations"],
     ["account", "Conta, vitrine e planos", "CT", "accountView"],
     ["templates", "Modelos de mensagem", "TM", "messageTemplatesView"],
+    ["scheduler", "Escalonador de publicações", "10", "publicationSchedulerView"],
   ],
 };
 var LABEL = {
@@ -148,7 +151,7 @@ function off(id) {
   });
 }
 var OFFER_CATEGORIES = [
-  { id: "catalog", title: "Ofertas", description: "Catálogo e curadoria", views: ["offers", "curator"] },
+  { id: "catalog", title: "Ofertas", description: "Catálogo e curadoria", views: ["offers", "curator", "assistant"] },
   { id: "ai", title: "IA", description: "Conteúdo, arte e vídeo", views: ["studio"] },
   { id: "social", title: "Redes e campanhas", description: "Canais, anúncios e posts", views: ["growth", "socialagent"] },
 ];
@@ -176,7 +179,7 @@ function offersWorkspace() {
       return '<button type="button" class="group-tab offers-view-tab ' + (item[0] === active[0] ? "on" : "") + '" aria-current="' + (item[0] === active[0] ? "page" : "false") + '" data-action="switchGroup(&quot;offers&quot;,&quot;' + item[0] + '&quot;)"><span class="ico" aria-hidden="true">' + item[2] + '</span><span>' + item[1] + '</span></button>';
     }).join("") +
     (category.id === "ai" ? '<a class="offers-video-link" href="/radar-video-ia"><span class="offers-video-icon" aria-hidden="true">▶</span><span><b>Radar Vídeo IA</b><small>Roteiros e geração de vídeo</small></span><span aria-hidden="true">↗</span></a>' : "") +
-    '</div><div class="offers-rail-foot">Todos os recursos e conexões da conta continuam disponíveis.</div></aside><section class="offers-content" id="group-panel" aria-label="' + active[1] + '">' + window[active[3]]() + '</section></div>';
+    '</div><div class="offers-rail-foot">Todos os recursos e conexões da conta continuam disponíveis.</div></aside><section class="offers-content" id="group-panel" aria-label="' + active[1] + '">' + window[active[3]]() + '</section></div>' + offerBuilderSettingsPanel();
 }
 function groupPage(key) {
   if (key === "offers") return offersWorkspace();
@@ -219,7 +222,7 @@ function switchGroup(key, id) {
     b.classList.toggle("on", b.textContent.trim().includes(item[1]));
   });
   document.getElementById("group-panel").innerHTML = window[item[3]]();
-  if(key==="settings"&&id==="integrations"){loadApiCredentials();loadMarketplaceStatus();}
+  if(key==="settings"&&id==="integrations"){loadApiCredentials();loadMarketplaceStatus();}if(key==="settings"&&id==="templates")loadOfferBuilderSettings();if(key==="settings"&&id==="scheduler")loadPublicationSchedulerSettings();
 }
 async function call(method, body, query) {
   var r = await fetch("/api/data" + (query || ""), {
@@ -299,6 +302,7 @@ function offerRow(o) {
   var c = cat(o.categoryId);
   return (
     '<div class="row">' +
+    '<label class="csp-flex-shrink-0"><input type="checkbox" class="offer-batch-check" value="' + esc(o.id) + '" aria-label="Selecionar ' + esc(o.title) + '"></label>' +
     thumb(o) +
     '<div class="grow"><b>' +
     esc(o.title) +
@@ -996,7 +1000,7 @@ function quick() {
       })
       .join("") +
     "</div></div></div>" +
-    '<div class="card csp-margin-top-16px"><h3>Descobrir produtos no Mercado Livre</h3><p class="muted">A busca geral de anúncios está retornando 403 nesta conexão. O Radar usa o catálogo para descobrir produtos, mas catálogo não confirma preço, estoque nem anúncio comprável. Escolha um anúncio individual, confira preço e disponibilidade e gere o link comissionado no <a href="https://www.mercadolivre.com.br/l/afiliados-gerar-link" target="_blank" rel="noopener noreferrer">portal oficial de afiliados ↗</a>. Como alternativa, cadastre os dados conferidos em <b>Central de ofertas → Nova oferta</b>; a API não preencherá preço/estoque quando não conseguir confirmá-los.</p><div class="field"><label for="marketSearchQuery">Produto para pesquisar</label><input class="input" id="marketSearchQuery" placeholder="Ex.: fone bluetooth, fralda, air fryer" maxlength="120"></div><button class="btn csp-margin-top-12px" data-action="searchMercadoLivreProducts(this)">Buscar no catálogo</button><div id="marketSearchResults" class="list csp-margin-top-12px"></div></div>' +
+    '<div class="card csp-margin-top-16px"><h3>Descobrir produtos no Mercado Livre</h3><p class="muted">Pesquise por palavras para descobrir produtos do catálogo ou cole o ID/URL de um anúncio individual para consultar preço, estoque e imagem pela API oficial. Catálogo não confirma anúncio comprável. O link comissionado deve ser gerado/confirmado no <a href="https://www.mercadolivre.com.br/l/afiliados-gerar-link" target="_blank" rel="noopener noreferrer">portal oficial de afiliados ↗</a>; o Radar não inventa comissão nem publica automaticamente.</p><div class="field"><label for="marketSearchQuery">Nome, ID ou URL do anúncio</label><input class="input" id="marketSearchQuery" placeholder="Ex.: fone bluetooth ou MLB1234567890 ou URL do anúncio" maxlength="500"></div><button class="btn csp-margin-top-12px" data-action="searchMercadoLivreProducts(this)">Buscar produto/anúncio</button><div id="marketSearchResults" class="list csp-margin-top-12px"></div></div>' +
     recent()
   );
 }
@@ -1089,6 +1093,30 @@ function publicationRow(p) {
     "')\">Excluir</button></div></div>"
   );
 }
+async function generateSelectedShopeeLinks() {
+  var checks = Array.from(document.querySelectorAll('.offer-batch-check:checked'));
+  if (!checks.length) return toast('Selecione ao menos uma oferta.');
+  if (checks.length > 20) return toast('A Shopee permite até 20 URLs por lote. Selecione no máximo 20.');
+  var selectedOffers = checks.map(function (el) { return D.offers.find(function (o) { return String(o.id) === String(el.value); }); }).filter(Boolean);
+  var invalid = selectedOffers.filter(function (o) { return String(o.source || '').toUpperCase() !== 'SHOPEE' || !o.productUrl || o.affiliateUrl; });
+  if (invalid.length) return toast('Selecione somente ofertas Shopee que tenham link original e ainda não possuam link afiliado.');
+  var subIds = prompt('SubID opcional para identificar este lote (letras e números, até 50 caracteres):', 'radarpromo');
+  if (subIds === null) return;
+  var box = document.getElementById('batch-link-results');
+  if (box) box.textContent = 'Gerando ' + selectedOffers.length + ' links pela API oficial da Shopee...';
+  try {
+    var response = await fetch('/api/integrations/shopee', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'batch_links', subIds: subIds, items: selectedOffers.map(function (o) { return { originUrl: o.productUrl }; }) }) });
+    var data = await response.json();
+    if (!response.ok) throw Error(data.error || 'Falha ao gerar os links.');
+    var byUrl = new Map(selectedOffers.map(function (o) { return [String(o.productUrl), o.title]; }));
+    if (box) box.innerHTML = '<b>Resultado: ' + Number(data.created || 0) + ' gerados · ' + Number(data.failed || 0) + ' falharam</b>' + (data.items || []).map(function (item) { return '<div class="row"><div class="grow"><b>' + esc(byUrl.get(item.originUrl) || 'Oferta') + '</b><div class="muted">' + (item.shortLink ? '<a href="' + esc(item.shortLink) + '" target="_blank" rel="noopener noreferrer">' + esc(item.shortLink) + '</a>' : esc(item.error || 'Sem retorno')) + '</div></div>' + (item.shortLink ? '<button class="btn secondary" type="button" data-action="copyText(\'' + esc(item.shortLink).replace(/'/g, '&#39;') + '\')">Copiar</button>' : '') + '</div>'; }).join('') + '<p class="muted">Os links foram gerados, mas não foram gravados automaticamente nas ofertas nem publicados. Copie e atualize cada oferta após conferir o rastreamento.</p>';
+    toast('Lote concluído: ' + data.created + ' links gerados.');
+  } catch (error) {
+    if (box) box.textContent = error.message || 'Falha no lote.';
+    toast(error.message || 'Falha ao gerar links.');
+  }
+}
+function copyText(value) { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(String(value || '')).then(function () { toast('Link copiado.'); }).catch(function () { toast('Não foi possível copiar automaticamente.'); }); else toast('Copie o link exibido.'); }
 function offers() {
   return (
     section(
@@ -1097,6 +1125,7 @@ function offers() {
       "+ Nova oferta",
       "openOffer()",
     ) +
+    '<div class="card csp-margin-bottom-12px"><div class="row"><div class="grow"><b>Gerar links em lote — Shopee</b><p class="muted">Selecione ofertas Shopee sem link afiliado. A API oficial processa até 20 por lote; os resultados ficam para conferência e cópia, sem publicar.</p></div><button class="btn dark" type="button" data-action="generateSelectedShopeeLinks()">Gerar links selecionados</button></div><div id="batch-link-results" class="list csp-margin-top-12px"></div></div>' +
     '<div class="list">' +
     (D.offers.length
       ? D.offers.map(offerRow).join("")
@@ -1694,6 +1723,31 @@ function studio() {
     "</div>"
   );
 }
+function assistantView() {
+  return section("Assistente Radar", "Consulte ofertas, vendas, comissões, publicações e cliques usando os dados reais da sua conta. O assistente é somente leitura.", "", "") +
+    '<div class="card"><h3>Pergunte ao Radar</h3><p class="muted">Ex.: quais ofertas da Shopee estão pendentes? Quanto tivemos de comissão nos últimos 30 dias? Quais foram os cliques do mês?</p><textarea id="radarAssistantQuestion" class="input" rows="3" maxlength="1200" placeholder="Digite sua pergunta..."></textarea><div class="actions csp-margin-top-12px"><button class="btn" type="button" data-action="askRadarAssistant()">Consultar</button></div><div id="radarAssistantAnswer" class="callout csp-margin-top-12px" aria-live="polite">As consultas não alteram ofertas nem publicam conteúdo.</div></div>';
+}
+async function askRadarAssistant() {
+  var input=document.getElementById("radarAssistantQuestion"),box=document.getElementById("radarAssistantAnswer");
+  if(!input||!box||!input.value.trim())return toast("Digite uma pergunta.");
+  box.textContent="Consultando os dados da sua conta...";
+  try{
+    var r=await fetch("/api/ai/assistant",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:input.value.trim()})});
+    var b=await r.json();if(!r.ok)throw Error(b.error||"Falha na consulta.");
+    box.textContent=(b.answer||"Sem resposta.")+"\n\n"+(b.notice||"Consulta somente de leitura.");
+  }catch(e){box.textContent=e.message||"Assistente indisponível.";}
+}
+async function reviewOfferImage(offerId) {
+  var box=document.getElementById("curatorAiResult");if(!box)return;
+  box.textContent="Analisando a imagem original do anúncio...";
+  try{
+    var r=await fetch("/api/ai/vision-review",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({offerId:offerId})});
+    var b=await r.json();if(!r.ok)throw Error(b.error||"Falha na análise visual.");
+    var x=b.result||{};
+    box.innerHTML='<div class="card"><h3>Resultado da análise visual</h3><p><b>Tipo de imagem:</b> '+esc(x.imageType||"—")+'</p><p><b>Compatibilidade com título:</b> '+(x.matchesTitle===true?"Compatível":x.matchesTitle===false?"Divergente":"Não conclusiva")+'</p><p><b>Qualidade:</b> '+Number(x.qualityScore||0)+'/100</p><p><b>Parecer:</b> '+esc(x.verdict||"REVIEW")+'</p><p><b>Problemas:</b> '+esc((x.issues||[]).join(" · ")||"Nenhum identificado")+'</p><p><b>Sugestões:</b> '+esc((x.recommendations||[]).join(" · ")||"—")+'</p><small class="muted">'+esc(b.notice||"Parecer consultivo.")+'</small></div>';
+  }catch(e){box.textContent=e.message||"Falha na análise visual.";}
+}
+
 function curatorView() {
   var approved = D.offers.filter(function (offer) { return offer.status === "APPROVED"; }).length;
   return section(
@@ -1708,7 +1762,7 @@ function curatorView() {
     metric("Ofertas carregadas", D.offers.length, "na conta atual") +
     '</div><div class="callout">A pontuação é um sinal de apoio, não uma garantia de preço, comissão ou conversão. Confira as fontes oficiais e a elegibilidade antes de publicar.</div>' +
     '<div id="curatorResult" class="csp-margin-top-14px" aria-live="polite"><p class="muted">Clique em Analisar agora para classificar as ofertas aprovadas pelas regras existentes.</p></div>' +
-    '<div id="curatorAiResult" class="csp-margin-top-14px" aria-live="polite"></div>';
+    '<div class="card csp-margin-top-14px"><h3>Análise visual do anúncio</h3><p class="muted">O Gemini compara a imagem original com o título cadastrado. Não altera a oferta.</p>'+select("Oferta para analisar imagem","visionOffer",'<option value="">Selecione uma oferta</option>'+D.offers.filter(function(x){return x.imageUrl;}).map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.title)+'</option>';}).join(""))+'<button class="btn secondary" type="button" data-action="reviewOfferImage(document.querySelector(\'[name=visionOffer]\').value)">Analisar imagem</button></div><div id="curatorAiResult" class="csp-margin-top-14px" aria-live="polite"></div>';
 }
 async function runCurator() {
   var box = document.getElementById("curatorResult");
@@ -2333,7 +2387,6 @@ function accountView() {
     '<button class="btn csp-margin-top-12px"  data-action="openTelegramConnection()">+ Conectar bot</button></div></div><div class="callout csp-margin-top-14px" >O bot do Telegram precisa ser administrador do grupo ou canal. Credenciais nunca aparecem novamente na tela.</div>'
   );
 }
-
 var editingMessageTemplateId = '';
 function messageTemplatesView() {
   var rows = (D.messageTemplates || []).map(function(item) {
@@ -2341,6 +2394,26 @@ function messageTemplatesView() {
   }).join('');
   return section('Modelos de mensagem', 'Crie modelos personalizados salvos no banco e isolados por conta. Eles não enviam nem publicam mensagens.', '+ Novo modelo', 'newMessageTemplate()') +
     '<div class="grid two"><section class="card"><h3 id="message-template-form-title">Novo modelo</h3><form id="message-template-form" onsubmit="return false"><div class="field"><label for="message-template-name">Nome</label><input id="message-template-name" class="input" maxlength="80" required placeholder="Ex.: Oferta de eletrônicos"></div><div class="field csp-margin-top-12px"><label for="message-template-body">Texto do modelo</label><textarea id="message-template-body" class="input" rows="9" maxlength="3000" required placeholder="🔥 {{produto}} por {{preco}}&#10;Compre: {{link_afiliado}}"></textarea></div><p class="muted">Variáveis: {{produto}}, {{preco}}, {{preco_anterior}}, {{desconto}}, {{loja}}, {{link_afiliado}}, {{cupom}}, {{link_cupom}}, {{categoria}}.</p><label class="checkline"><input id="message-template-active" type="checkbox" checked> Modelo ativo</label><div class="actions csp-margin-top-12px"><button type="button" class="btn" data-action="saveMessageTemplate()">Salvar modelo</button><button type="button" class="btn secondary" data-action="previewSavedMessageTemplate()">Pré-visualizar</button><button type="button" class="btn secondary" data-action="resetMessageTemplateForm()">Limpar</button></div><div id="message-template-preview" class="callout csp-hidden csp-margin-top-12px" role="status"></div></form></section><section><h3>Modelos salvos (' + (D.messageTemplates || []).length + ')</h3>' + (rows || '<div class="empty"><b>Nenhum modelo personalizado</b><p>Crie um modelo à esquerda. Os modelos padrão do Radar continuam disponíveis na criação de ofertas.</p></div>') + '</section></div>';
+}
+function offerBuilderSettingsPanel() {
+  return '<section class="card csp-margin-top-16px"><div class="sectionhead"><div><h3>Preferências do criador de ofertas</h3><p>Defina o modelo padrão, o tipo de oferta e como o Radar deve tratar os links.</p></div></div><div class="formgrid"><div class="field"><label for="ob-template">Modelo padrão</label><select id="ob-template" class="input"><option value="">Usar modelo automático do Radar</option></select></div><div class="field"><label for="ob-message-type">Tipo de oferta</label><select id="ob-message-type" class="input"><option value="PROMOTION">Oferta padrão</option><option value="FLASH">Oferta relâmpago</option><option value="COUPON">Oferta com cupom</option><option value="IMPORTED">Produto importado</option><option value="SOCIAL">Texto para redes sociais</option></select></div><div class="field"><label for="ob-link-mode">Modo de obtenção do link</label><select id="ob-link-mode" class="input"><option value="MANUAL">Manual — colar link oficial</option><option value="API">API — usar integração oficial</option><option value="AI">IA — assistência e análise</option></select></div><div class="field"><label for="ob-link-type">Tipo de link</label><select id="ob-link-type" class="input"><option value="AFFILIATE_REDIRECT">Link afiliado com redirecionador Radar</option><option value="OFFICIAL_SHORT">Link curto oficial da plataforma</option><option value="DIRECT_AFFILIATE">Link afiliado direto</option><option value="COUPON">Link de resgate de cupom</option><option value="PRODUCT">Link comum do produto (sem comissão garantida)</option></select></div></div><label class="checkline csp-margin-top-12px"><input type="checkbox" id="ob-ai-assist"> Permitir que a IA sugira, classifique e revise links e textos</label><div class="callout csp-margin-top-12px"><b>Segurança de afiliados:</b> a IA não inventa nem transforma URL em link com comissão. No modo API, o Radar só usa integrações oficiais habilitadas para a loja. Quando não houver API de afiliados validada, será necessário colar o link gerado no portal oficial.</div><div class="actions csp-margin-top-12px"><button class="btn" type="button" data-action="saveOfferBuilderSettings()">Salvar preferências</button><button class="btn secondary" type="button" data-action="loadOfferBuilderSettings()">Recarregar</button></div><div id="ob-settings-status" class="muted csp-margin-top-8px"></div></section>';
+}
+async function loadOfferBuilderSettings() {
+  try {
+    var r=await fetch('/api/settings/offer-builder'),b=await r.json();
+    if(!r.ok)throw Error(b.error||'Falha ao carregar preferências.');
+    var s=b.settings||{},t=document.getElementById('ob-template');
+    if(t){t.innerHTML='<option value="">Usar modelo automático do Radar</option>'+(b.templates||[]).map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>';}).join('');t.value=s.messageTemplateId||'';}
+    var set=function(id,v){var e=document.getElementById(id);if(e)e.value=v;};
+    set('ob-message-type',s.messageType||'PROMOTION');set('ob-link-mode',s.linkMode||'MANUAL');set('ob-link-type',s.linkType||'AFFILIATE_REDIRECT');
+    var ai=document.getElementById('ob-ai-assist');if(ai)ai.checked=Boolean(s.aiAssist);
+    var status=document.getElementById('ob-settings-status');if(status)status.textContent='Preferências carregadas. A IA não cria links de comissão por conta própria.';
+  }catch(e){var status=document.getElementById('ob-settings-status');if(status)status.textContent=e.message||'Não foi possível carregar.';}
+}
+async function saveOfferBuilderSettings() {
+  var value=function(id){var e=document.getElementById(id);return e?e.value:'';},ai=Boolean(document.getElementById('ob-ai-assist')?.checked);
+  try{var r=await fetch('/api/settings/offer-builder',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({messageTemplateId:value('ob-template'),messageType:value('ob-message-type'),linkMode:value('ob-link-mode'),linkType:value('ob-link-type'),aiAssist:ai})}),b=await r.json();if(!r.ok)throw Error(b.error||'Não foi possível salvar.');var status=document.getElementById('ob-settings-status');if(status)status.textContent='Preferências salvas com sucesso.';toast('Preferências do criador de ofertas salvas.');}
+  catch(e){toast(e.message||'Falha ao salvar preferências.');}
 }
 function newMessageTemplate() {
   editingMessageTemplateId = '';
@@ -2410,6 +2483,56 @@ function previewSavedMessageTemplate() {
   preview.classList.remove('csp-hidden');
 }
 
+function aiUsageView(){
+  return '<div class="ai-usage-page">'+
+    '<section class="hero"><div><div class="eyebrow">GOVERNANÇA E EFICIÊNCIA</div><h2>Consumo de inteligência artificial</h2><p>Acompanhe chamadas, tokens, custos registrados, modelos utilizados e o estado do controle global do Gemini.</p></div></section>'+
+    '<div class="ai-usage-toolbar"><label>Período <select id="ai-usage-window" class="input" onchange="loadAIUsage()"><option value="24h">Últimas 24 horas</option><option value="7d" selected>Últimos 7 dias</option><option value="30d">Últimos 30 dias</option><option value="mtd">Este mês</option></select></label><button class="btn secondary" onclick="loadAIUsage()">Atualizar dados</button><span id="ai-usage-updated" class="muted">Buscando dados...</span></div>'+
+    '<div id="ai-usage-status" class="ai-usage-status">Carregando controle do Gemini...</div>'+
+    '<div id="ai-usage-metrics" class="metrics"><div class="empty">Carregando consumo real...</div></div>'+
+    '<div class="ai-usage-grid"><section class="card"><div class="sectionhead"><div><h2>Consumo ao longo do período</h2><p>Chamadas e custo registrado por intervalo.</p></div></div><div id="ai-usage-series" class="ai-usage-series"></div></section><section class="card"><div class="sectionhead"><div><h2>Uso por modelo</h2><p>Distribuição de chamadas e custos.</p></div></div><div id="ai-usage-models"></div></section></div>'+
+    '<section class="card"><div class="sectionhead"><div><h2>Finalidade das chamadas</h2><p>Quais recursos mais utilizam IA.</p></div></div><div id="ai-usage-purposes" class="tablewrap"></div></section>'+
+    '<section class="card"><div class="sectionhead"><div><h2>Detalhamento técnico</h2><p>Tokens, cache e qualidade dos dados de custo.</p></div></div><div id="ai-usage-details" class="ai-usage-details"></div></section>'+
+    '<p class="muted ai-usage-footnote">Os custos são os valores reportados pela plataforma para o período selecionado; custo zero em um modelo não significa necessariamente que ele esteja incluído no plano gratuito do Google. Limites de RPM, TPM e RPD são separados do orçamento financeiro.</p></div>';
+}
+function aiUsageMoney(value){return Number(value||0).toLocaleString('en-US',{style:'currency',currency:'USD',minimumFractionDigits:4,maximumFractionDigits:4});}
+function aiUsageNumber(value){return Number(value||0).toLocaleString('pt-BR');}
+async function loadAIUsage(){
+  var windowSelect=document.getElementById('ai-usage-window'),period=windowSelect?windowSelect.value:'7d';
+  var status=document.getElementById('ai-usage-status'),metrics=document.getElementById('ai-usage-metrics');
+  if(status)status.textContent='Atualizando dados...';
+  try{
+    var response=await fetch('/api/admin/ai-usage?window='+encodeURIComponent(period),{headers:{Accept:'application/json'}}),data=await response.json();
+    if(!response.ok)throw Error(data.error||'Não foi possível consultar o consumo.');
+    var t=data.totals||{},pause=data.gemini_control||{};
+    if(status)status.innerHTML=pause.paused?'<b>Gemini em pausa global</b><span>Até '+esc(new Date(pause.paused_until).toLocaleString('pt-BR'))+'. As rotas protegidas devem evitar novas chamadas Gemini.</span>':'<b>Gemini sem pausa global registrada</b><span>O controle de cota está ativo. Os limites gratuitos do Google continuam sujeitos ao projeto e ao modelo.</span>';
+    if(metrics)metrics.innerHTML=[
+      ['Chamadas',aiUsageNumber(t.calls),'Solicitações no período'],
+      ['Custo registrado',aiUsageMoney(t.cost_usd),'Estimativa reportada pela plataforma'],
+      ['Tokens de entrada',aiUsageNumber(t.input_tokens),'Conteúdo enviado aos modelos'],
+      ['Tokens de saída',aiUsageNumber(t.output_tokens),'Conteúdo gerado pelos modelos'],
+      ['Leitura de cache',aiUsageNumber(t.cache_read_tokens),'Tokens reutilizados em cache'],
+      ['Chamadas sem preço',aiUsageNumber(t.unpriced_calls),'Itens sem custo calculado']
+    ].map(function(m){return '<div class="metric"><label>'+m[0]+'</label><b>'+m[1]+'</b><small>'+m[2]+'</small></div>';}).join('');
+    var series=data.series||[],maxCost=Math.max(0.000001,...series.map(function(x){return Number(x.cost_usd)||0;}));
+    var seriesEl=document.getElementById('ai-usage-series');
+    if(seriesEl)seriesEl.innerHTML=series.length?series.map(function(x){var pct=Math.max(3,Number(x.cost_usd||0)/maxCost*100);return '<div class="ai-series-row"><div><b>'+esc(String(x.bucket||'').replace('T',' '))+'</b><span>'+aiUsageNumber(x.calls)+' chamadas · '+aiUsageMoney(x.cost_usd)+'</span></div><div class="ai-bar"><i style="width:'+pct.toFixed(1)+'%"></i></div></div>';}).join(''):'<div class="empty">Sem dados para o período.</div>';
+    var models=data.by_model||[],modelsEl=document.getElementById('ai-usage-models');
+    if(modelsEl)modelsEl.innerHTML=models.length?models.map(function(x){return '<div class="ai-usage-line"><div><b>'+esc(x.model||x.alias||'Modelo não identificado')+'</b><small>'+esc(x.provider||'Provedor não informado')+' · '+aiUsageNumber(x.calls)+' chamadas</small></div><strong>'+aiUsageMoney(x.cost_usd)+'</strong></div>';}).join(''):'<div class="empty">Sem dados por modelo.</div>';
+    var purposes=data.by_purpose||[],purposeEl=document.getElementById('ai-usage-purposes');
+    if(purposeEl)purposeEl.innerHTML=purposes.length?'<table class="table"><thead><tr><th>Finalidade</th><th>Chamadas</th><th>Custo</th></tr></thead><tbody>'+purposes.map(function(x){return '<tr><td>'+esc(x.purpose||'Não identificada')+'</td><td>'+aiUsageNumber(x.calls)+'</td><td>'+aiUsageMoney(x.cost_usd)+'</td></tr>';}).join('')+'</tbody></table>':'<div class="empty">Sem finalidades registradas.</div>';
+    var details=document.getElementById('ai-usage-details');
+    if(details)details.innerHTML=[
+      ['Cache de criação',aiUsageNumber(t.cache_creation_tokens)],
+      ['Cache de leitura',aiUsageNumber(t.cache_read_tokens)],
+      ['Custo completo',t.cost_is_complete?'Sim':'Não'],
+      ['Chamadas sem preço',aiUsageNumber(t.unpriced_calls)],
+      ['Limite financeiro reportado hoje',aiUsageMoney(data.daily_limit_usd)],
+      ['Gasto reportado hoje',aiUsageMoney(data.spend_today_usd)]
+    ].map(function(x){return '<div><small>'+x[0]+'</small><b>'+x[1]+'</b></div>';}).join('');
+    var updated=document.getElementById('ai-usage-updated');if(updated)updated.textContent='Atualizado em '+new Date().toLocaleString('pt-BR');
+  }catch(error){if(status)status.textContent=error.message;if(metrics)metrics.innerHTML='<div class="empty">Falha ao carregar os dados. Verifique sua sessão e tente novamente.</div>';toast(error.message||'Falha ao consultar IA.');}
+}
+
 function render() {
   nav();
   var globalOfferAction=document.getElementById("global-create-offer");
@@ -2430,6 +2553,7 @@ function render() {
       return groupPage("content");
     },
     reports: reports,
+    aiusage: aiUsageView,
     settings: function () {
       return groupPage("settings");
     },
@@ -2440,6 +2564,9 @@ function render() {
   document.getElementById("content").innerHTML =
     '<section class="view on">' + f[current]() + "</section>";
   loadMarketplaceStatus();
+  if(current==='templates'||current==='settings'&&selectedGroups.settings==='templates')loadOfferBuilderSettings();
+  if(current==='settings'&&selectedGroups.settings==='scheduler')loadPublicationSchedulerSettings();
+  if(current==='aiusage')loadAIUsage();
 }
 function catOpts() {
   return D.categories
@@ -3010,6 +3137,7 @@ function openOffer(prefill) {
         "url",
         'required placeholder="https://..." value="' + esc(prefill.affiliateUrl || "") + '"',
       ) +
+      '<div class="formgrid"><div class="field"><label for="offer-link-mode">Modo de link</label><select id="offer-link-mode" class="input" disabled><option value="MANUAL">Manual</option><option value="API">API oficial</option><option value="AI">Assistência de IA</option></select></div><div class="field"><label for="offer-link-type">Formato do link</label><select id="offer-link-type" class="input" disabled><option value="AFFILIATE_REDIRECT">Redirecionador Radar</option><option value="OFFICIAL_SHORT">Link curto oficial</option><option value="DIRECT_AFFILIATE">Afiliado direto</option><option value="COUPON">Link de cupom</option><option value="PRODUCT">Link comum</option></select></div><div class="field"><label for="offer-message-type">Tipo de oferta</label><select id="offer-message-type" class="input" disabled><option value="PROMOTION">Padrão</option><option value="FLASH">Relâmpago</option><option value="COUPON">Com cupom</option><option value="IMPORTED">Importada</option><option value="SOCIAL">Redes sociais</option></select></div></div><div class="actions"><button type="button" class="btn secondary" data-action="generateAffiliateLinkByApi()">Gerar link pela API oficial</button></div><p id="offer-api-help" class="muted">As preferências vêm de Configurações → Modelos de mensagem.</p>' +
       '<div class="callout csp-margin-top-12px">O Radar não considera o link afiliado só por ele estar preenchido. Confirme que foi gerado na sua conta do programa e revise preço, imagem e cupom; a oferta continuará pendente até aprovação.</div>' +
       '<div class="field"><label><input type="checkbox" name="offerDetailsConfirmed" required> Confirmo que revisei os dados e que este é meu link oficial de afiliado.</label></div>' +
       '<div class="formgrid">' +
@@ -3047,6 +3175,64 @@ function openOffer(prefill) {
       }
     },
   );
+  loadOfferDefaultsIntoForm();
+}
+
+async function loadOfferDefaultsIntoForm() {
+  try {
+    var r=await fetch('/api/settings/offer-builder'),b=await r.json();
+    if(!r.ok)throw Error(b.error||'Falha ao carregar preferências');
+    var s=b.settings||{},form=document.getElementById('form');if(!form)return;
+    var mode=document.getElementById('offer-link-mode');
+    if(mode)mode.value=s.linkMode||'MANUAL';
+    var linkType=document.getElementById('offer-link-type');
+    if(linkType)linkType.value=s.linkType||'AFFILIATE_REDIRECT';
+    var messageType=document.getElementById('offer-message-type');
+    if(messageType)messageType.value=s.messageType||'PROMOTION';
+    if(s.messageTemplateId){
+      var custom=document.getElementById('customMessageTemplateId');
+      if(custom&&Array.from(custom.options).some(function(o){return o.value===s.messageTemplateId;})){custom.value=s.messageTemplateId;applySavedOfferTemplate();}
+    }
+    var preset=document.getElementById('offer-api-help');
+    if(preset)preset.textContent=s.linkMode==='API'?'Modo API selecionado. A geração automática depende de uma integração oficial validada para a loja escolhida.':'Modo '+(s.linkMode==='AI'?'IA':'manual')+' selecionado. Revise o link e o texto antes de salvar.';
+  }catch(e){toast('Não foi possível carregar as preferências: '+e.message);}
+}
+
+async function generateAffiliateLinkByApi() {
+  var f=document.getElementById('form');if(!f)return;
+  var store=String(f.elements.source.value||'').toUpperCase();
+  var productUrl=String(f.elements.productUrl.value||'').trim();
+  if(!productUrl)return toast('Informe primeiro o link original do produto.');
+  var payload={},path='',affiliateUrl='';
+  if(store==='AMAZON'){path='/api/integrations/amazon';payload={action:'generateLink',productUrl:productUrl};}
+  else if(store==='AWIN'){path='/api/integrations/awin';var awinAdvertiser=prompt('Informe o ID do anunciante Awin em que seu Publisher está aprovado:');if(!awinAdvertiser)return;payload={action:'deeplink',advertiserId:awinAdvertiser,productUrl:productUrl};}
+  else if(store==='ALIEXPRESS'){path='/api/integrations/aliexpress';payload={action:'generateLink',productUrl:productUrl};}
+  else if(store==='SHOPEE'){path='/api/integrations/shopee';payload={action:'create_link',originUrl:productUrl};var sub=prompt('SubID opcional para identificar a campanha (deixe vazio se não usar):','');if(sub===null)return;payload.subIds=sub;}
+  else if(store==='ADMITAD'){path='/api/integrations/admitad';var campaign=prompt('Informe o ID da campanha Admitad em que sua conta/site está aprovado:');if(!campaign)return;payload={action:'deeplink',campaignId:campaign,productUrl:productUrl};}
+  else if(store==='RAKUTEN'){path='/api/integrations/rakuten';var advertiser=prompt('Informe o ID numérico do anunciante Rakuten em que você tem parceria aprovada:');if(!advertiser)return;payload={action:'deep_link',advertiserId:advertiser,productUrl:productUrl,subId:'radarpromo'};}
+  else if(store==='LOMADEE'){
+    path='/api/integrations/lomadee';var org=prompt('Informe o organizationId (UUID) autorizado pela Lomadee:');if(!org)return;
+    var kind=prompt('Tipo de link: Coupon, Offer, BrandPage, Custom ou Home','Custom');if(!kind)return;
+    payload={action:'shorten_url',organizationId:org,type:kind};
+    if(kind==='Custom')payload.url=productUrl;
+    if(kind==='Coupon'||kind==='Offer'){var feature=prompt('Informe o featureId da campanha/cupom:');if(!feature)return;payload.featureId=feature;}
+  } else {
+    return toast('Esta loja ainda não possui geração automática de link confirmada neste formulário. Use o link criado no portal oficial; o Radar não fabricará parâmetros de afiliado.');
+  }
+  try{
+    toast('Solicitando link rastreável à API oficial de '+store+'...');
+    var r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),b=await r.json();
+    if(!r.ok)throw Error(b.error||'A API não gerou o link.');
+    if(store==='AMAZON'||store==='AWIN')affiliateUrl=b.affiliateUrl||'';
+    if(store==='ALIEXPRESS')affiliateUrl=b.affiliateUrl||'';
+    if(store==='SHOPEE')affiliateUrl=b.shortLink||'';
+    if(store==='ADMITAD')affiliateUrl=b.links&&b.links[0]&&b.links[0].link||'';
+    if(store==='RAKUTEN')affiliateUrl=b.affiliateUrl||'';
+    if(store==='LOMADEE'){var channels=Array.isArray(b.channels)?b.channels:[];for(var i=0;i<channels.length&&!affiliateUrl;i++){var urls=channels[i].shortUrls||[];if(urls.length)affiliateUrl=urls[0];}}
+    if(!affiliateUrl)throw Error('A API respondeu, mas não retornou uma URL afiliada utilizável. Confira permissões, campanha, anunciante e canal.');
+    f.elements.affiliateUrl.value=affiliateUrl;
+    toast('Link oficial retornado pela '+store+'. Confira o rastreamento e confirme antes de salvar; nada foi publicado.');
+  }catch(e){toast(e.message||'Falha na geração do link.');}
 }
 
 function changeReportDays(v) {
@@ -3148,10 +3334,10 @@ function offerMessageData() {
     couponCode: f.elements.couponCode.value,
     couponUrl: f.elements.couponUrl.value,
     useBestCoupon: Boolean(f.elements.useBestCoupon && f.elements.useBestCoupon.checked),
-    template: f.elements.messageTemplate.value,
+    template: (document.getElementById('offer-message-type')?.value==='FLASH'?'IMPACT':document.getElementById('offer-message-type')?.value==='IMPORTED'?'IMPORTED':f.elements.messageTemplate.value),
+    offerType: document.getElementById('offer-message-type')?.value || 'PROMOTION',
   };
 }
-
 function applySavedOfferTemplate() {
   var form = document.getElementById('form');
   var selected = document.getElementById('customMessageTemplateId');
@@ -4094,10 +4280,10 @@ async function deleteApiCredential(provider){
  }catch(error){toast(error.message);}
 }
 function marketplaceCredentialsPanel(){
- return '<div class="card csp-margin-bottom-16px"><h3>Credenciais das lojas</h3><p class="muted">Cadastre apenas chaves, tokens e IDs emitidos pelo portal oficial. Salvar credenciais não significa que a API foi validada; nenhuma oferta é publicada por esta tela.</p><div id="marketplaceCredentialStatus" class="grid two"><div class="empty">Carregando estado das lojas...</div></div><div id="lomadeeDataPanel" class="csp-margin-top-16px"></div></div>';
+ return '<div class="card csp-margin-bottom-16px"><h3>Credenciais das lojas</h3><p class="muted">Cadastre apenas chaves, tokens e IDs emitidos pelo portal oficial. Salvar credenciais não significa que a API foi validada; nenhuma oferta é publicada por esta tela.</p><div id="marketplaceCredentialStatus" class="grid two"><div class="empty">Carregando estado das lojas...</div></div><div id="lomadeeDataPanel" class="csp-margin-top-16px"></div><div class="actions csp-margin-top-12px"><a class="btn secondary" href="/affiliate-intelligence.html">Abrir explorador e inteligência de afiliados</a></div></div><div class="card csp-margin-bottom-16px"><h3>Extensão Capturador Multiplataforma</h3><p class="muted">Crie uma chave exclusiva para a extensão Chrome. A chave é exibida uma única vez, armazenada no Chrome e pode ser revogada a qualquer momento. Ela só permite enviar ofertas como rascunhos para sua conta.</p><div id="extensionTokenStatus" class="callout">Verificando conexão da extensão...</div><div class="actions"><button class="btn" type="button" data-action="createExtensionToken()">Gerar / renovar token da extensão</button><button class="btn secondary" type="button" data-action="revokeExtensionToken()">Revogar token</button></div><div id="extensionTokenNew" class="csp-margin-top-12px" hidden></div><p class="muted">Endpoint HTTPS: <code>https://radar-promo-brasil.hatchable.site/api/extension-offers</code></p></div>';
 }
 async function loadMarketplaceStatus(){
- var root=document.getElementById('marketplaceCredentialStatus');if(!root)return;
+ var root=document.getElementById('marketplaceCredentialStatus');if(!root)return;loadExtensionTokenStatus();
  try{
   var data=await operationRequest('/api/integrations/marketplaces');
   root.innerHTML=(data.items||[]).map(function(item){
@@ -4142,6 +4328,10 @@ async function loadMarketplaceStatus(){
   });
  }catch(error){root.innerHTML='<div class="empty" role="alert">'+esc(error.message)+'</div>';}
 }
+async function loadExtensionTokenStatus(){var root=document.getElementById('extensionTokenStatus');if(!root)return;try{var response=await fetch('/api/extension-token'),data=await response.json();if(!response.ok)throw Error(data.error||'Falha ao consultar token.');root.textContent=data.configured?'Token ativo · final '+data.token.last4+(data.token.lastUsedAt?' · último uso '+new Date(data.token.lastUsedAt).toLocaleString('pt-BR'):' · ainda não utilizado'):'Nenhum token ativo. Gere um token para conectar a extensão.';}catch(error){root.textContent=error.message||'Não foi possível consultar o token.';}}
+async function createExtensionToken(){var root=document.getElementById('extensionTokenNew');if(!root)return;if(!confirm('Gerar um novo token? O token anterior será revogado e a extensão precisará receber o novo valor.'))return;try{var response=await fetch('/api/extension-token',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}),data=await response.json();if(!response.ok)throw Error(data.error||'Não foi possível gerar o token.');root.hidden=false;root.innerHTML='<div class="callout"><b>Copie o token agora. Ele não será exibido novamente.</b><p><code style="word-break:break-all">'+esc(data.token)+'</code></p><button class="btn secondary" type="button" data-action="copyExtensionToken()">Copiar token</button></div>';window.extensionTokenOneTime=data.token;toast('Token gerado. Cole-o na extensão Chrome.');await loadExtensionTokenStatus();}catch(error){toast(error.message||'Falha ao gerar token.');}}
+async function copyExtensionToken(){if(!window.extensionTokenOneTime)return toast('Gere um novo token para copiá-lo.');try{await navigator.clipboard.writeText(window.extensionTokenOneTime);toast('Token copiado. Guarde-o na extensão.');}catch(_){toast('Não foi possível copiar; selecione o token exibido.');}}
+async function revokeExtensionToken(){if(!confirm('Revogar o token da extensão? Os envios automáticos serão interrompidos até gerar outro.'))return;try{var response=await fetch('/api/extension-token',{method:'DELETE'}),data=await response.json();if(!response.ok)throw Error(data.error||'Falha ao revogar token.');window.extensionTokenOneTime='';var fresh=document.getElementById('extensionTokenNew');if(fresh){fresh.hidden=true;fresh.innerHTML='';}await loadExtensionTokenStatus();toast('Token da extensão revogado.');}catch(error){toast(error.message||'Não foi possível revogar o token.');}}
 var apiHealthSnapshot = null;
 function apiHealthPanel(snapshot) {
   var data = snapshot === undefined ? apiHealthSnapshot : snapshot;
@@ -4547,9 +4737,9 @@ async function openMagaluApiCredentials(){
   try{
     var data=await operationRequest('/api/integrations/marketplaces');
     var item=(data.items||[]).find(function(x){return x.id==='MAGALU';});
-    var hasSavedKeys=!!(item&&item.credentialFields&&item.credentialFields.indexOf('apiKey')!==-1&&item.credentialFields.indexOf('apiKeyId')!==-1&&item.credentialFields.indexOf('apiKeySecret')!==-1);var body='<div class="callout"><b>'+ (hasSavedKeys?'As três chaves já estão cadastradas.':'Nenhum cadastro completo das três chaves foi confirmado nesta conta.') +'</b> '+(hasSavedKeys?'Elas permanecem salvas e criptografadas. Não é necessário cadastrá-las novamente para corrigir a tela de SubID. Só preencha e salve abaixo se quiser substituir as chaves.':'Cadastre somente se ainda não as salvou. O cadastro não comprova conexão com a API.')+'</div><p class="muted">Não substitua estas chaves por Client ID/Client Secret. A documentação pública atual do Grupo Magalu descreve OAuth 2.0 com Client ID/Client Secret; estas três chaves permanecem separadas até identificarmos o produto/portal que as emitiu. As credenciais já salvas não serão apagadas por esta correção.</p>'+field('API Key','apiKey','text','autocomplete="off" maxlength="4096" required')+field('API Key ID','apiKeyId','text','autocomplete="off" maxlength="4096" required')+field('API Key Secret','apiKeySecret','password','autocomplete="new-password" maxlength="4096" required')+'<div class="callout"><b>Estado real:</b> as três credenciais serão criptografadas e salvas como pendentes. Ainda precisamos confirmar o tipo de API Magalu habilitada na sua conta e implementar/testar a autenticação oficial correspondente antes de declarar a conexão ativa. Não informe senha do portal nem cookies.</div>';
+    var hasSavedKeys=!!(item&&item.credentialFields&&item.credentialFields.indexOf('apiKey')!==-1&&item.credentialFields.indexOf('apiKeyId')!==-1&&item.credentialFields.indexOf('apiKeySecret')!==-1);var body='<div class="callout"><b>'+ (hasSavedKeys?'As três chaves já estão cadastradas.':'Nenhum cadastro completo das três chaves foi confirmado nesta conta.') +'</b> '+(hasSavedKeys?'Elas permanecem salvas e criptografadas. Não é necessário cadastrá-las novamente para corrigir a tela de SubID. Só preencha e salve abaixo se quiser substituir as chaves.':'Cadastre somente se ainda não as salvou. O cadastro não comprova conexão com a API.')+'</div><p class="muted">Não substitua estas chaves por Client ID/Client Secret. A documentação pública atual do Grupo Magalu descreve OAuth 2.0 com Client ID/Client Secret; estas três chaves permanecem separadas até identificarmos o produto/portal que as emitiu. As credenciais já salvas não serão apagadas por esta correção.</p>'+field('Tenant ID da conta seller (X-Tenant-Id)','tenantId','text','autocomplete="off" maxlength="200" required placeholder="UUID/identificador do tenant autorizado"')+field('API Key (opcional; preserva a chave já salva se deixar vazio)','apiKey','text','autocomplete="off" maxlength="4096"')+field('API Key ID (opcional)','apiKeyId','text','autocomplete="off" maxlength="4096"')+field('API Key Secret (opcional)','apiKeySecret','password','autocomplete="new-password" maxlength="4096"')+'<div class="callout"><b>Tenant ID:</b> informe o identificador do tenant da conta/seller que autorizou a integração. O Radar armazenará esse dado criptografado por conta. As três API Keys são mantidas separadas do OAuth; deixe-as em branco para preservá-las. O teste renova o OAuth e faz uma consulta somente leitura de SKUs; nenhum produto será alterado ou publicado.</div>';
     openModal('Cadastrar chaves · Magalu','Use API Key, API Key ID e API Key Secret emitidas pelo portal Magalu. O cadastro das chaves, sozinho, não conecta a loja.',body,async function(event){
-      event.preventDefault();var fd=new FormData(event.target),credentials={apiKey:String(fd.get('apiKey')||'').trim(),apiKeyId:String(fd.get('apiKeyId')||'').trim(),apiKeySecret:String(fd.get('apiKeySecret')||'').trim()};
+      event.preventDefault();var fd=new FormData(event.target),credentials={tenantId:String(fd.get('tenantId')||'').trim(),apiKey:String(fd.get('apiKey')||'').trim(),apiKeyId:String(fd.get('apiKeyId')||'').trim(),apiKeySecret:String(fd.get('apiKeySecret')||'').trim()};Object.keys(credentials).forEach(function(key){if(!credentials[key])delete credentials[key];});
       try{var result=await operationRequest('/api/integrations/marketplaces',{marketplace:'MAGALU',credentials:credentials});closeModal();await loadMarketplaceStatus();toast(result.message||'Chaves salvas; OAuth e validação continuam pendentes.');}
       catch(error){toast(error.message||'Não foi possível salvar as chaves Magalu.');}
     });
@@ -4577,6 +4767,52 @@ async function openMagaluTools(){
       openModal('Rascunho Magalu criado','A oferta foi salva como pendente e não foi publicada.','<p><b>ID:</b> '+esc(result.offerId)+'</p><p><b>Status:</b> '+esc(result.status)+'</p><p>'+esc(result.message)+'</p>',function(e){e.preventDefault();closeModal();});var submit2=document.querySelector('#form button[type="submit"]');if(submit2)submit2.textContent='Fechar';
     }catch(error){toast(error.message||'Não foi possível validar ou preparar o rascunho Magalu.');}
   });var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Executar';
+}
+
+function publicationSchedulerView(){
+  return '<section class="card"><div class="sectionhead"><div><h3>Escalonador automático de marketplaces</h3><p>Controle o rodízio de publicação no Telegram. Novas origens são detectadas quando uma integração validada ou uma oferta importada passa a existir.</p></div><span class="pill live">Configuração central</span></div>'+
+    '<label class="checkline"><input type="checkbox" id="ps-enabled" checked> Ativar escalonador automático</label>'+
+    '<div class="formgrid csp-margin-top-12px"><div class="field"><label for="ps-interval">Intervalo padrão entre turnos (minutos)</label><input class="input" id="ps-interval" type="number" min="1" max="1440" value="10"></div><div class="field"><label for="ps-batch">Máximo de ofertas por turno</label><input class="input" id="ps-batch" type="number" min="1" max="100" value="20"></div></div>'+
+    '<div class="callout csp-margin-top-12px">O intervalo é contado entre os turnos de publicação. Se uma origem estiver sem ofertas elegíveis, o escalonador pula para a próxima imediatamente. Coleta e revisão continuam independentes.</div>'+
+    '<h3 class="csp-margin-top-18px">Marketplaces e origens detectadas</h3><p class="muted">Ative ou pause cada origem, ajuste sua posição, quantidade e intervalo individual. Campo de intervalo vazio utiliza o padrão global.</p>'+
+    '<div id="ps-sources" class="list"><p class="muted">Carregando origens…</p></div>'+
+    '<div class="actions csp-margin-top-16px"><button class="btn" type="button" data-action="savePublicationSchedulerSettings()">Salvar escalonador</button><button class="btn secondary" type="button" data-action="loadPublicationSchedulerSettings()">Recarregar</button></div>'+
+    '<div id="ps-status" class="muted csp-margin-top-8px" role="status"></div>'+
+    '<div class="callout csp-margin-top-12px"><b>Inclusão automática:</b> quando uma nova API validada ou um conector/clone importar ofertas com uma origem identificável, ela aparecerá aqui e será adicionada ao final do rodízio. A API ainda precisa ter um adaptador de coleta e mapeamento de ofertas compatível; o monitor não inventa integrações nem credenciais.</div></section>';
+}
+async function loadPublicationSchedulerSettings(){
+  var status=document.getElementById('ps-status');
+  try{
+    var response=await fetch('/api/settings/publication-scheduler'),data=await response.json();
+    if(!response.ok)throw Error(data.error||'Falha ao carregar o escalonador.');
+    var s=data.settings||{},enabled=document.getElementById('ps-enabled'),interval=document.getElementById('ps-interval'),batch=document.getElementById('ps-batch');
+    if(enabled)enabled.checked=s.enabled!==false;if(interval)interval.value=s.intervalMinutes||10;if(batch)batch.value=s.batchSize||20;
+    var host=document.getElementById('ps-sources');
+    if(host)host.innerHTML=(data.sources||[]).map(function(x){
+      return '<div class="integration" data-ps-source="'+esc(x.source)+'"><div class="grow"><b>'+esc(x.source.replaceAll('_',' '))+'</b><div class="muted">'+(x.discovered?'Detectada automaticamente':'Origem configurada')+'</div><label class="checkline"><input type="checkbox" data-ps-enabled '+(x.enabled?'checked':'')+'> Participar do rodízio</label></div>'+
+        '<div class="field"><label>Ordem</label><input class="input" type="number" min="1" max="99" data-ps-order value="'+Number(x.order||1)+'"></div>'+
+        '<div class="field"><label>Lote</label><input class="input" type="number" min="1" max="100" data-ps-batch value="'+Number(x.batchSize||20)+'"></div>'+
+        '<div class="field"><label>Intervalo (min)</label><input class="input" type="number" min="1" max="1440" data-ps-interval value="'+(x.intervalMinutes==null?'':Number(x.intervalMinutes))+'" placeholder="Padrão"></div></div>';
+    }).join('')||'<p class="muted">Nenhuma origem detectada ainda. Conecte uma API ou importe uma oferta para registrá-la.</p>';
+    if(status)status.textContent='Configurações carregadas. Último turno: '+(s.lastRunAt?new Date(s.lastRunAt).toLocaleString('pt-BR'):'ainda não executado')+'. Próximo turno: '+(s.nextTurnAt?new Date(s.nextTurnAt).toLocaleString('pt-BR'):'aguardando ativação')+'.';
+  }catch(error){if(status)status.textContent=error.message||'Não foi possível carregar as configurações.';}
+}
+async function savePublicationSchedulerSettings(){
+  var enabled=Boolean(document.getElementById('ps-enabled')?.checked);
+  var intervalMinutes=Number(document.getElementById('ps-interval')?.value||10);
+  var batchSize=Number(document.getElementById('ps-batch')?.value||20);
+  var rows=[...document.querySelectorAll('#ps-sources [data-ps-source]')].map(function(row){
+    return {source:row.getAttribute('data-ps-source'),enabled:Boolean(row.querySelector('[data-ps-enabled]')?.checked),order:Number(row.querySelector('[data-ps-order]')?.value||99),batchSize:Number(row.querySelector('[data-ps-batch]')?.value||batchSize),intervalMinutes:row.querySelector('[data-ps-interval]')?.value?Number(row.querySelector('[data-ps-interval]').value):null};
+  });
+  var sourceOrder=rows.slice().sort(function(a,b){return a.order-b.order;}).map(function(x){return x.source;});
+  var sourceConfig={};rows.forEach(function(x){sourceConfig[x.source]={enabled:x.enabled,batchSize:x.batchSize,intervalMinutes:x.intervalMinutes};});
+  var status=document.getElementById('ps-status');
+  try{
+    var response=await fetch('/api/settings/publication-scheduler',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled,intervalMinutes,batchSize,sourceOrder,sourceConfig})}),data=await response.json();
+    if(!response.ok)throw Error(data.error||'Falha ao salvar o escalonador.');
+    if(status)status.textContent='Escalonador salvo. O processamento foi acordado para aplicar as novas regras.';
+    toast('Configurações do escalonador salvas.');await loadPublicationSchedulerSettings();
+  }catch(error){if(status)status.textContent=error.message||'Não foi possível salvar.';toast(error.message||'Falha ao salvar o escalonador.');}
 }
 async function connectN8nMcp(){
   try{
