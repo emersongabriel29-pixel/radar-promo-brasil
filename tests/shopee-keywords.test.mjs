@@ -28,6 +28,8 @@ test('keyword relevance rejects fuzzy notebook matches and keeps real product ma
   assert.equal(isRelevantShopeeProduct('Kit 300 Folhas Notas Adesivas', 'notebook'), false);
   assert.equal(isRelevantShopeeProduct('Notebook Lenovo IdeaPad Intel i5', 'notebook intel i5'), true);
   assert.equal(isRelevantShopeeProduct('Laptop Dell Inspiron', 'notebook'), true);
+  assert.equal(isRelevantShopeeProduct('Laptop Infantil Notebook Educativo Computador Português e Inglês', 'notebook computador'), false);
+  assert.equal(isRelevantShopeeProduct('Gabinete Gamer Aquário Aigo Apollo', 'notebook gamer'), false);
   assert.equal(isRelevantShopeeProduct('Smartphone Motorola Moto G06', 'smartphone'), true);
   assert.equal(isRelevantShopeeProduct('Forma de silicone para fritadeira', 'air fryer'), true);
 });
