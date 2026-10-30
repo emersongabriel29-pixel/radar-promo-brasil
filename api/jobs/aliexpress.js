@@ -308,8 +308,18 @@ export default async function handler(req, res) {
       candidates.sort((a, b) => b.score - a.score || b.sales - a.sales || (b.commission || 0) - (a.commission || 0) || a.currentPrice - b.currentPrice);
       for (const p of candidates) {
         if (accountImported >= 3) break;
-        const exists = await db.query('SELECT id FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1', [row.account_id, p.fp]);
-        if (exists.rows.length) { totals.duplicates++; continue; }
+        const exists = await db.query('SELECT id,current_price,original_price FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1', [row.account_id, p.fp]);
+        if (exists.rows.length) {
+          const existing = exists.rows[0];
+          if (p.imageUrl) {
+            await db.query("UPDATE offers SET image_url=$1,updated_at=now() WHERE id=$2 AND account_id=$3 AND source='ALIEXPRESS' AND status IN ('PENDING','APPROVED','PUBLISHED')", [p.imageUrl, existing.id, row.account_id]);
+            await db.query("UPDATE publications SET image_url=$1 WHERE account_id=$2 AND offer_id=$3 AND status IN ('READY','RETRY')", [p.imageUrl, row.account_id, existing.id]);
+          }
+          if (Number(existing.current_price) === p.currentPrice && Number(existing.original_price) === p.originalPrice) {
+            await db.query("INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) SELECT $1,$2,$3,$4,$5,'OFFICIAL_API',$6,now() WHERE NOT EXISTS(SELECT 1 FROM offer_price_history WHERE account_id=$2 AND offer_id=$3 AND source_type='OFFICIAL_API' AND verified_at>now()-interval '24 hours' AND price=$4 AND original_price=$5)", [crypto.randomUUID(), row.account_id, existing.id, p.currentPrice, p.originalPrice, 'ALIEXPRESS:' + p.id]);
+          }
+          totals.duplicates++; continue;
+        }
         const promo = formatPromo({ title: p.title, source: 'ALIEXPRESS', category: p.category?.name || p.classified.category || '', currentPrice: p.currentPrice, originalPrice: p.originalPrice, affiliateUrl: p.affiliateUrl, imageUrl: p.imageUrl, productUrl: p.productUrl });
         const offerId = crypto.randomUUID();
         const inserted = await db.query(
