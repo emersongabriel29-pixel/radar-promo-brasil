@@ -301,7 +301,7 @@ export default async function handler(req,res){
         const kind=action==='campaignProducts'?'PRODUCT':'PRODUCT';
         const pageSize=Math.min(50,Math.max(1,Math.floor(Number(orderBody.pageSize)||50)));
         const maxPages=Math.min(5,Math.max(1,Math.floor(Number(orderBody.maxPages)||3)));
-        let page=Math.min(1000,Math.max(1,Math.floor(Number(orderBody.page)||1))),pagesCompleted=0,hasMore=false;
+        const startPage=Math.min(1000,Math.max(1,Math.floor(Number(orderBody.page)||1)));let page=startPage,pagesCompleted=0,hasMore=false;
         const allItems=[],discoveries=[];
         while(pagesCompleted<maxPages&&page<=1000){
           const pageBody={...orderBody,page,pageSize};
@@ -314,7 +314,7 @@ export default async function handler(req,res){
           if(pageItems.length<pageSize){hasMore=false;break;}
           page++;hasMore=pagesCompleted===maxPages;
         }
-        return res.json({ok:true,action,items:allItems,discovery:discoveries,page:page-pagesCompleted+1,pagesCompleted,pageSize,nextPage:hasMore?page:null,hasMore,readOnlySource:true,publicationEnabled:false,note:'Catálogo lido em páginas sequenciais e persistido para análise. Nenhuma oferta foi criada ou publicada.'});
+        return res.json({ok:true,action,items:allItems,discovery:discoveries,page:startPage,pagesCompleted,pageSize,nextPage:hasMore?page:null,hasMore,readOnlySource:true,publicationEnabled:false,note:'Catálogo lido em páginas sequenciais e persistido para análise. Nenhuma oferta foi criada ou publicada.'});
       }
     }
     const spec=build(actionName,orderBody,c);if(!spec)return res.status(400).json({error:'Parâmetros inválidos.'});
