@@ -159,9 +159,7 @@ schedule = "25 * * * *"
 path = "/api/jobs/aliexpress-review"
 schedule = "45 * * * *"
 
-[[cron]]
-path = "/api/jobs/telegram"
-schedule = "0 * * * *"
+# Telegram publication is driven by the named one-shot central scheduler, not a competing cron.
 
 [[cron]]
 path = "/api/jobs/whatsapp-channel"
