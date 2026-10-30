@@ -4,6 +4,7 @@ import { eligiblePublication, claimPublication } from 'lib/delivery.js';
 import { cacheOfferImage } from 'lib/offer-images.js';
 import { formatPromo } from 'lib/promo-message.js';
 import { enqueueMatches } from 'lib/autopilot.js';
+import { chooseMarketplaceSource, MARKETPLACE_ROTATION_LIMIT } from 'lib/marketplace-rotation.js';
 
 export const access = 'public';
 export const methods = ['POST'];
@@ -86,16 +87,17 @@ export default async function(req, res) {
     stage = 'load_publication_queue';
     const origin = String(await config.get('public_app_url') || 'https://radar-promo-brasil.hatchable.site').replace(/\/$/, '');
     const rotationState=(await db.query("SELECT last_source,consecutive_count FROM marketplace_rotation_state WHERE account_id=$1 AND group_id=(SELECT id FROM promo_groups WHERE account_id=$1 AND status='ACTIVE' AND platform='TELEGRAM' AND NULLIF(trim(external_id),'') IS NOT NULL ORDER BY id LIMIT 1)",[accountId])).rows[0];
-    const sourceOrder=['ALIEXPRESS','SHOPEE','LOMADEE','AMAZON','MERCADOLIVRE','CASAS_BAHIA','MAGALU','RAKUTEN'];
-    const lastIndex=sourceOrder.indexOf(rotationState?.last_source||'');
-    const preferredSource=rotationState?.consecutive_count>=10?sourceOrder[(lastIndex+1+sourceOrder.length)%sourceOrder.length]:(rotationState?.last_source||'');
-    const rows = (await db.query(`SELECT p.id,p.group_id AS "groupId",p.content_type AS "contentType",p.account_id AS "accountId",p.message,COALESCE(p.image_url,o.image_url) AS "imageUrl",COALESCE(p.image_storage_key,o.image_storage_key) AS "imageStorageKey",p.attempts,o.title AS "offerTitle",o.source,o.current_price AS "currentPrice",o.original_price AS "originalPrice",o.affiliate_url AS "affiliateUrl",o.coupon_code AS "couponCode",o.coupon_url AS "couponUrl",c.name AS "category",g.external_id AS "groupExternalId" FROM publications p LEFT JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id LEFT JOIN categories c ON c.id=o.category_id AND c.account_id=o.account_id JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id WHERE p.account_id=$1 AND p.status IN ('READY','RETRY') AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now()) AND g.status='ACTIVE' AND g.platform='TELEGRAM' AND NULLIF(trim(g.external_id),'') IS NOT NULL AND (p.content_type='MESSAGE' OR p.image_storage_key IS NOT NULL OR o.image_storage_key IS NOT NULL OR o.image_url IS NOT NULL OR lower(split_part(p.image_url, '?', 1)) LIKE ANY (ARRAY['%.jpg','%.jpeg','%.png','%.webp','%.gif','%.avif','%.bmp']) OR lower(p.image_url) LIKE 'https://cf.shopee.com.br/file/%') AND ${eligiblePublication} ORDER BY CASE WHEN o.source=$2 THEN 0 ELSE 1 END,p.priority DESC,p.created_at LIMIT 1`, [accountId,preferredSource])).rows;
+    const availableSources=(await db.query("SELECT DISTINCT o.source FROM publications p LEFT JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id WHERE p.account_id=$1 AND p.group_id=(SELECT id FROM promo_groups WHERE account_id=$1 AND status='ACTIVE' AND platform='TELEGRAM' AND NULLIF(trim(external_id),'') IS NOT NULL ORDER BY id LIMIT 1) AND p.status IN ('READY','RETRY') AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now()) AND g.status='ACTIVE' AND g.platform='TELEGRAM' AND NULLIF(trim(g.external_id),'') IS NOT NULL AND (p.content_type='MESSAGE' OR p.image_storage_key IS NOT NULL OR o.image_storage_key IS NOT NULL OR o.image_url IS NOT NULL OR lower(split_part(p.image_url, '?', 1)) LIKE ANY (ARRAY['%.jpg','%.jpeg','%.png','%.webp','%.gif','%.avif','%.bmp']) OR lower(p.image_url) LIKE 'https://cf.shopee.com.br/file/%') AND " + eligiblePublication,[accountId])).rows.map(row=>row.source).filter(Boolean);
+    const preferredSource=chooseMarketplaceSource({availableSources,lastSource:rotationState?.last_source,consecutiveCount:rotationState?.consecutive_count,limit:MARKETPLACE_ROTATION_LIMIT});
+    const remainingInRotation=preferredSource&&preferredSource===rotationState?.last_source?Math.max(1,MARKETPLACE_ROTATION_LIMIT-Number(rotationState?.consecutive_count||0)):MARKETPLACE_ROTATION_LIMIT;
+    const batchSize=Math.min(10,remainingInRotation);
+    const rows = (await db.query(`SELECT p.id,p.group_id AS "groupId",p.content_type AS "contentType",p.account_id AS "accountId",p.message,COALESCE(p.image_url,o.image_url) AS "imageUrl",COALESCE(p.image_storage_key,o.image_storage_key) AS "imageStorageKey",p.attempts,o.title AS "offerTitle",o.source,o.current_price AS "currentPrice",o.original_price AS "originalPrice",o.affiliate_url AS "affiliateUrl",o.coupon_code AS "couponCode",o.coupon_url AS "couponUrl",c.name AS "category",g.external_id AS "groupExternalId" FROM publications p LEFT JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id LEFT JOIN categories c ON c.id=o.category_id AND c.account_id=o.account_id JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id WHERE p.account_id=$1 AND p.status IN ('READY','RETRY') AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now()) AND g.status='ACTIVE' AND g.platform='TELEGRAM' AND NULLIF(trim(g.external_id),'') IS NOT NULL AND (p.content_type='MESSAGE' OR p.image_storage_key IS NOT NULL OR o.image_storage_key IS NOT NULL OR o.image_url IS NOT NULL OR lower(split_part(p.image_url, '?', 1)) LIKE ANY (ARRAY['%.jpg','%.jpeg','%.png','%.webp','%.gif','%.avif','%.bmp']) OR lower(p.image_url) LIKE 'https://cf.shopee.com.br/file/%') AND ${eligiblePublication} AND ($2::text IS NULL OR o.source=$2) ORDER BY p.priority DESC,p.created_at LIMIT ${batchSize}`, [accountId,preferredSource])).rows;
     // dryRun is handled before event persistence above; normal delivery continues here.
     let published = 0, failed = 0, unconfirmed = 0, processed = 0;
     stage = 'process_publications';
     for (const item of rows) {
       stage = 'claim_publication';
-      if (!(await claimPublication(db, item.id, item.accountId))) continue;
+      if (!(await claimPublication(db, item.id, item.accountId, null, { batch: true }))) continue;
       processed++;
       const connections = (await db.query("SELECT id,secret_slot AS \"secretSlot\" FROM telegram_connections WHERE account_id=$1 AND status='ACTIVE' ORDER BY failure_count,priority,last_seen_at DESC NULLS LAST", [item.accountId])).rows;
       let sent = false, lastError = 'Nenhum bot ativo conectado.';
@@ -133,6 +135,7 @@ export default async function(req, res) {
         await db.query("UPDATE publications SET status=CASE WHEN attempts<3 THEN 'RETRY' ELSE 'FAILED' END,error_message=$3,next_attempt_at=now()+interval '15 minutes',telegram_connection_id=NULL WHERE id=$1 AND account_id=$2 AND status='DISPATCHING'", [item.id, item.accountId, lastError]);
         failed++;
       }
+      if (processed < rows.length) await new Promise(resolve => setTimeout(resolve, 4000));
     }
     const result = { ok: true, processed, published, failed, unconfirmed, queuedAvailable: rows.length };
     await db.query("UPDATE webhook_events SET status='PROCESSED',response=$2,item_count=$3,processed_at=now(),updated_at=now() WHERE id=$1", [eventId, JSON.stringify(result), published + failed + unconfirmed]);
