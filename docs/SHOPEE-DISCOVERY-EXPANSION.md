@@ -43,6 +43,8 @@ Consultas somente leitura executadas pela rota já implantada confirmaram:
 - O endpoint manual `brandOffer` estava implementado internamente, mas inacessível pelo mapa de tipos; a PR adiciona o tipo `brand` e mantém sua persistência classificada como `BRAND`.
 - A consulta atual por `shopId` com variável numérica retornou erro GraphQL `wrong type`; a PR corrige o envio do identificador `Int64` como string.
 
+As migrations `050_affiliate_discovery.sql` e `051_affiliate_sales.sql` foram adicionadas ao GitHub para reproduzir as tabelas já existentes no banco ativo. Elas não foram aplicadas.
+
 ## Validação necessária
 
 Os testes automatizados cobrem a geração e rotação determinística do catálogo. A confirmação de permissões e resultados reais de `shopOfferV2`, `shopeeOfferV2` e `brandOffer` depende de executar o worker em dry-run com a credencial da conta no ambiente Hatchable. Nenhuma chamada real de produção foi feita nesta alteração.
