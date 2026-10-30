@@ -176,9 +176,9 @@ export default async function handler(req, res) {
       return res.json({ok:true,action:'import_offers',imported:imported.length,skipped:skipped.length,items:imported,skippedItems:skipped,reviewRequired:true,autopilotTriggered:false,publicationTriggered:false,note:'Ofertas Shopee importadas como rascunhos com preço oficial e link de afiliado. A publicação depende de aprovação humana e das regras do canal.'});
     }
     if (action === 'offers') {
-      const kindMap = { product: 'productOfferV2', shop: 'shopOfferV2', shopee: 'shopeeOfferV2' };
+      const kindMap = { product: 'productOfferV2', shop: 'shopOfferV2', shopee: 'shopeeOfferV2', brand: 'brandOffer' };
       const kind = kindMap[clean(req.body?.kind, 20).toLowerCase()];
-      if (!kind) return res.status(400).json({ error: 'Escolha ofertas de produto, loja ou campanha Shopee.' });
+      if (!kind) return res.status(400).json({ error: 'Escolha ofertas de produto, loja, campanha ou marca Shopee.' });
       const keyword = clean(req.body?.keyword || 'phone', 80).replace(/[\r\n]/g, ' ').trim() || 'phone';
       // The documented offer endpoints support large pages. Keep the default useful for interactive use,
       // while allowing authorized callers to request up to 500 records per page.
