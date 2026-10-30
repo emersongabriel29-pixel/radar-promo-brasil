@@ -69,7 +69,7 @@ export default async function(req,res){
   }
   if(continuationAt){
     try{
-      const continuationName='telegram-queue-drain-'+Math.floor(continuationAt.getTime()/60_000);
+      const continuationName='telegram-queue-drain-'+crypto.randomUUID();
       await scheduler.at(continuationAt,'/api/jobs/telegram',{name:continuationName});
     }catch(error){
       console.error('telegram queue continuation could not be armed',String(error?.message||'SCHEDULER_ERROR').slice(0,160));
