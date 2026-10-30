@@ -1,4 +1,5 @@
 import { config, db } from 'hatchable';
+import { normalizeShopeeSales, upsertAffiliateSales } from 'lib/affiliate-sales.js';
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 // API catalog items are not filtered by product category.
@@ -295,7 +296,13 @@ export default async function handler(req, res) {
       const query = 'query($start: Int!, $end: Int!, $limit: Int!, $scrollId: String, $orderStatus: String, $buyerType: String, $device: String) { conversionReport(purchaseTimeStart: $start, purchaseTimeEnd: $end, limit: $limit, scrollId: $scrollId, orderStatus: $orderStatus, buyerType: $buyerType, device: $device) { nodes { conversionId clickTime purchaseTime totalCommission sellerCommission shopeeCommissionCapped buyerType device utmContent orders { orderId orderStatus items { itemId itemName shopName itemPrice qty itemTotalCommission attributionType } } } pageInfo { limit hasNextPage scrollId } } }';
       result = await signedRequest(credentials, { query, variables: { start, end, limit, ...(scrollId ? { scrollId } : {}), ...(orderStatus ? { orderStatus } : {}), ...(buyerType ? { buyerType } : {}), ...(device ? { device } : {}) } });
       const root = result?.data?.conversionReport || {};
-      return res.json({ report: 'conversionReport', items: Array.isArray(root.nodes) ? root.nodes : [], pageInfo: root.pageInfo || null, readOnly: true, nextScrollId: root.pageInfo?.hasNextPage ? (root.pageInfo.scrollId || null) : null });
+      const conversionItems = Array.isArray(root.nodes) ? root.nodes : [];
+      let ledgerSync = null;
+      if (req.body?.syncToLedger === true || req.body?.syncToLedger === 'true') {
+        if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'Valide a credencial Shopee antes de sincronizar pedidos.' });
+        ledgerSync = await upsertAffiliateSales(db, account.id, 'SHOPEE', normalizeShopeeSales(conversionItems));
+      }
+      return res.json({ report: 'conversionReport', items: conversionItems, pageInfo: root.pageInfo || null, readOnlySource: true, ledgerSync, nextScrollId: root.pageInfo?.hasNextPage ? (root.pageInfo.scrollId || null) : null });
     }
 
     if (action === 'validated') {

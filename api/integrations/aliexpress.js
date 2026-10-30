@@ -5,6 +5,7 @@ import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 // API catalog items are not filtered by product category.
 import { formatPromo } from 'lib/promo-message.js';
+import { normalizeAliExpressSales, upsertAffiliateSales } from 'lib/affiliate-sales.js';
 
 export const access = 'member';
 export const methods = ['GET', 'POST'];
@@ -96,6 +97,10 @@ function normalize(items) {
     discount: x.discount??null,
     status:clean(x.order_status||x.status,80),
     createdAt:clean(x.created_time||x.createdTime,80),
+    grossValue:x.product_price??x.order_amount??x.pay_amount??null,
+    quantity:Math.max(1,Number(x.product_count)||1),
+    commissionValue:x.commission??x.total_commission??null,
+    subId:clean(x.tracking_id||x.sub_id||x.subid,120),
     rawType:clean(x.type||x.category_name,100)
   }));
 }
@@ -263,9 +268,16 @@ export default async function handler(req,res){
         throw error;
       }
     }
-    const map={products:'products',importOffers:'products',smartMatch:'smartMatch',hotProducts:'hotProducts',hotProductsDownload:'hotProductsDownload',productDetail:'productDetail',categories:'categories',campaigns:'campaigns',campaignProducts:'campaignProducts',generateLink:'generateLink',orders:'orders',orderDetail:'orderDetail',ordersByCursor:'ordersByCursor'};
+    const map={products:'products',importOffers:'products',smartMatch:'smartMatch',hotProducts:'hotProducts',hotProductsDownload:'hotProductsDownload',productDetail:'productDetail',categories:'categories',campaigns:'campaigns',campaignProducts:'campaignProducts',generateLink:'generateLink',orders:'orders',syncOrders:'orders',orderDetail:'orderDetail',ordersByCursor:'ordersByCursor'};
     const actionName=map[action];if(!actionName)return res.status(400).json({error:'Operação não suportada.'});
-    const spec=build(actionName,req.body||{},c);if(!spec)return res.status(400).json({error:'Parâmetros inválidos.'});
+    const orderBody={...(req.body||{})};
+    if(action==='syncOrders'){
+      if(saved.status!=='VALIDATED')return res.status(412).json({error:'Valide a credencial AliExpress antes de sincronizar pedidos.'});
+      const end=new Date(),start=new Date(end.getTime()-7*86400000);
+      const fmt=d=>d.toISOString().slice(0,19).replace('T',' ');
+      if(!orderBody.startTime&&!orderBody.endTime){orderBody.startTime=fmt(start);orderBody.endTime=fmt(end);}
+    }
+    const spec=build(actionName,orderBody,c);if(!spec)return res.status(400).json({error:'Parâmetros inválidos.'});
     let data, result, items, fallback=null;
     try {
       data=await topRequest(c,spec.api,spec.params);
@@ -286,6 +298,10 @@ export default async function handler(req,res){
       result=unwrap(data,fallbackSpec.api);
       items=normalize(listOf(result));
       fallback={used:true,requestedAction:action,actualApi:fallbackSpec.api,reason:'A API avançada recusou a operação por falta de permissão; foi usada a busca padrão de produtos. Os itens não são garantidos como produtos em alta nem como correspondência inteligente.',keyword:fallbackSpec.params.keywords||null};
+    }
+    if(action==='syncOrders'){
+      const ledgerSync=await upsertAffiliateSales(db,account.id,'ALIEXPRESS',normalizeAliExpressSales(items));
+      return res.json({ok:true,action:'syncOrders',received:items.length,ledgerSync,page:Number(orderBody.page)||1,pageSize:Number(orderBody.pageSize)||20,readOnlySource:true,publicationEnabled:false,note:'Pedidos lidos da API e registrados no livro de vendas do Radar. Nenhuma oferta foi publicada.'});
     }
     if(action==='importOffers'){
       const minDiscount=Math.max(0,Math.min(90,Number(req.body?.minDiscountPercent??0)||0));
