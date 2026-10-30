@@ -2,7 +2,7 @@
 
 ## Escopo
 
-Esta alteração amplia a descoberta automática sem transformar campanhas ou lojas em produtos fictícios e sem ativar publicação automática. O catálogo atual contém 24.786 frases únicas, geradas a partir de 243 termos de produto, 70 marcas, 16 intenções e 16 qualificadores.
+Esta alteração amplia a descoberta automática sem transformar campanhas ou lojas em produtos fictícios e sem ativar publicação automática. O catálogo atual contém 9.318 frases únicas, geradas a partir de 250 termos de produto, 12 grupos de marcas por família, 16 intenções e 16 qualificadores.
 
 O catálogo de palavras-chave é gerado a partir de termos curados de produtos, marcas, intenções de compra e atributos. A expansão atual gera milhares de frases distintas em memória; o worker consulta apenas uma pequena amostra rotativa por execução. Não existe motivo operacional para disparar centenas de milhares de consultas: isso consumiria quota e aumentaria ruído.
 
