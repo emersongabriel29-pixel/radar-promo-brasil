@@ -4767,7 +4767,7 @@ async function openShopeeTools(){
     field('Validation ID do relatório de pagamentos','validationId','text','inputmode="numeric" pattern="[0-9]{1,18}" maxlength="18"')+
     '<label for="shopeeBatchUrls">URLs para lote (uma por linha, até 20)</label><textarea id="shopeeBatchUrls" name="batchUrls" rows="4" placeholder="https://shopee.com.br/..."></textarea>'+
     '<label for="shopeeFeedMode">Modo do feed (opcional)</label><select id="shopeeFeedMode" name="feedMode"><option value="">Listar todos</option><option value="FULL">FULL</option><option value="DELTA">DELTA</option></select>'+
-    field('ID do feed para leitura','datafeedId','text','inputmode="numeric" maxlength="24"')+
+    field('ID do feed para leitura','datafeedId','text','maxlength="80" placeholder="Cole o ID retornado por Listar feeds"')+
     field('Offset do feed','offset','number','min="0" max="1000000" value="0"')+
     '<div class="callout">Use filtros para buscar produtos por comissão, desempenho, loja e elegibilidade de comissão extra. Para ranking, selecione Produtos e ordene por Mais vendidos. O filtro AMS indica elegibilidade para comissão extra, não garantia de comissão em toda venda. A API de Afiliados não possui busca direta de códigos de cupom. Shopee Video continua em rascunhos até existir acesso autorizado à API própria de vídeo. O relatório validado exige o Validation ID exibido no painel da Shopee. As consultas não publicam ofertas.</div>';
   openModal('Ferramentas · Shopee Afiliados','Use apenas recursos liberados pela Open API da sua conta. Nenhuma operação publica ofertas nos canais.',body,async function(event){
