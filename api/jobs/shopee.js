@@ -30,7 +30,7 @@ async function credentials(row) {
   const plain = await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(row.nonce)},key,fromB64(row.credentials_enc));
   return JSON.parse(new TextDecoder().decode(plain));
 }
-async function request(creds, query, variables) {
+async function request(creds, query, variables, attempt = 0) {
   const payload = {query, ...(variables ? {variables} : {})};
   const appId = clean(creds.appId,200), secret = clean(creds.apiSecret,4096);
   if (!appId || !secret) throw new Error('credentials_missing');
@@ -41,6 +41,10 @@ async function request(creds, query, variables) {
   try { data = raw ? JSON.parse(raw) : {}; } catch { throw new Error('invalid_api_response'); }
   if (!response.ok || data.errors?.length) {
     const code = clean(data.errors?.[0]?.extensions?.code || '',60);
+    if (code === '10030' && attempt < 2) {
+      await pause(attempt === 0 ? 1200 : 2800);
+      return request(creds,query,variables,attempt+1);
+    }
     throw new Error('shopee_api_'+(code || response.status));
   }
   return data;
