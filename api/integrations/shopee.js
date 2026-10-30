@@ -198,8 +198,8 @@ export default async function handler(req, res) {
         const isKeySeller = req.body?.isKeySeller === true || req.body?.isKeySeller === 'true';
         query = 'query($keyword: String, $listType: Int, $sortType: Int, $page: Int, $limit: Int, $shopId: Int64, $itemId: Int64, $isAMSOffer: Boolean, $isKeySeller: Boolean) { productOfferV2(keyword: $keyword, listType: $listType, sortType: $sortType, page: $page, limit: $limit, shopId: $shopId, itemId: $itemId, isAMSOffer: $isAMSOffer, isKeySeller: $isKeySeller) { nodes { itemId shopId shopName shopType productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate commissionRate sellerCommissionRate shopeeCommissionRate commission sales ratingStar periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
         variables.listType = listType;
-        if (/^\d+$/.test(shopId)) variables.shopId = Number(shopId);
-        if (/^\d+$/.test(itemId)) variables.itemId = Number(itemId);
+        if (/^\d+$/.test(shopId)) variables.shopId = shopId;
+        if (/^\d+$/.test(itemId)) variables.itemId = itemId;
         if (req.body?.isAMSOffer !== undefined && req.body?.isAMSOffer !== '') variables.isAMSOffer = isAMSOffer;
         if (req.body?.isKeySeller !== undefined && req.body?.isKeySeller !== '') variables.isKeySeller = isKeySeller;
       } else if (kind === 'shopOfferV2') {
