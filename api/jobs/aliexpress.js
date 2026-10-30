@@ -254,8 +254,9 @@ function isAliExpressUrl(value) {
 }
 
 export default async function handler(req, res) {
+  const dryRun = req.body?.dryRun === true || String(req.body?.dryRun ?? req.query?.dryRun ?? '').toLowerCase() === 'true';
   const rows = (await db.query("SELECT account_id,credentials_enc,nonce FROM marketplace_api_credentials WHERE marketplace='ALIEXPRESS' AND status='VALIDATED'")).rows;
-  const totals = { ok: true, accounts: rows.length, scanned: 0, deferredForAffiliateLink: 0, imported: 0, duplicates: 0, skipped: 0, safetyBlocked: 0, selected: 0, failed: 0, autopilotRuns: 0, rejectedBy: { missingId: 0, missingTitle: 0, invalidProductUrl: 0, missingAffiliateLink: 0, missingImage: 0, invalidPrice: 0, noVerifiedDiscount: 0, safetyFilter: 0, discountBelowThreshold: 0 }, qualitySignals: { missingCommission: 0, lowCommission: 0, missingRating: 0, lowRating: 0 } };
+  const totals = { ok: true, accounts: rows.length, scanned: 0, deferredForAffiliateLink: 0, imported: 0, duplicates: 0, skipped: 0, safetyBlocked: 0, selected: 0, failed: 0, autopilotRuns: 0, preview: [], rejectedBy: { missingId: 0, missingTitle: 0, invalidProductUrl: 0, missingAffiliateLink: 0, missingImage: 0, invalidPrice: 0, noVerifiedDiscount: 0, safetyFilter: 0, discountBelowThreshold: 0 }, qualitySignals: { missingCommission: 0, lowCommission: 0, missingRating: 0, lowRating: 0 } };
   for (const row of rows) {
     let accountImported = 0;
     try {
@@ -326,14 +327,16 @@ export default async function handler(req, res) {
       let generatedLinks = [];
       // The AliExpress link API may return only part of a large source_values batch.
       // Use small batches and preserve the response order for deterministic mapping.
-      for (let offset = 0; offset < productUrls.length; offset += 5) {
-        const batch = productUrls.slice(offset, offset + 5);
-        try {
-          const batchLinks = await requestAffiliateLink(credentials, batch);
-          for (let i = 0; i < batch.length; i++) generatedLinks[offset + i] = batchLinks[i] || '';
-        } catch (error) {
-          for (let i = 0; i < batch.length; i++) generatedLinks[offset + i] = '';
-          console.error('aliexpress batch short-link generation failed', clean(error?.message || 'ERROR', 80));
+      if (!dryRun) {
+        for (let offset = 0; offset < productUrls.length; offset += 5) {
+          const batch = productUrls.slice(offset, offset + 5);
+          try {
+            const batchLinks = await requestAffiliateLink(credentials, batch);
+            for (let i = 0; i < batch.length; i++) generatedLinks[offset + i] = batchLinks[i] || '';
+          } catch (error) {
+            for (let i = 0; i < batch.length; i++) generatedLinks[offset + i] = '';
+            console.error('aliexpress batch short-link generation failed', clean(error?.message || 'ERROR', 80));
+          }
         }
       }
       for (const raw of safeProducts.slice(0, 20)) {
@@ -343,7 +346,7 @@ export default async function handler(req, res) {
         const sourceIndex = productUrls.indexOf(sourceUrl);
         const generated = sourceIndex >= 0 ? safeAliExpressAffiliateUrl(generatedLinks[sourceIndex]) : '';
         // Prefer the official generated link; fall back only to a trusted AliExpress promotion URL.
-        p.affiliateUrl = generated && generated.length <= 300 ? generated : (p.affiliateUrl && p.affiliateUrl.length <= 300 ? p.affiliateUrl : '');
+        p.affiliateUrl = dryRun ? (p.affiliateUrl && p.affiliateUrl.length <= 300 ? p.affiliateUrl : '') : (generated && generated.length <= 300 ? generated : (p.affiliateUrl && p.affiliateUrl.length <= 300 ? p.affiliateUrl : ''));
         let reason = '';
         if (!p.id) reason = 'missingId';
         else if (!p.title) reason = 'missingTitle';
@@ -374,6 +377,10 @@ export default async function handler(req, res) {
       candidates.sort((a, b) => b.score - a.score || b.sales - a.sales || (b.commission || 0) - (a.commission || 0) || a.currentPrice - b.currentPrice);
       const selectedCandidates = selectDiverseCandidates(candidates,{limit:20,perCategory:1,perMerchant:1,fillPerCategory:2,fillPerMerchant:2});
       totals.selected += selectedCandidates.length;
+      if (dryRun) {
+        totals.preview.push(...selectedCandidates.slice(0, 20).map(p => ({productId:p.id,title:p.title,category:p.classified.category,subcategory:p.classified.subcategory,confidence:p.classified.confidence,sourceCategory:p.sourceCategory||null,price:p.currentPrice/100,discountPercent:p.discount,shopId:p.shopId||null})));
+        continue;
+      }
       // Bound database work per scheduled run so duplicate refreshes stay below the project query quota.
       for (const p of selectedCandidates) {
         const exists = await db.query('SELECT id,current_price,original_price FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1', [row.account_id, p.fp]);
@@ -431,5 +438,5 @@ export default async function handler(req, res) {
     catch (error) { totals.reviewTriggered = false; totals.reviewTriggerError = clean(error?.code || error?.name || 'REVIEW_TRIGGER_FAILED', 80); console.error('aliexpress review trigger failed', totals.reviewTriggerError); }
   }
   totals.ok = totals.failed === 0 && !totals.reviewTriggerError;
-  return res.json({ ...totals, discovery: { standardKeywordSearches: 3, advancedMethodsAttempted: ['hotProducts'], smartmatchSkipped: 'LEGACY_AFFILIATE_API_DEPRECATED_AND_PROVIDER_REJECTED', maxDiscoveryCallsPerAccount: 9, categoryCatalogRead: true, rotatingSearchPages: 10, affiliateLinkGenerationCap: 4 }, publicationEnabled: true, humanReviewRequired: 'ONLY_FAILED_REQUIREMENTS_OR_LOW_KNOWN_QUALITY', note: 'Ofertas que passam os requisitos serão aprovadas e enviadas ao fluxo automático; as que falham requisitos ou têm comissão/avaliação conhecida abaixo do limite ficam para revisão humana.' });
+  return res.json({ ...totals, dryRun, discovery: { standardKeywordSearches: 3, advancedMethodsAttempted: ['hotProducts'], smartmatchSkipped: 'LEGACY_AFFILIATE_API_DEPRECATED_AND_PROVIDER_REJECTED', maxDiscoveryCallsPerAccount: 9, categoryCatalogRead: true, rotatingSearchPages: 10, affiliateLinkGenerationCap: 4 }, publicationEnabled: !dryRun, humanReviewRequired: 'ONLY_FAILED_REQUIREMENTS_OR_LOW_KNOWN_QUALITY', note: dryRun ? 'Prévia somente leitura: nenhum link foi gerado, nenhuma oferta foi gravada e nenhuma publicação foi acionada.' : 'Ofertas que passam os requisitos serão aprovadas e enviadas ao fluxo automático; as que falham requisitos ou têm comissão/avaliação conhecida abaixo do limite ficam para revisão humana.' });
 }
