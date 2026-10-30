@@ -135,10 +135,10 @@ test('AliExpress auto-publication queue is source-isolated and does not enqueue 
 test('Telegram autopilot enfileira ofertas aprovadas em lote, sem teto artificial de 10 e com deduplicação', async () => {
   const { readFile } = await import('node:fs/promises');
   const autopilot = await readFile(new URL('../lib/autopilot.js', import.meta.url), 'utf8');
-  assert.match(autopilot, /jsonb_to_recordset/);
-  assert.match(autopilot, /NOT EXISTS\\(SELECT 1 FROM publications p WHERE p\\.account_id=\\$2 AND p\\.offer_id=x\\.offer_id AND p\\.group_id=x\\.group_id\\)/);
-  assert.match(autopilot, /candidate\\.category_id === 'cat-gerais'/);
-  assert.doesNotMatch(autopilot, /maxPendingTelegram/);
+  assert.ok(autopilot.includes('jsonb_to_recordset'));
+  assert.ok(autopilot.includes('NOT EXISTS(SELECT 1 FROM publications p WHERE p.account_id=$2 AND p.offer_id=x.offer_id AND p.group_id=x.group_id)'));
+  assert.ok(autopilot.includes("candidate.category_id === 'cat-gerais'"));
+  assert.ok(!autopilot.includes('maxPendingTelegram'));
 });
 test('Telegram tick dryRun returns before event persistence and performs no side effects', async () => {
   const { readFile } = await import('node:fs/promises');
