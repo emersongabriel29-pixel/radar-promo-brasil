@@ -1,4 +1,8 @@
 import { config, db } from 'hatchable';
+import { fingerprint, offerScore } from 'lib/automation.js';
+import { classifyProduct } from 'lib/category-classifier.js';
+import { isMedicationProduct } from 'lib/product-safety.js';
+import { formatPromo } from 'lib/promo-message.js';
 
 export const access = 'member';
 export const methods = ['GET', 'POST'];
@@ -105,7 +109,7 @@ async function amazonRequest(c, operation, payload) {
 function buildRequest(action, input) {
   const resources = DEFAULT_RESOURCES;
   if (action === 'test') return { operation: 'searchItems', payload: { keywords: 'livro', searchIndex: 'All', itemCount: 1, itemPage: 1, resources: ['itemInfo.title'] } };
-  if (action === 'search') {
+  if (action === 'search' || action === 'import') {
     const keywords = clean(input.keyword, 120);
     if (!keywords) throw Object.assign(new Error('Informe uma palavra-chave para buscar produtos.'), { status: 400 });
     const count = Math.min(10, Math.max(1, Math.floor(Number(input.itemCount) || 10)));
