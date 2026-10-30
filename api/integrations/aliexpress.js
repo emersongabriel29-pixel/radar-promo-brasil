@@ -3,10 +3,11 @@ import { signTopParams } from 'lib/top-signature.js';
 import { createAliExpressAffiliateUrl, signAliExpressParams, validateAliExpressProductUrl } from 'lib/afilimax-aliexpress-provider.js';
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
-// API catalog items are not filtered by product category.
-import { formatPromo } from 'lib/promo-message.js';
+import { isMedicationProduct } from 'lib/product-safety.js';
 import { normalizeAliExpressSales, upsertAffiliateSales } from 'lib/affiliate-sales.js';
 import { persistDiscoveryPage } from 'lib/affiliate-discovery.js';
+// API catalog items are not filtered by product category.
+import { formatPromo } from 'lib/promo-message.js';
 
 export const access = 'member';
 export const methods = ['GET', 'POST'];
@@ -98,10 +99,6 @@ function normalize(items) {
     discount: x.discount??null,
     status:clean(x.order_status||x.status,80),
     createdAt:clean(x.created_time||x.createdTime,80),
-    grossValue:x.product_price??x.order_amount??x.pay_amount??null,
-    quantity:Math.max(1,Number(x.product_count)||1),
-    commissionValue:x.commission??x.total_commission??null,
-    subId:clean(x.tracking_id||x.sub_id||x.subid,120),
     rawType:clean(x.type||x.category_name,100)
   }));
 }
@@ -294,6 +291,29 @@ export default async function handler(req,res){
       const hasMore=pagesCompleted===maxPages&&received===pagesCompleted*pageSize&&page<=1000;
       return res.json({ok:true,action:'syncOrders',received,ledgerSync,pagesCompleted,pageSize,startTime:orderBody.startTime,endTime:orderBody.endTime,nextPage:hasMore?page:null,hasMore,readOnlySource:true,publicationEnabled:false,note:'Pedidos lidos em páginas sequenciais e registrados sem duplicação. Nenhuma oferta foi publicada.'});
     }
+
+    const spec=build(actionName,orderBody,c);if(!spec)return res.status(400).json({error:'Parâmetros inválidos.'});
+    let data, result, items, fallback=null;
+    try {
+      data=await topRequest(c,spec.api,spec.params);
+      result=unwrap(data,spec.api);
+      items=normalize(listOf(result));
+    } catch (apiError) {
+      const permissionDenied=/InsufficientPermission|insufficient permission|permission/i.test(String(apiError?.message||''));
+      const canFallback=['hotProducts','hotProductsDownload','smartMatch','campaignProducts'].includes(action);
+      if(!permissionDenied||!canFallback)throw apiError;
+      let fallbackSpec;
+      if(action==='smartMatch'&&!clean(req.body?.keyword,120)&&/^\d{1,30}$/.test(clean(req.body?.productId,30))){
+        fallbackSpec=build('productDetail',{...req.body,productIds:req.body.productId},c);
+      } else {
+        const fallbackKeyword=clean(req.body?.keyword||(action==='campaignProducts'?req.body?.promotionName:'ofertas'),120);
+        fallbackSpec=build('products',{...req.body,keyword:fallbackKeyword,sort:clean(req.body?.sort||'SALE_PRICE_ASC',40)},c);
+      }
+      data=await topRequest(c,fallbackSpec.api,fallbackSpec.params);
+      result=unwrap(data,fallbackSpec.api);
+      items=normalize(listOf(result));
+      fallback={used:true,requestedAction:action,actualApi:fallbackSpec.api,reason:'A API avançada recusou a operação por falta de permissão; foi usada a busca padrão de produtos. Os itens não são garantidos como produtos em alta nem como correspondência inteligente.',keyword:fallbackSpec.params.keywords||null};
+    }
     if(req.body?.persistDiscovery===true||req.body?.persistDiscovery==='true'){
       const pagedActions=new Set(['products','hotProducts','hotProductsDownload','campaignProducts']);
       if(pagedActions.has(action)){
@@ -363,7 +383,8 @@ export default async function handler(req,res){
         const rating=Number.parseFloat(String(item.rating??'').replace('%','').replace(',','.'));
         const discount=originalPrice>0&&currentPrice>0?Math.round((originalPrice-currentPrice)*100/originalPrice):0;
         let reason='';
-        if(!title)reason='Título ausente';
+        if(isMedicationProduct({title,productUrl}))reason='Medicamentos e produtos farmacêuticos são bloqueados pela política do Radar.';
+        else if(!title)reason='Título ausente';
         // No internal category exclusion.
         else if(!/^https:\/\//i.test(productUrl)||!/^https:\/\//i.test(affiliateUrl)||!/^https:\/\//i.test(imageUrl))reason='Produto sem link original, link de afiliado ou imagem HTTPS válida';
         else if(!Number.isSafeInteger(currentPrice)||currentPrice<=0||!Number.isSafeInteger(originalPrice)||originalPrice<=currentPrice)reason='Preço atual/original inválido ou sem desconto verificável';
@@ -371,13 +392,13 @@ export default async function handler(req,res){
         else if(!Number.isFinite(commission)||commission<minCommission)reason='Comissão ausente ou abaixo do mínimo de '+minCommission+'%';
         else if(Number.isFinite(rating)&&rating<maxRating)reason='Indicador de avaliação abaixo de '+maxRating+'%';
         if(reason){skipped.push({id:item.id,title,reason});continue;}
-        const classification=classifyProduct({title,sourceCategory:'AliExpress'});
+        const classification=classifyProduct({title,sourceCategory:item.rawType||''});
         const category=cats.find(c=>c.name.toLowerCase()===String(classification.category||'').toLowerCase())||cats.find(c=>c.name.toLowerCase().includes('gerais'))||null;
         const fp=await fingerprint({source:'ALIEXPRESS',externalId:item.id,productUrl,title});
         const promo=formatPromo({title,source:'ALIEXPRESS',category:classification.category,currentPrice,originalPrice,affiliateUrl,imageUrl,productUrl});
         const score=offerScore({title,currentPrice,originalPrice});
         const saved=await db.query(
-          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,subcategory,classification_tags,classification_confidence,classification_status,classification_reason,source_category) VALUES($1,$2,$3,'ALIEXPRESS',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'VALIDATED','ALIEXPRESS_API',false,$14,$15::jsonb,$16,'REVIEW','Imported as draft; human review required','AliExpress') ON CONFLICT DO NOTHING RETURNING id",
+          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,subcategory,classification_tags,classification_confidence,classification_status,classification_reason,source_category) VALUES($1,$2,$3,'ALIEXPRESS',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'VALIDATED','ALIEXPRESS_API',false,$14,$15::jsonb,$16,'REVIEW','Imported as draft; human review required',NULL) ON CONFLICT DO NOTHING RETURNING id",
           [crypto.randomUUID(),account.id,title,originalPrice,currentPrice,category?.id||null,affiliateUrl,imageUrl,productUrl,discount,score,promo.message,fp,classification.subcategory||null,JSON.stringify(classification.tags||[]),classification.confidence||0]
         );
         if(!saved.rows.length){skipped.push({id:item.id,title,reason:'Produto duplicado; não foi importado novamente.'});continue;}
