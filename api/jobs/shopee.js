@@ -131,7 +131,7 @@ export default async function handler(req,res) {
       // Rank the full candidate batch first; the cap applies only after comparison and duplicate checks.
       candidates.sort((a,b) => b.score-a.score || b.sales-a.sales || b.commissionPercent-a.commissionPercent || a.currentPrice-b.currentPrice || a.title.localeCompare(b.title,'pt-BR'));
       for (const candidate of candidates) {
-        if (importedForAccount >= 3) break;
+        if (importedForAccount >= 150) break;
         const {p,title,productUrl,affiliateUrl,imageUrl,currentPrice,score,fp,classified,category,reasons} = candidate;
         const exists = await db.query('SELECT id,current_price,original_price FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1',[row.account_id,fp]);
         if (exists.rows.length) {
