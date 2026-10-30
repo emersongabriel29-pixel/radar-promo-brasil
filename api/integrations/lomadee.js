@@ -1,6 +1,7 @@
 import { config, db, scheduler } from 'hatchable';
 import { fingerprint, message as promoMessage, offerScore } from 'lib/automation.js';
 import { directImageUrl } from 'lib/validation.js';
+import { classifyLomadeeProduct, normalizeLomadeeCategory } from 'lib/lomadee-catalog.js';
 import { normalizeLomadeeSales, upsertAffiliateSales } from 'lib/affiliate-sales.js';
 // No internal product-category exclusion.
 
@@ -102,6 +103,7 @@ function safeRows(resource, body) {
     const option = (Array.isArray(x.options) ? x.options : []).find(o => o.available) || x.options?.[0] || {};
     const pricing = Array.isArray(option.pricing) ? option.pricing[0] : {};
     const image = x.images?.[0]?.url || option.images?.[0]?.url || '';
+    const classification = classifyLomadeeProduct(x);
     return {
       id: clean(x.id, 120), organizationId: clean(x.organizationId, 120),
       title: clean(option.name || x.name, 300), available: Boolean(x.available && (option.available !== false)),
@@ -109,7 +111,11 @@ function safeRows(resource, body) {
       imageUrl: typeof image === 'string' && /^https:\/\//i.test(image) ? image.slice(0, 2000) : '',
       originalPrice: priceCents(pricing.listPrice),
       currentPrice: priceCents(pricing.price),
-      seller: clean(option.seller, 150), categories: Array.isArray(option.categories) ? option.categories.map(v => clean(v, 100)).slice(0, 10) : []
+      seller: clean(option.seller, 150), description: clean(x.description || option.description, 600),
+      categories: [...new Set([...(Array.isArray(x.categories) ? x.categories : []), ...(Array.isArray(option.categories) ? option.categories : [])].map(v => clean(v, 100)).filter(Boolean))].slice(0, 10),
+      sourceCategory: classification.category, subcategory: classification.subcategory,
+      classificationTags: classification.tags, classificationConfidence: classification.confidence,
+      blockedBySafety: classification.blocked
     };
   });
   if (resource === 'campaigns') return rows.map(x => ({
@@ -277,12 +283,21 @@ export default async function handler(req, res) {
         const limit = Math.min(100, Math.max(1, Math.floor(Number(req.body?.limit) || 100)));
         const productBody = await apiRequest('/affiliate/products', apiKey, { page: 1, limit, isAvailable: true, ...(search ? { search } : {}) });
         const products = listFrom(productBody);
+        const categoryRows = (await db.query("SELECT id,name FROM categories WHERE account_id=$1 ORDER BY created_at,id", [account.id])).rows;
+        const categoryMap = new Map();
+        for (const category of categoryRows) {
+          const key = normalizeLomadeeCategory(category.name);
+          const previous = categoryMap.get(key);
+          if (!previous || (String(category.id).startsWith('cat-') && !String(previous).startsWith('cat-'))) categoryMap.set(key, String(category.id));
+        }
+        const fallbackCategoryId = categoryMap.get('ofertas gerais') || null;
         const imported = [], skipped = [];
         for (const product of products) {
           const option = (Array.isArray(product.options) ? product.options : []).find(o => o.available) || product.options?.[0] || {};
           const pricing = Array.isArray(option.pricing) ? option.pricing[0] : {};
           const title = clean(option.name || product.name, 220);
-          // No internal product-category exclusion.
+          const classification = classifyLomadeeProduct(product);
+          if (classification.blocked) { skipped.push({ id: clean(product.id, 120), reason: 'Medicamento excluído pelas regras de segurança do Radar.' }); continue; }
           const imageUrl = product.images?.[0]?.url || option.images?.[0]?.url || '';
           const productUrl = typeof product.url === 'string' && /^https:\/\//i.test(product.url) ? product.url : '';
           const currentPrice = priceCents(pricing.price), originalPrice = priceCents(pricing.listPrice);
@@ -309,9 +324,10 @@ export default async function handler(req, res) {
           const currentReais = Math.round(currentPrice), originalReais = Math.round(originalPrice);
           const score = offerScore({ title, currentPrice: currentReais, originalPrice: originalReais });
           const message = promoMessage({ title, source: 'LOMADEE', currentPrice: currentReais, originalPrice: originalReais, affiliateUrl, imageUrl, productUrl });
+          const categoryId = categoryMap.get(normalizeLomadeeCategory(classification.category)) || fallbackCategoryId;
           const inserted = await db.query(
-            "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible) VALUES($1,$2,$3,'LOMADEE',$4,$5,NULL,$6,$7,$8,NULL,NULL,$9,$10,'PENDING',$11,$12,'VALIDATED','AUTO',false) ON CONFLICT DO NOTHING RETURNING id",
-            [crypto.randomUUID(), account.id, title, originalReais, currentReais, affiliateUrl, imageUrl, productUrl, discount, score, message, fp]
+            "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,classification_tags,classification_confidence,classification_status,classification_reason,source_category,subcategory) VALUES($1,$2,$3,'LOMADEE',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'VALIDATED','AUTO',false,$14::jsonb,$15,'REVIEW',$16,$17,$18) ON CONFLICT DO NOTHING RETURNING id",
+            [crypto.randomUUID(), account.id, title, originalReais, currentReais, categoryId, affiliateUrl, imageUrl, productUrl, discount, score, message, fp, JSON.stringify(classification.tags), classification.confidence, 'lomadee_rules_v1:' + classification.rule, classification.category, classification.subcategory]
           );
           if (inserted.rows.length) {
             const offerId = inserted.rows[0].id;
@@ -322,7 +338,7 @@ export default async function handler(req, res) {
         }
         return res.json({ ok: true, imported: imported.length, skipped: skipped.length, items: imported, skippedItems: skipped, autopilotTriggered: false, publicationTriggered: false, note: 'Produtos importados como rascunhos para revisão humana. Preço e link foram verificados na API oficial; nenhuma oferta foi aprovada para publicação nem foi disparado o piloto automático.' });
       }
-      return res.status(400).json({ error: 'Ação não suportada. Use validate, sync_orders ou import_products.' });
+      return res.status(400).json({ error: 'Ação não suportada. Use validate ou import_products.' });
     }
 
     if (req.method === 'GET') {

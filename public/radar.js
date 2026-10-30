@@ -74,6 +74,7 @@ var NAV = [
   ["publishing", "Publicações", "PB", "Operação"],
   ["channels", "Canais", "CN", "Análise"],
   ["reports", "Relatórios", "BI", "Análise"],
+  ["aiusage", "Consumo de IA", "AI", "Análise"],
   ["settings", "Configurações", "CT", "Gestão"],
 ];
 var GROUPS = {
@@ -98,9 +99,9 @@ var GROUPS = {
   settings: [
     ["security", "Segurança e LGPD", "SX", "security"],
     ["integrations", "Integrações", "IN", "integrations"],
-    ["aiusage", "Consumo de IA", "AI", "aiUsageView"],
     ["account", "Conta, vitrine e planos", "CT", "accountView"],
     ["templates", "Modelos de mensagem", "TM", "messageTemplatesView"],
+    ["scheduler", "Escalonador de publicações", "10", "publicationSchedulerView"],
   ],
 };
 var LABEL = {
@@ -221,7 +222,7 @@ function switchGroup(key, id) {
     b.classList.toggle("on", b.textContent.trim().includes(item[1]));
   });
   document.getElementById("group-panel").innerHTML = window[item[3]]();
-  if(key==="settings"&&id==="integrations"){loadApiCredentials();loadMarketplaceStatus();}if(key==="settings"&&id==="templates")loadOfferBuilderSettings();
+  if(key==="settings"&&id==="integrations"){loadApiCredentials();loadMarketplaceStatus();}if(key==="settings"&&id==="templates")loadOfferBuilderSettings();if(key==="settings"&&id==="scheduler")loadPublicationSchedulerSettings();
 }
 async function call(method, body, query) {
   var r = await fetch("/api/data" + (query || ""), {
@@ -999,7 +1000,7 @@ function quick() {
       })
       .join("") +
     "</div></div></div>" +
-    '<div class="card csp-margin-top-16px"><h3>Descobrir produtos no Mercado Livre</h3><p class="muted">A busca geral de anúncios está retornando 403 nesta conexão. O Radar usa o catálogo para descobrir produtos, mas catálogo não confirma preço, estoque nem anúncio comprável. Escolha um anúncio individual, confira preço e disponibilidade e gere o link comissionado no <a href="https://www.mercadolivre.com.br/l/afiliados-gerar-link" target="_blank" rel="noopener noreferrer">portal oficial de afiliados ↗</a>. Como alternativa, cadastre os dados conferidos em <b>Central de ofertas → Nova oferta</b>; a API não preencherá preço/estoque quando não conseguir confirmá-los.</p><div class="field"><label for="marketSearchQuery">Produto para pesquisar</label><input class="input" id="marketSearchQuery" placeholder="Ex.: fone bluetooth, fralda, air fryer" maxlength="120"></div><button class="btn csp-margin-top-12px" data-action="searchMercadoLivreProducts(this)">Buscar no catálogo</button><div id="marketSearchResults" class="list csp-margin-top-12px"></div></div>' +
+    '<div class="card csp-margin-top-16px"><h3>Descobrir produtos no Mercado Livre</h3><p class="muted">Pesquise por palavras para descobrir produtos do catálogo ou cole o ID/URL de um anúncio individual para consultar preço, estoque e imagem pela API oficial. Catálogo não confirma anúncio comprável. O link comissionado deve ser gerado/confirmado no <a href="https://www.mercadolivre.com.br/l/afiliados-gerar-link" target="_blank" rel="noopener noreferrer">portal oficial de afiliados ↗</a>; o Radar não inventa comissão nem publica automaticamente.</p><div class="field"><label for="marketSearchQuery">Nome, ID ou URL do anúncio</label><input class="input" id="marketSearchQuery" placeholder="Ex.: fone bluetooth ou MLB1234567890 ou URL do anúncio" maxlength="500"></div><button class="btn csp-margin-top-12px" data-action="searchMercadoLivreProducts(this)">Buscar produto/anúncio</button><div id="marketSearchResults" class="list csp-margin-top-12px"></div></div>' +
     recent()
   );
 }
@@ -2564,7 +2565,8 @@ function render() {
     '<section class="view on">' + f[current]() + "</section>";
   loadMarketplaceStatus();
   if(current==='templates'||current==='settings'&&selectedGroups.settings==='templates')loadOfferBuilderSettings();
-  if(current==='settings'&&selectedGroups.settings==='aiusage')loadAIUsage();
+  if(current==='settings'&&selectedGroups.settings==='scheduler')loadPublicationSchedulerSettings();
+  if(current==='aiusage')loadAIUsage();
 }
 function catOpts() {
   return D.categories
@@ -4765,6 +4767,52 @@ async function openMagaluTools(){
       openModal('Rascunho Magalu criado','A oferta foi salva como pendente e não foi publicada.','<p><b>ID:</b> '+esc(result.offerId)+'</p><p><b>Status:</b> '+esc(result.status)+'</p><p>'+esc(result.message)+'</p>',function(e){e.preventDefault();closeModal();});var submit2=document.querySelector('#form button[type="submit"]');if(submit2)submit2.textContent='Fechar';
     }catch(error){toast(error.message||'Não foi possível validar ou preparar o rascunho Magalu.');}
   });var submit=document.querySelector('#form button[type="submit"]');if(submit)submit.textContent='Executar';
+}
+
+function publicationSchedulerView(){
+  return '<section class="card"><div class="sectionhead"><div><h3>Escalonador automático de marketplaces</h3><p>Controle o rodízio de publicação no Telegram. Novas origens são detectadas quando uma integração validada ou uma oferta importada passa a existir.</p></div><span class="pill live">Configuração central</span></div>'+
+    '<label class="checkline"><input type="checkbox" id="ps-enabled" checked> Ativar escalonador automático</label>'+
+    '<div class="formgrid csp-margin-top-12px"><div class="field"><label for="ps-interval">Intervalo padrão entre turnos (minutos)</label><input class="input" id="ps-interval" type="number" min="1" max="1440" value="10"></div><div class="field"><label for="ps-batch">Máximo de ofertas por turno</label><input class="input" id="ps-batch" type="number" min="1" max="100" value="20"></div></div>'+
+    '<div class="callout csp-margin-top-12px">O intervalo é contado entre os turnos de publicação. Se uma origem estiver sem ofertas elegíveis, o escalonador pula para a próxima imediatamente. Coleta e revisão continuam independentes.</div>'+
+    '<h3 class="csp-margin-top-18px">Marketplaces e origens detectadas</h3><p class="muted">Ative ou pause cada origem, ajuste sua posição, quantidade e intervalo individual. Campo de intervalo vazio utiliza o padrão global.</p>'+
+    '<div id="ps-sources" class="list"><p class="muted">Carregando origens…</p></div>'+
+    '<div class="actions csp-margin-top-16px"><button class="btn" type="button" data-action="savePublicationSchedulerSettings()">Salvar escalonador</button><button class="btn secondary" type="button" data-action="loadPublicationSchedulerSettings()">Recarregar</button></div>'+
+    '<div id="ps-status" class="muted csp-margin-top-8px" role="status"></div>'+
+    '<div class="callout csp-margin-top-12px"><b>Inclusão automática:</b> quando uma nova API validada ou um conector/clone importar ofertas com uma origem identificável, ela aparecerá aqui e será adicionada ao final do rodízio. A API ainda precisa ter um adaptador de coleta e mapeamento de ofertas compatível; o monitor não inventa integrações nem credenciais.</div></section>';
+}
+async function loadPublicationSchedulerSettings(){
+  var status=document.getElementById('ps-status');
+  try{
+    var response=await fetch('/api/settings/publication-scheduler'),data=await response.json();
+    if(!response.ok)throw Error(data.error||'Falha ao carregar o escalonador.');
+    var s=data.settings||{},enabled=document.getElementById('ps-enabled'),interval=document.getElementById('ps-interval'),batch=document.getElementById('ps-batch');
+    if(enabled)enabled.checked=s.enabled!==false;if(interval)interval.value=s.intervalMinutes||10;if(batch)batch.value=s.batchSize||20;
+    var host=document.getElementById('ps-sources');
+    if(host)host.innerHTML=(data.sources||[]).map(function(x){
+      return '<div class="integration" data-ps-source="'+esc(x.source)+'"><div class="grow"><b>'+esc(x.source.replaceAll('_',' '))+'</b><div class="muted">'+(x.discovered?'Detectada automaticamente':'Origem configurada')+'</div><label class="checkline"><input type="checkbox" data-ps-enabled '+(x.enabled?'checked':'')+'> Participar do rodízio</label></div>'+
+        '<div class="field"><label>Ordem</label><input class="input" type="number" min="1" max="99" data-ps-order value="'+Number(x.order||1)+'"></div>'+
+        '<div class="field"><label>Lote</label><input class="input" type="number" min="1" max="100" data-ps-batch value="'+Number(x.batchSize||20)+'"></div>'+
+        '<div class="field"><label>Intervalo (min)</label><input class="input" type="number" min="1" max="1440" data-ps-interval value="'+(x.intervalMinutes==null?'':Number(x.intervalMinutes))+'" placeholder="Padrão"></div></div>';
+    }).join('')||'<p class="muted">Nenhuma origem detectada ainda. Conecte uma API ou importe uma oferta para registrá-la.</p>';
+    if(status)status.textContent='Configurações carregadas. Último turno: '+(s.lastRunAt?new Date(s.lastRunAt).toLocaleString('pt-BR'):'ainda não executado')+'. Próximo turno: '+(s.nextTurnAt?new Date(s.nextTurnAt).toLocaleString('pt-BR'):'aguardando ativação')+'.';
+  }catch(error){if(status)status.textContent=error.message||'Não foi possível carregar as configurações.';}
+}
+async function savePublicationSchedulerSettings(){
+  var enabled=Boolean(document.getElementById('ps-enabled')?.checked);
+  var intervalMinutes=Number(document.getElementById('ps-interval')?.value||10);
+  var batchSize=Number(document.getElementById('ps-batch')?.value||20);
+  var rows=[...document.querySelectorAll('#ps-sources [data-ps-source]')].map(function(row){
+    return {source:row.getAttribute('data-ps-source'),enabled:Boolean(row.querySelector('[data-ps-enabled]')?.checked),order:Number(row.querySelector('[data-ps-order]')?.value||99),batchSize:Number(row.querySelector('[data-ps-batch]')?.value||batchSize),intervalMinutes:row.querySelector('[data-ps-interval]')?.value?Number(row.querySelector('[data-ps-interval]').value):null};
+  });
+  var sourceOrder=rows.slice().sort(function(a,b){return a.order-b.order;}).map(function(x){return x.source;});
+  var sourceConfig={};rows.forEach(function(x){sourceConfig[x.source]={enabled:x.enabled,batchSize:x.batchSize,intervalMinutes:x.intervalMinutes};});
+  var status=document.getElementById('ps-status');
+  try{
+    var response=await fetch('/api/settings/publication-scheduler',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled,intervalMinutes,batchSize,sourceOrder,sourceConfig})}),data=await response.json();
+    if(!response.ok)throw Error(data.error||'Falha ao salvar o escalonador.');
+    if(status)status.textContent='Escalonador salvo. O processamento foi acordado para aplicar as novas regras.';
+    toast('Configurações do escalonador salvas.');await loadPublicationSchedulerSettings();
+  }catch(error){if(status)status.textContent=error.message||'Não foi possível salvar.';toast(error.message||'Falha ao salvar o escalonador.');}
 }
 async function connectN8nMcp(){
   try{
