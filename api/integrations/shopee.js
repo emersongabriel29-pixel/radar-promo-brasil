@@ -316,12 +316,12 @@ export default async function handler(req, res) {
       if (orderStatus && !['UNPAID','PENDING','COMPLETED','CANCELLED'].includes(orderStatus)) return res.status(400).json({ error: 'Status deve ser UNPAID, PENDING, COMPLETED ou CANCELLED.' });
       if (buyerType && !['NEW','EXISTING'].includes(buyerType)) return res.status(400).json({ error: 'Tipo de comprador deve ser NEW ou EXISTING.' });
       if (device && !['APP','WEB'].includes(device)) return res.status(400).json({ error: 'Dispositivo deve ser APP ou WEB.' });
-      const query = 'query($start: Int64!, $end: Int64!, $limit: Int!, $scrollId: String, $orderStatus: DisplayOrderStatus) { conversionReport(purchaseTimeStart: $start, purchaseTimeEnd: $end, limit: $limit, scrollId: $scrollId, orderStatus: $orderStatus) { nodes { conversionId clickTime purchaseTime totalCommission sellerCommission shopeeCommissionCapped buyerType device utmContent orders { orderId orderStatus items { itemId itemName shopName itemPrice qty itemTotalCommission attributionType } } } pageInfo { limit hasNextPage scrollId } } }';
+      const query = 'query($start: Int64!, $end: Int64!, $limit: Int!, $scrollId: String) { conversionReport(purchaseTimeStart: $start, purchaseTimeEnd: $end, limit: $limit, scrollId: $scrollId) { nodes { conversionId clickTime purchaseTime totalCommission sellerCommission shopeeCommissionCapped buyerType device utmContent orders { orderId orderStatus items { itemId itemName shopName itemPrice qty itemTotalCommission attributionType } } } pageInfo { limit hasNextPage scrollId } } }';
       const maxPages = Math.min(5, Math.max(1, Math.floor(Number(req.body?.maxPages) || 3)));
       let currentScrollId = clean(req.body?.scrollId, 1000), pagesCompleted = 0, hasMore = false;
       const conversionItems = [];
       while (pagesCompleted < maxPages) {
-        const pageResult = await signedRequest(credentials, { query, variables: { start, end, limit, ...(currentScrollId ? { scrollId: currentScrollId } : {}), ...(orderStatus ? { orderStatus } : {}), ...(buyerType ? { buyerType } : {}), ...(device ? { device } : {}) } });
+        const pageResult = await signedRequest(credentials, { query, variables: { start: String(start), end: String(end), limit, ...(currentScrollId ? { scrollId: currentScrollId } : {}) } });
         const root = pageResult?.data?.conversionReport || {};
         const pageItems = Array.isArray(root.nodes) ? root.nodes : [];
         conversionItems.push(...pageItems); pagesCompleted++;
