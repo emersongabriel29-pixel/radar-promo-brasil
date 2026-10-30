@@ -2,7 +2,7 @@
 
 ## Escopo
 
-Esta alteração amplia a descoberta automática sem transformar campanhas ou lojas em produtos fictícios e sem ativar publicação automática.
+Esta alteração amplia a descoberta automática sem transformar campanhas ou lojas em produtos fictícios e sem ativar publicação automática. O catálogo atual contém 24.786 frases únicas, geradas a partir de 243 termos de produto, 70 marcas, 16 intenções e 16 qualificadores.
 
 O catálogo de palavras-chave é gerado a partir de termos curados de produtos, marcas, intenções de compra e atributos. A expansão atual gera milhares de frases distintas em memória; o worker consulta apenas uma pequena amostra rotativa por execução. Não existe motivo operacional para disparar centenas de milhares de consultas: isso consumiria quota e aumentaria ruído.
 
@@ -32,6 +32,16 @@ As consultas usam paginação rotativa limitada e são sequenciais. A execução
 ## Contadores de diagnóstico
 
 A resposta do job inclui contadores para palavras-chave, consultas de produto, lojas descobertas, consultas de produtos por loja, campanhas ativas e ofertas de marca. Os campos de indisponibilidade opcional ajudam a distinguir falha de permissão/schema da ausência de resultados.
+
+## Diagnóstico real da API (30/10/2026)
+
+Consultas somente leitura executadas pela rota já implantada confirmaram:
+- `productOfferV2` retorna produtos e métricas para buscas como `air fryer` e `smartphone`.
+- A busca `notebook` retornou papel fotográfico e etiquetas, demonstrando correspondência fuzzy pouco relevante; o novo filtro impede esses itens de entrarem na seleção.
+- `shopOfferV2` retornou lojas parceiras com comissão e avaliação.
+- Consultas `shopeeOfferV2` testadas sem resultados nesta conta/período; o worker registra zero em vez de inventar campanhas.
+- O endpoint manual `brandOffer` estava implementado internamente, mas inacessível pelo mapa de tipos; a PR adiciona o tipo `brand` e mantém sua persistência classificada como `BRAND`.
+- A consulta atual por `shopId` com variável numérica retornou erro GraphQL `wrong type`; a PR corrige o envio do identificador `Int64` como string.
 
 ## Validação necessária
 
