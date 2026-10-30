@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS affiliate_sales (
  created_at timestamptz NOT NULL DEFAULT now(),
  updated_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE UNIQUE INDEX IF NOT EXISTS affiliate_sales_account_marketplace_external
+CREATE UNIQUE INDEX IF NOT EXISTS affiliate_sales_account_id_marketplace_external_id_key
  ON affiliate_sales(account_id,marketplace,external_id);
 CREATE INDEX IF NOT EXISTS idx_affiliate_sales_account_group
  ON affiliate_sales(group_id,account_id,ordered_at);
