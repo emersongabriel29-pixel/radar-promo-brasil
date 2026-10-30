@@ -1,38 +1,6 @@
-import { scheduler } from 'hatchable';
-
-export const access = 'scheduler';
-export const methods = ['POST'];
-
-/**
- * Runs marketplace ingestion separately from maintenance and publishing jobs.
- * Runs hourly to comply with the Hatchable Free plan's minimum cron interval.
- * Each call remains responsible for its own API error handling.
- */
-export default async function handler(req, res) {
-  const results = {
-    ok: true,
-    lomadee: { ok: true, accounts: 0, scanned: 0, imported: 0, duplicates: 0, skipped: 0, failed: 0 },
-    shopee: { ok: true, accounts: 0, scanned: 0, imported: 0, duplicates: 0, skipped: 0, failed: 0 },
-    aliexpressReview: { ok: true, scanned: 0, validated: 0, rejected: 0, failed: 0, publicationTriggered: false, messagesSent: 0 }
-  };
-  try {
-    results.lomadee = await scheduler.now('/api/jobs/lomadee');
-  } catch (error) {
-    results.lomadee = { ok: false, error: String(error?.code || error?.name || 'ERROR').slice(0, 60) };
-    console.error('marketplace lomadee ingestion failed', results.lomadee.error);
-  }
-  try {
-    results.shopee = await scheduler.now('/api/jobs/shopee');
-  } catch (error) {
-    results.shopee = { ok: false, error: String(error?.code || error?.name || 'ERROR').slice(0, 60) };
-    console.error('marketplace shopee ingestion failed', results.shopee.error);
-  }
-  try {
-    results.aliexpressReview = await scheduler.now('/api/jobs/aliexpress-review');
-  } catch (error) {
-    results.aliexpressReview = { ok: false, error: String(error?.code || error?.name || 'ERROR').slice(0, 60), publicationTriggered: false, messagesSent: 0 };
-    console.error('marketplace aliexpress review failed', results.aliexpressReview.error);
-  }
-  results.ok = results.lomadee.ok !== false && results.shopee.ok !== false && results.aliexpressReview.ok !== false;
-  return res.json(results);
+{
+    "path": "api/jobs/marketplace-ingestion.js",
+    "text": "import { scheduler } from 'hatchable';\n\nexport const access = 'scheduler';\nexport const methods = ['POST'];\n\nexport default async function handler(req, res) {\n  const results = {\n    ok: true,\n    shopee: { ok: true, accounts: 0, scanned: 0, imported: 0, duplicates: 0, skipped: 0, failed: 0 },\n    aiEnrichment: { ok: true, processed: 0, classified: 0, copyGenerated: 0, failed: 0 }\n  };\n  try {\n    results.shopee = await scheduler.now('/api/jobs/shopee');\n  } catch (error) {\n    results.shopee = { ok: false, error: String(error?.code || error?.name || 'ERROR').slice(0, 60) };\n    console.error('marketplace shopee ingestion failed', results.shopee.error);\n  }\n  try {\n    results.aiEnrichment = await scheduler.now('/api/jobs/ai-enrichment');\n  } catch (error) {\n    results.aiEnrichment = { ok: false, error: String(error?.code || error?.name || 'ERROR').slice(0, 60) };\n    console.error('marketplace ai enrichment failed', results.aiEnrichment.error);\n  }\n  results.ok = results.shopee.ok !== false && results.aiEnrichment.ok !== false;\n  return res.json(results);\n}",
+    "hash": "bd7954c25a0c86e699525d65652a98b7ad0541ad96a8a8f9efec1e8d995b50dd",
+    "total_lines": 26
 }
