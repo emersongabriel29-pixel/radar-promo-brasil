@@ -10,6 +10,9 @@ test('Shopee keyword catalog expands curated products into thousands of searchab
   assert.ok(catalog.includes('oferta smartphone'));
   assert.ok(catalog.includes('smartphone sem fio'));
   assert.ok(catalog.includes('Samsung smartphone'));
+  assert.ok(catalog.includes('Nike tênis masculino'));
+  assert.ok(catalog.includes('Pampers fralda bebê'));
+  assert.equal(catalog.includes('Apple ração cachorro'), false);
   assert.equal(new Set(catalog.map(value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase())).size, catalog.length);
 });
 
