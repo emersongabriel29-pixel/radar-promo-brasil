@@ -211,15 +211,29 @@ export default async function handler(req, res) {
       } else {
         query = 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { shopeeOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { offerName offerLink originalLink imageUrl commissionRate offerType categoryId collectionId periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
       }
-      result = await signedRequest(credentials, { query, variables });
-      const normalized = safeOfferRows(kind, result);
-      let discovery = null;
-      if (req.body?.persistDiscovery === true || req.body?.persistDiscovery === 'true') {
-        if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'Valide a credencial Shopee antes de persistir o catálogo.' });
-        const discoveryKind = kind === 'productOfferV2' ? 'PRODUCT' : kind === 'shopOfferV2' ? 'SHOP' : 'CAMPAIGN';
-        discovery = await persistDiscoveryPage(db, { accountId: account.id, marketplace: 'SHOPEE', operation: kind, kind: discoveryKind, items: normalized.items, cursorIn: String(page), cursorOut: normalized.pageInfo?.hasNextPage ? String(page + 1) : null });
+      const shouldPersist=req.body?.persistDiscovery===true||req.body?.persistDiscovery==='true';
+      if(shouldPersist){
+        if(saved.status!=='VALIDATED')return res.status(412).json({error:'Valide a credencial Shopee antes de persistir o catálogo.'});
+        const discoveryKind=kind==='productOfferV2'?'PRODUCT':kind==='shopOfferV2'?'SHOP':'CAMPAIGN';
+        const maxPages=Math.min(5,Math.max(1,Math.floor(Number(req.body?.maxPages)||3)));
+        let currentPage=page,pagesCompleted=0,hasNextPage=false,finalPageInfo=null;
+        const allItems=[],discoveries=[];
+        while(pagesCompleted<maxPages){
+          const pageVariables={...variables,page:currentPage};
+          const pageResult=await signedRequest(credentials,{query,variables:pageVariables});
+          const pageNormalized=safeOfferRows(kind,pageResult);
+          allItems.push(...pageNormalized.items);finalPageInfo=pageNormalized.pageInfo;
+          hasNextPage=Boolean(finalPageInfo?.hasNextPage);
+          discoveries.push(await persistDiscoveryPage(db,{accountId:account.id,marketplace:'SHOPEE',operation:kind,kind:discoveryKind,items:pageNormalized.items,cursorIn:String(currentPage),cursorOut:hasNextPage?String(currentPage+1):null}));
+          pagesCompleted++;
+          if(!hasNextPage)break;
+          currentPage++;
+        }
+        return res.json({kind,items:allItems,pageInfo:{...finalPageInfo,page:currentPage,hasNextPage},discovery:discoveries,pagesCompleted,nextPage:hasNextPage?currentPage+1:null,readOnly:true,publicationEnabled:false});
       }
-      return res.json({ kind, ...normalized, discovery, readOnly: true, publicationEnabled: false });
+      result=await signedRequest(credentials,{query,variables});
+      const normalized=safeOfferRows(kind,result);
+      return res.json({kind,...normalized,discovery:null,readOnly:true,publicationEnabled:false});
     }
 
     if (action === 'batch_links') {

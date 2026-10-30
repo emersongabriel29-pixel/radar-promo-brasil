@@ -294,6 +294,29 @@ export default async function handler(req,res){
       const hasMore=pagesCompleted===maxPages&&received===pagesCompleted*pageSize&&page<=1000;
       return res.json({ok:true,action:'syncOrders',received,ledgerSync,pagesCompleted,pageSize,startTime:orderBody.startTime,endTime:orderBody.endTime,nextPage:hasMore?page:null,hasMore,readOnlySource:true,publicationEnabled:false,note:'Pedidos lidos em páginas sequenciais e registrados sem duplicação. Nenhuma oferta foi publicada.'});
     }
+    if(req.body?.persistDiscovery===true||req.body?.persistDiscovery==='true'){
+      const pagedActions=new Set(['products','hotProducts','hotProductsDownload','campaignProducts']);
+      if(pagedActions.has(action)){
+        if(saved.status!=='VALIDATED')return res.status(412).json({error:'Valide a credencial AliExpress antes de persistir o catálogo.'});
+        const kind=action==='campaignProducts'?'PRODUCT':'PRODUCT';
+        const pageSize=Math.min(50,Math.max(1,Math.floor(Number(orderBody.pageSize)||50)));
+        const maxPages=Math.min(5,Math.max(1,Math.floor(Number(orderBody.maxPages)||3)));
+        let page=Math.min(1000,Math.max(1,Math.floor(Number(orderBody.page)||1))),pagesCompleted=0,hasMore=false;
+        const allItems=[],discoveries=[];
+        while(pagesCompleted<maxPages&&page<=1000){
+          const pageBody={...orderBody,page,pageSize};
+          const pageSpec=build(actionName,pageBody,c);if(!pageSpec)break;
+          const pageData=await topRequest(c,pageSpec.api,pageSpec.params);
+          const pageItems=normalize(listOf(unwrap(pageData,pageSpec.api)));
+          allItems.push(...pageItems);
+          discoveries.push(await persistDiscoveryPage(db,{accountId:account.id,marketplace:'ALIEXPRESS',operation:action,kind,items:pageItems,cursorIn:String(page),cursorOut:pageItems.length>=pageSize?String(page+1):null}));
+          pagesCompleted++;
+          if(pageItems.length<pageSize){hasMore=false;break;}
+          page++;hasMore=pagesCompleted===maxPages;
+        }
+        return res.json({ok:true,action,items:allItems,discovery:discoveries,page:page-pagesCompleted+1,pagesCompleted,pageSize,nextPage:hasMore?page:null,hasMore,readOnlySource:true,publicationEnabled:false,note:'Catálogo lido em páginas sequenciais e persistido para análise. Nenhuma oferta foi criada ou publicada.'});
+      }
+    }
     const spec=build(actionName,orderBody,c);if(!spec)return res.status(400).json({error:'Parâmetros inválidos.'});
     let data, result, items, fallback=null;
     try {
