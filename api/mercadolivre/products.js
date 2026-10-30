@@ -4,11 +4,46 @@ export const access='member'; export const methods=['GET'];
 const num=(v)=>v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v))?Number(v):null;
 const cleanResult=x=>{const price=num(x.price)??num(x.buy_box_winner?.price),stock=num(x.available_quantity);const itemId=String(x.item_id||x.buy_box_winner?.item_id||x.buy_box_winner?.item?.id||(/^MLB-?\d+$/i.test(String(x.id||''))?x.id:''));return {id:String(x.id||''),itemId,title:String(x.title||x.name||''),price,availableQuantity:stock,imageUrl:String(x.thumbnail||x.pictures?.[0]?.secure_url||x.pictures?.[0]?.url||'').replace('http://','https://'),productUrl:String(x.permalink||x.buy_box_winner?.permalink||('https://www.mercadolivre.com.br/p/'+String(x.id||''))),condition:String(x.condition||''),canPrepareDraft:Boolean(price>0&&/^MLB-?\d+$/i.test(itemId)&&Number.isFinite(stock)&&stock>0),safeToAutoPublish:false};};
 export default async function(req,res){
- const q=String(req.query.q||'').trim().slice(0,120);
+ const q=String(req.query.q||'').trim().slice(0,500);
  if(!q)return res.status(400).json({error:'Informe o produto que deseja buscar.'});
  const a=(await db.query('SELECT id FROM accounts WHERE owner_member_id=$1',[String(req.member.id)])).rows[0];
  if(!a)return res.status(412).json({error:'Conta não encontrada.'});
  try{
+  // A busca por texto descobre produtos de catálogo. Se o usuário fornecer um anúncio
+  // individual (ID MLB ou URL oficial), consultar diretamente o recurso /items/{id}.
+  let directItemId='';
+  if(/^MLB-?\d{6,}$/i.test(q)) directItemId=q.replace(/-/g,'').toUpperCase();
+  else {
+   try {
+    const inputUrl=new URL(q);
+    const allowedHost=['mercadolivre.com.br','www.mercadolivre.com.br','produto.mercadolivre.com.br','mercadolibre.com'];
+    if(allowedHost.some(host=>inputUrl.hostname.toLowerCase()===host||inputUrl.hostname.toLowerCase().endsWith('.'+host))){
+     const match=inputUrl.pathname.match(/(?:^|\/)(MLB)-?(\d{6,})(?:[-/]|$)/i);
+     if(match) directItemId='MLB'+match[2];
+    }
+   } catch {}
+  }
+  if(directItemId){
+   const direct=await meliGet(a.id,'/items/'+encodeURIComponent(directItemId));
+   if(direct.status<200||direct.status>=300||!direct.body?.id){
+    return res.status(direct.status===403?403:direct.status===404?404:502).json({
+     code:direct.status===403?'MELI_ITEM_ACCESS_DENIED':direct.status===404?'MELI_ITEM_NOT_FOUND':'MELI_ITEM_LOOKUP_FAILED',
+     error:direct.status===403?'O Mercado Livre não autorizou a consulta deste anúncio nesta conexão.':'Não foi possível localizar este anúncio individual.',
+     retryable:![403,404].includes(direct.status), itemId:directItemId
+    });
+   }
+   const item=direct.body,price=num(item.price),stock=num(item.available_quantity);
+   const imageUrl=String(item.thumbnail||item.pictures?.[0]?.secure_url||item.pictures?.[0]?.url||'').replace(/^http:\/\//i,'https://');
+   const result={
+    id:String(item.id||directItemId),itemId:String(item.id||directItemId),title:String(item.title||''),
+    price:price!==null&&price>0?price:null,availableQuantity:stock,
+    imageUrl,productUrl:String(item.permalink||('https://www.mercadolivre.com.br/p/'+directItemId)),
+    condition:String(item.condition||''),status:String(item.status||''),
+    canPrepareDraft:Boolean(item.status==='active'&&price>0&&stock>0&&imageUrl&&item.permalink),
+    safeToAutoPublish:false
+   };
+   return res.json({source:'direct_item',searchMode:'individual_listing_lookup',listingSearchAvailable:true,notice:'Anúncio consultado diretamente pela API oficial. O link de afiliado e a comissão ainda precisam ser gerados/confirmados no portal oficial.',affiliatePortalUrl:'https://www.mercadolivre.com.br/l/afiliados-gerar-link',results:[result]});
+  }
   // A busca geral de anúncios (/sites/MLB/search) retorna 403 nesta conexão.
   // Usar o catálogo como caminho principal evita repetir uma chamada sabidamente bloqueada
   // em cada pesquisa. Catálogo é apenas descoberta; nunca equivale a anúncio comprável.
