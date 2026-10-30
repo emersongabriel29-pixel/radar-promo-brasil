@@ -1,9 +1,13 @@
 import { config, db, scheduler } from 'hatchable';
+import { fetchWithRetry } from 'lib/http-retry.js';
 import { fingerprint } from 'lib/automation.js';
 import { directImageUrl, httpsUrl } from 'lib/validation.js';
 // API catalog items are not filtered by product category.
 import { formatPromo } from 'lib/promo-message.js';
+import { cacheOfferImage } from 'lib/offer-images.js';
 import { classifyProduct } from 'lib/category-classifier.js';
+import { isMedicationProduct } from 'lib/product-safety.js';
+import { selectDiverseCandidates } from 'lib/catalog-diversity.js';
 
 export const access = 'scheduler';
 export const methods = ['POST'];
@@ -12,6 +16,8 @@ const clean = (v, n=300) => String(v ?? '').trim().slice(0,n);
 const fromB64 = value => Uint8Array.from(atob(value), c => c.charCodeAt(0));
 const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,'0')).join('');
 const list = body => Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : Array.isArray(body?.items) ? body.items : [];
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+// Database operations are throttled by the per-candidate pause below.
 
 async function credentials(row) {
   // Match the canonical key priority used by the credential-saving endpoint.
@@ -29,7 +35,7 @@ async function request(creds, query, variables) {
   if (!appId || !secret) throw new Error('credentials_missing');
   const timestamp = String(Math.floor(Date.now()/1000)), body = JSON.stringify(payload);
   const signature = hex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(appId+timestamp+body+secret)));
-  const response = await fetch(API_URL,{method:'POST',headers:{'content-type':'application/json',accept:'application/json',authorization:'SHA256 Credential='+appId+', Timestamp='+timestamp+', Signature='+signature},body,signal:AbortSignal.timeout(12000)});
+  const response = await fetchWithRetry(API_URL,{method:'POST',headers:{'content-type':'application/json',accept:'application/json',authorization:'SHA256 Credential='+appId+', Timestamp='+timestamp+', Signature='+signature},body,signal:AbortSignal.timeout(12000)});
   const raw = await response.text(); let data;
   try { data = raw ? JSON.parse(raw) : {}; } catch { throw new Error('invalid_api_response'); }
   if (!response.ok || data.errors?.length) {
@@ -50,7 +56,7 @@ async function createTrackedLink(creds, productUrl, itemId, category) {
 }
 export default async function handler(req,res) {
   const rows = (await db.query("SELECT account_id,credentials_enc,nonce FROM marketplace_api_credentials WHERE marketplace='SHOPEE' AND status='VALIDATED'")).rows;
-  const totals = {accounts:rows.length,scanned:0,imported:0,duplicates:0,skipped:0,failed:0,autopilotRuns:0};
+  const totals = {accounts:rows.length,scanned:0,imported:0,duplicates:0,skipped:0,safetyBlocked:0,selected:0,failed:0,autopilotRuns:0};
   for (const row of rows) {
     let importedForAccount = 0;
     try {
@@ -68,7 +74,11 @@ export default async function handler(req,res) {
         'perfume feminino', 'perfume masculino', 'skincare',
         'organizador casa', 'utensílios cozinha', 'luminária',
         'ferramentas', 'furadeira', 'acessórios automotivos',
-        'câmera segurança', 'power bank', 'carregador rápido'
+        'câmera segurança', 'power bank', 'carregador rápido',
+        'ração cachorro', 'ração gato', 'coleira cachorro', 'areia para gato',
+        'bicicleta', 'halteres academia', 'barraca camping', 'bola futebol',
+        'café em grãos', 'chocolate', 'massageador íntimo', 'lubrificante íntimo',
+        'preservativo', 'lingerie sensual', 'acessórios automotivos', 'suporte celular carro'
       ];
       const slot = Math.floor(Date.now()/1800000);
       const selectedKeywords = [0,1,2].map(offset => keywords[(slot * 3 + offset) % keywords.length]);
@@ -76,7 +86,7 @@ export default async function handler(req,res) {
       const seen = new Set();
       const products = [];
       // Three categories per run; rotate pages every 90 minutes without extra pagination requests.
-      const page = Math.floor(slot/3)%5+1;
+      const page = Math.floor(slot/3)%20+1;
       for (const keyword of selectedKeywords) {
         const data = await request(creds,query,{keyword,sortType:5,page,limit:50});
         const nodes = list(data.data?.productOfferV2?.nodes).slice(0,50);
@@ -84,6 +94,7 @@ export default async function handler(req,res) {
           const key = clean(product.itemId,80) || clean(product.productLink,2000) || clean(product.productName,220);
           if (!key || seen.has(key)) continue;
           seen.add(key);
+          product.__radarKeyword = keyword;
           products.push(product);
         }
       }
@@ -93,6 +104,7 @@ export default async function handler(req,res) {
       for (const p of products) {
         const title = clean(p.productName,220);
         const productUrl = httpsUrl(p.productLink,2000) || '';
+        if (isMedicationProduct({title, productUrl})) { totals.safetyBlocked++; totals.skipped++; continue; }
         const affiliateUrl = httpsUrl(p.offerLink,2000) || '';
         const imageUrl = directImageUrl(p.imageUrl) ? p.imageUrl : '';
         const price = Number(p.priceMin);
@@ -125,13 +137,18 @@ export default async function handler(req,res) {
         const fp = await fingerprint({source:'SHOPEE',externalId:clean(p.itemId,80),productUrl,title});
         const classified = classifyProduct({title});
         const category = cats.find(c=>c.name.toLowerCase()===String(classified.category||'').toLowerCase()) || cats.find(c=>c.name.toLowerCase().includes('gerais'));
-        candidates.push({p,title,productUrl,affiliateUrl,imageUrl,currentPrice,commissionPercent,discountRate,sales,score,reasons,fp,classified,category});
+        candidates.push({p,title,productUrl,affiliateUrl,imageUrl,currentPrice,commissionPercent,discountRate,sales,score,reasons,fp,classified,category,id:clean(p.itemId,80),merchantId:clean(p.shopId,80),merchantName:clean(p.shopName,160)});
       }
 
       // Rank the full candidate batch first; the cap applies only after comparison and duplicate checks.
       candidates.sort((a,b) => b.score-a.score || b.sales-a.sales || b.commissionPercent-a.commissionPercent || a.currentPrice-b.currentPrice || a.title.localeCompare(b.title,'pt-BR'));
-      for (const candidate of candidates) {
-        if (importedForAccount >= 150) break;
+      const selectedCandidates = selectDiverseCandidates(candidates,{limit:15,perCategory:1,perMerchant:1,fillPerCategory:4,fillPerMerchant:2});
+      totals.selected += selectedCandidates.length;
+      let checkedCandidates = 0;
+      for (const candidate of selectedCandidates) {
+        if (checkedCandidates >= 15) break;
+        checkedCandidates++;
+        await pause(250);
         const {p,title,productUrl,affiliateUrl,imageUrl,currentPrice,score,fp,classified,category,reasons} = candidate;
         const exists = await db.query('SELECT id,current_price,original_price FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1',[row.account_id,fp]);
         if (exists.rows.length) {
@@ -165,11 +182,50 @@ export default async function handler(req,res) {
         try {
           await db.query("INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,$4,$5,'OFFICIAL_API',$6,now())",[crypto.randomUUID(),row.account_id,offerId,currentPrice,originalPrice,'SHOPEE:'+clean(p.itemId,80)]);
           const scoreReason = 'radar_score='+score+'; '+reasons.join('; ')+'; '+subIdNote;
-          await db.query('UPDATE offers SET subcategory=$1,classification_tags=$2::jsonb,classification_confidence=$3,classification_status=$4,classification_reason=$5,source_category=$6 WHERE id=$7 AND account_id=$8',[classified.subcategory,JSON.stringify(classified.tags||[]),classified.confidence||0,classified.needsReview?'REVIEW':'AUTO',(classified.reason||'official_shopee_api')+'; '+scoreReason,clean(p.shopId,80),offerId,row.account_id]);
+          await db.query('UPDATE offers SET subcategory=$1,classification_tags=$2::jsonb,classification_confidence=$3,classification_status=$4,classification_reason=$5,source_category=$6 WHERE id=$7 AND account_id=$8',[classified.subcategory,JSON.stringify(classified.tags||[]),classified.confidence||0,classified.needsReview?'REVIEW':'AUTO',(classified.reason||'official_shopee_api')+'; '+scoreReason+'; discovery_keyword='+clean(p.__radarKeyword,80),null,offerId,row.account_id]);
           totals.imported++; importedForAccount++;
         } catch (e) {
           await db.query("UPDATE offers SET status='PENDING',validation_status='NEEDS_REVIEW' WHERE id=$1 AND account_id=$2",[offerId,row.account_id]);
           totals.failed++;
+        }
+      }
+      // Reconcile a small number of previously queued Shopee offers by their exact item ID.
+      // Search results are accepted only when the official API returns the same item ID.
+      const staleOffers = (await db.query(`
+        SELECT o.id,o.title,o.product_url,o.current_price,o.affiliate_url
+        FROM offers o
+        WHERE o.account_id=$1 AND o.source='SHOPEE' AND o.status IN ('APPROVED','PUBLISHED')
+          AND o.validation_status='VALIDATED'
+          AND EXISTS(SELECT 1 FROM publications p WHERE p.account_id=o.account_id AND p.offer_id=o.id
+            AND p.status IN ('RETRY','FAILED') AND p.external_message_id IS NULL
+            AND (p.error_message ILIKE '%preço oficial%' OR p.error_message ILIKE '%validação oficial%'))
+          AND NOT EXISTS(SELECT 1 FROM offer_price_history h WHERE h.account_id=o.account_id AND h.offer_id=o.id
+            AND h.source_type='OFFICIAL_API' AND h.verified_at>now()-interval '24 hours'
+            AND h.price=o.current_price AND h.original_price IS NOT DISTINCT FROM o.original_price
+            AND h.verified_at=(SELECT max(h2.verified_at) FROM offer_price_history h2
+              WHERE h2.account_id=h.account_id AND h2.offer_id=h.offer_id AND h2.source_type='OFFICIAL_API'))
+        ORDER BY o.updated_at,o.id LIMIT 3
+      `,[row.account_id])).rows;
+      const reconcileQuery = 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { productOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { itemId productName productLink offerLink imageUrl priceMin } } }';
+      for (const stale of staleOffers) {
+        try {
+          const parts = new URL(stale.product_url).pathname.split('/').filter(Boolean);
+          const itemId = parts[parts.length-1];
+          if (!/^\\d{8,}$/.test(itemId)) continue;
+          const found = list((await request(creds,reconcileQuery,{keyword:clean(stale.title,120),sortType:5,page:1,limit:50})).data?.productOfferV2?.nodes)
+            .find(product=>String(product.itemId)===itemId);
+          const livePrice = Math.round(Number(found?.priceMin)*100);
+          const liveImage = directImageUrl(found?.imageUrl) ? found.imageUrl : '';
+          if (!found || !Number.isSafeInteger(livePrice) || livePrice<=0 || !liveImage) continue;
+          const affiliate = httpsUrl(found.offerLink,2000) || stale.affiliate_url;
+          await cacheOfferImage({imageUrl:liveImage,accountId:row.account_id,offerId:stale.id},db);
+          const promo = formatPromo({title:stale.title,source:'SHOPEE',currentPrice:livePrice,originalPrice:0,affiliateUrl:affiliate,imageUrl:liveImage});
+          await db.query("UPDATE offers SET current_price=$1,original_price=NULL,discount_percent=0,affiliate_url=$2,image_url=$3,message=$4,updated_at=now() WHERE id=$5 AND account_id=$6 AND source='SHOPEE'",[livePrice,affiliate,liveImage,promo.message,stale.id,row.account_id]);
+          await db.query("INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) SELECT $1,$2,$3,$4,NULL,'OFFICIAL_API',$5,now() WHERE NOT EXISTS(SELECT 1 FROM offer_price_history WHERE account_id=$2 AND offer_id=$3 AND source_type='OFFICIAL_API' AND verified_at>now()-interval '24 hours' AND price=$4 AND original_price IS NULL)",[crypto.randomUUID(),row.account_id,stale.id,livePrice,'SHOPEE:'+itemId]);
+          await db.query("UPDATE publications SET status='RETRY',attempts=0,error_message=NULL,next_attempt_at=now(),image_url=$3,image_storage_key=(SELECT image_storage_key FROM offers WHERE id=$2 AND account_id=$1),dispatch_token=NULL,telegram_connection_id=NULL WHERE account_id=$1 AND offer_id=$2 AND status IN ('RETRY','FAILED') AND external_message_id IS NULL AND (error_message ILIKE '%preço oficial%' OR error_message ILIKE '%validação oficial%')",[row.account_id,stale.id,liveImage]);
+          totals.reconciled = (totals.reconciled||0)+1;
+        } catch(error) {
+          console.error('shopee price reconciliation skipped',String(error?.message||error?.code||'ERROR').slice(0,80));
         }
       }
       await db.query("UPDATE marketplace_api_credentials SET last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='SHOPEE'",[row.account_id]);
