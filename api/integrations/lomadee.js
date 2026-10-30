@@ -204,21 +204,30 @@ export default async function handler(req, res) {
         }
       }
       if (action === 'sync_orders') {
-        if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'A sincronização exige credencial VALIDATED. A permissão de leitura de pedidos será verificada pela própria consulta oficial; a validação de produtos não comprova orders:read.' });
+        if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'A sincronização exige credencial VALIDATED. A permissão de leitura de pedidos será verificada pela própria consulta oficial; validar produtos não comprova orders:read.' });
         const from = clean(req.body?.from || new Date(Date.now() - 7 * 86400000).toISOString().slice(0,10), 10);
         const to = clean(req.body?.to || new Date().toISOString().slice(0,10), 10);
         const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value + 'T00:00:00Z'));
         if (!validDate(from) || !validDate(to) || Date.parse(from + 'T00:00:00Z') > Date.parse(to + 'T00:00:00Z') || Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z') > 90 * 86400000) return res.status(400).json({ error: 'Informe from/to válidos no formato YYYY-MM-DD, em um período de até 90 dias.' });
-        const page = Math.min(1000, Math.max(1, Math.floor(Number(req.body?.page) || 1)));
+        const startPage = Math.min(1000, Math.max(1, Math.floor(Number(req.body?.page) || 1)));
         const limit = Math.min(100, Math.max(1, Math.floor(Number(req.body?.limit) || 100)));
-        const params = { page, limit, from, to };
-        if (req.body?.organizationId) params.organizationId = clean(req.body.organizationId, 120);
-        if (req.body?.organizationIds) params.organizationIds = clean(req.body.organizationIds, 1000);
-        if (req.body?.mdasc !== undefined) params.mdasc = String(req.body.mdasc).toLowerCase() === 'true';
-        const ordersBody = await apiRequest('/affiliate/orders', apiKey, params);
-        const orders = safeRows('orders', ordersBody);
-        const ledgerSync = await upsertAffiliateSales(db, account.id, 'LOMADEE', normalizeLomadeeSales(orders));
-        return res.json({ ok: true, action: 'sync_orders', received: orders.length, ledgerSync, page, limit, totalPages: Number(ordersBody?.meta?.totalPages ?? ordersBody?.pagination?.totalPages) || null, readOnlySource: true, publicationEnabled: false, note: 'Pedidos lidos da API e registrados no livro de vendas. Nenhuma oferta foi publicada.' });
+        const maxPages = Math.min(3, Math.max(1, Math.floor(Number(req.body?.maxPages) || 2)));
+        const collected = []; let pagesCompleted = 0, page = startPage, totalPages = null;
+        while (pagesCompleted < maxPages && page <= 1000) {
+          const params = { page, limit, from, to };
+          if (req.body?.organizationId) params.organizationId = clean(req.body.organizationId, 120);
+          if (req.body?.organizationIds) params.organizationIds = clean(req.body.organizationIds, 1000);
+          if (req.body?.mdasc !== undefined) params.mdasc = String(req.body.mdasc).toLowerCase() === 'true';
+          const ordersBody = await apiRequest('/affiliate/orders', apiKey, params);
+          const orders = safeRows('orders', ordersBody);
+          collected.push(...orders); pagesCompleted++;
+          totalPages = Number(ordersBody?.meta?.totalPages ?? ordersBody?.pagination?.totalPages) || totalPages;
+          if ((totalPages && page >= totalPages) || orders.length < limit) break;
+          page++;
+        }
+        const ledgerSync = await upsertAffiliateSales(db, account.id, 'LOMADEE', normalizeLomadeeSales(collected));
+        const hasMore = totalPages ? page < totalPages : pagesCompleted === maxPages && collected.length === pagesCompleted * limit;
+        return res.json({ ok: true, action: 'sync_orders', received: collected.length, ledgerSync, pagesCompleted, page: startPage, limit, totalPages, nextPage: hasMore ? page + 1 : null, hasMore, readOnlySource: true, publicationEnabled: false, note: 'Pedidos lidos em páginas sequenciais e registrados sem duplicação. Nenhuma oferta foi publicada.' });
       }
       if (action === 'shorten_url') {
         if (!['VALIDATED','READ_ONLY_VALIDATED','LINKS_READ_VALIDATED'].includes(saved.status)) return res.status(412).json({ error: 'Valide primeiro a leitura da API Lomadee. A geração de links depende de permissão comercial e escopo oficial.' });

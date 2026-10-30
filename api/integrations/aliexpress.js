@@ -277,6 +277,22 @@ export default async function handler(req,res){
       const end=new Date(),start=new Date(end.getTime()-7*86400000);
       const fmt=d=>d.toISOString().slice(0,19).replace('T',' ');
       if(!orderBody.startTime&&!orderBody.endTime){orderBody.startTime=fmt(start);orderBody.endTime=fmt(end);}
+      const pageSize=Math.min(50,Math.max(1,Math.floor(Number(orderBody.pageSize)||50)));
+      const maxPages=Math.min(5,Math.max(1,Math.floor(Number(orderBody.maxPages)||3)));
+      let page=Math.min(1000,Math.max(1,Math.floor(Number(orderBody.page)||1))),pagesCompleted=0,received=0;
+      const collected=[];
+      while(pagesCompleted<maxPages&&page<=1000){
+        const pageBody={...orderBody,page,pageSize};
+        const pageSpec=build('orders',pageBody,c);
+        const pageData=await topRequest(c,pageSpec.api,pageSpec.params);
+        const pageItems=normalize(listOf(unwrap(pageData,pageSpec.api)));
+        collected.push(...pageItems);received+=pageItems.length;pagesCompleted++;
+        if(pageItems.length<pageSize)break;
+        page++;
+      }
+      const ledgerSync=await upsertAffiliateSales(db,account.id,'ALIEXPRESS',normalizeAliExpressSales(collected));
+      const hasMore=pagesCompleted===maxPages&&received===pagesCompleted*pageSize&&page<=1000;
+      return res.json({ok:true,action:'syncOrders',received,ledgerSync,pagesCompleted,pageSize,nextPage:hasMore?page:null,hasMore,readOnlySource:true,publicationEnabled:false,note:'Pedidos lidos em páginas sequenciais e registrados sem duplicação. Nenhuma oferta foi publicada.'});
     }
     const spec=build(actionName,orderBody,c);if(!spec)return res.status(400).json({error:'Parâmetros inválidos.'});
     let data, result, items, fallback=null;
@@ -299,10 +315,6 @@ export default async function handler(req,res){
       result=unwrap(data,fallbackSpec.api);
       items=normalize(listOf(result));
       fallback={used:true,requestedAction:action,actualApi:fallbackSpec.api,reason:'A API avançada recusou a operação por falta de permissão; foi usada a busca padrão de produtos. Os itens não são garantidos como produtos em alta nem como correspondência inteligente.',keyword:fallbackSpec.params.keywords||null};
-    }
-    if(action==='syncOrders'){
-      const ledgerSync=await upsertAffiliateSales(db,account.id,'ALIEXPRESS',normalizeAliExpressSales(items));
-      return res.json({ok:true,action:'syncOrders',received:items.length,ledgerSync,page:Number(orderBody.page)||1,pageSize:Number(orderBody.pageSize)||20,readOnlySource:true,publicationEnabled:false,note:'Pedidos lidos da API e registrados no livro de vendas do Radar. Nenhuma oferta foi publicada.'});
     }
     if(req.body?.persistDiscovery===true||req.body?.persistDiscovery==='true'){
       if(saved.status!=='VALIDATED')return res.status(412).json({error:'Valide a credencial AliExpress antes de persistir o catálogo.'});
