@@ -4184,11 +4184,11 @@ function openModal(title,hint,body,submit){
     try{await submit(event);}catch(error){toast(error.message||'Não foi possível salvar.');}
     finally{form.removeAttribute('aria-busy');buttons.forEach(function(button){button.disabled=false;});}
   };
-  var modal=document.getElementById('modal');modal.classList.add('on');modal.setAttribute('aria-hidden','false');document.querySelector('.app').inert=true;
+  var modal=document.getElementById('modal');modal.classList.add('on');modal.setAttribute('aria-hidden','false');document.getElementById('main').inert=true;document.getElementById('side').inert=true;
   labelFields(form);(form.querySelector('input,select,textarea')||modal.querySelector('button')).focus();
 }
 function closeModal(){
-  var modal=document.getElementById('modal');modal.classList.remove('on');modal.setAttribute('aria-hidden','true');document.querySelector('.app').inert=false;
+  var modal=document.getElementById('modal');modal.classList.remove('on');modal.setAttribute('aria-hidden','true');document.getElementById('main').inert=false;syncDrawer();
   if(modalReturnFocus?.isConnected)modalReturnFocus.focus();else document.getElementById('content').focus();
   modalReturnFocus=null;whatsappPairing=null;
 }
