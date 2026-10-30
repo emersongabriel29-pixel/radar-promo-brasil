@@ -76,13 +76,11 @@ test('cabeçalhos de segurança são aplicados', () => {
   assert.match(response.headers['Content-Security-Policy'],/style-src-attr 'none'/);
 });
 
-test('arte de promoção usa CSS externo compatível com a CSP restritiva', () => {
+test('arte de promoção usa estilo estático e escapa o título do produto', () => {
   const route=fs.readFileSync(new URL('../api/ai/card/[id].js',import.meta.url),'utf8');
-  const css=fs.readFileSync(new URL('../public/ai-card.css',import.meta.url),'utf8');
-  assert.equal(route.includes('<style'),false);
-  assert.equal(route.includes('href="/ai-card.css"'),true);
-  assert.equal(route.includes('class="${ratioClass}"'),true);
-  for(const ratio of ['1-1','3-4','4-3','9-16','16-9','21-9'])assert.equal(css.includes(`body.ratio-${ratio}{`),true);
+  assert.equal(route.includes('<style>'),true);
+  assert.equal(route.includes('esc(row.title)'),true);
+  for(const ratio of ['1:1','3:4','4:3','9:16','16:9','21:9'])assert.equal(route.includes(`'${ratio}':`),true);
 });
 
 
