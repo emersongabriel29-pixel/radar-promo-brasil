@@ -15,7 +15,7 @@ Integrações e ingestão: `api/integrations/lomadee.js`, `api/integrations/loma
 
 Preservação de canais, filas e validação: `api/n8n/telegram-tick.js`, `api/jobs/telegram.js`, `api/jobs/whatsapp-channel.js`, `api/n8n/bridge.js`, `lib/delivery.js`, `lib/telegram.js`, `lib/autopilot.js`, `api/jobs/autopilot.js`, `api/mercadolivre/parse-link.js`, `lib/offer-images.js`, `lib/promo-message.js`.
 
-IA, extensão, configuração e interface: rotas atuais de IA, extensão, offer-builder, curator e social-media; helpers `lib/radar-ai.js`, `lib/radar-ai-guard.js`, `lib/marketplace-rotation.js`; `pages/index.js`, `public/radar.js`, `public/ai-usage.css`. O link do painel foi incluído em Configurações > credenciais das lojas, sem criar uma oitava área de navegação. `hatchable.toml` foi espelhado da produção; nenhum agendamento foi alterado na instância ativa.
+IA, extensão, configuração e interface: rotas atuais de IA, extensão, offer-builder, curator e social-media; helpers `lib/radar-ai.js`, `lib/radar-ai-guard.js`, `lib/marketplace-rotation.js`; `pages/index.js`, `public/radar.js`, `public/ai-usage.css`. O link do painel foi incluído em Configurações > credenciais das lojas. O item preexistente “Consumo de IA” foi movido para uma subárea de Configurações, preservando a funcionalidade e mantendo as sete áreas principais solicitadas. `hatchable.toml` foi espelhado da produção; nenhum agendamento foi alterado na instância ativa.
 
 ## Inteligência e sincronização comercial adicionadas
 

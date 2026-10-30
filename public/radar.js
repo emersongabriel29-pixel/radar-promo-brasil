@@ -74,7 +74,6 @@ var NAV = [
   ["publishing", "Publicações", "PB", "Operação"],
   ["channels", "Canais", "CN", "Análise"],
   ["reports", "Relatórios", "BI", "Análise"],
-  ["aiusage", "Consumo de IA", "AI", "Análise"],
   ["settings", "Configurações", "CT", "Gestão"],
 ];
 var GROUPS = {
@@ -99,6 +98,7 @@ var GROUPS = {
   settings: [
     ["security", "Segurança e LGPD", "SX", "security"],
     ["integrations", "Integrações", "IN", "integrations"],
+    ["aiusage", "Consumo de IA", "AI", "aiUsageView"],
     ["account", "Conta, vitrine e planos", "CT", "accountView"],
     ["templates", "Modelos de mensagem", "TM", "messageTemplatesView"],
   ],
@@ -2564,7 +2564,7 @@ function render() {
     '<section class="view on">' + f[current]() + "</section>";
   loadMarketplaceStatus();
   if(current==='templates'||current==='settings'&&selectedGroups.settings==='templates')loadOfferBuilderSettings();
-  if(current==='aiusage')loadAIUsage();
+  if(current==='settings'&&selectedGroups.settings==='aiusage')loadAIUsage();
 }
 function catOpts() {
   return D.categories
