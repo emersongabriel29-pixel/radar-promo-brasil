@@ -292,7 +292,7 @@ export default async function handler(req,res){
       }
       const ledgerSync=await upsertAffiliateSales(db,account.id,'ALIEXPRESS',normalizeAliExpressSales(collected));
       const hasMore=pagesCompleted===maxPages&&received===pagesCompleted*pageSize&&page<=1000;
-      return res.json({ok:true,action:'syncOrders',received,ledgerSync,pagesCompleted,pageSize,nextPage:hasMore?page:null,hasMore,readOnlySource:true,publicationEnabled:false,note:'Pedidos lidos em páginas sequenciais e registrados sem duplicação. Nenhuma oferta foi publicada.'});
+      return res.json({ok:true,action:'syncOrders',received,ledgerSync,pagesCompleted,pageSize,startTime:orderBody.startTime,endTime:orderBody.endTime,nextPage:hasMore?page:null,hasMore,readOnlySource:true,publicationEnabled:false,note:'Pedidos lidos em páginas sequenciais e registrados sem duplicação. Nenhuma oferta foi publicada.'});
     }
     const spec=build(actionName,orderBody,c);if(!spec)return res.status(400).json({error:'Parâmetros inválidos.'});
     let data, result, items, fallback=null;

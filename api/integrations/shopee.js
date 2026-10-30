@@ -318,7 +318,7 @@ export default async function handler(req, res) {
         if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'Valide a credencial Shopee antes de sincronizar pedidos.' });
         ledgerSync = await upsertAffiliateSales(db, account.id, 'SHOPEE', normalizeShopeeSales(conversionItems));
       }
-      return res.json({ report: 'conversionReport', items: conversionItems, pagesCompleted, pageInfo: { hasNextPage: hasMore, scrollId: hasMore ? currentScrollId : null }, readOnlySource: true, ledgerSync, nextScrollId: hasMore ? currentScrollId : null });
+      return res.json({ report: 'conversionReport', items: conversionItems, pagesCompleted, startDate: startDate.toISOString(), endDate: endDate.toISOString(), pageInfo: { hasNextPage: hasMore, scrollId: hasMore ? currentScrollId : null }, readOnlySource: true, ledgerSync, nextScrollId: hasMore ? currentScrollId : null });
 
     }
 

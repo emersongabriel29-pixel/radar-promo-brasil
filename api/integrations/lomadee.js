@@ -227,7 +227,7 @@ export default async function handler(req, res) {
         }
         const ledgerSync = await upsertAffiliateSales(db, account.id, 'LOMADEE', normalizeLomadeeSales(collected));
         const hasMore = totalPages ? page < totalPages : pagesCompleted === maxPages && collected.length === pagesCompleted * limit;
-        return res.json({ ok: true, action: 'sync_orders', received: collected.length, ledgerSync, pagesCompleted, page: startPage, limit, totalPages, nextPage: hasMore ? page + 1 : null, hasMore, readOnlySource: true, publicationEnabled: false, note: 'Pedidos lidos em páginas sequenciais e registrados sem duplicação. Nenhuma oferta foi publicada.' });
+        return res.json({ ok: true, action: 'sync_orders', received: collected.length, ledgerSync, pagesCompleted, page: startPage, limit, from, to, totalPages, nextPage: hasMore ? page + 1 : null, hasMore, readOnlySource: true, publicationEnabled: false, note: 'Pedidos lidos em páginas sequenciais e registrados sem duplicação. Nenhuma oferta foi publicada.' });
       }
       if (action === 'shorten_url') {
         if (!['VALIDATED','READ_ONLY_VALIDATED','LINKS_READ_VALIDATED'].includes(saved.status)) return res.status(412).json({ error: 'Valide primeiro a leitura da API Lomadee. A geração de links depende de permissão comercial e escopo oficial.' });
