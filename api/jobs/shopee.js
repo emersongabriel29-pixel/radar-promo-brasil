@@ -55,8 +55,9 @@ async function createTrackedLink(creds, productUrl, itemId, category) {
   return {shortLink,subIds};
 }
 export default async function handler(req,res) {
+  const dryRun = req.body?.dryRun === true || String(req.body?.dryRun ?? req.query?.dryRun ?? '').toLowerCase() === 'true';
   const rows = (await db.query("SELECT account_id,credentials_enc,nonce FROM marketplace_api_credentials WHERE marketplace='SHOPEE' AND status='VALIDATED'")).rows;
-  const totals = {accounts:rows.length,scanned:0,imported:0,duplicates:0,skipped:0,safetyBlocked:0,selected:0,failed:0,autopilotRuns:0};
+  const totals = {accounts:rows.length,scanned:0,imported:0,duplicates:0,skipped:0,safetyBlocked:0,selected:0,failed:0,autopilotRuns:0,preview:[]};
   for (const row of rows) {
     let importedForAccount = 0;
     try {
@@ -144,6 +145,10 @@ export default async function handler(req,res) {
       candidates.sort((a,b) => b.score-a.score || b.sales-a.sales || b.commissionPercent-a.commissionPercent || a.currentPrice-b.currentPrice || a.title.localeCompare(b.title,'pt-BR'));
       const selectedCandidates = selectDiverseCandidates(candidates,{limit:15,perCategory:1,perMerchant:1,fillPerCategory:4,fillPerMerchant:2});
       totals.selected += selectedCandidates.length;
+      if (dryRun) {
+        totals.preview.push(...selectedCandidates.map(candidate => ({itemId:clean(candidate.p.itemId,80),title:candidate.title,category:candidate.classified.category,subcategory:candidate.classified.subcategory,confidence:candidate.classified.confidence,shopId:clean(candidate.p.shopId,80),shopName:clean(candidate.p.shopName,160),price:candidate.currentPrice/100,discoveryKeyword:clean(candidate.p.__radarKeyword,80)})));
+        continue;
+      }
       let checkedCandidates = 0;
       for (const candidate of selectedCandidates) {
         if (checkedCandidates >= 15) break;
@@ -240,5 +245,5 @@ export default async function handler(req,res) {
       console.error('shopee ingestion failed',code);
     }
   }
-  return res.json({ok:totals.failed===0,...totals,note:'A importação e a fila são automáticas; somente produtos com preço/desconto, imagem, link de afiliado e comissão válidos entram no fluxo. Publicação depende das regras e destinos ativos da conta.'});
+  return res.json({ok:totals.failed===0,dryRun,publicationEnabled:!dryRun,...totals,note:dryRun?'Prévia somente leitura: nenhum link foi criado, nenhuma oferta foi gravada e nenhuma publicação foi acionada.':'A importação e a fila são automáticas; somente produtos com preço/desconto, imagem, link de afiliado e comissão válidos entram no fluxo. Publicação depende das regras e destinos ativos da conta.'});
 }
