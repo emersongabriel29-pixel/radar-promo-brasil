@@ -20,7 +20,7 @@ const STORES = {
   AMERICANAS: { name: 'Americanas', portalUrl: 'https://www.americanas.com.br/', authModel: 'Credenciais do programa/rede de afiliados contratada, quando houver API.' },
   LOMADEE: { name: 'Lomadee · API oficial de afiliados', portalUrl: 'https://docs.lomadee.com.br/llms.txt', authModel: 'Use a API Key affiliate gerada no painel de desenvolvedores Lomadee. O Radar usa o header x-api-key e precisa de products:read, campaigns:read, channels:read e shortener:write para importar ofertas com links rastreáveis. Nunca informe a senha do portal.' }
 };
-const ALLOWED_FIELDS = ['affiliateId','appId','apiKey','apiKeyId','apiKeySecret','apiSecret','clientId','clientSecret','accessToken','trackingId','accountId','version','marketplace','appSignature','legacyApiAcknowledged','extra'];
+const ALLOWED_FIELDS = ['affiliateId','appId','apiKey','apiKeyId','apiKeySecret','apiSecret','clientId','clientSecret','accessToken','trackingId','accountId','version','marketplace','appSignature','legacyApiAcknowledged','tenantId','extra'];
 const clean = (value, max = 2000) => String(value ?? '').trim().slice(0, max);
 const toB64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)));
 const fromB64 = value => Uint8Array.from(atob(value), char => char.charCodeAt(0));
@@ -40,6 +40,20 @@ async function encryptCredentials(accountId, marketplace, value) {
   const key = await encryptionKey(accountId, marketplace);
   const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce }, key, new TextEncoder().encode(JSON.stringify(value)));
   return { nonce: toB64(nonce), encrypted: toB64(ciphertext) };
+}
+async function decryptCredentials(accountId, marketplace) {
+  const row = (await db.query('SELECT credentials_enc,nonce FROM marketplace_api_credentials WHERE account_id=$1 AND marketplace=$2 LIMIT 1',[accountId,marketplace])).rows[0];
+  if (!row) return {};
+  const candidates=[String(await config.get('API_CREDENTIALS_MASTER_KEY')||''),String(await config.get('CONNECTOR_ENCRYPTION_KEY')||'')].filter((value,index,array)=>value.length>=32&&array.indexOf(value)===index);
+  for(const raw of candidates){
+    try{
+      const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw+'|radar-marketplace-credentials|'+accountId+'|'+marketplace));
+      const key=await crypto.subtle.importKey('raw',digest,{name:'AES-GCM'},false,['decrypt']);
+      const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(row.nonce)},key,fromB64(row.credentials_enc));
+      return JSON.parse(new TextDecoder().decode(plain));
+    }catch{}
+  }
+  throw Object.assign(new Error('Não foi possível abrir as credenciais antigas. Verifique as chaves mestras cadastradas.'),{status:412});
 }
 export default async function handler(req, res) {
   if (!req.member) return res.status(401).json({ error: 'Entre para configurar as integrações.' });
@@ -63,10 +77,12 @@ export default async function handler(req, res) {
           const connected = connection?.status === 'ACTIVE';
           const apiError = connected && Boolean(connection?.lastError);
           const status = apiError ? 'ERROR' : connected ? 'CONNECTED' : (row?.status || 'NOT_CONFIGURED');
+          const connectionStatus = connected ? 'CONNECTED' : row?.status === 'VALIDATED' ? 'API_VALIDATED' : row ? 'CREDENTIALS_SAVED' : (connection?.status || 'NOT_CONNECTED');
+          const apiStatus = connected ? (apiError ? 'ERROR' : 'NOT_CONFIRMED') : (row?.status || 'NOT_TESTED');
           return {
             id, ...store, status,
-            connectionStatus: connected ? 'CONNECTED' : (connection?.status || 'NOT_CONNECTED'),
-            apiStatus: connected ? (apiError ? 'ERROR' : 'NOT_CONFIRMED') : 'NOT_TESTED',
+            connectionStatus,
+            apiStatus,
             credentialFields: row?.credentialFields || [],
             keyLast4: row?.keyLast4 || '',
             lastCheckedAt: connected ? connection.updatedAt : (row?.lastCheckedAt || null),
@@ -96,10 +112,12 @@ export default async function handler(req, res) {
       }
       if (!Object.keys(credentials).length) return res.status(400).json({ error: 'Informe ao menos uma credencial oficial ou identificação de afiliado.' });
       if (Object.values(credentials).some(value => value.length > 4096)) return res.status(400).json({ error: 'Uma credencial excede o limite permitido.' });
-      const secret = credentials.apiKeySecret || credentials.apiSecret || credentials.clientSecret || credentials.accessToken || credentials.apiKey || '';
-      const hint = secret ? secret.slice(-4) : String(credentials.appId || credentials.affiliateId || credentials.clientId || credentials.trackingId || '').slice(-4);
-      const sealed = await encryptCredentials(account.id, marketplace, credentials);
-      const fields = Object.keys(credentials);
+      const previous = await decryptCredentials(account.id, marketplace);
+      const mergedCredentials = { ...previous, ...credentials };
+      const secret = mergedCredentials.apiKeySecret || mergedCredentials.apiSecret || mergedCredentials.clientSecret || mergedCredentials.accessToken || mergedCredentials.apiKey || '';
+      const hint = secret ? secret.slice(-4) : String(mergedCredentials.appId || mergedCredentials.affiliateId || mergedCredentials.clientId || mergedCredentials.trackingId || mergedCredentials.tenantId || '').slice(-4);
+      const sealed = await encryptCredentials(account.id, marketplace, mergedCredentials);
+      const fields = Object.keys(mergedCredentials);
       await db.query(
         "INSERT INTO marketplace_api_credentials(id,account_id,marketplace,credentials_enc,nonce,credential_fields,key_last4,status,last_checked_at,last_error) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7,'PENDING_VALIDATION',NULL,'') ON CONFLICT(account_id,marketplace) DO UPDATE SET credentials_enc=EXCLUDED.credentials_enc,nonce=EXCLUDED.nonce,credential_fields=EXCLUDED.credential_fields,key_last4=EXCLUDED.key_last4,status='PENDING_VALIDATION',last_checked_at=NULL,last_error='',updated_at=now()",
         [crypto.randomUUID(), account.id, marketplace, sealed.encrypted, sealed.nonce, JSON.stringify(fields), hint]
