@@ -369,7 +369,7 @@ export default async function handler(req,res) {
       }
       for (const candidate of selectedCandidates) {
         await pause(250);
-        const {p,title,productUrl,affiliateUrl,imageUrl,currentPrice,score,fp,classified,category,reasons} = candidate;
+        const {p,title,productUrl,affiliateUrl,imageUrl,currentPrice,score,fp,classified,category,reasons,discoveryExternalId} = candidate;
         const exists = await db.query('SELECT id,current_price,original_price FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1',[row.account_id,fp]);
         if (exists.rows.length) {
           const existing = exists.rows[0];
@@ -380,6 +380,10 @@ export default async function handler(req,res) {
           if (Number(existing.current_price)===currentPrice && existing.original_price===null) {
             await db.query("INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) SELECT $1,$2,$3,$4,NULL,'OFFICIAL_API',$5,now() WHERE NOT EXISTS(SELECT 1 FROM offer_price_history WHERE account_id=$2 AND offer_id=$3 AND source_type='OFFICIAL_API' AND verified_at>now()-interval '24 hours' AND price=$4 AND original_price IS NULL)",[crypto.randomUUID(),row.account_id,existing.id,currentPrice,'SHOPEE:'+clean(p.itemId,80)]);
           }
+          await db.query(
+            "UPDATE affiliate_discovery_items SET processing_status='DUPLICATE',processed_at=now(),offer_id=$3,processing_error='' WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND external_id=$2",
+            [row.account_id,discoveryExternalId,existing.id]
+          );
           totals.duplicates++; continue;
         }
         let trackedAffiliateUrl = affiliateUrl;
@@ -398,17 +402,40 @@ export default async function handler(req,res) {
         const promo = formatPromo({title,source:'SHOPEE',category:category?.name||'',currentPrice,originalPrice:0,affiliateUrl:trackedAffiliateUrl,imageUrl});
         const offerId = crypto.randomUUID();
         const inserted = await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible) VALUES($1,$2,$3,'SHOPEE',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'APPROVED',$12,$13,'VALIDATED','AUTO',false) ON CONFLICT DO NOTHING RETURNING id",[offerId,row.account_id,title,originalPrice,currentPrice,category?.id||null,trackedAffiliateUrl,imageUrl,productUrl,discount,score,promo.message,fp]);
-        if (!inserted.rows.length) { totals.duplicates++; continue; }
+        if (!inserted.rows.length) {
+          const conflict = await db.query('SELECT id FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1',[row.account_id,fp]);
+          await db.query(
+            "UPDATE affiliate_discovery_items SET processing_status='DUPLICATE',processed_at=now(),offer_id=$3,processing_error='' WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND external_id=$2",
+            [row.account_id,discoveryExternalId,conflict.rows[0]?.id||null]
+          );
+          totals.duplicates++; continue;
+        }
         try {
           await db.query("INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,$4,$5,'OFFICIAL_API',$6,now())",[crypto.randomUUID(),row.account_id,offerId,currentPrice,originalPrice,'SHOPEE:'+clean(p.itemId,80)]);
           const scoreReason = 'radar_score='+score+'; '+reasons.join('; ')+'; '+subIdNote;
           await db.query('UPDATE offers SET subcategory=$1,classification_tags=$2::jsonb,classification_confidence=$3,classification_status=$4,classification_reason=$5,source_category=$6 WHERE id=$7 AND account_id=$8',[classified.subcategory,JSON.stringify(classified.tags||[]),classified.confidence||0,classified.needsReview?'REVIEW':'AUTO',(classified.reason||'official_shopee_api')+'; '+scoreReason+'; discovery_keyword='+clean(p.__radarKeyword,80),null,offerId,row.account_id]);
+          await db.query(
+            "UPDATE affiliate_discovery_items SET processing_status='IMPORTED',processed_at=now(),offer_id=$3,processing_error='' WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND external_id=$2",
+            [row.account_id,discoveryExternalId,offerId]
+          );
           totals.imported++; importedForAccount++;
         } catch (e) {
           await db.query("UPDATE offers SET status='PENDING',validation_status='NEEDS_REVIEW' WHERE id=$1 AND account_id=$2",[offerId,row.account_id]);
+          await db.query(
+            "UPDATE affiliate_discovery_items SET processing_status='FAILED',processing_error=$3 WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND external_id=$2",
+            [row.account_id,discoveryExternalId,clean(e?.message||'offer_import_failed',160)]
+          );
           totals.failed++;
         }
       }
+      if (!dryRun) {
+        const pending = await db.query(
+          "SELECT count(*)::int AS count FROM affiliate_discovery_items WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND processing_status IN ('DISCOVERED','FAILED')",
+          [row.account_id]
+        );
+        totals.pendingInventory = (totals.pendingInventory||0)+(Number(pending.rows[0]?.count)||0);
+      }
+
       // Reconcile a small number of previously queued Shopee offers by their exact item ID.
       // Search results are accepted only when the official API returns the same item ID.
       const staleOffers = (await db.query(`
