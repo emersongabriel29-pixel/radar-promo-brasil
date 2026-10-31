@@ -229,7 +229,7 @@ export default async function handler(req,res) {
       }
 
       // Campaigns are discovery intelligence, not product offers: never publish a campaign as if it were a priced item.
-      const campaignQuery = 'query($sortType: Int, $page: Int, $limit: Int) { shopeeOfferV2(sortType: $sortType, page: $page, limit: $limit) { nodes { commissionRate imageUrl offerLink originalLink offerName offerType categoryId collectionId periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
+      const campaignQuery = 'query($sortType: Int, $page: Int, $limit: Int) { shopeeOfferV2(sortType: $sortType, page: $page, limit: $limit) { nodes { commissionRate imageUrl offerLink originalLink offerName offerType catId collectionLabelId productLabelId productScope periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
       try {
         const campaignData = await request(creds,campaignQuery,{sortType:1,page:1,limit:30});
         const campaigns = list(campaignData.data?.shopeeOfferV2?.nodes);
