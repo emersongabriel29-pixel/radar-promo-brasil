@@ -62,7 +62,7 @@ export default async function handler(req,res){
         const title=clean(p.name||get('meta[property="og:title"]')||get('meta[name="twitter:title"]')||document.querySelector('h1')?.textContent||document.title);
         const img=typeof image==='string'?image:(image?.url||'');
         const price=offers.price||offers.lowPrice||get('meta[property="product:price:amount"]')||get('meta[itemprop="price"]');
-        const original=get('meta[property="product:original_price:amount"]')||get('meta[itemprop="highPrice"]');
+        const original=get('meta[property="product:original_price:amount"]');
         return {title,image:img||get('meta[property="og:image"]')||get('meta[name="twitter:image"]'),price:String(price||''),originalPrice:String(original||''),currency:offers.priceCurrency||get('meta[property="product:price:currency"]')||'BRL'};
       });
       return {url:finalUrl,host:final.hostname,...meta};
