@@ -7,8 +7,7 @@ import { formatPromo } from 'lib/promo-message.js';
 import { cacheOfferImage } from 'lib/offer-images.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 import { isMedicationProduct } from 'lib/product-safety.js';
-import { selectDiverseCandidates } from 'lib/catalog-diversity.js';
-import { selectShopeeKeywords, isRelevantShopeeProduct, getShopeeKeywordQualityPenalty } from 'lib/shopee-keywords.js';
+import { selectShopeeKeywords, getShopeeKeywordQualityPenalty } from 'lib/shopee-keywords.js';
 import { isShopeeShopId, isShopeeItemId } from 'lib/shopee-ids.js';
 
 export const access = 'scheduler';
@@ -79,7 +78,7 @@ export default async function handler(req,res) {
         for (const product of list(nodes).slice(0,50)) {
           const key = clean(product.itemId,80) || clean(product.productLink,2000) || clean(product.productName,220);
           if (!key || seen.has(key)) continue;
-          if (discoverySource === 'keyword' && !isRelevantShopeeProduct(product.productName,discoveryKeyword)) continue;
+          // Keep every unique API result. Search relevance affects ranking only, never inclusion.
           seen.add(key);
           product.__radarKeyword = discoveryKeyword;
           product.__discoverySource = discoverySource;
@@ -192,16 +191,15 @@ export default async function handler(req,res) {
 
       // Rank the full candidate batch first; the cap applies only after comparison and duplicate checks.
       candidates.sort((a,b) => b.score-a.score || b.sales-a.sales || b.commissionPercent-a.commissionPercent || a.currentPrice-b.currentPrice || a.title.localeCompare(b.title,'pt-BR'));
-      const selectedCandidates = selectDiverseCandidates(candidates,{limit:15,perCategory:1,perMerchant:1,fillPerCategory:4,fillPerMerchant:2});
+      // Priority only: retain the complete candidate set, including low-volume and accessory matches.
+      const selectedCandidates = candidates;
       totals.selected += selectedCandidates.length;
+      totals.candidatesRetained = (totals.candidatesRetained || 0) + selectedCandidates.length;
       if (dryRun) {
         totals.preview.push(...selectedCandidates.map(candidate => ({itemId:clean(candidate.p.itemId,80),title:candidate.title,category:candidate.classified.category,subcategory:candidate.classified.subcategory,confidence:candidate.classified.confidence,score:candidate.score,sales:candidate.sales,rating:candidate.p.ratingStar==null?null:Number(candidate.p.ratingStar),commissionPercent:candidate.commissionPercent,discountRate:candidate.discountRate,shopId:clean(candidate.p.shopId,80),shopName:clean(candidate.p.shopName,160),price:candidate.currentPrice/100,discoverySource:candidate.p.__discoverySource,discoveryKeyword:clean(candidate.p.__radarKeyword,80)})));
         continue;
       }
-      let checkedCandidates = 0;
       for (const candidate of selectedCandidates) {
-        if (checkedCandidates >= 15) break;
-        checkedCandidates++;
         await pause(250);
         const {p,title,productUrl,affiliateUrl,imageUrl,currentPrice,score,fp,classified,category,reasons} = candidate;
         const exists = await db.query('SELECT id,current_price,original_price FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1',[row.account_id,fp]);
