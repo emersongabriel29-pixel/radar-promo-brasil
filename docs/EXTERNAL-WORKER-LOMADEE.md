@@ -8,7 +8,7 @@ O worker externo **não** cria ofertas, não altera preços no catálogo de ofer
 
 ## Fluxo
 
-1. GitHub Actions consulta até cinco páginas de produtos Lomadee por hora, com rotação de páginas.
+1. GitHub Actions consulta até cinco páginas de produtos Lomadee por execução, com rotação de páginas.
 2. O worker aplica os filtros de disponibilidade, preço, imagem, URL, segurança de medicamentos e diversidade já usados pelo Radar.
 3. O worker envia os produtos selecionados ao endpoint `/api/worker/lomadee-discovery`.
 4. O endpoint valida assinatura, janela de tempo, tamanho do lote e fingerprint da chave Lomadee.
@@ -23,9 +23,9 @@ Os segredos não são gravados no GitHub nem enviados pelo chat.
 2. Em GitHub → Settings → Secrets and variables → Actions, crie:
    - `LOMADEE_API_KEY`: a mesma chave de API Lomadee já cadastrada e validada no Radar.
    - `RADAR_WORKER_SECRET`: o mesmo valor configurado como `EXTERNAL_WORKER_SECRET` na Hatchable.
-3. No arquivo `.github/workflows/lomadee-discovery.yml`, associe esses dois segredos às variáveis de ambiente com a sintaxe de secrets do GitHub Actions. Os campos estão intencionalmente vazios até a configuração manual.
-4. O worker pode ser testado por push dos arquivos monitorados na branch dedicada; também há acionamento manual e agendamento quando o workflow estiver na branch padrão. Ele não é executado em eventos de pull request.
-5. A primeira execução deve ser manual e observada antes de ativar o consumo externo.
+3. O workflow já referencia esses dois segredos por `${{ secrets.LOMADEE_API_KEY }}` e `${{ secrets.RADAR_WORKER_SECRET }}`. Não coloque os valores diretamente no repositório.
+4. O workflow está deliberadamente limitado a `workflow_dispatch`: não roda em push, pull request ou agendamento automático. Depois de configurar os segredos, faça uma única execução manual e confira os resultados antes de qualquer ativação.
+5. A primeira execução só deve ser feita depois de confirmar que o endpoint e as tabelas de descoberta estão implantados na Hatchable.
 
 O endpoint compara o SHA-256 da chave enviada pelo worker com a chave já armazenada e descriptografada no servidor. Isso impede que uma chave Lomadee diferente seja usada para gravar dados na conta do Radar.
 
@@ -46,5 +46,5 @@ Defina `lomadee_external_discovery_enabled=false`. O importador volta à consult
 - O piloto exige exatamente uma conta Lomadee validada no Radar. Se houver mais de uma, o endpoint rejeita o lote em vez de misturar contas.
 - A assinatura HMAC tem tolerância de cinco minutos e o lote é limitado a 750 KB e 12 produtos.
 - O worker consulta cinco páginas no máximo por execução e respeita uma pausa entre chamadas.
-- O agendamento GitHub Actions é horário UTC e só passa a executar automaticamente depois que o workflow estiver na branch padrão.
-- O PR não deve ser mesclado nem a flag ativada antes da configuração dos segredos e do teste manual.
+- A execução externa não publica ofertas, não gera links afiliados e não envia mensagens.
+- O workflow não será agendado automaticamente nem habilitado em produção antes de a execução manual e a persistência serem verificadas.
