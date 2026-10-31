@@ -71,8 +71,8 @@ test('Shopee product discovery paginates and reports when the bounded page windo
   assert.match(source, /if \(!dryRun\) await saveShopeeDiscoveryPage/);
   assert.doesNotMatch(source, /brandOfferV2\(/);
   assert.doesNotMatch(source, /brandOffer\(/);
-  assert.match(source, /catId collectionLabelId productLabelId productScope/);
-  assert.doesNotMatch(source, /categoryId collectionId/);
+  assert.match(source, /categoryId collectionId/);
+  assert.doesNotMatch(source, /catId collectionLabelId productLabelId productScope/);
 });
 
 test('Shopee pagination cursor migration stores independent progress per account, query and sort', async () => {
