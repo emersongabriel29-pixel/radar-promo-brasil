@@ -31,3 +31,11 @@ test('exposes stable tags and a reason for traceability', () => {
   assert.ok(result.tags.includes('sex-shop'));
   assert.equal(result.reason, 'keyword_match');
 });
+
+test('classifies pajamas and sleepwear as fashion with high confidence', () => {
+  const result = classifyProduct({ title: 'Pijama Feminino de Algodão com Calça e Blusa' });
+  assert.equal(result.category, 'Moda e beleza');
+  assert.equal(result.subcategory, 'Moda');
+  assert.ok(result.confidence >= 0.8);
+  assert.equal(result.needsReview, false);
+});
