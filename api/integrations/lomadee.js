@@ -448,9 +448,26 @@ export default async function handler(req, res) {
         const rows = safeRows('orders', body?.data && !Array.isArray(body.data) ? [body.data] : body);
         return res.json({ resource, items: rows, count: rows.length, total: rows.length, readOnly: true });
       }
-      const body = await apiRequest('/affiliate/' + resource, apiKey, params);
+      let body;
+      let campaignFallback = null;
+      try {
+        body = await apiRequest('/affiliate/' + resource, apiKey, params);
+      } catch (error) {
+        if (resource === 'campaigns' && params.status === 'onTime' && Number(error?.status) === 500) {
+          const fallbackParams = { ...params, status: 'scheduled' };
+          body = await apiRequest('/affiliate/campaigns', apiKey, fallbackParams);
+          campaignFallback = {
+            partial: true,
+            requestedStatus: 'onTime',
+            returnedStatus: 'scheduled',
+            upstreamError: 'HTTP 500 campaigns_request_failed',
+            note: 'A Lomadee recusou a consulta onTime; retornamos as campanhas scheduled disponíveis sem ocultar a falha da consulta original.'
+          };
+          params.status = 'scheduled';
+        } else throw error;
+      }
       const rows = safeRows(resource, body);
-      return res.json({ resource, items: rows, count: rows.length, total: Number(body?.count ?? body?.meta?.total ?? body?.pagination?.total ?? rows.length), page: Number(body?.meta?.page ?? body?.pagination?.page ?? params.page), totalPages: Number(body?.meta?.totalPages ?? body?.pagination?.totalPages ?? 1), readOnly: true });
+      return res.json({ resource, items: rows, count: rows.length, total: Number(body?.count ?? body?.meta?.total ?? body?.pagination?.total ?? rows.length), page: Number(body?.meta?.page ?? body?.pagination?.page ?? params.page), totalPages: Number(body?.meta?.totalPages ?? body?.pagination?.totalPages ?? 1), readOnly: true, ...(campaignFallback || {}) });
     }
     return res.status(405).json({ error: 'Método não permitido.' });
   } catch (error) {

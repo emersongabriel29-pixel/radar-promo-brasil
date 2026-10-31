@@ -1,8 +1,9 @@
-import { config, db, scheduler } from 'hatchable';
+import { config, db } from 'hatchable';
 import { fetchWithRetry } from 'lib/http-retry.js';
 import { fingerprint, message as promoMessage, offerScore } from 'lib/automation.js';
 import { directImageUrl } from 'lib/validation.js';
 import { classifyLomadeeProduct, normalizeLomadeeCategory, selectDiverseLomadeeProducts, LOMADEE_CATALOG_POLICY } from 'lib/lomadee-catalog.js';
+import { persistDiscoveryPage } from 'lib/affiliate-discovery.js';
 
 export const access = 'scheduler';
 export const methods = ['POST'];
@@ -10,7 +11,18 @@ const BASE = 'https://api.lomadee.com.br';
 const clean = (v, max = 300) => String(v ?? '').trim().slice(0, max);
 const fromB64 = value => Uint8Array.from(atob(value), char => char.charCodeAt(0));
 const list = body => Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : Array.isArray(body?.items) ? body.items : Array.isArray(body?.products) ? body.products : [];
-const priceCents = value => { const n = Number(value); return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : NaN; };
+const parseMoney = value => {
+  if (value === null || value === undefined || value === '') return NaN;
+  const raw = String(value).trim().replace(/[^0-9,.-]/g, '');
+  if (!raw) return NaN;
+  const comma = raw.lastIndexOf(','), dot = raw.lastIndexOf('.');
+  let normalized = raw;
+  if (comma >= 0 && dot >= 0) normalized = comma > dot ? raw.replace(/\./g, '').replace(',', '.') : raw.replace(/,/g, '');
+  else if (comma >= 0) normalized = raw.replace(/\./g, '').replace(',', '.');
+  const number = Number(normalized);
+  return Number.isFinite(number) && number > 0 ? number : NaN;
+};
+const priceCents = value => { const n = parseMoney(value); return Number.isFinite(n) ? Math.round(n * 100) : NaN; };
 
 async function readCredentials(row) {
   let raw = String(await config.get('API_CREDENTIALS_MASTER_KEY') || '');
@@ -155,7 +167,7 @@ export default async function handler(req, res) {
           const classification = classifyLomadeeProduct(product);
           const productUrl = typeof product.url === 'string' && /^https:\/\//i.test(product.url) ? product.url : '';
           const imageUrl = product.images?.[0]?.url || option.images?.[0]?.url || '';
-          const currentPrice = priceCents(pricing.price);
+          const currentPrice = priceCents(pricing.price) || priceCents(pricing.listPrice);
           const listedOriginalPrice = priceCents(pricing.listPrice);
           // A missing/equal list price is not a reason to discard a valid product; record it at current price with 0% discount.
           const originalPrice = Number.isSafeInteger(currentPrice) ? Math.max(Number.isSafeInteger(listedOriginalPrice) ? listedOriginalPrice : currentPrice, currentPrice) : listedOriginalPrice;
@@ -186,6 +198,16 @@ export default async function handler(req, res) {
       }
 
       if (!successfulPages) throw new Error('Nenhuma página do catálogo Lomadee pôde ser consultada.');
+      if (!dryRun && productBatches.length) {
+        const discovery = await persistDiscoveryPage(db, {
+          accountId: row.account_id, marketplace: 'LOMADEE', operation: 'products', kind: 'PRODUCT',
+          items: productBatches.flat()
+        });
+        totals.discoveryRecordsSeen = (totals.discoveryRecordsSeen || 0) + discovery.recordsSeen;
+        totals.discoveryRecordsUpserted = (totals.discoveryRecordsUpserted || 0) + discovery.recordsUpserted;
+        totals.discoverySkipped = (totals.discoverySkipped || 0) + discovery.skipped;
+        totals.discoveryRunId = discovery.runId;
+      }
       totals.eligibleBeforeAffiliate += candidates.length;
       const selected = selectDiverseLomadeeProducts(candidates, {
         maxItems: LOMADEE_CATALOG_POLICY.maxImportsPerRun,
@@ -199,6 +221,12 @@ export default async function handler(req, res) {
         const category = candidate.classification.category;
         totals.selectedByCategory[category] = (totals.selectedByCategory[category] || 0) + 1;
         totals.selectedByOrganization[candidate.organizationId] = (totals.selectedByOrganization[candidate.organizationId] || 0) + 1;
+      }
+
+      if (req.body?.queueOnly === true || req.body?.queueOnly === 'true') {
+        totals.queueOnly = true;
+        totals.pendingForQueue = candidates.length;
+        continue;
       }
 
       if (dryRun) {
@@ -235,7 +263,7 @@ export default async function handler(req, res) {
         const score = offerScore({ title, currentPrice, originalPrice });
         const promo = promoMessage({ title, source: 'LOMADEE', currentPrice, originalPrice, affiliateUrl, imageUrl, productUrl });
         const inserted = await db.query(
-          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,classification_tags,classification_confidence,classification_status,classification_reason,source_category,subcategory) VALUES($1,$2,$3,'LOMADEE',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'APPROVED',$12,$13,'VALIDATED','AUTO',false,$14::jsonb,$15,'REVIEW',$16,$17,$18) ON CONFLICT DO NOTHING RETURNING id",
+          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,classification_tags,classification_confidence,classification_status,classification_reason,source_category,subcategory) VALUES($1,$2,$3,'LOMADEE',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'NEEDS_REVIEW','AUTO',false,$14::jsonb,$15,'REVIEW',$16,$17,$18) ON CONFLICT DO NOTHING RETURNING id",
           [
             crypto.randomUUID(), row.account_id, title, originalPrice, currentPrice, categoryId,
             affiliateUrl, imageUrl, productUrl, discount, score, promo, fp,
@@ -265,10 +293,7 @@ export default async function handler(req, res) {
       }
 
       await db.query("UPDATE marketplace_api_credentials SET last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='LOMADEE'", [row.account_id]);
-      if (accountImported) {
-        try { await scheduler.now('/api/jobs/autopilot'); totals.autopilotRuns++; }
-        catch (error) { console.error('lomadee autopilot trigger failed', String(error?.code || error?.name || 'ERROR').slice(0, 60)); }
-      }
+      // Lomadee imports remain pending for human review; never trigger autopilot or publication here.
     } catch (error) {
       totals.failed++;
       const code = Number(error?.status) || 0;
