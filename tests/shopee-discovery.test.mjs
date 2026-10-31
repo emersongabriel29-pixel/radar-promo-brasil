@@ -72,6 +72,12 @@ test('Shopee product discovery paginates and reports when the bounded page windo
   assert.match(source, /persistShopeeDiscoveryItems\(row\.account_id,products\)/);
   assert.match(source, /INSERT INTO affiliate_discovery_items/);
   assert.match(source, /jsonb_to_recordset\(\$2::jsonb\)/);
+  assert.match(source, /processing_status IN \('DISCOVERED','FAILED'\)/);
+  assert.match(source, /processingBatch/);
+  assert.match(source, /LIMIT 30/);
+  assert.match(source, /processing_status='IMPORTED'/);
+  assert.match(source, /processing_status='DUPLICATE'/);
+  assert.match(source, /processing_status='FAILED'/);
   assert.match(source, /discoveryItemsStored/);
   assert.match(source, /if \(!dryRun\) await saveShopeeDiscoveryPage/);
   assert.doesNotMatch(source, /brandOfferV2\(/);
@@ -85,4 +91,12 @@ test('Shopee pagination cursor migration stores independent progress per account
   assert.match(migration, /PRIMARY KEY \(account_id, discovery_key, sort_type\)/);
   assert.match(migration, /next_page integer NOT NULL DEFAULT 1/);
   assert.match(migration, /CHECK \(next_page >= 1\)/);
+});
+
+test('Shopee discovery processing migration creates a durable pending queue', async () => {
+  const migration = await readFile(new URL('../migrations/053_shopee_discovery_processing_queue.sql', import.meta.url), 'utf8');
+  assert.match(migration, /processing_status text NOT NULL DEFAULT 'DISCOVERED'/);
+  assert.match(migration, /processed_at timestamptz/);
+  assert.match(migration, /offer_id text/);
+  assert.match(migration, /processing_status IN \('DISCOVERED','FAILED'\)/);
 });
