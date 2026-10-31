@@ -316,13 +316,22 @@ export default async function handler(req,res) {
       const cats = (await db.query('SELECT id,name FROM categories WHERE account_id=$1',[row.account_id])).rows;
       const candidates = [];
       for (const p of processingProducts) {
-        const title = clean(p.productName,220);
-        const productUrl = httpsUrl(p.productLink,2000) || '';
-        if (isMedicationProduct({title, productUrl})) { totals.safetyBlocked++; totals.skipped++; totals.safetyBlockedPreview.push({itemId:clean(p.itemId,80),title,discoveryKeyword:clean(p.__radarKeyword,80),reason:'blocked_by_product_safety_policy'}); continue; }
-        const affiliateUrl = httpsUrl(p.offerLink,2000) || '';
+        const title = clean(p.productName || p.name,220);
+        const productUrl = httpsUrl(p.productLink || p.originalUrl,2000) || '';
+        const affiliateUrl = httpsUrl(p.offerLink || p.url,2000) || '';
         const imageUrl = directImageUrl(p.imageUrl) ? p.imageUrl : '';
-        const price = Number(p.priceMin);
-        const rateRaw = Number(p.priceDiscountRate);
+        const price = Number(p.priceMin ?? p.price);
+        const rateRaw = Number(p.priceDiscountRate ?? p.discountRate);
+        const discoveryExternalId = p.__inventoryExternalId || clean(p.itemId,80) || productUrl || [clean(p.shopId,80),title].filter(Boolean).join(':');
+        if (isMedicationProduct({title, productUrl})) {
+          totals.safetyBlocked++; totals.skipped++;
+          totals.safetyBlockedPreview.push({itemId:clean(p.itemId || discoveryExternalId,80),title,discoveryKeyword:clean(p.__radarKeyword,80),reason:'blocked_by_product_safety_policy'});
+          if (!dryRun && discoveryExternalId) await db.query(
+            "UPDATE affiliate_discovery_items SET processing_status='BLOCKED',processed_at=now(),processing_error='blocked_by_product_safety_policy' WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND external_id=$2 AND processing_status IN ('DISCOVERED','FAILED')",
+            [row.account_id,discoveryExternalId]
+          );
+          continue;
+        }
         const discountRate = Number.isFinite(rateRaw) && rateRaw > 0 ? (rateRaw < 1 ? rateRaw : rateRaw/100) : 0;
         const currentPrice = Number.isFinite(price) && price>0 ? Math.round(price*100) : 0;
         const commission = Number(p.commissionRate);
@@ -335,15 +344,18 @@ export default async function handler(req,res) {
         if (!Number.isFinite(commission) || commission<=0) missingFields.push('commissionRate');
         if (missingFields.length) {
           totals.skipped++;
-          totals.incompletePreview.push({itemId:clean(p.itemId,80),title,shopId:clean(p.shopId,80),shopName:clean(p.shopName,160),discoverySource:(p.__discoverySources||[p.__discoverySource]).join(','),discoveryKeyword:clean(p.__radarKeyword,80),missingFields,priceMin:p.priceMin??null,commissionRate:p.commissionRate??null});
+          totals.incompletePreview.push({itemId:clean(p.itemId || discoveryExternalId,80),title,shopId:clean(p.shopId,80),shopName:clean(p.shopName,160),discoverySource:(p.__discoverySources||[p.__discoverySource]).join(','),discoveryKeyword:clean(p.__radarKeyword,80),missingFields,priceMin:p.priceMin??p.price??null,commissionRate:p.commissionRate??null});
+          if (!dryRun && discoveryExternalId) await db.query(
+            "UPDATE affiliate_discovery_items SET processing_status='INCOMPLETE',processed_at=now(),processing_error=$3 WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND external_id=$2 AND processing_status IN ('DISCOVERED','FAILED')",
+            [row.account_id,discoveryExternalId,missingFields.join(',')]
+          );
           continue;
         }
 
         const sales = Math.max(0, Number(p.sales) || 0);
         const commissionPercent = commission <= 1 ? commission * 100 : commission;
-        const ratingRaw = Number(p.ratingStar);
+        const ratingRaw = Number(p.ratingStar ?? p.rating);
         const rating = Number.isFinite(ratingRaw) && ratingRaw > 0 ? (ratingRaw > 5 ? ratingRaw / 20 : ratingRaw) : null;
-        const discoveryExternalId = p.__inventoryExternalId || clean(p.itemId,80) || productUrl || [clean(p.shopId,80),title].filter(Boolean).join(':');
         const classified = classifyProduct({title});
         // API discount is a marketing claim, not historical proof. Use it only as a ranking signal;
         // never synthesize an original price or publish an unverified percentage as confirmed savings.
