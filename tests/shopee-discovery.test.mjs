@@ -64,6 +64,7 @@ test('Shopee product discovery paginates and reports when the bounded page windo
   assert.match(source, /totals\.paginationIncomplete = true/);
   assert.match(source, /brand_offer_v2_not_exposed_by_live_brazil_schema/);
   assert.doesNotMatch(source, /list\(nodes\)\.slice\(0,50\)/);
+  assert.match(source, /clean\(product\.shopId,80\),clean\(product\.productName,220\)/);
   assert.match(source, /persistShopeeDiscoveryItems\(row\.account_id,products\)/);
   assert.match(source, /INSERT INTO affiliate_discovery_items/);
   assert.match(source, /jsonb_to_recordset\(\$2::jsonb\)/);
