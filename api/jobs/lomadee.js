@@ -148,6 +148,7 @@ export default async function handler(req, res) {
 
       for (const products of productBatches) {
         totals.scanned += products.length;
+        for (const product of products) {
           const option = (Array.isArray(product.options) ? product.options : []).find(item => item?.available) || product.options?.[0] || {};
           const pricing = Array.isArray(option.pricing) ? option.pricing[0] : {};
           const title = clean(option.name || product.name, 220);
