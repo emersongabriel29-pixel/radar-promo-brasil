@@ -9,6 +9,7 @@ import { classifyProduct } from 'lib/category-classifier.js';
 import { isMedicationProduct } from 'lib/product-safety.js';
 import { selectDiverseCandidates } from 'lib/catalog-diversity.js';
 import { selectShopeeKeywords, isRelevantShopeeProduct, getShopeeKeywordQualityPenalty } from 'lib/shopee-keywords.js';
+import { isShopeeShopId, isShopeeItemId } from 'lib/shopee-ids.js';
 
 export const access = 'scheduler';
 export const methods = ['POST'];
@@ -106,7 +107,7 @@ export default async function handler(req,res) {
         totals.shopsDiscovered = (totals.shopsDiscovered||0)+shops.length;
         for (const shop of shops.slice(0,2)) {
           const shopId = clean(shop.shopId,80);
-          if (!/^\d{1,18}$/.test(shopId)) continue;
+          if (!isShopeeShopId(shopId)) continue;
           try {
             const shopProducts = await request(creds,productQuery,{shopId,listType:2,sortType:2,page:1,limit:50});
             addProducts(shopProducts.data?.productOfferV2?.nodes,'loja:'+clean(shop.shopName,80),'partner_shop');
@@ -264,7 +265,7 @@ export default async function handler(req,res) {
         try {
           const parts = new URL(stale.product_url).pathname.split('/').filter(Boolean);
           const itemId = parts[parts.length-1];
-          if (!/^\d{8,}$/.test(itemId)) continue;
+          if (!isShopeeItemId(itemId)) continue;
           const found = list((await request(creds,reconcileQuery,{keyword:clean(stale.title,120),sortType:5,page:1,limit:50})).data?.productOfferV2?.nodes)
             .find(product=>String(product.itemId)===itemId);
           const livePrice = Math.round(Number(found?.priceMin)*100);
