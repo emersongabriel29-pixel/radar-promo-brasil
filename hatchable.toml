@@ -139,6 +139,17 @@ required = false
 default = "https://radar-promo-brasil.hatchable.site/api/mercadolivre/callback"
 description = "Callback OAuth direto do Mercado Livre."
 
+[[secret]]
+name = "EXTERNAL_WORKER_SECRET"
+required = false
+description = "Segredo HMAC exclusivo para autenticar o worker externo de descoberta. Use pelo menos 32 caracteres e não reutilize segredos de outras integrações."
+
+[[config]]
+name = "lomadee_external_discovery_enabled"
+required = false
+default = "false"
+description = "Quando true, o importador Lomadee consome o catálogo recente do GitHub Actions; mantenha false até validar o worker."
+
 [[cron]]
 path = "/api/jobs/hourly"
 schedule = "0 * * * *"
