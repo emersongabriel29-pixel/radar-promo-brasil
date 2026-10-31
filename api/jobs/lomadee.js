@@ -242,7 +242,7 @@ export default async function handler(req, res) {
 
       for (const candidate of selected) {
         const { product, title, productUrl, imageUrl, originalPrice, currentPrice, classification } = candidate;
-        const fp = await fingerprint({ source: 'LOMADEE', externalId: clean(product.id, 120), productUrl, title });
+        const fp = await fingerprint({ source: 'LOMADEE', externalId: clean(product.id, 120), productUrl, title, organizationId:product.organizationId||'', currentPrice, originalPrice, variant:product.optionId||product.sku||'' });
         let shortResponse;
         try {
           shortResponse = await request('/affiliate/shortener/url', apiKey, {}, 'POST', {
