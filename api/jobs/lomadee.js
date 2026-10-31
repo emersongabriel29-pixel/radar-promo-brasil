@@ -155,8 +155,10 @@ export default async function handler(req, res) {
           const classification = classifyLomadeeProduct(product);
           const productUrl = typeof product.url === 'string' && /^https:\/\//i.test(product.url) ? product.url : '';
           const imageUrl = product.images?.[0]?.url || option.images?.[0]?.url || '';
-          const originalPrice = priceCents(pricing.listPrice);
           const currentPrice = priceCents(pricing.price);
+          const listedOriginalPrice = priceCents(pricing.listPrice);
+          // A missing/equal list price is not a reason to discard a valid product; record it at current price with 0% discount.
+          const originalPrice = Number.isSafeInteger(currentPrice) ? Math.max(Number.isSafeInteger(listedOriginalPrice) ? listedOriginalPrice : currentPrice, currentPrice) : listedOriginalPrice;
 
           if (classification.blocked) { totals.skipped++; totals.skipReasons.medication++; continue; }
           if (!product.available || option.available === false) { totals.skipped++; totals.skipReasons.unavailable++; continue; }
@@ -174,7 +176,7 @@ export default async function handler(req, res) {
             });
             continue;
           }
-          if (originalPrice <= currentPrice) { totals.skipped++; totals.skipReasons.noDiscount++; continue; }
+          // Zero-discount products remain eligible; discount is a ranking signal, not an exclusion rule.
 
           candidates.push({
             product, option, title, productUrl, imageUrl, originalPrice, currentPrice, classification,
