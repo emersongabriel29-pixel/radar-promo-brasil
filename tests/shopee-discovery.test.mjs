@@ -79,6 +79,8 @@ test('Shopee product discovery paginates and reports when the bounded page windo
   assert.match(source, /processing_status='DUPLICATE'/);
   assert.match(source, /processing_status='FAILED'/);
   assert.match(source, /discoveryItemsStored/);
+  assert.match(source, /incompleteStored/);
+  assert.match(source, /discoveryStats\.safetyBlockedPreview/);
   assert.match(source, /if \(!dryRun\) await saveShopeeDiscoveryPage/);
   assert.doesNotMatch(source, /brandOfferV2\(/);
   assert.doesNotMatch(source, /brandOffer\(/);
