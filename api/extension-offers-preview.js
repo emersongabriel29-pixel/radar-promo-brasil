@@ -30,8 +30,9 @@ export default async function handler(req,res){
     const match=auth.match(/^Bearer\\s+(rpb_ext_[A-Za-z0-9_-]{30,100})$/);
     if(!match)return res.status(401).json({ok:false,error:'Informe o token Android do Radar uma única vez nesta sessão.'});
     const tokenHash=await hash(match[1]);
-    const token=(await db.query("SELECT id,account_id FROM extension_api_tokens WHERE token_hash=$1 AND revoked_at IS NULL LIMIT 1",[tokenHash])).rows[0];
+    const token=(await db.query("SELECT id,account_id,label FROM extension_api_tokens WHERE token_hash=$1 AND revoked_at IS NULL LIMIT 1",[tokenHash])).rows[0];
     if(!token)return res.status(401).json({ok:false,error:'Token revogado ou inválido. Gere outro nas Configurações do Radar.'});
+    if(token.label!=='Compartilhamento Android')return res.status(403).json({ok:false,error:'Use o token específico de Compartilhamento Android, separado da extensão Chrome.'});
     const raw=clean(req.body?.url,2000);
     let parsed;
     try{parsed=new URL(raw);}catch{return res.status(400).json({ok:false,error:'Link do produto inválido.'});}
