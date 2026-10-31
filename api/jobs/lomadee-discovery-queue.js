@@ -6,9 +6,20 @@ export const access = 'scheduler';
 export const methods = ['POST'];
 
 const clean = (value, max = 300) => String(value ?? '').trim().slice(0, max);
+const parseMoney = value => {
+  if (value === null || value === undefined || value === '') return null;
+  const raw = String(value).trim().replace(/[^0-9,.-]/g, '');
+  if (!raw) return null;
+  const comma = raw.lastIndexOf(','), dot = raw.lastIndexOf('.');
+  let normalized = raw;
+  if (comma >= 0 && dot >= 0) normalized = comma > dot ? raw.replace(/\./g, '').replace(',', '.') : raw.replace(/,/g, '');
+  else if (comma >= 0) normalized = raw.replace(/\./g, '').replace(',', '.');
+  const number = Number(normalized);
+  return Number.isFinite(number) && number > 0 ? number : null;
+};
 const priceCents = value => {
-  const n = Number(value);
-  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : null;
+  const n = parseMoney(value);
+  return n !== null ? Math.round(n * 100) : null;
 };
 function normalizeProduct(row) {
   const raw = row.raw_data && typeof row.raw_data === 'object' ? row.raw_data : {};
@@ -18,7 +29,7 @@ function normalizeProduct(row) {
   const title = clean(option.name || raw.name || row.title, 300);
   const image = raw.images?.[0]?.url || option.images?.[0]?.url || row.image_url || '';
   const productUrl = clean(raw.url || row.product_url, 2000);
-  const currentPrice = priceCents(pricing.price ?? (row.price_cents ? Number(row.price_cents) / 100 : null));
+  const currentPrice = priceCents(pricing.price) ?? priceCents(pricing.listPrice) ?? priceCents(row.price_cents ? Number(row.price_cents) / 100 : null);
   const classification = classifyLomadeeProduct(raw);
   let status = 'READY_FOR_LINK';
   let reason = '';
