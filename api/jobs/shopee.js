@@ -49,6 +49,21 @@ async function request(creds, query, variables, attempt = 0) {
   }
   return data;
 }
+async function requestProductPages(creds, query, variables, maxPages = 3) {
+  const nodes = [];
+  let page = Math.max(1, Number(variables?.page) || 1);
+  let hasNextPage = false;
+  let pagesFetched = 0;
+  do {
+    const response = await request(creds,query,{...variables,page});
+    const result = response.data?.productOfferV2;
+    nodes.push(...list(result?.nodes));
+    hasNextPage = Boolean(result?.pageInfo?.hasNextPage);
+    pagesFetched++;
+    page++;
+  } while (hasNextPage && pagesFetched < maxPages);
+  return {nodes,pagesFetched,hasNextPage,nextPage:hasNextPage?page:null};
+}
 async function createTrackedLink(creds, productUrl, itemId, category) {
   const itemTag = ('ITEM'+clean(itemId,36).replace(/[^a-z0-9]/gi,'')).slice(0,50);
   const categoryTag = ('CAT'+clean(category,30).replace(/[^a-z0-9]/gi,'')).slice(0,50);
@@ -90,9 +105,14 @@ export default async function handler(req,res) {
         for (const sortType of [2,5]) {
           const page = sortType === 2 ? 1 : (Math.floor(slot/3)%3)+1;
           const listType = sortType === 2 ? 2 : 1;
-          const data = await request(creds,productQuery,{keyword,listType,sortType,page,limit:50});
-          addProducts(data.data?.productOfferV2?.nodes,keyword,'keyword');
-          totals.productSearchCalls = (totals.productSearchCalls||0)+1;
+          const result = await requestProductPages(creds,productQuery,{keyword,listType,sortType,page,limit:50},3);
+          addProducts(result.nodes,keyword,'keyword');
+          totals.productSearchCalls = (totals.productSearchCalls||0)+result.pagesFetched;
+          totals.productPagesFetched = (totals.productPagesFetched||0)+result.pagesFetched;
+          if (result.hasNextPage) {
+            totals.productSearchContinuations = (totals.productSearchContinuations||0)+1;
+            totals.paginationIncomplete = true;
+          }
         }
       }
       totals.keywordsQueried = (totals.keywordsQueried||0)+selectedKeywords.length;
@@ -132,16 +152,10 @@ export default async function handler(req,res) {
         console.error('shopee campaign discovery skipped',String(campaignError?.message||'ERROR').slice(0,80));
       }
 
-      // Brand partner offers are a separate official discovery surface. Record discovery only;
-      // a brand offer is not a priced product and must not enter the Telegram product pipeline.
-      const brandQuery = 'query($page: Int, $limit: Int) { brandOffer(page: $page, limit: $limit) { nodes { offerName offerLink commissionRate imageUrl offerStatus periodStartTime periodEndTime shopId } pageInfo { page limit hasNextPage } } }';
-      try {
-        const brandData = await request(creds,brandQuery,{page:1,limit:30});
-        totals.brandOffersDiscovered = (totals.brandOffersDiscovered||0)+list(brandData.data?.brandOffer?.nodes).length;
-      } catch (brandError) {
-        totals.brandOfferDiscoveryUnavailable = true;
-        console.error('shopee brand offer discovery skipped',String(brandError?.message||'ERROR').slice(0,80));
-      }
+      // The live Brazil GraphQL schema exposes only deprecated brandOffer; brandOfferV2
+      // is not a Query field for these credentials. Do not call the deprecated endpoint.
+      totals.brandOfferDiscoveryUnavailable = true;
+      totals.brandOfferDiscoveryReason = 'brand_offer_v2_not_exposed_by_live_brazil_schema';
       totals.scanned += products.length;
       const cats = (await db.query('SELECT id,name FROM categories WHERE account_id=$1',[row.account_id])).rows;
       const candidates = [];
