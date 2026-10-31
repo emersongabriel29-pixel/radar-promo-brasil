@@ -45,6 +45,9 @@ test('expanded category classifier recognizes automotive, office, garden and pho
 test('Shopee discovery ranks every unique API result without relevance or batch caps', async () => {
   const source = await readFile(new URL('../api/jobs/shopee.js', import.meta.url), 'utf8');
   assert.match(source, /const selectedCandidates = candidates;/);
+  assert.match(source, /incompletePreview\.push/);
+  assert.match(source, /safetyBlockedPreview\.push/);
+  assert.match(source, /if \(!dryRun\) await db\.query/);
   assert.doesNotMatch(source, /isRelevantShopeeProduct/);
   assert.doesNotMatch(source, /checkedCandidates >= 15/);
   assert.match(source, /selectShopeeKeywords\(slot,6\)/);
