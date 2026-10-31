@@ -29,3 +29,14 @@ test('rotating search phrases span product families', () => {
   assert.equal(selected.length, 3);
   assert.equal(new Set(selected.map(getShopeeKeywordFamily)).size, 3);
 });
+
+test('expanded category classifier recognizes automotive, office, garden and photography', async () => {
+  const cases = [
+    ['Pneu aro 15', 'Automotivo'],
+    ['Impressora tanque de tinta', 'Informática e escritório'],
+    ['Kit jardinagem com tesoura de poda', 'Jardim e construção'],
+    ['Drone com câmera 4K', 'Fotografia e drones'],
+    ['Caderno inteligente', 'Papelaria e artesanato']
+  ];
+  for (const [title, category] of cases) assert.equal(classifyProduct({ title }).category, category);
+});
