@@ -20,8 +20,8 @@ function product(id, overrides = {}) {
 }
 
 test('Lomadee page rotation is bounded, unique and advances hourly', () => {
-  const first = lomadeeCatalogPages(Date.UTC(2026, 9, 30, 0, 0, 0));
-  const next = lomadeeCatalogPages(Date.UTC(2026, 9, 30, 1, 0, 0));
+  const first = lomadeeCatalogPages(0);
+  const next = lomadeeCatalogPages(3600000);
   assert.deepEqual(first, [1, 6, 11, 16, 21]);
   assert.deepEqual(next, [2, 7, 12, 17, 22]);
   assert.equal(new Set(first).size, 5);
