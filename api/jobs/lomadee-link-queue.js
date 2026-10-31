@@ -246,6 +246,11 @@ export default async function handler(req, res) {
     if (summary.claimed >= limit) break;
   }
 
+  if (summary.failed === 0 && summary.linked + summary.duplicates + summary.blocked + summary.needsData > 0) {
+    for (const credentialRow of credentialsRows) {
+      await db.query("UPDATE marketplace_api_credentials SET last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='LOMADEE'", [credentialRow.account_id]);
+    }
+  }
   const counts = (await db.query("SELECT processing_status,count(*)::int AS count FROM affiliate_discovery_items WHERE marketplace='LOMADEE' AND kind='PRODUCT' GROUP BY processing_status ORDER BY processing_status")).rows;
   const remaining = counts.reduce((total, row) => total + (row.processing_status === 'READY_FOR_LINK' ? Number(row.count) : 0), 0);
   let resumeScheduled = false;
