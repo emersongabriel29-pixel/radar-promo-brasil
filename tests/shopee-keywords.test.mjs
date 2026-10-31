@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildShopeeKeywordCatalog, selectShopeeKeywords, shopeeKeywordCatalogSize, isRelevantShopeeProduct, getShopeeKeywordQualityPenalty } from '../lib/shopee-keywords.js';
+import { buildShopeeKeywordCatalog, selectShopeeKeywords, shopeeKeywordCatalogSize, isRelevantShopeeProduct, getShopeeKeywordQualityPenalty, getShopeeKeywordFamily } from '../lib/shopee-keywords.js';
 
 test('Shopee keyword catalog expands curated products into thousands of searchable phrases', () => {
   const catalog = buildShopeeKeywordCatalog();
@@ -42,4 +42,13 @@ test('accessories are downranked behind the main product in broad product search
   assert.equal(getShopeeKeywordQualityPenalty('Kit formas de silicone para air fryer', 'air fryer'), -25);
   assert.equal(getShopeeKeywordQualityPenalty('Smartphone Motorola Moto G06', 'smartphone'), 0);
   assert.equal(getShopeeKeywordQualityPenalty('Air fryer Mondial 5L', 'air fryer'), 0);
+});
+
+test('keyword rotation identifies product families and avoids same-family query batches', () => {
+  assert.equal(getShopeeKeywordFamily('top vendas pijama'), 'fashion');
+  assert.equal(getShopeeKeywordFamily('oferta mouse sem fio'), 'technology');
+  assert.equal(getShopeeKeywordFamily('oferta air fryer'), 'home');
+  const selected = selectShopeeKeywords(100, 3);
+  assert.equal(selected.length, 3);
+  assert.equal(new Set(selected.map(getShopeeKeywordFamily)).size, 3);
 });
