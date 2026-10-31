@@ -1,18 +1,7 @@
 name: Lomadee external discovery
 
 on:
-  push:
-    branches:
-      - codex/affiliate-intelligence-v493-20261030
-    paths:
-      - .github/workflows/lomadee-discovery.yml
-      - scripts/workers/lomadee-discovery.mjs
-      - lib/lomadee-worker.js
-      - api/worker/lomadee-discovery.js
-      - api/jobs/lomadee.js
   workflow_dispatch:
-  schedule:
-    - cron: '0 * * * *'
 
 permissions:
   contents: read
@@ -34,18 +23,18 @@ jobs:
         id: readiness
         shell: bash
         env:
-          LOMADEE_API_KEY: ""
-          RADAR_WORKER_SECRET: ""
+          LOMADEE_API_KEY: ${{ secrets.LOMADEE_API_KEY }}
+          RADAR_WORKER_SECRET: ${{ secrets.RADAR_WORKER_SECRET }}
         run: |
           if [[ -n "$LOMADEE_API_KEY" && -n "$RADAR_WORKER_SECRET" ]]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Map the LOMADEE_API_KEY and RADAR_WORKER_SECRET repository secrets to these environment variables before enabling the worker."
+            echo "::warning::Configure LOMADEE_API_KEY and RADAR_WORKER_SECRET in GitHub Actions Secrets before running the pilot."
           fi
       - name: Fetch and persist read-only catalog discovery
         if: steps.readiness.outputs.ready == 'true'
         env:
-          LOMADEE_API_KEY: ""
-          RADAR_WORKER_SECRET: ""
+          LOMADEE_API_KEY: ${{ secrets.LOMADEE_API_KEY }}
+          RADAR_WORKER_SECRET: ${{ secrets.RADAR_WORKER_SECRET }}
         run: node scripts/workers/lomadee-discovery.mjs
