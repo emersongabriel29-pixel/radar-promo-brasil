@@ -114,7 +114,8 @@ async function persistShopeeDiscoveryItems(accountId, products) {
       rating:Number.isFinite(rating)&&rating>0?rating:null,
       sales_count:Number.isFinite(sales)&&sales>=0?Math.floor(sales):null,
       available:safetyBlocked?false:null,
-      raw_data:{...product,radarDiscovery:{keyword:clean(product.__radarKeyword,120),source:clean(product.__discoverySource,40),missingFields,safetyBlocked}}
+      processing_status:safetyBlocked?'BLOCKED':missingFields.length?'INCOMPLETE':'DISCOVERED',
+      raw_data:{...product,radarDiscovery:{keyword:clean(product.__radarKeyword,120),source:(product.__discoverySources||[product.__discoverySource]).join(','),missingFields,safetyBlocked}}
     });
   }
   let stored = 0;
@@ -123,19 +124,28 @@ async function persistShopeeDiscoveryItems(accountId, products) {
     await db.query(
       `INSERT INTO affiliate_discovery_items(
         id,account_id,marketplace,kind,external_id,title,brand_name,product_url,affiliate_url,image_url,
-        price_cents,commission_rate,rating,sales_count,available,raw_data,first_seen_at,last_seen_at
+        price_cents,commission_rate,rating,sales_count,available,processing_status,raw_data,first_seen_at,last_seen_at
       )
       SELECT x.id,$1,'SHOPEE','PRODUCT',x.external_id,x.title,x.brand_name,x.product_url,x.affiliate_url,x.image_url,
-        x.price_cents,x.commission_rate,x.rating,x.sales_count,x.available,x.raw_data,now(),now()
+        x.price_cents,x.commission_rate,x.rating,x.sales_count,x.available,x.processing_status,x.raw_data,now(),now()
       FROM jsonb_to_recordset($2::jsonb) AS x(
         id text,external_id text,title text,brand_name text,product_url text,affiliate_url text,image_url text,
-        price_cents bigint,commission_rate numeric,rating numeric,sales_count bigint,available boolean,raw_data jsonb
+        price_cents bigint,commission_rate numeric,rating numeric,sales_count bigint,available boolean,
+        processing_status text,raw_data jsonb
       )
       ON CONFLICT(account_id,marketplace,kind,external_id) DO UPDATE SET
         title=EXCLUDED.title,brand_name=EXCLUDED.brand_name,product_url=EXCLUDED.product_url,
         affiliate_url=EXCLUDED.affiliate_url,image_url=EXCLUDED.image_url,price_cents=EXCLUDED.price_cents,
         commission_rate=EXCLUDED.commission_rate,rating=EXCLUDED.rating,sales_count=EXCLUDED.sales_count,
-        available=EXCLUDED.available,raw_data=EXCLUDED.raw_data,last_seen_at=now()`,
+        available=EXCLUDED.available,raw_data=EXCLUDED.raw_data,last_seen_at=now(),
+        processing_status=CASE
+          WHEN EXCLUDED.processing_status='BLOCKED' THEN 'BLOCKED'
+          WHEN affiliate_discovery_items.processing_status IN ('IMPORTED','DUPLICATE') THEN affiliate_discovery_items.processing_status
+          ELSE EXCLUDED.processing_status
+        END,
+        processing_error=CASE WHEN affiliate_discovery_items.processing_status IN ('IMPORTED','DUPLICATE') THEN affiliate_discovery_items.processing_error ELSE '' END,
+        processed_at=CASE WHEN affiliate_discovery_items.processing_status IN ('IMPORTED','DUPLICATE') THEN affiliate_discovery_items.processed_at ELSE NULL END,
+        offer_id=CASE WHEN affiliate_discovery_items.processing_status IN ('IMPORTED','DUPLICATE') THEN affiliate_discovery_items.offer_id ELSE NULL END`,
       [accountId,JSON.stringify(batch)]
     );
     stored += batch.length;
