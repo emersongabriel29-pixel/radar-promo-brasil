@@ -107,7 +107,7 @@ async function persistShopeeDiscoveryItems(accountId, products) {
     const externalId = clean(product.itemId,80) || productUrl || title;
     if (!externalId) continue;
     rows.push({
-      external_id:externalId,title,brand_name:'',
+      id:crypto.randomUUID(),external_id:externalId,title,brand_name:'',
       product_url:productUrl,affiliate_url:affiliateUrl,image_url:imageUrl,
       price_cents:Number.isFinite(price)&&price>0?Math.round(price*100):null,
       commission_rate:Number.isFinite(commission)?commission:null,
@@ -125,10 +125,10 @@ async function persistShopeeDiscoveryItems(accountId, products) {
         id,account_id,marketplace,kind,external_id,title,brand_name,product_url,affiliate_url,image_url,
         price_cents,commission_rate,rating,sales_count,available,raw_data,first_seen_at,last_seen_at
       )
-      SELECT gen_random_uuid()::text,$1,'SHOPEE','PRODUCT',x.external_id,x.title,x.brand_name,x.product_url,x.affiliate_url,x.image_url,
+      SELECT x.id,$1,'SHOPEE','PRODUCT',x.external_id,x.title,x.brand_name,x.product_url,x.affiliate_url,x.image_url,
         x.price_cents,x.commission_rate,x.rating,x.sales_count,x.available,x.raw_data,now(),now()
       FROM jsonb_to_recordset($2::jsonb) AS x(
-        external_id text,title text,brand_name text,product_url text,affiliate_url text,image_url text,
+        id text,external_id text,title text,brand_name text,product_url text,affiliate_url text,image_url text,
         price_cents bigint,commission_rate numeric,rating numeric,sales_count bigint,available boolean,raw_data jsonb
       )
       ON CONFLICT(account_id,marketplace,kind,external_id) DO UPDATE SET
