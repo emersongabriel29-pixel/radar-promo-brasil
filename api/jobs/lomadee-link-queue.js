@@ -1,4 +1,4 @@
-import { config, db } from 'hatchable';
+import { config, db, scheduler } from 'hatchable';
 import { fingerprint, message as promoMessage, offerScore } from 'lib/automation.js';
 import { classifyLomadeeProduct, normalizeLomadeeCategory } from 'lib/lomadee-catalog.js';
 import { directImageUrl } from 'lib/validation.js';
@@ -100,7 +100,7 @@ async function verifiedShortUrl(apiKey, shortUrl, productUrl) {
 }
 
 export default async function handler(req, res) {
-  const limit = Math.min(10, Math.max(1, Math.floor(Number(req.body?.limit) || 5)));
+  const limit = Math.min(10, Math.max(1, Math.floor(Number(req.body?.limit) || 10)));
   await db.query("UPDATE affiliate_discovery_items SET processing_status='READY_FOR_LINK',processing_error='RECOVERED_STALE_PROCESSING',last_seen_at=now() WHERE marketplace='LOMADEE' AND kind='PRODUCT' AND processing_status='PROCESSING' AND last_seen_at<now()-interval '10 minutes'");
   const credentialsRows = (await db.query(
     "SELECT account_id,credentials_enc,nonce FROM marketplace_api_credentials WHERE marketplace='LOMADEE' AND status='VALIDATED' ORDER BY account_id"
@@ -221,8 +221,20 @@ export default async function handler(req, res) {
   }
 
   const counts = (await db.query("SELECT processing_status,count(*)::int AS count FROM affiliate_discovery_items WHERE marketplace='LOMADEE' AND kind='PRODUCT' GROUP BY processing_status ORDER BY processing_status")).rows;
+  const remaining = counts.reduce((total, row) => total + (row.processing_status === 'READY_FOR_LINK' ? Number(row.count) : 0), 0);
+  let resumeScheduled = false;
+  let resumeError = '';
+  if (remaining > 0 && summary.claimed > 0) {
+    try {
+      await scheduler.at(new Date(Date.now() + 60_000), '/api/jobs/lomadee-link-queue', { name: 'lomadee-link-queue-resume' });
+      resumeScheduled = true;
+    } catch (error) {
+      resumeError = clean(error?.code || error?.message || 'SCHEDULER_ERROR', 120);
+      console.error('lomadee link queue resume could not be armed', resumeError);
+    }
+  }
   return res.json({
-    ok: summary.failed === 0, provider: 'LOMADEE', ...summary, counts,
+    ok: summary.failed === 0, provider: 'LOMADEE', ...summary, counts, remaining, resumeScheduled, resumeError,
     readOnlySource: false, offersCreated: summary.linked, publicationsCreated: 0, messagesSent: 0,
     autopilotTriggered: false, publicationTriggered: false,
     note: 'Gera e verifica links oficiais; cria apenas rascunhos PENDING/NEEDS_REVIEW invisíveis na vitrine. Não publica nem envia mensagens.'
