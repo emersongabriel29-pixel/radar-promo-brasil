@@ -88,6 +88,15 @@ function urlCode(shortUrl) {
   try { return new URL(shortUrl).pathname.split('/').filter(Boolean).pop() || ''; } catch { return ''; }
 }
 
+function comparableProductUrl(value) {
+  try {
+    const url = new URL(String(value || ''));
+    if (url.protocol !== 'https:') return '';
+    for (const key of ['utm_source','utm_medium','utm_campaign','lmdeeTracking']) url.searchParams.delete(key);
+    return url.toString().replace(/\/$/, '');
+  } catch { return ''; }
+}
+
 async function verifiedShortUrl(apiKey, shortUrl, productUrl) {
   const code = urlCode(shortUrl);
   if (!/^[A-Za-z0-9_-]{1,120}$/.test(code)) return false;
@@ -95,7 +104,8 @@ async function verifiedShortUrl(apiKey, shortUrl, productUrl) {
   const data = body?.data && !Array.isArray(body.data) ? body.data : body;
   if (!data || typeof data.shortUrl !== 'string' || typeof data.originalUrl !== 'string') return false;
   const sameShort = data.shortUrl.replace(/\/$/, '') === shortUrl.replace(/\/$/, '');
-  const sameTarget = data.originalUrl === productUrl;
+  // Lomadee appends its own attribution parameters to originalUrl; compare after removing only those parameters.
+  const sameTarget = comparableProductUrl(data.originalUrl) === comparableProductUrl(productUrl);
   return sameShort && sameTarget && data.active !== false;
 }
 
@@ -224,7 +234,7 @@ export default async function handler(req, res) {
   const remaining = counts.reduce((total, row) => total + (row.processing_status === 'READY_FOR_LINK' ? Number(row.count) : 0), 0);
   let resumeScheduled = false;
   let resumeError = '';
-  if (remaining > 0 && summary.claimed > 0) {
+  if (remaining > 0 && summary.claimed > 0 && summary.failed === 0) {
     try {
       await scheduler.at(new Date(Date.now() + 60_000), '/api/jobs/lomadee-link-queue', { name: 'lomadee-link-queue-resume' });
       resumeScheduled = true;
