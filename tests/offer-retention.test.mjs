@@ -13,7 +13,7 @@ import {
 
 test('retention interval is exactly 48 hours', () => {
   assert.equal(OFFER_RETENTION_INTERVAL_MS, 172800000);
-  assert.equal(nextOfferRetentionAt('2026-10-31T12:00:00.000Z'), '2026-11-02T12:00:00.000Z');
+  assert.equal(nextOfferRetentionAt(Date.parse('2026-10-31T12:00:00.000Z')), '2026-11-02T12:00:00.000Z');
 });
 
 test('worker uses a single stable one-shot task identity', () => {
