@@ -62,7 +62,7 @@ async function createTrackedLink(creds, productUrl, itemId, category) {
 export default async function handler(req,res) {
   const dryRun = req.body?.dryRun === true || String(req.body?.dryRun ?? req.query?.dryRun ?? '').toLowerCase() === 'true';
   const rows = (await db.query("SELECT account_id,credentials_enc,nonce FROM marketplace_api_credentials WHERE marketplace='SHOPEE' AND status='VALIDATED'")).rows;
-  const totals = {accounts:rows.length,scanned:0,imported:0,duplicates:0,skipped:0,safetyBlocked:0,selected:0,failed:0,autopilotRuns:0,preview:[]};
+  const totals = {accounts:rows.length,scanned:0,imported:0,duplicates:0,skipped:0,safetyBlocked:0,selected:0,failed:0,autopilotRuns:0,preview:[],incompletePreview:[],safetyBlockedPreview:[]};
   for (const row of rows) {
     let importedForAccount = 0;
     try {
@@ -148,7 +148,7 @@ export default async function handler(req,res) {
       for (const p of products) {
         const title = clean(p.productName,220);
         const productUrl = httpsUrl(p.productLink,2000) || '';
-        if (isMedicationProduct({title, productUrl})) { totals.safetyBlocked++; totals.skipped++; continue; }
+        if (isMedicationProduct({title, productUrl})) { totals.safetyBlocked++; totals.skipped++; totals.safetyBlockedPreview.push({itemId:clean(p.itemId,80),title,discoveryKeyword:clean(p.__radarKeyword,80),reason:'blocked_by_product_safety_policy'}); continue; }
         const affiliateUrl = httpsUrl(p.offerLink,2000) || '';
         const imageUrl = directImageUrl(p.imageUrl) ? p.imageUrl : '';
         const price = Number(p.priceMin);
@@ -156,7 +156,18 @@ export default async function handler(req,res) {
         const discountRate = Number.isFinite(rateRaw) && rateRaw > 0 ? (rateRaw < 1 ? rateRaw : rateRaw/100) : 0;
         const currentPrice = Number.isFinite(price) && price>0 ? Math.round(price*100) : 0;
         const commission = Number(p.commissionRate);
-        if (!title || !productUrl || !affiliateUrl || !imageUrl || !currentPrice || !Number.isFinite(commission) || commission<=0) { totals.skipped++; continue; }
+        const missingFields = [];
+        if (!title) missingFields.push('title');
+        if (!productUrl) missingFields.push('productUrl');
+        if (!affiliateUrl) missingFields.push('affiliateUrl');
+        if (!imageUrl) missingFields.push('imageUrl');
+        if (!currentPrice) missingFields.push('priceMin');
+        if (!Number.isFinite(commission) || commission<=0) missingFields.push('commissionRate');
+        if (missingFields.length) {
+          totals.skipped++;
+          totals.incompletePreview.push({itemId:clean(p.itemId,80),title,shopId:clean(p.shopId,80),shopName:clean(p.shopName,160),discoverySource:p.__discoverySource,discoveryKeyword:clean(p.__radarKeyword,80),missingFields,priceMin:p.priceMin??null,commissionRate:p.commissionRate??null});
+          continue;
+        }
 
         const sales = Math.max(0, Number(p.sales) || 0);
         const commissionPercent = commission <= 1 ? commission * 100 : commission;
@@ -288,7 +299,7 @@ export default async function handler(req,res) {
     } catch (e) {
       totals.failed++;
       const code = String(e?.message||'').slice(0,100);
-      await db.query("UPDATE marketplace_api_credentials SET last_error=$2,updated_at=now() WHERE account_id=$1 AND marketplace='SHOPEE'",[row.account_id,code]);
+      if (!dryRun) await db.query("UPDATE marketplace_api_credentials SET last_error=$2,updated_at=now() WHERE account_id=$1 AND marketplace='SHOPEE'",[row.account_id,code]);
       console.error('shopee ingestion failed',code);
     }
   }
