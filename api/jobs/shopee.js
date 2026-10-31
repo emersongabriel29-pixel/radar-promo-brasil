@@ -64,6 +64,27 @@ async function requestProductPages(creds, query, variables, maxPages = 3) {
   } while (hasNextPage && pagesFetched < maxPages);
   return {nodes,pagesFetched,hasNextPage,nextPage:hasNextPage?page:null};
 }
+async function getShopeeDiscoveryPage(accountId, discoveryKey, sortType) {
+  const result = await db.query(
+    'SELECT next_page FROM shopee_discovery_cursors WHERE account_id=$1 AND discovery_key=$2 AND sort_type=$3 LIMIT 1',
+    [accountId,discoveryKey,sortType]
+  );
+  return Math.max(1, Number(result.rows[0]?.next_page) || 1);
+}
+async function saveShopeeDiscoveryPage(accountId, discoveryKey, sortType, result) {
+  const nextPage = result.hasNextPage ? result.nextPage : 1;
+  await db.query(
+    `INSERT INTO shopee_discovery_cursors(account_id,discovery_key,sort_type,next_page,pages_completed,last_page_count,last_has_next_page,updated_at)
+     VALUES($1,$2,$3,$4,$5,$6,$7,now())
+     ON CONFLICT(account_id,discovery_key,sort_type) DO UPDATE SET
+       next_page=EXCLUDED.next_page,
+       pages_completed=shopee_discovery_cursors.pages_completed+EXCLUDED.pages_completed,
+       last_page_count=EXCLUDED.last_page_count,
+       last_has_next_page=EXCLUDED.last_has_next_page,
+       updated_at=now()`,
+    [accountId,discoveryKey,sortType,nextPage,result.pagesFetched,result.nodes.length,result.hasNextPage]
+  );
+}
 async function createTrackedLink(creds, productUrl, itemId, category) {
   const itemTag = ('ITEM'+clean(itemId,36).replace(/[^a-z0-9]/gi,'')).slice(0,50);
   const categoryTag = ('CAT'+clean(category,30).replace(/[^a-z0-9]/gi,'')).slice(0,50);
@@ -90,7 +111,7 @@ export default async function handler(req,res) {
       const seen = new Set();
       const products = [];
       const addProducts = (nodes, discoveryKeyword, discoverySource) => {
-        for (const product of list(nodes).slice(0,50)) {
+        for (const product of list(nodes)) {
           const key = clean(product.itemId,80) || clean(product.productLink,2000) || clean(product.productName,220);
           if (!key || seen.has(key)) continue;
           // Keep every unique API result. Search relevance affects ranking only, never inclusion.
@@ -103,10 +124,12 @@ export default async function handler(req,res) {
       // Search each selected phrase by sales and commission. Page rotation broadens catalog coverage over time.
       for (const keyword of selectedKeywords) {
         for (const sortType of [2,5]) {
-          const page = sortType === 2 ? 1 : (Math.floor(slot/3)%3)+1;
           const listType = sortType === 2 ? 2 : 1;
+          const discoveryKey = 'keyword:'+keyword;
+          const page = await getShopeeDiscoveryPage(row.account_id,discoveryKey,sortType);
           const result = await requestProductPages(creds,productQuery,{keyword,listType,sortType,page,limit:50},3);
           addProducts(result.nodes,keyword,'keyword');
+          if (!dryRun) await saveShopeeDiscoveryPage(row.account_id,discoveryKey,sortType,result);
           totals.productSearchCalls = (totals.productSearchCalls||0)+result.pagesFetched;
           totals.productPagesFetched = (totals.productPagesFetched||0)+result.pagesFetched;
           if (result.hasNextPage) {
@@ -128,9 +151,17 @@ export default async function handler(req,res) {
           const shopId = clean(shop.shopId,80);
           if (!isShopeeShopId(shopId)) continue;
           try {
-            const shopProducts = await request(creds,productQuery,{shopId,listType:2,sortType:2,page:1,limit:50});
-            addProducts(shopProducts.data?.productOfferV2?.nodes,'loja:'+clean(shop.shopName,80),'partner_shop');
-            totals.shopProductCalls = (totals.shopProductCalls||0)+1;
+            const discoveryKey = 'shop:'+shopId;
+            const page = await getShopeeDiscoveryPage(row.account_id,discoveryKey,2);
+            const shopProducts = await requestProductPages(creds,productQuery,{shopId,listType:2,sortType:2,page,limit:50},3);
+            addProducts(shopProducts.nodes,'loja:'+clean(shop.shopName,80),'partner_shop');
+            if (!dryRun) await saveShopeeDiscoveryPage(row.account_id,discoveryKey,2,shopProducts);
+            totals.shopProductCalls = (totals.shopProductCalls||0)+shopProducts.pagesFetched;
+            totals.productPagesFetched = (totals.productPagesFetched||0)+shopProducts.pagesFetched;
+            if (shopProducts.hasNextPage) {
+              totals.productSearchContinuations = (totals.productSearchContinuations||0)+1;
+              totals.paginationIncomplete = true;
+            }
           } catch (shopProductError) {
             console.error('shopee partner shop product discovery skipped',String(shopProductError?.message||'ERROR').slice(0,80));
           }
