@@ -1,6 +1,15 @@
 name: Lomadee external discovery
 
 on:
+  push:
+    branches:
+      - codex/affiliate-intelligence-v493-20261030
+    paths:
+      - .github/workflows/lomadee-discovery.yml
+      - scripts/workers/lomadee-discovery.mjs
+      - lib/lomadee-worker.js
+      - api/worker/lomadee-discovery.js
+      - api/jobs/lomadee.js
   workflow_dispatch:
   schedule:
     - cron: '0 * * * *'
