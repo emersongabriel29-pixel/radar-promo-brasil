@@ -115,7 +115,7 @@ export default async function handler(req, res) {
   const credentialsRows = (await db.query(
     "SELECT account_id,credentials_enc,nonce FROM marketplace_api_credentials WHERE marketplace='LOMADEE' AND status='VALIDATED' ORDER BY account_id"
   )).rows;
-  const summary = { accounts: credentialsRows.length, claimed: 0, linked: 0, duplicates: 0, blocked: 0, needsData: 0, failed: 0, skippedNoCredential: 0, items: [] };
+  const summary = { accounts: credentialsRows.length, claimed: 0, linked: 0, duplicates: 0, deferred: 0, blocked: 0, needsData: 0, failed: 0, skippedNoCredential: 0, items: [] };
 
   for (const credentialRow of credentialsRows) {
     let apiKey;
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
         SELECT id FROM affiliate_discovery_items
         WHERE account_id=$1 AND marketplace='LOMADEE' AND kind='PRODUCT'
           AND processing_status='READY_FOR_LINK'
-        ORDER BY first_seen_at,id LIMIT $2 FOR UPDATE SKIP LOCKED
+        ORDER BY last_seen_at ASC,random() LIMIT $2 FOR UPDATE SKIP LOCKED
       )
       UPDATE affiliate_discovery_items i
       SET processing_status='PROCESSING',processing_error='',last_seen_at=now()
@@ -136,6 +136,7 @@ export default async function handler(req, res) {
     `, [credentialRow.account_id, limit - summary.claimed]);
     summary.claimed += claimed.rows.length;
 
+    const organizationCounts = new Map();
     for (const row of claimed.rows) {
       let stage = 'PRECHECK';
       try {
@@ -146,6 +147,21 @@ export default async function handler(req, res) {
           if (status === 'BLOCKED_SAFETY') summary.blocked++; else summary.needsData++;
           continue;
         }
+
+        const baseProductUrl = (() => { try { const url = new URL(item.productUrl); url.search = ''; url.hash = ''; return url.toString().replace(/\/$/, ''); } catch { return ''; } })();
+        const existingProduct = baseProductUrl ? (await db.query("SELECT id FROM offers WHERE account_id=$1 AND source='LOMADEE' AND split_part(product_url,'?',1)=$2 ORDER BY created_at,id LIMIT 1", [credentialRow.account_id, baseProductUrl])).rows[0] : null;
+        if (existingProduct) {
+          await db.query("UPDATE affiliate_discovery_items SET processing_status='DUPLICATE',processing_error='DUPLICATE_PRODUCT_URL_VARIANT',offer_id=$2,processed_at=now(),last_seen_at=now() WHERE id=$1 AND account_id=$3", [row.id, existingProduct.id, credentialRow.account_id]);
+          summary.duplicates++;
+          continue;
+        }
+        const organizationCount = organizationCounts.get(item.organizationId) || 0;
+        if (organizationCount >= 2) {
+          await db.query("UPDATE affiliate_discovery_items SET processing_status='READY_FOR_LINK',processing_error='DEFERRED_DIVERSITY',last_seen_at=now() WHERE id=$1 AND account_id=$2", [row.id, credentialRow.account_id]);
+          summary.deferred++;
+          continue;
+        }
+        organizationCounts.set(item.organizationId, organizationCount + 1);
 
         const fp = await fingerprint({
           source: 'LOMADEE', externalId: clean(row.external_id || item.raw.id, 120),
