@@ -1,0 +1,28 @@
+{
+  "name": "Radar Promo Brasil — Importar oferta",
+  "short_name": "Radar Promo",
+  "id": "/share-import.html",
+  "start_url": "/share-import.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f3f5f8",
+  "theme_color": "#101827",
+  "icons": [
+    {
+      "src": "/logo-radar-promo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "share_target": {
+    "action": "/share-import.html",
+    "method": "POST",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}
