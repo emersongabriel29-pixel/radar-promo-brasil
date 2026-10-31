@@ -27,7 +27,8 @@ function normalizeProduct(row) {
   const option = options.find(item => item?.available !== false) || options[0] || {};
   const pricing = Array.isArray(option.pricing) ? option.pricing[0] || {} : {};
   const title = clean(option.name || raw.name || row.title, 300);
-  const image = raw.images?.[0]?.url || option.images?.[0]?.url || row.image_url || '';
+  const imageCandidates = [option.images?.[0]?.url, raw.images?.[0]?.url, option.imageUrl, raw.imageUrl, row.image_url];
+  const image = imageCandidates.find(candidate => directImageUrl(candidate)) || '';
   const productUrl = clean(raw.url || row.product_url, 2000);
   const currentPrice = priceCents(pricing.price) ?? priceCents(pricing.listPrice) ?? priceCents(row.price_cents ? Number(row.price_cents) / 100 : null);
   const classification = classifyLomadeeProduct(raw);
