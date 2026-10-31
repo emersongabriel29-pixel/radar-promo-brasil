@@ -78,6 +78,13 @@ test('Shopee product discovery paginates and reports when the bounded page windo
   assert.match(source, /processing_status='IMPORTED'/);
   assert.match(source, /processing_status='DUPLICATE'/);
   assert.match(source, /processing_status='FAILED'/);
+  assert.match(source, /processing_status='INCOMPLETE'/);
+  assert.match(source, /processing_status='BLOCKED'/);
+  assert.match(source, /clean\(p\.productName \|\| p\.name,220\)/);
+  assert.match(source, /httpsUrl\(p\.productLink \|\| p\.originalUrl,2000\)/);
+  assert.match(source, /httpsUrl\(p\.offerLink \|\| p\.url,2000\)/);
+  assert.match(source, /Number\(p\.priceMin \?\? p\.price\)/);
+  assert.match(source, /Number\(p\.ratingStar \?\? p\.rating\)/);
   assert.match(source, /discoveryItemsStored/);
   assert.match(source, /incompleteStored/);
   assert.match(source, /discoveryStats\.safetyBlockedPreview/);
