@@ -11,7 +11,8 @@ test('Shopee shop and item IDs accept decimal Int64 strings without numeric coer
   assert.equal(isShopeeShopId(''), false);
   assert.equal(isShopeeItemId('1589295236'), true);
   assert.equal(isShopeeItemId('1234567'), false);
-  assert.equal(isShopeeItemId('1234567890123456789'), false);
+  assert.equal(isShopeeItemId('9223372036854775807'), true);
+  assert.equal(isShopeeItemId('9223372036854775808'), false);
 });
 
 test('pajama titles map to the fashion family', () => {
