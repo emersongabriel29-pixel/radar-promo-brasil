@@ -189,7 +189,7 @@ export default async function handler(req, res) {
       const page = Math.min(1000, Math.max(1, Math.floor(Number(req.body?.page) || 1)));
       const requestedSort = Math.floor(Number(req.body?.sortType) || (kind === 'productOfferV2' ? 5 : 2));
       const sortType = Math.min(5, Math.max(1, requestedSort));
-      const variables = { keyword, sortType, page, limit };
+      const variables = kind === 'brandOffer' ? { page, limit } : { keyword, sortType, page, limit };
       let query;
       if (kind === 'productOfferV2') {
         const listType = Math.min(2, Math.max(0, Math.floor(Number(req.body?.listType) || 0)));
@@ -210,7 +210,7 @@ export default async function handler(req, res) {
         if (shopType.length) variables.shopType = shopType;
         if (req.body?.isKeySeller !== undefined && req.body?.isKeySeller !== '') variables.isKeySeller = isKeySeller;
       } else if (kind === 'brandOffer') {
-        query = 'query($sortType: Int, $page: Int, $limit: Int) { brandOffer(sortType: $sortType, page: $page, limit: $limit) { nodes { brandName offerName offerLink commissionRate } pageInfo { page limit hasNextPage } } }';
+        query = 'query($page: Int, $limit: Int) { brandOffer(page: $page, limit: $limit) { nodes { brandName offerName offerLink commissionRate } pageInfo { page limit hasNextPage } } }';
       } else {
         query = 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { shopeeOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { offerName offerLink originalLink imageUrl commissionRate offerType categoryId collectionId periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
       }
@@ -317,12 +317,12 @@ export default async function handler(req, res) {
       if (orderStatus && !['UNPAID','PENDING','COMPLETED','CANCELLED'].includes(orderStatus)) return res.status(400).json({ error: 'Status deve ser UNPAID, PENDING, COMPLETED ou CANCELLED.' });
       if (buyerType && !['NEW','EXISTING'].includes(buyerType)) return res.status(400).json({ error: 'Tipo de comprador deve ser NEW ou EXISTING.' });
       if (device && !['APP','WEB'].includes(device)) return res.status(400).json({ error: 'Dispositivo deve ser APP ou WEB.' });
-      const query = 'query($start: Int64!, $end: Int64!, $limit: Int!, $scrollId: String, $orderStatus: String, $buyerType: String, $device: String) { conversionReport(purchaseTimeStart: $start, purchaseTimeEnd: $end, limit: $limit, scrollId: $scrollId, orderStatus: $orderStatus, buyerType: $buyerType, device: $device) { nodes { conversionId clickTime purchaseTime totalCommission sellerCommission shopeeCommissionCapped buyerType device utmContent orders { orderId orderStatus items { itemId itemName shopName itemPrice qty itemTotalCommission attributionType } } } pageInfo { limit hasNextPage scrollId } } }';
+      const query = 'query($start: Int64!, $end: Int64!, $limit: Int!, $scrollId: String) { conversionReport(purchaseTimeStart: $start, purchaseTimeEnd: $end, limit: $limit, scrollId: $scrollId) { nodes { conversionId clickTime purchaseTime totalCommission sellerCommission shopeeCommissionCapped buyerType device utmContent orders { orderId orderStatus items { itemId itemName shopName itemPrice qty itemTotalCommission attributionType } } } pageInfo { limit hasNextPage scrollId } } }';
       const maxPages = Math.min(5, Math.max(1, Math.floor(Number(req.body?.maxPages) || 3)));
       let currentScrollId = clean(req.body?.scrollId, 1000), pagesCompleted = 0, hasMore = false;
       const conversionItems = [];
       while (pagesCompleted < maxPages) {
-        const pageResult = await signedRequest(credentials, { query, variables: { start, end, limit, ...(currentScrollId ? { scrollId: currentScrollId } : {}), ...(orderStatus ? { orderStatus } : {}), ...(buyerType ? { buyerType } : {}), ...(device ? { device } : {}) } });
+        const pageResult = await signedRequest(credentials, { query, variables: { start: String(start), end: String(end), limit, ...(currentScrollId ? { scrollId: currentScrollId } : {}) } });
         const root = pageResult?.data?.conversionReport || {};
         const pageItems = Array.isArray(root.nodes) ? root.nodes : [];
         conversionItems.push(...pageItems); pagesCompleted++;

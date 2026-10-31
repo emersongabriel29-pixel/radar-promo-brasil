@@ -13,6 +13,10 @@ test('Shopee keyword catalog expands curated products into thousands of searchab
   assert.ok(catalog.includes('Nike tênis masculino'));
   assert.ok(catalog.includes('Pampers fralda bebê'));
   assert.equal(catalog.includes('Apple ração cachorro'), false);
+  assert.equal(catalog.includes('pijama portátil'), false);
+  assert.equal(catalog.includes('pijama para cozinha'), false);
+  assert.ok(catalog.includes('power bank portátil'));
+  assert.ok(catalog.includes('air fryer para cozinha'));
   assert.equal(new Set(catalog.map(value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase())).size, catalog.length);
 });
 

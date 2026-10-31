@@ -22,7 +22,7 @@
 <section class="section card">
 <h2>Explorador de recursos</h2>
 <p>Consultas manuais somente leitura. As operações dependem dos escopos ativos de cada conta e podem consumir cotas das APIs. Nenhuma ação abaixo publica ofertas ou envia mensagens.</p>
-<div class="page-picker"><label for="catalogPage">Página inicial da consulta</label><input id="catalogPage" type="number" min="1" max="1000" value="1"><span class="small">Lomadee percorre até 10 páginas por recurso; Shopee e AliExpress consultam até 3 páginas por lote e oferecem continuação.</span></div><div class="actions">
+<div class="page-picker"><label for="catalogKeyword">Palavra-chave para produtos Shopee</label><input id="catalogKeyword" type="text" maxlength="80" placeholder="Ex.: organizador, cozinha, beleza"><label for="catalogPage">Página inicial da consulta</label><input id="catalogPage" type="number" min="1" max="1000" value="1"><span class="small">Lomadee percorre até 10 páginas por recurso; Shopee e AliExpress consultam até 3 páginas por lote e oferecem continuação.</span></div><div class="actions">
 <button type="button" data-op="lomadee">Auditar recursos Lomadee</button>
 <button type="button" data-op="aliexpress">Auditar API AliExpress</button><button type="button" data-op="lomadee-catalog">Persistir catálogo Lomadee</button><button type="button" data-op="aliexpress-products">Persistir produtos AliExpress</button><button type="button" data-op="aliexpress-campaigns">Persistir campanhas AliExpress</button><button type="button" data-op="aliexpress-categories">Persistir categorias AliExpress</button>
 <button type="button" data-op="shopee-products">Persistir produtos Shopee</button>
@@ -39,6 +39,23 @@
 </section>
 <section class="section"><h2>Auditorias recentes</h2><div class="tablewrap"><table><thead><tr><th>API</th><th>Recurso</th><th>Status</th><th>Registros</th><th>Páginas</th><th>Data</th></tr></thead><tbody id="audits"></tbody></table></div></section>
 <section class="section"><h2>Oportunidades priorizadas</h2><p class="small">Pontuação de prioridade, não lucro. Conversão só aparece quando há cliques observados.</p><div class="tablewrap"><table><thead><tr><th>Produto</th><th>Origem</th><th>Prioridade</th><th>Cliques</th><th>Pedidos</th><th>Conversão</th><th>Comissão</th></tr></thead><tbody id="ranked"></tbody></table></div></section>
+<section class="section card" id="competition">
+<h2>Radar de concorrência Shopee Vídeos</h2>
+<p>Registre o que encontrou ao pesquisar o produto na Shopee Vídeos. O Radar cruza essas observações com vendas, avaliação e comissão da API oficial. A contagem de criadores/vídeos é manual, não um dado fornecido pela API.</p>
+<form id="competitionForm" class="competition-form">
+<label for="compProductId">ID numérico do produto Shopee</label><input id="compProductId" inputmode="numeric" pattern="[0-9]+" maxlength="24" required placeholder="Ex.: 1234567890">
+<label for="compTitle">Nome do produto</label><input id="compTitle" maxlength="240" required placeholder="Ex.: Organizador de cozinha">
+<div class="competition-fields">
+<div><label for="compCreators">Criadores encontrados</label><input id="compCreators" type="number" min="0" max="1000000" step="1" required placeholder="0"></div>
+<div><label for="compVideos">Vídeos encontrados</label><input id="compVideos" type="number" min="0" max="1000000" step="1" required placeholder="0"></div>
+</div>
+<label for="compNote">Observação (opcional)</label><input id="compNote" maxlength="500" placeholder="Termo pesquisado, filtro ou observação">
+<button class="primary" id="saveCompetition" type="submit">Salvar observação</button>
+</form>
+<div id="competitionStatus" class="status" role="status" aria-live="polite">Carregando observações…</div>
+<div class="tablewrap"><table><thead><tr><th>Produto</th><th>Criadores</th><th>Vídeos</th><th>Concorrência</th><th>Oportunidade</th><th>Confiança</th><th>Coleta</th></tr></thead><tbody id="competitionRows"><tr><td colspan="7">Carregando…</td></tr></tbody></table></div>
+<p class="small">Atualize a observação a cada 7–14 dias. Acima de 30 dias, a informação é considerada desatualizada. “Criadores encontrados” é uma amostra observada na busca, não a quantidade total de afiliados cadastrados.</p>
+</section>
 </main>
 </body>
 </html>

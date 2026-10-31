@@ -134,9 +134,9 @@ export default async function handler(req,res) {
 
       // Brand partner offers are a separate official discovery surface. Record discovery only;
       // a brand offer is not a priced product and must not enter the Telegram product pipeline.
-      const brandQuery = 'query($sortType: Int, $page: Int, $limit: Int) { brandOffer(sortType: $sortType, page: $page, limit: $limit) { nodes { brandName offerName offerLink commissionRate } pageInfo { page limit hasNextPage } } }';
+      const brandQuery = 'query($page: Int, $limit: Int) { brandOffer(page: $page, limit: $limit) { nodes { brandName offerName offerLink commissionRate } pageInfo { page limit hasNextPage } } }';
       try {
-        const brandData = await request(creds,brandQuery,{sortType:2,page:1,limit:30});
+        const brandData = await request(creds,brandQuery,{page:1,limit:30});
         totals.brandOffersDiscovered = (totals.brandOffersDiscovered||0)+list(brandData.data?.brandOffer?.nodes).length;
       } catch (brandError) {
         totals.brandOfferDiscoveryUnavailable = true;
