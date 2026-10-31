@@ -1,4 +1,4 @@
-import { config, db, scheduler } from 'hatchable';
+import { config, db } from 'hatchable';
 import { fetchWithRetry } from 'lib/http-retry.js';
 import { fingerprint, message as promoMessage, offerScore } from 'lib/automation.js';
 import { directImageUrl } from 'lib/validation.js';
@@ -235,7 +235,7 @@ export default async function handler(req, res) {
         const score = offerScore({ title, currentPrice, originalPrice });
         const promo = promoMessage({ title, source: 'LOMADEE', currentPrice, originalPrice, affiliateUrl, imageUrl, productUrl });
         const inserted = await db.query(
-          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,classification_tags,classification_confidence,classification_status,classification_reason,source_category,subcategory) VALUES($1,$2,$3,'LOMADEE',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'APPROVED',$12,$13,'VALIDATED','AUTO',false,$14::jsonb,$15,'REVIEW',$16,$17,$18) ON CONFLICT DO NOTHING RETURNING id",
+          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,classification_tags,classification_confidence,classification_status,classification_reason,source_category,subcategory) VALUES($1,$2,$3,'LOMADEE',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'NEEDS_REVIEW','AUTO',false,$14::jsonb,$15,'REVIEW',$16,$17,$18) ON CONFLICT DO NOTHING RETURNING id",
           [
             crypto.randomUUID(), row.account_id, title, originalPrice, currentPrice, categoryId,
             affiliateUrl, imageUrl, productUrl, discount, score, promo, fp,
@@ -265,10 +265,7 @@ export default async function handler(req, res) {
       }
 
       await db.query("UPDATE marketplace_api_credentials SET last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='LOMADEE'", [row.account_id]);
-      if (accountImported) {
-        try { await scheduler.now('/api/jobs/autopilot'); totals.autopilotRuns++; }
-        catch (error) { console.error('lomadee autopilot trigger failed', String(error?.code || error?.name || 'ERROR').slice(0, 60)); }
-      }
+      // Lomadee imports remain pending for human review; never trigger autopilot or publication here.
     } catch (error) {
       totals.failed++;
       const code = Number(error?.status) || 0;
