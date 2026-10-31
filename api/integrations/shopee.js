@@ -180,9 +180,10 @@ export default async function handler(req, res) {
       return res.json({ok:true,action:'import_offers',imported:imported.length,skipped:skipped.length,items:imported,skippedItems:skipped,reviewRequired:true,autopilotTriggered:false,publicationTriggered:false,note:'Ofertas Shopee importadas como rascunhos com preço oficial e link de afiliado. A publicação depende de aprovação humana e das regras do canal.'});
     }
     if (action === 'offers') {
-      const kindMap = { product: 'productOfferV2', shop: 'shopOfferV2', shopee: 'shopeeOfferV2', brand: 'brandOffer' };
+      const kindMap = { product: 'productOfferV2', shop: 'shopOfferV2', shopee: 'shopeeOfferV2', brand: 'brandOfferV2' };
       const kind = kindMap[clean(req.body?.kind, 20).toLowerCase()];
       if (!kind) return res.status(400).json({ error: 'Escolha ofertas de produto, loja, campanha ou marca Shopee.' });
+      if (kind === 'brandOfferV2') return res.status(501).json({ code: 'SHOPEE_BRAND_OFFERS_UNAVAILABLE', error: 'A Open API brasileira desta conexão não expõe brandOfferV2 e o endpoint brandOffer legado está descontinuado. A descoberta continua disponível por produto, loja e campanha.' });
       const keyword = clean(req.body?.keyword || 'phone', 80).replace(/[\r\n]/g, ' ').trim() || 'phone';
       // The documented offer endpoints support large pages. Keep the default useful for interactive use,
       // while allowing authorized callers to request up to 500 records per page.
@@ -190,7 +191,7 @@ export default async function handler(req, res) {
       const page = Math.min(1000, Math.max(1, Math.floor(Number(req.body?.page) || 1)));
       const requestedSort = Math.floor(Number(req.body?.sortType) || (kind === 'productOfferV2' ? 5 : 2));
       const sortType = Math.min(5, Math.max(1, requestedSort));
-      const variables = kind === 'brandOffer' ? { page, limit } : { keyword, sortType, page, limit };
+      const variables = { keyword, sortType, page, limit };
       let query;
       if (kind === 'productOfferV2') {
         const listType = Math.min(2, Math.max(0, Math.floor(Number(req.body?.listType) || 0)));
@@ -210,8 +211,10 @@ export default async function handler(req, res) {
         query = 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int, $shopType: [Int!], $isKeySeller: Boolean) { shopOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit, shopType: $shopType, isKeySeller: $isKeySeller) { nodes { shopName shopId offerLink commissionRate ratingStar shopType imageUrl remainingBudget sellerCommCoveRatio periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
         if (shopType.length) variables.shopType = shopType;
         if (req.body?.isKeySeller !== undefined && req.body?.isKeySeller !== '') variables.isKeySeller = isKeySeller;
-      } else if (kind === 'brandOffer') {
-        query = 'query($page: Int, $limit: Int) { brandOffer(page: $page, limit: $limit) { nodes { brandName offerName offerLink commissionRate } pageInfo { page limit hasNextPage } } }';
+      } else if (kind === 'brandOfferV2') {
+        query = 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { brandOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { brandId brandName commissionRate imageUrl offerLink originalLink periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
+        variables.keyword = keyword;
+        variables.sortType = sortType;
       } else {
         query = 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { shopeeOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { offerName offerLink originalLink imageUrl commissionRate offerType categoryId collectionId periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
       }
@@ -220,7 +223,7 @@ export default async function handler(req, res) {
       if(shouldPersist && categorySlug && !discoveryCategories.has(categorySlug))return res.status(400).json({error:'Categoria inválida para atribuição do catálogo.'});
       if(shouldPersist){
         if(saved.status!=='VALIDATED')return res.status(412).json({error:'Valide a credencial Shopee antes de persistir o catálogo.'});
-        const discoveryKind=kind==='productOfferV2'?'PRODUCT':kind==='shopOfferV2'?'SHOP':kind==='brandOffer'?'BRAND':'CAMPAIGN';
+        const discoveryKind=kind==='productOfferV2'?'PRODUCT':kind==='shopOfferV2'?'SHOP':kind==='brandOfferV2'?'BRAND':'CAMPAIGN';
         const maxPages=Math.min(5,Math.max(1,Math.floor(Number(req.body?.maxPages)||3)));
         let currentPage=page,pagesCompleted=0,hasNextPage=false,finalPageInfo=null;
         const allItems=[],discoveries=[];
