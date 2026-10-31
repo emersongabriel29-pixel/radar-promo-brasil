@@ -24,7 +24,7 @@ Os segredos não são gravados no GitHub nem enviados pelo chat.
    - `LOMADEE_API_KEY`: a mesma chave de API Lomadee já cadastrada e validada no Radar.
    - `RADAR_WORKER_SECRET`: o mesmo valor configurado como `EXTERNAL_WORKER_SECRET` na Hatchable.
 3. No arquivo `.github/workflows/lomadee-discovery.yml`, associe esses dois segredos às variáveis de ambiente com a sintaxe de secrets do GitHub Actions. Os campos estão intencionalmente vazios até a configuração manual.
-4. O workflow roda somente por acionamento manual ou agendamento; não é executado em eventos de pull request.
+4. O worker pode ser testado por push dos arquivos monitorados na branch dedicada; também há acionamento manual e agendamento quando o workflow estiver na branch padrão. Ele não é executado em eventos de pull request.
 5. A primeira execução deve ser manual e observada antes de ativar o consumo externo.
 
 O endpoint compara o SHA-256 da chave enviada pelo worker com a chave já armazenada e descriptografada no servidor. Isso impede que uma chave Lomadee diferente seja usada para gravar dados na conta do Radar.
