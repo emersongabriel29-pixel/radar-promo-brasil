@@ -52,3 +52,14 @@ test('Shopee discovery ranks every unique API result without relevance or batch 
   assert.doesNotMatch(source, /checkedCandidates >= 15/);
   assert.match(source, /selectShopeeKeywords\(slot,6\)/);
 });
+
+test('Shopee product discovery paginates and reports when the bounded page window continues', async () => {
+  const source = await readFile(new URL('../api/jobs/shopee.js', import.meta.url), 'utf8');
+  assert.match(source, /async function requestProductPages/);
+  assert.match(source, /requestProductPages\(creds,productQuery/);
+  assert.match(source, /result\.hasNextPage/);
+  assert.match(source, /totals\.paginationIncomplete = true/);
+  assert.match(source, /brand_offer_v2_not_exposed_by_live_brazil_schema/);
+  assert.doesNotMatch(source, /brandOfferV2\(/);
+  assert.doesNotMatch(source, /brandOffer\(/);
+});
