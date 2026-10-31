@@ -11,7 +11,18 @@ const BASE = 'https://api.lomadee.com.br';
 const clean = (v, max = 300) => String(v ?? '').trim().slice(0, max);
 const fromB64 = value => Uint8Array.from(atob(value), char => char.charCodeAt(0));
 const list = body => Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : Array.isArray(body?.items) ? body.items : Array.isArray(body?.products) ? body.products : [];
-const priceCents = value => { const n = Number(value); return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : NaN; };
+const parseMoney = value => {
+  if (value === null || value === undefined || value === '') return NaN;
+  const raw = String(value).trim().replace(/[^0-9,.-]/g, '');
+  if (!raw) return NaN;
+  const comma = raw.lastIndexOf(','), dot = raw.lastIndexOf('.');
+  let normalized = raw;
+  if (comma >= 0 && dot >= 0) normalized = comma > dot ? raw.replace(/\./g, '').replace(',', '.') : raw.replace(/,/g, '');
+  else if (comma >= 0) normalized = raw.replace(/\./g, '').replace(',', '.');
+  const number = Number(normalized);
+  return Number.isFinite(number) && number > 0 ? number : NaN;
+};
+const priceCents = value => { const n = parseMoney(value); return Number.isFinite(n) ? Math.round(n * 100) : NaN; };
 
 async function readCredentials(row) {
   let raw = String(await config.get('API_CREDENTIALS_MASTER_KEY') || '');
@@ -156,7 +167,7 @@ export default async function handler(req, res) {
           const classification = classifyLomadeeProduct(product);
           const productUrl = typeof product.url === 'string' && /^https:\/\//i.test(product.url) ? product.url : '';
           const imageUrl = product.images?.[0]?.url || option.images?.[0]?.url || '';
-          const currentPrice = priceCents(pricing.price);
+          const currentPrice = priceCents(pricing.price) || priceCents(pricing.listPrice);
           const listedOriginalPrice = priceCents(pricing.listPrice);
           // A missing/equal list price is not a reason to discard a valid product; record it at current price with 0% discount.
           const originalPrice = Number.isSafeInteger(currentPrice) ? Math.max(Number.isSafeInteger(listedOriginalPrice) ? listedOriginalPrice : currentPrice, currentPrice) : listedOriginalPrice;
