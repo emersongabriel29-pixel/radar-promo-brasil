@@ -164,17 +164,29 @@ export default async function handler(req,res) {
       // Keep each run bounded to protect Shopee quotas; expand discovery across sort modes and partner shops.
       const slot = Math.floor(Date.now()/1800000);
       const selectedKeywords = selectShopeeKeywords(slot,6);
-      const productQuery = 'query($keyword: String, $shopId: Int64, $listType: Int, $sortType: Int, $page: Int, $limit: Int, $isAMSOffer: Boolean, $isKeySeller: Boolean) { productOfferV2(keyword: $keyword, shopId: $shopId, listType: $listType, sortType: $sortType, page: $page, limit: $limit, isAMSOffer: $isAMSOffer, isKeySeller: $isKeySeller) { nodes { itemId shopId shopName productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate commissionRate sales ratingStar } pageInfo { page limit hasNextPage } } }';
-      const seen = new Set();
+      const productQuery = 'query($keyword: String, $shopId: Int64, $listType: Int, $sortType: Int, $page: Int, $limit: Int, $isAMSOffer: Boolean, $isKeySeller: Boolean) { productOfferV2(keyword: $keyword, shopId: $shopId, listType: $listType, sortType: $sortType, page: $page, limit: $limit, isAMSOffer: $isAMSOffer, isKeySeller: $isKeySeller) { nodes { itemId shopId shopName productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate commissionRate sellerCommissionRate shopeeCommissionRate commission sales ratingStar } pageInfo { page limit hasNextPage } } }';
+      const seen = new Map();
       const products = [];
       const addProducts = (nodes, discoveryKeyword, discoverySource) => {
         for (const product of list(nodes)) {
           const key = clean(product.itemId,80) || clean(product.productLink,2000) || [clean(product.shopId,80),clean(product.productName,220)].filter(Boolean).join(':');
-          if (!key || seen.has(key)) continue;
+          if (!key) continue;
+          const existing = seen.get(key);
+          if (existing) {
+            // Merge fields from alternate discovery paths instead of dropping the richer record.
+            for (const [field,value] of Object.entries(product)) {
+              if (value !== null && value !== undefined && value !== '') existing[field] = value;
+            }
+            existing.__discoverySources = [...new Set([...(existing.__discoverySources||[]),discoverySource])];
+            if (discoverySource === 'ams_keyword') existing.__isAMSOffer = true;
+            continue;
+          }
           // Keep every unique API result. Search relevance affects ranking only, never inclusion.
-          seen.add(key);
           product.__radarKeyword = discoveryKeyword;
           product.__discoverySource = discoverySource;
+          product.__discoverySources = [discoverySource];
+          product.__isAMSOffer = discoverySource === 'ams_keyword';
+          seen.set(key,product);
           products.push(product);
         }
       };
@@ -196,6 +208,24 @@ export default async function handler(req,res) {
         }
       }
       totals.keywordsQueried = (totals.keywordsQueried||0)+selectedKeywords.length;
+
+      // Rotate two AMS/CommissionsXtra-filtered searches per cycle. These are product offers
+      // with seller-funded commission fields, the live-schema route for brand-commission items.
+      const amsKeywords = selectedKeywords.filter((_,index)=>(index+slot)%3===0).slice(0,2);
+      for (const keyword of amsKeywords) {
+        const discoveryKey = 'ams:'+keyword;
+        const page = await getShopeeDiscoveryPage(row.account_id,discoveryKey,5);
+        const result = await requestProductPages(creds,productQuery,{keyword,listType:1,sortType:5,page,limit:50,isAMSOffer:true},3);
+        addProducts(result.nodes,keyword,'ams_keyword');
+        if (!dryRun) await saveShopeeDiscoveryPage(row.account_id,discoveryKey,5,result);
+        totals.amsProductSearchCalls = (totals.amsProductSearchCalls||0)+result.pagesFetched;
+        totals.productPagesFetched = (totals.productPagesFetched||0)+result.pagesFetched;
+        if (result.hasNextPage) {
+          totals.productSearchContinuations = (totals.productSearchContinuations||0)+1;
+          totals.paginationIncomplete = true;
+        }
+      }
+      totals.amsKeywordsQueried = (totals.amsKeywordsQueried||0)+amsKeywords.length;
 
       // Discover affiliate partner shops, then sample products from the two strongest returned shops.
       // Optional discovery failures must not block the core product search.
@@ -272,7 +302,7 @@ export default async function handler(req,res) {
         if (!Number.isFinite(commission) || commission<=0) missingFields.push('commissionRate');
         if (missingFields.length) {
           totals.skipped++;
-          totals.incompletePreview.push({itemId:clean(p.itemId,80),title,shopId:clean(p.shopId,80),shopName:clean(p.shopName,160),discoverySource:p.__discoverySource,discoveryKeyword:clean(p.__radarKeyword,80),missingFields,priceMin:p.priceMin??null,commissionRate:p.commissionRate??null});
+          totals.incompletePreview.push({itemId:clean(p.itemId,80),title,shopId:clean(p.shopId,80),shopName:clean(p.shopName,160),discoverySource:(p.__discoverySources||[p.__discoverySource]).join(','),discoveryKeyword:clean(p.__radarKeyword,80),missingFields,priceMin:p.priceMin??null,commissionRate:p.commissionRate??null});
           continue;
         }
 
@@ -314,7 +344,7 @@ export default async function handler(req,res) {
       totals.selected += selectedCandidates.length;
       totals.candidatesRetained = (totals.candidatesRetained || 0) + selectedCandidates.length;
       if (dryRun) {
-        totals.preview.push(...selectedCandidates.map(candidate => ({itemId:clean(candidate.p.itemId,80),title:candidate.title,category:candidate.classified.category,subcategory:candidate.classified.subcategory,confidence:candidate.classified.confidence,score:candidate.score,sales:candidate.sales,rating:candidate.p.ratingStar==null?null:Number(candidate.p.ratingStar),commissionPercent:candidate.commissionPercent,discountRate:candidate.discountRate,shopId:clean(candidate.p.shopId,80),shopName:clean(candidate.p.shopName,160),price:candidate.currentPrice/100,discoverySource:candidate.p.__discoverySource,discoveryKeyword:clean(candidate.p.__radarKeyword,80)})));
+        totals.preview.push(...selectedCandidates.map(candidate => ({itemId:clean(candidate.p.itemId,80),title:candidate.title,category:candidate.classified.category,subcategory:candidate.classified.subcategory,confidence:candidate.classified.confidence,score:candidate.score,sales:candidate.sales,rating:candidate.p.ratingStar==null?null:Number(candidate.p.ratingStar),commissionPercent:candidate.commissionPercent,discountRate:candidate.discountRate,shopId:clean(candidate.p.shopId,80),shopName:clean(candidate.p.shopName,160),price:candidate.currentPrice/100,discoverySource:(candidate.p.__discoverySources||[candidate.p.__discoverySource]).join(','),discoveryKeyword:clean(candidate.p.__radarKeyword,80)})));
         continue;
       }
       for (const candidate of selectedCandidates) {
