@@ -236,7 +236,7 @@ export default async function handler(req, res) {
   let resumeError = '';
   if (remaining > 0 && summary.claimed > 0 && summary.failed === 0) {
     try {
-      await scheduler.at(new Date(Date.now() + 60_000), '/api/jobs/lomadee-link-queue', { name: 'lomadee-link-queue-resume' });
+      await scheduler.at(new Date(Date.now() + 60_000), '/api/jobs/lomadee-link-queue', { name: 'lomadee-link-queue-resume-' + Date.now() });
       resumeScheduled = true;
     } catch (error) {
       resumeError = clean(error?.code || error?.message || 'SCHEDULER_ERROR', 120);
