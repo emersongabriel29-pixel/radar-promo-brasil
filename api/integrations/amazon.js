@@ -1,4 +1,9 @@
 import { config, db } from 'hatchable';
+import { fingerprint, offerScore } from 'lib/automation.js';
+import { classifyProduct } from 'lib/category-classifier.js';
+import { isMedicationProduct } from 'lib/product-safety.js';
+// API catalog items are not filtered by product category.
+import { formatPromo } from 'lib/promo-message.js';
 
 export const access = 'member';
 export const methods = ['GET', 'POST'];
@@ -105,7 +110,7 @@ async function amazonRequest(c, operation, payload) {
 function buildRequest(action, input) {
   const resources = DEFAULT_RESOURCES;
   if (action === 'test') return { operation: 'searchItems', payload: { keywords: 'livro', searchIndex: 'All', itemCount: 1, itemPage: 1, resources: ['itemInfo.title'] } };
-  if (action === 'search') {
+  if (action === 'search' || action === 'import') {
     const keywords = clean(input.keyword, 120);
     if (!keywords) throw Object.assign(new Error('Informe uma palavra-chave para buscar produtos.'), { status: 400 });
     const count = Math.min(10, Math.max(1, Math.floor(Number(input.itemCount) || 10)));
@@ -161,6 +166,50 @@ export default async function handler(req, res) {
     const action = clean(req.body?.action || '', 30);
     const { operation, payload } = buildRequest(action, req.body || {});
     const result = await amazonRequest(c, operation, payload);
+
+    if (action === 'import') {
+      const root = result?.searchResult || result?.SearchResult || {};
+      const products = root.items || root.Items || [];
+      const imported = [], skipped = [];
+      const categories = (await db.query('SELECT id,name FROM categories WHERE account_id=$1 ORDER BY name',[account.id])).rows;
+      for (const item of Array.isArray(products) ? products : []) {
+        const title = clean(item?.itemInfo?.title?.displayValue || item?.ItemInfo?.Title?.DisplayValue,220);
+        const asin = clean(item?.asin || item?.ASIN,20).toUpperCase();
+        const productUrl = clean(item?.detailPageURL || item?.DetailPageURL,2000);
+        const imageUrl = clean(item?.images?.primary?.medium?.url || item?.Images?.Primary?.Medium?.URL,1500);
+        const listing = (item?.offersV2?.listings || item?.OffersV2?.Listings || [])[0] || {};
+        const currentAmount = Number(listing?.price?.money?.amount ?? listing?.Price?.Money?.Amount);
+        const originalAmount = Number(listing?.savingBasis?.money?.amount ?? listing?.SavingBasis?.Money?.Amount ?? listing?.price?.savingsBasis?.money?.amount ?? listing?.Price?.SavingsBasis?.Money?.Amount);
+        const currentPrice = Math.round(currentAmount * 100), originalPrice = Math.round(originalAmount * 100);
+        let parsed;
+        try { parsed = new URL(productUrl); } catch {}
+        const tag = parsed?.searchParams?.get('tag') || '';
+        let reason = '';
+        if (isMedicationProduct({title,productUrl})) reason = 'Medicamentos e produtos farmacêuticos são bloqueados pela política do Radar.';
+        else if (!asin || !title) reason = 'ASIN ou título ausente.';
+        else if (!parsed || parsed.protocol !== 'https:' || !ALLOWED_MARKETPLACES.has(parsed.hostname.toLowerCase()) || tag.toLowerCase() !== c.partnerTag.toLowerCase()) reason = 'URL sem Partner Tag válido do marketplace configurado.';
+        else if (!/^https:\/\//i.test(imageUrl)) reason = 'Imagem do produto ausente.';
+        else if (!Number.isSafeInteger(currentPrice) || currentPrice <= 0 || !Number.isSafeInteger(originalPrice) || originalPrice <= currentPrice) reason = 'Preço atual/original indisponível ou sem desconto verificável.';
+        // No internal category exclusion.
+        if (reason) { skipped.push({asin,title,reason}); continue; }
+        const classification = classifyProduct({title});
+        const category = categories.find(x=>x.name.toLowerCase()===String(classification.category||'').toLowerCase()) || categories.find(x=>x.name.toLowerCase().includes('gerais')) || null;
+        const fp = await fingerprint({source:'AMAZON',externalId:asin,productUrl,title});
+        const discount = Math.round((originalPrice-currentPrice)*100/originalPrice);
+        const score = offerScore({title,currentPrice,originalPrice});
+        const promo = formatPromo({title,source:'AMAZON',category:classification.category,currentPrice,originalPrice,affiliateUrl:productUrl,imageUrl,productUrl});
+        const savedOffer = await db.query(
+          "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,subcategory,classification_tags,classification_confidence,classification_status,classification_reason,source_category) VALUES($1,$2,$3,'AMAZON',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'VALIDATED','AMAZON_CREATORS_API',false,$14,$15::jsonb,$16,'REVIEW','Imported as draft; human review required',NULL) ON CONFLICT DO NOTHING RETURNING id",
+          [crypto.randomUUID(),account.id,title,originalPrice,currentPrice,category?.id||null,productUrl,imageUrl,productUrl,discount,score,promo.message,fp,classification.subcategory||null,JSON.stringify(classification.tags||[]),classification.confidence||0]
+        );
+        if (!savedOffer.rows.length) { skipped.push({asin,title,reason:'Produto duplicado.'}); continue; }
+        const offerId = savedOffer.rows[0].id;
+        await db.query("INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,$4,$5,'OFFICIAL_API',$6,now())",[crypto.randomUUID(),account.id,offerId,currentPrice,originalPrice,'AMAZON:'+asin]);
+        imported.push({offerId,asin,title,currentPrice:currentPrice/100,originalPrice:originalPrice/100,discountPercent:discount,status:'PENDING_REVIEW',priceVerified:true});
+      }
+      await db.query("UPDATE marketplace_api_credentials SET status='VALIDATED',last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='AMAZON'",[account.id]);
+      return res.json({ok:true,action:'import',imported:imported.length,skipped:skipped.length,items:imported,skippedItems:skipped,reviewRequired:true,autopilotTriggered:false,publicationTriggered:false,note:'Ofertas importadas como rascunhos. A publicação depende de aprovação humana e das regras de afiliado/canal.'});
+    }
     await db.query(
       "UPDATE marketplace_api_credentials SET status='VALIDATED',last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='AMAZON'",
       [account.id]

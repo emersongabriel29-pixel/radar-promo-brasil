@@ -1,3 +1,4 @@
+import { checkGeminiCooldown, registerGeminiQuotaError } from 'lib/radar-ai-guard.js';
 import { ai, db } from 'hatchable';
 import { meliGet } from 'lib/direct-connectors.js';
 import { isSetupRequired } from 'lib/media.js';
@@ -120,11 +121,13 @@ export default async function(req,res){
       ].join('\n');
       model=requestedProvider==='openai'?'gpt-mini':'gemini';
       try{
+        if(model==='gemini'&&await checkGeminiCooldown())return res.status(429).json({error:'Gemini em pausa para respeitar a cota gratuita.'});
         const generated=await ai.generateText({purpose:'radar-video-ia-script',model,userId:String(req.member.id),maxTokens:1800,system:'Roteirista de vídeos curtos, preciso e transparente. Não invente fatos de produto.',prompt,signal:AbortSignal.timeout(60000)});
         const generatedText=clean(generated.text,9000);
         if(!generatedText||generated.finishReason==='length')return res.status(502).json({error:'O provedor não produziu um roteiro completo. Tente novamente ou selecione o modo local.'});
         script=generatedText;
       }catch(error){
+        if(model==='gemini'&&/429|quota|rate.?limit|resource_exhausted/i.test(String(error?.message||'')))await registerGeminiQuotaError();
         if(isSetupRequired(error))return res.status(412).json({error:'O provedor escolhido não está configurado. Escolha o modo local ou configure a credencial do provedor.',code:'AI_SETUP_REQUIRED'});
         throw error;
       }

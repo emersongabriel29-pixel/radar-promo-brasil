@@ -18,7 +18,7 @@ test('fila respeita validade da oferta e validação recente de preço oficial',
   assert.match(source, /ph\.source_type='OFFICIAL_API'/);
   assert.match(source, /ph\.verified_at>now\(\)-interval '24 hours'/);
   assert.match(source, /ph\.price=verified_offer\.current_price/);
-  assert.match(source, /ph\.original_price=verified_offer\.original_price/);
+  assert.match(source, /ph\.original_price IS NOT DISTINCT FROM verified_offer\.original_price/);
   assert.match(source, /verified_offer\.account_id=p\.account_id/);
 });
 

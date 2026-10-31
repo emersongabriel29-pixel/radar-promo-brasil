@@ -2,6 +2,7 @@ import { db, config } from 'hatchable';
 import { eligiblePublication, claimPublication } from 'lib/delivery.js';
 import { sendWhatsAppChannelText } from 'lib/whatsapp-channel.js';
 import { offerImage } from 'lib/offer-images.js';
+import { formatPromo } from 'lib/promo-message.js';
 
 export const access = 'scheduler';
 export const methods = ['POST'];
@@ -13,11 +14,13 @@ export default async function(req, res) {
     SELECT p.id, p.content_type AS "contentType", p.account_id AS "accountId",
       p.message, p.attempts, p.image_url AS "imageUrl",
       COALESCE(p.image_storage_key,o.image_storage_key) AS "imageStorageKey",
-      o.image_url AS "offerImageUrl", o.affiliate_url AS "affiliateUrl",
-      o.coupon_code AS "couponCode", o.coupon_url AS "couponUrl",
-      g.external_id AS "groupExternalId"
+      o.image_url AS "offerImageUrl", o.title AS "offerTitle", o.source,
+      o.current_price AS "currentPrice", o.original_price AS "originalPrice",
+      o.affiliate_url AS "affiliateUrl", o.coupon_code AS "couponCode", o.coupon_url AS "couponUrl",
+      c.name AS "category", g.external_id AS "groupExternalId"
     FROM publications p
     LEFT JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id
+    LEFT JOIN categories c ON c.id=o.category_id AND c.account_id=o.account_id
     JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id
     WHERE p.status IN ('READY','RETRY')
       AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now())
@@ -35,13 +38,20 @@ export default async function(req, res) {
     processed++;
     try {
       const originalLink = String(item.affiliateUrl || '').trim();
-      let message = String(item.message || '').trim();
-      if (originalLink && message.includes('/api/r/')) message = message.replace(/https?:\/\/[^\s]+\/api\/r\/[0-9a-f-]+/gi, originalLink);
+      let message = item.contentType === 'MESSAGE' ? String(item.message || '').trim() : formatPromo({
+        title: item.offerTitle, source: item.source, category: item.category,
+        currentPrice: Number(item.currentPrice) || 0, originalPrice: Number(item.originalPrice) || 0,
+        affiliateUrl: originalLink, couponCode: item.couponCode, couponUrl: item.couponUrl
+      }).message;
+      if (item.contentType === 'MESSAGE' && originalLink) {
+        message = message.replace(/https?:\/\/[^\s]+\/api\/r\/[0-9a-f-]+/gi, originalLink);
+      }
       const couponUrl = String(item.couponUrl || '').trim();
       if (item.couponCode && couponUrl && !message.includes(couponUrl)) {
         message += String.fromCharCode(10, 10) + '🎟️ Cupom: ' + String(item.couponCode).trim() + String.fromCharCode(10) + 'Resgate: ' + couponUrl;
       }
       const imageUrl = item.contentType === 'MESSAGE' ? '' : String(await offerImage({ imageUrl: item.imageUrl || item.offerImageUrl, imageStorageKey: item.imageStorageKey }) || '').trim();
+      if (item.contentType !== 'MESSAGE' && !imageUrl) throw Object.assign(new Error('A oferta não possui imagem real do produto. A publicação foi retida para evitar envio somente em texto.'), { code: 'IMAGE_REQUIRED' });
       const result = await sendWhatsAppChannelText({ channel: item.groupExternalId, message, publicationId: item.id, imageUrl });
       if (result.status === 'WAITING_CONFIRMATION') {
         await db.query("UPDATE publications SET status='WAITING_CONFIRMATION',error_message=$3 WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$4",

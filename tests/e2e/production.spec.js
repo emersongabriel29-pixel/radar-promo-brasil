@@ -14,8 +14,8 @@ async function accessibility(page){
 }
 test('sete áreas acessíveis, conteúdo preservado, modal por teclado e oferta com upload',async({page,request})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await ready(page);
- await expect(page.locator('#nav button')).toHaveCount(7);
- for(const [name,title] of [['Central','Central'],['Radar','Radar'],['Ofertas','Ofertas'],['Publicações','Publicações'],['Canais','Canais'],['Relatórios','Relatórios'],['Configurações','Configurações']]){
+ await expect(page.locator('#nav button')).toHaveCount(8);
+ for(const [name,title] of [['Central','Central'],['Radar','Radar'],['Ofertas','Ofertas'],['Publicações','Publicações'],['Canais','Canais'],['Relatórios','Relatórios'],['Consumo de IA','Consumo de IA'],['Configurações','Configurações']]){
   await page.locator('#nav').getByRole('button',{name,exact:true}).click();await expect(page.locator('#title')).toHaveText(title);await accessibility(page);
  }
  await page.getByRole('button',{name:'Integrações',exact:true}).click();await expect(page.getByRole('heading',{name:'Prontidão da operação'})).toBeVisible();
@@ -32,7 +32,7 @@ test('sete áreas acessíveis, conteúdo preservado, modal por teclado e oferta 
  await add.click();await page.getByLabel('Imagem do produto').setInputFiles({name:'produto.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jMloAAAAASUVORK5CYII=','base64')});
  await page.getByLabel('Nome do produto').fill('Oferta auditada no navegador');await page.getByLabel('Preço atual',{exact:true}).fill('49.90');await page.getByLabel('Preço anterior',{exact:true}).fill('99.90');await page.getByLabel('Link oficial de afiliado',{exact:true}).fill('https://amazon.com.br/dp/AUDIT?tag=audit');await page.getByLabel('Confirmo que revisei os dados e que este é meu link oficial de afiliado.',{exact:true}).check();await page.getByLabel('Código do cupom').fill('REAL10');
  await page.getByRole('button',{name:'Salvar',exact:true}).click();await expect(page.getByRole('dialog')).not.toBeVisible();await expect(page.locator('#content')).toContainText('Oferta auditada no navegador');await accessibility(page);
- const data=await (await request.get('/api/data')).json();const offer=data.offers.find(o=>o.title==='Oferta auditada no navegador');expect(offer.currentPrice).toBe(4990);expect(offer.imageUrl).toMatch(/^\/api\/media\/offer\//);expect(offer.couponCode).toBe('REAL10');
+ const data=await (await request.get('/api/data')).json();const offer=data.offers.find(o=>o.title==='Oferta auditada no navegador');expect(offer.currentPrice).toBe(4990);expect(offer.imageUrl).toBeTruthy();expect(offer.imageStorageKey).toMatch(/^products\//);expect(offer.couponCode).toBe('REAL10');
  expect((await request.put('/api/data',{data:{entity:'offer',id:offer.id,status:'APPROVED'}})).status()).toBe(200);
  const priceObservation=await request.post('/api/radar/price',{data:{offerId:offer.id,price:5990}});expect(priceObservation.status()).toBe(202);expect((await priceObservation.json()).status).toBe('UNVERIFIED');
  expect((await request.post('/api/jobs/telegram',{data:{}})).status()).toBe(404);

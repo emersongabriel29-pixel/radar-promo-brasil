@@ -17,7 +17,7 @@ export default async function(req,res){
       appliedCoupon=await findBestApplicableCoupon(db,account.id,b.source,currentPrice);
       if(appliedCoupon){couponCode=appliedCoupon.code;couponUrl=appliedCoupon.url;couponSavingsCents=appliedCoupon.savingsCents;}
     }
-    const result=formatPromo({title:b.title,currentPrice,originalPrice:b.originalPrice?moneyCents(b.originalPrice):0,affiliateUrl:b.affiliateUrl,couponCode,couponUrl,couponSavingsCents,category:b.category,source:b.source,template:b.template});
+    const result=formatPromo({title:b.title,shortTitle:b.shortTitle||b.aiTitle,currentPrice,originalPrice:b.originalPrice?moneyCents(b.originalPrice):0,affiliateUrl:b.affiliateUrl,couponCode,couponUrl,couponSavingsCents,category:b.category,source:b.source,template:b.template});
     const storefront=(await db.query('SELECT collshp_url AS url FROM storefront_settings WHERE account_id=$1',[account.id])).rows[0]?.url||'';
     if(storefront&&!result.message.includes(storefront))result.message+='\n\nVeja mais ofertas na minha vitrine: '+storefront;
     return res.json({ok:true,...result,appliedCoupon:appliedCoupon?{code:appliedCoupon.code,savingsCents:appliedCoupon.savingsCents}:null,characters:result.message.length,whatsappReady:result.message.length<=4096,telegramReady:result.message.length<=1024,storefrontUrl:storefront,package:['IMAGE','MESSAGE','AFFILIATE_LINK']});
