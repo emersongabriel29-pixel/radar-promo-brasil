@@ -3,6 +3,7 @@ import { fetchWithRetry } from 'lib/http-retry.js';
 import { fingerprint, message as promoMessage, offerScore } from 'lib/automation.js';
 import { directImageUrl } from 'lib/validation.js';
 import { classifyLomadeeProduct, normalizeLomadeeCategory, selectDiverseLomadeeProducts, LOMADEE_CATALOG_POLICY } from 'lib/lomadee-catalog.js';
+import { persistDiscoveryPage } from 'lib/affiliate-discovery.js';
 
 export const access = 'scheduler';
 export const methods = ['POST'];
@@ -186,6 +187,16 @@ export default async function handler(req, res) {
       }
 
       if (!successfulPages) throw new Error('Nenhuma página do catálogo Lomadee pôde ser consultada.');
+      if (!dryRun && productBatches.length) {
+        const discovery = await persistDiscoveryPage(db, {
+          accountId: row.account_id, marketplace: 'LOMADEE', operation: 'products', kind: 'PRODUCT',
+          items: productBatches.flat()
+        });
+        totals.discoveryRecordsSeen = (totals.discoveryRecordsSeen || 0) + discovery.recordsSeen;
+        totals.discoveryRecordsUpserted = (totals.discoveryRecordsUpserted || 0) + discovery.recordsUpserted;
+        totals.discoverySkipped = (totals.discoverySkipped || 0) + discovery.skipped;
+        totals.discoveryRunId = discovery.runId;
+      }
       totals.eligibleBeforeAffiliate += candidates.length;
       const selected = selectDiverseLomadeeProducts(candidates, {
         maxItems: LOMADEE_CATALOG_POLICY.maxImportsPerRun,
@@ -199,6 +210,12 @@ export default async function handler(req, res) {
         const category = candidate.classification.category;
         totals.selectedByCategory[category] = (totals.selectedByCategory[category] || 0) + 1;
         totals.selectedByOrganization[candidate.organizationId] = (totals.selectedByOrganization[candidate.organizationId] || 0) + 1;
+      }
+
+      if (req.body?.queueOnly === true || req.body?.queueOnly === 'true') {
+        totals.queueOnly = true;
+        totals.pendingForQueue = candidates.length;
+        continue;
       }
 
       if (dryRun) {
