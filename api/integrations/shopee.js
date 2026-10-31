@@ -1,6 +1,7 @@
 import { config, db } from 'hatchable';
 import { normalizeShopeeSales, upsertAffiliateSales } from 'lib/affiliate-sales.js';
 import { persistDiscoveryPage } from 'lib/affiliate-discovery.js';
+import { normalizeShopeeDatafeedId } from 'lib/shopee-feed.js';
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 import { isMedicationProduct } from 'lib/product-safety.js';
@@ -178,9 +179,9 @@ export default async function handler(req, res) {
       return res.json({ok:true,action:'import_offers',imported:imported.length,skipped:skipped.length,items:imported,skippedItems:skipped,reviewRequired:true,autopilotTriggered:false,publicationTriggered:false,note:'Ofertas Shopee importadas como rascunhos com preço oficial e link de afiliado. A publicação depende de aprovação humana e das regras do canal.'});
     }
     if (action === 'offers') {
-      const kindMap = { product: 'productOfferV2', shop: 'shopOfferV2', shopee: 'shopeeOfferV2' };
+      const kindMap = { product: 'productOfferV2', shop: 'shopOfferV2', shopee: 'shopeeOfferV2', brand: 'brandOffer' };
       const kind = kindMap[clean(req.body?.kind, 20).toLowerCase()];
-      if (!kind) return res.status(400).json({ error: 'Escolha ofertas de produto, loja ou campanha Shopee.' });
+      if (!kind) return res.status(400).json({ error: 'Escolha ofertas de produto, loja, campanha ou marca Shopee.' });
       const keyword = clean(req.body?.keyword || 'phone', 80).replace(/[\r\n]/g, ' ').trim() || 'phone';
       // The documented offer endpoints support large pages. Keep the default useful for interactive use,
       // while allowing authorized callers to request up to 500 records per page.
@@ -188,7 +189,7 @@ export default async function handler(req, res) {
       const page = Math.min(1000, Math.max(1, Math.floor(Number(req.body?.page) || 1)));
       const requestedSort = Math.floor(Number(req.body?.sortType) || (kind === 'productOfferV2' ? 5 : 2));
       const sortType = Math.min(5, Math.max(1, requestedSort));
-      const variables = { keyword, sortType, page, limit };
+      const variables = kind === 'brandOffer' ? { page, limit } : { keyword, sortType, page, limit };
       let query;
       if (kind === 'productOfferV2') {
         const listType = Math.min(2, Math.max(0, Math.floor(Number(req.body?.listType) || 0)));
@@ -198,8 +199,8 @@ export default async function handler(req, res) {
         const isKeySeller = req.body?.isKeySeller === true || req.body?.isKeySeller === 'true';
         query = 'query($keyword: String, $listType: Int, $sortType: Int, $page: Int, $limit: Int, $shopId: Int64, $itemId: Int64, $isAMSOffer: Boolean, $isKeySeller: Boolean) { productOfferV2(keyword: $keyword, listType: $listType, sortType: $sortType, page: $page, limit: $limit, shopId: $shopId, itemId: $itemId, isAMSOffer: $isAMSOffer, isKeySeller: $isKeySeller) { nodes { itemId shopId shopName shopType productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate commissionRate sellerCommissionRate shopeeCommissionRate commission sales ratingStar periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
         variables.listType = listType;
-        if (/^\d+$/.test(shopId)) variables.shopId = Number(shopId);
-        if (/^\d+$/.test(itemId)) variables.itemId = Number(itemId);
+        if (/^\d+$/.test(shopId)) variables.shopId = shopId;
+        if (/^\d+$/.test(itemId)) variables.itemId = itemId;
         if (req.body?.isAMSOffer !== undefined && req.body?.isAMSOffer !== '') variables.isAMSOffer = isAMSOffer;
         if (req.body?.isKeySeller !== undefined && req.body?.isKeySeller !== '') variables.isKeySeller = isKeySeller;
       } else if (kind === 'shopOfferV2') {
@@ -209,14 +210,14 @@ export default async function handler(req, res) {
         if (shopType.length) variables.shopType = shopType;
         if (req.body?.isKeySeller !== undefined && req.body?.isKeySeller !== '') variables.isKeySeller = isKeySeller;
       } else if (kind === 'brandOffer') {
-        query = 'query($sortType: Int, $page: Int, $limit: Int) { brandOffer(sortType: $sortType, page: $page, limit: $limit) { nodes { brandName offerName offerLink commissionRate } pageInfo { page limit hasNextPage } } }';
+        query = 'query($page: Int, $limit: Int) { brandOffer(page: $page, limit: $limit) { nodes { brandName offerName offerLink commissionRate } pageInfo { page limit hasNextPage } } }';
       } else {
         query = 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { shopeeOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { offerName offerLink originalLink imageUrl commissionRate offerType categoryId collectionId periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
       }
       const shouldPersist=req.body?.persistDiscovery===true||req.body?.persistDiscovery==='true';
       if(shouldPersist){
         if(saved.status!=='VALIDATED')return res.status(412).json({error:'Valide a credencial Shopee antes de persistir o catálogo.'});
-        const discoveryKind=kind==='productOfferV2'?'PRODUCT':kind==='shopOfferV2'?'SHOP':'CAMPAIGN';
+        const discoveryKind=kind==='productOfferV2'?'PRODUCT':kind==='shopOfferV2'?'SHOP':kind==='brandOffer'?'BRAND':'CAMPAIGN';
         const maxPages=Math.min(5,Math.max(1,Math.floor(Number(req.body?.maxPages)||3)));
         let currentPage=page,pagesCompleted=0,hasNextPage=false,finalPageInfo=null;
         const allItems=[],discoveries=[];
@@ -275,8 +276,8 @@ export default async function handler(req, res) {
     }
 
     if (action === 'feed_data') {
-      const datafeedId = String(req.body?.datafeedId || '').trim();
-      if (!/^\d{1,24}$/.test(datafeedId)) return res.status(400).json({ error: 'Informe o datafeedId retornado por listItemFeeds.' });
+      const datafeedId = normalizeShopeeDatafeedId(req.body?.datafeedId);
+      if (!datafeedId) return res.status(400).json({ error: 'Cole o datafeedId completo retornado por listItemFeeds (ID_FULL_YYYY-MM-DD ou ID_DELTA_YYYYMMDD).' });
       const offset = Math.min(1000000, Math.max(0, Math.floor(Number(req.body?.offset) || 0)));
       const limit = Math.min(500, Math.max(1, Math.floor(Number(req.body?.limit) || 100)));
       const query = 'query($datafeedId: String!, $offset: Int, $limit: Int) { getItemFeedData(datafeedId: $datafeedId, offset: $offset, limit: $limit) { rows { columns updateType } pageInfo { offset limit totalCount hasMore } } }';
