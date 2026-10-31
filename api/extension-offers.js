@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db, scheduler } from 'hatchable';
 import { formatPromo } from 'lib/promo-message.js';
 // Gemini is intentionally deferred to the controlled enrichment queue.
 
@@ -19,16 +19,16 @@ const hash=async value=>{
   return Array.from(new Uint8Array(digest)).map(x=>x.toString(16).padStart(2,'0')).join('');
 };
 const uid=()=>crypto.randomUUID();
-const allowedSources=new Set(['AMAZON','SHOPEE','MERCADO_LIVRE','SHEIN','ALIEXPRESS','MAGALU','TEMU','CASAS_BAHIA','HOTMART','KABUM','AMERICANAS','Outro']);
+const allowedSources=new Set(['AMAZON','SHOPEE','MERCADO_LIVRE','MERCADOLIVRE','SHEIN','ALIEXPRESS','LOMADEE','MAGALU','TEMU','RAKUTEN','CASAS_BAHIA','HOTMART','KABUM','AMERICANAS','Outro']);
 export default async function handler(req,res){
   try{
     const auth=String(req.headers.authorization||'');
     const match=auth.match(/^Bearer\s+(rpb_ext_[A-Za-z0-9_-]{30,100})$/);
     if(!match)return res.status(401).json({error:'Token da extensão ausente ou inválido.'});
     const tokenHash=await hash(match[1]);
-    const token=(await db.query("SELECT id,account_id FROM extension_api_tokens WHERE token_hash=$1 AND revoked_at IS NULL LIMIT 1",[tokenHash])).rows[0];
+    const token=(await db.query("SELECT id,account_id,label FROM extension_api_tokens WHERE token_hash=$1 AND revoked_at IS NULL LIMIT 1",[tokenHash])).rows[0];
     if(!token)return res.status(401).json({error:'Token revogado ou não reconhecido. Gere outro no painel do Radar.'});
-    const recent=Number((await db.query("SELECT count(*)::int AS n FROM offers WHERE account_id=$1 AND imported_by='CHROME_EXTENSION' AND created_at>now()-interval '1 minute'",[token.account_id])).rows[0]?.n||0);
+    const recent=Number((await db.query("SELECT count(*)::int AS n FROM offers WHERE account_id=$1 AND imported_by IN ('CHROME_EXTENSION','ANDROID_SHARE') AND created_at>now()-interval '1 minute'",[token.account_id])).rows[0]?.n||0);
     if(recent>=30)return res.status(429).json({error:'Limite de 30 ofertas por minuto atingido.'});
     const b=req.body||{},title=clean(b.title,220),affiliate=https(b.affiliateUrl),image=https(b.imageUrl),product=https(b.productUrl||b.affiliateUrl);
     const current=money(b.currentPrice),original=b.originalPrice?money(b.originalPrice):null;
@@ -44,11 +44,16 @@ export default async function handler(req,res){
     // Intake must remain deterministic and quota-free; Gemini enriches later in a controlled batch.
     const message=formatted.message;
     const id=uid();
-    const inserted=await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,affiliate_url,image_url,product_url,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,source_category,subcategory,classification_tags,classification_confidence,classification_status,classification_reason) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'PENDING',$12,$13,'PENDING','CHROME_EXTENSION',false,$14,$15,$16::jsonb,$17,'REVIEW',$18) ON CONFLICT DO NOTHING RETURNING id,created_at AS \"createdAt\"",
-      [id,token.account_id,title,source,original,current,affiliate,image,product,discount,score,message,fingerprint,clean(b.sourceCategory,200)||source,null,'[]',0,'Aguardando enriquecimento automático com IA; oferta permanece pendente.']);
+    const inserted=await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,affiliate_url,image_url,product_url,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,source_category,subcategory,classification_tags,classification_confidence,classification_status,classification_reason) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'PENDING',$12,$13,'PENDING',$14,false,$15,$16,$17::jsonb,$18,'REVIEW',$19) ON CONFLICT DO NOTHING RETURNING id,created_at AS \"createdAt\"",
+      [id,token.account_id,title,source,original,current,affiliate,image,product,discount,score,message,fingerprint,token.label==='Compartilhamento Android'?'ANDROID_SHARE':'CHROME_EXTENSION',clean(b.sourceCategory,200)||source,null,'[]',0,'Aguardando enriquecimento automático com IA; oferta permanece pendente.']);
     if(!inserted.rows.length)return res.status(409).json({error:'Esta oferta já foi cadastrada.',duplicate:true});
     await db.query("UPDATE extension_api_tokens SET last_used_at=now() WHERE id=$1",[token.id]);
-    return res.status(201).json({ok:true,offer:inserted.rows[0],status:'PENDING',message:'Oferta recebida no Radar como rascunho. Revise preço, link e imagem antes de aprovar ou publicar.'});
+    let verificationQueued=false;
+    if(['SHOPEE','ALIEXPRESS','AMAZON','MERCADO_LIVRE','MERCADOLIVRE','LOMADEE','RAKUTEN'].includes(source)){
+      try{await scheduler.now('/api/jobs/extension-offers-resolve?offerId='+encodeURIComponent(id)+'&accountId='+encodeURIComponent(token.account_id));verificationQueued=true;}
+      catch(error){console.error('extension verification schedule failed',error?.code||error?.name||'ERROR');}
+    }
+    return res.status(201).json({ok:true,offer:inserted.rows[0],status:'PENDING',verificationQueued,message:verificationQueued?'Oferta recebida. A API oficial Shopee está verificando produto, preço, imagem e link; só será publicada se passar nas regras.':'Oferta recebida como rascunho. A verificação oficial ainda não foi iniciada; revise no painel.'});
   }catch(error){
     console.error('extension-offers error',error?.message);
     return res.status(500).json({error:'Falha interna ao receber a oferta.'});
