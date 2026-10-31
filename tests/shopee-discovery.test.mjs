@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { isShopeeShopId, isShopeeItemId } from '../lib/shopee-ids.js';
 import { getShopeeKeywordFamily, selectShopeeKeywords } from '../lib/shopee-keywords.js';
 import { classifyProduct } from '../lib/category-classifier.js';
@@ -39,4 +40,12 @@ test('expanded category classifier recognizes automotive, office, garden and pho
     ['Caderno inteligente', 'Papelaria e artesanato']
   ];
   for (const [title, category] of cases) assert.equal(classifyProduct({ title }).category, category);
+});
+
+test('Shopee discovery ranks every unique API result without relevance or batch caps', async () => {
+  const source = await readFile(new URL('../api/jobs/shopee.js', import.meta.url), 'utf8');
+  assert.match(source, /const selectedCandidates = candidates;/);
+  assert.doesNotMatch(source, /isRelevantShopeeProduct/);
+  assert.doesNotMatch(source, /checkedCandidates >= 15/);
+  assert.match(source, /selectShopeeKeywords\(slot,6\)/);
 });
