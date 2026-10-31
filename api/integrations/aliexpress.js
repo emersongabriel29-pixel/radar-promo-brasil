@@ -4,6 +4,8 @@ import { createAliExpressAffiliateUrl, signAliExpressParams, validateAliExpressP
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 import { isMedicationProduct } from 'lib/product-safety.js';
+import { normalizeAliExpressSales, upsertAffiliateSales } from 'lib/affiliate-sales.js';
+import { persistDiscoveryPage } from 'lib/affiliate-discovery.js';
 // API catalog items are not filtered by product category.
 import { formatPromo } from 'lib/promo-message.js';
 
@@ -97,6 +99,10 @@ function normalize(items) {
     discount: x.discount??null,
     status:clean(x.order_status||x.status,80),
     createdAt:clean(x.created_time||x.createdTime,80),
+    grossValue:x.product_price??x.productPrice??null,
+    commissionValue:x.commission??null,
+    quantity:x.product_count??x.productCount??1,
+    subId:clean(x.sub_id||x.subId,120),
     rawType:clean(x.type||x.category_name,100)
   }));
 }
@@ -264,9 +270,33 @@ export default async function handler(req,res){
         throw error;
       }
     }
-    const map={products:'products',importOffers:'products',smartMatch:'smartMatch',hotProducts:'hotProducts',hotProductsDownload:'hotProductsDownload',productDetail:'productDetail',categories:'categories',campaigns:'campaigns',campaignProducts:'campaignProducts',generateLink:'generateLink',orders:'orders',orderDetail:'orderDetail',ordersByCursor:'ordersByCursor'};
+    const map={products:'products',importOffers:'products',smartMatch:'smartMatch',hotProducts:'hotProducts',hotProductsDownload:'hotProductsDownload',productDetail:'productDetail',categories:'categories',campaigns:'campaigns',campaignProducts:'campaignProducts',generateLink:'generateLink',orders:'orders',syncOrders:'orders',orderDetail:'orderDetail',ordersByCursor:'ordersByCursor'};
     const actionName=map[action];if(!actionName)return res.status(400).json({error:'Operação não suportada.'});
-    const spec=build(actionName,req.body||{},c);if(!spec)return res.status(400).json({error:'Parâmetros inválidos.'});
+    const orderBody={...(req.body||{})};
+    if(action==='syncOrders'){
+      if(saved.status!=='VALIDATED')return res.status(412).json({error:'Valide a credencial AliExpress antes de sincronizar pedidos.'});
+      const end=new Date(),start=new Date(end.getTime()-7*86400000);
+      const fmt=d=>d.toISOString().slice(0,19).replace('T',' ');
+      if(!orderBody.startTime&&!orderBody.endTime){orderBody.startTime=fmt(start);orderBody.endTime=fmt(end);}
+      const pageSize=Math.min(50,Math.max(1,Math.floor(Number(orderBody.pageSize)||50)));
+      const maxPages=Math.min(5,Math.max(1,Math.floor(Number(orderBody.maxPages)||3)));
+      let page=Math.min(1000,Math.max(1,Math.floor(Number(orderBody.page)||1))),pagesCompleted=0,received=0;
+      const collected=[];
+      while(pagesCompleted<maxPages&&page<=1000){
+        const pageBody={...orderBody,page,pageSize};
+        const pageSpec=build('orders',pageBody,c);
+        const pageData=await topRequest(c,pageSpec.api,pageSpec.params);
+        const pageItems=normalize(listOf(unwrap(pageData,pageSpec.api)));
+        collected.push(...pageItems);received+=pageItems.length;pagesCompleted++;
+        if(pageItems.length<pageSize)break;
+        page++;
+      }
+      const ledgerSync=await upsertAffiliateSales(db,account.id,'ALIEXPRESS',normalizeAliExpressSales(collected));
+      const hasMore=pagesCompleted===maxPages&&received===pagesCompleted*pageSize&&page<=1000;
+      return res.json({ok:true,action:'syncOrders',received,ledgerSync,pagesCompleted,pageSize,startTime:orderBody.startTime,endTime:orderBody.endTime,nextPage:hasMore?page:null,hasMore,readOnlySource:true,publicationEnabled:false,note:'Pedidos lidos em páginas sequenciais e registrados sem duplicação. Nenhuma oferta foi publicada.'});
+    }
+
+    const spec=build(actionName,orderBody,c);if(!spec)return res.status(400).json({error:'Parâmetros inválidos.'});
     let data, result, items, fallback=null;
     try {
       data=await topRequest(c,spec.api,spec.params);
@@ -287,6 +317,40 @@ export default async function handler(req,res){
       result=unwrap(data,fallbackSpec.api);
       items=normalize(listOf(result));
       fallback={used:true,requestedAction:action,actualApi:fallbackSpec.api,reason:'A API avançada recusou a operação por falta de permissão; foi usada a busca padrão de produtos. Os itens não são garantidos como produtos em alta nem como correspondência inteligente.',keyword:fallbackSpec.params.keywords||null};
+    }
+    if(req.body?.persistDiscovery===true||req.body?.persistDiscovery==='true'){
+      const pagedActions=new Set(['products','hotProducts','hotProductsDownload','campaignProducts']);
+      if(pagedActions.has(action)){
+        if(saved.status!=='VALIDATED')return res.status(412).json({error:'Valide a credencial AliExpress antes de persistir o catálogo.'});
+        const kind=action==='campaignProducts'?'PRODUCT':'PRODUCT';
+        const pageSize=Math.min(50,Math.max(1,Math.floor(Number(orderBody.pageSize)||50)));
+        const maxPages=Math.min(5,Math.max(1,Math.floor(Number(orderBody.maxPages)||3)));
+        const startPage=Math.min(1000,Math.max(1,Math.floor(Number(orderBody.page)||1)));let page=startPage,pagesCompleted=0,hasMore=false;
+        const allItems=[],discoveries=[];
+        while(pagesCompleted<maxPages&&page<=1000){
+          const pageBody={...orderBody,page,pageSize};
+          const pageSpec=build(actionName,pageBody,c);if(!pageSpec)break;
+          const pageData=await topRequest(c,pageSpec.api,pageSpec.params);
+          const pageItems=normalize(listOf(unwrap(pageData,pageSpec.api)));
+          allItems.push(...pageItems);
+          discoveries.push(await persistDiscoveryPage(db,{accountId:account.id,marketplace:'ALIEXPRESS',operation:action,kind,items:pageItems,cursorIn:String(page),cursorOut:pageItems.length>=pageSize?String(page+1):null}));
+          pagesCompleted++;
+          if(pageItems.length<pageSize){hasMore=false;break;}
+          page++;hasMore=pagesCompleted===maxPages;
+        }
+        return res.json({ok:true,action,items:allItems,discovery:discoveries,page:startPage,pagesCompleted,pageSize,nextPage:hasMore?page:null,hasMore,readOnlySource:true,publicationEnabled:false,note:'Catálogo lido em páginas sequenciais e persistido para análise. Nenhuma oferta foi criada ou publicada.'});
+      }
+    }
+
+    if(req.body?.persistDiscovery===true||req.body?.persistDiscovery==='true'){
+      if(saved.status!=='VALIDATED')return res.status(412).json({error:'Valide a credencial AliExpress antes de persistir o catálogo.'});
+      const kindMap={products:'PRODUCT',smartMatch:'PRODUCT',hotProducts:'PRODUCT',hotProductsDownload:'PRODUCT',productDetail:'PRODUCT',categories:'CATEGORY',campaigns:'CAMPAIGN',campaignProducts:'PRODUCT'};
+      const discoveryKind=kindMap[action];
+      if(!discoveryKind)return res.status(400).json({error:'Esta operação não é um recurso de catálogo persistível.'});
+      const discoveryItems=action==='campaignProducts'?items.map(item=>({...item,campaignId:clean(req.body?.promotionName,180)})):items;
+      const page=Number(orderBody.page)||1,pageSize=Number(orderBody.pageSize)||20;
+      const discovery=await persistDiscoveryPage(db,{accountId:account.id,marketplace:'ALIEXPRESS',operation:action,kind:discoveryKind,items:discoveryItems,cursorIn:String(page),cursorOut:['products','smartMatch','hotProducts','hotProductsDownload','campaignProducts'].includes(action)&&items.length>=pageSize?String(page+1):null});
+      return res.json({ok:true,action,items,discovery,page,pageSize,readOnlySource:true,publicationEnabled:false,note:'Itens de catálogo persistidos para análise. Nenhuma oferta foi criada ou publicada.'});
     }
     if(action==='importOffers'){
       const minDiscount=Math.max(0,Math.min(90,Number(req.body?.minDiscountPercent??0)||0));

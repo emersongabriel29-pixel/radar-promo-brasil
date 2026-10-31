@@ -7,8 +7,8 @@ import { formatPromo } from 'lib/promo-message.js';
 import { cacheOfferImage } from 'lib/offer-images.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 import { isMedicationProduct } from 'lib/product-safety.js';
-import { selectDiverseCandidates } from 'lib/catalog-diversity.js';
-import { selectShopeeKeywords, isRelevantShopeeProduct, getShopeeKeywordQualityPenalty } from 'lib/shopee-keywords.js';
+import { selectShopeeKeywords, getShopeeKeywordQualityPenalty } from 'lib/shopee-keywords.js';
+import { isShopeeShopId, isShopeeItemId } from 'lib/shopee-ids.js';
 
 export const access = 'scheduler';
 export const methods = ['POST'];
@@ -49,6 +49,117 @@ async function request(creds, query, variables, attempt = 0) {
   }
   return data;
 }
+async function requestProductPages(creds, query, variables, maxPages = 3) {
+  const nodes = [];
+  let page = Math.max(1, Number(variables?.page) || 1);
+  let hasNextPage = false;
+  let pagesFetched = 0;
+  do {
+    const response = await request(creds,query,{...variables,page});
+    const result = response.data?.productOfferV2;
+    nodes.push(...list(result?.nodes));
+    hasNextPage = Boolean(result?.pageInfo?.hasNextPage);
+    pagesFetched++;
+    page++;
+  } while (hasNextPage && pagesFetched < maxPages);
+  return {nodes,pagesFetched,hasNextPage,nextPage:hasNextPage?page:null};
+}
+async function getShopeeDiscoveryPage(accountId, discoveryKey, sortType) {
+  const result = await db.query(
+    'SELECT next_page FROM shopee_discovery_cursors WHERE account_id=$1 AND discovery_key=$2 AND sort_type=$3 LIMIT 1',
+    [accountId,discoveryKey,sortType]
+  );
+  return Math.max(1, Number(result.rows[0]?.next_page) || 1);
+}
+async function saveShopeeDiscoveryPage(accountId, discoveryKey, sortType, result) {
+  const nextPage = result.hasNextPage ? result.nextPage : 1;
+  await db.query(
+    `INSERT INTO shopee_discovery_cursors(account_id,discovery_key,sort_type,next_page,pages_completed,last_page_count,last_has_next_page,updated_at)
+     VALUES($1,$2,$3,$4,$5,$6,$7,now())
+     ON CONFLICT(account_id,discovery_key,sort_type) DO UPDATE SET
+       next_page=EXCLUDED.next_page,
+       pages_completed=shopee_discovery_cursors.pages_completed+EXCLUDED.pages_completed,
+       last_page_count=EXCLUDED.last_page_count,
+       last_has_next_page=EXCLUDED.last_has_next_page,
+       updated_at=now()`,
+    [accountId,discoveryKey,sortType,nextPage,result.pagesFetched,result.nodes.length,result.hasNextPage]
+  );
+}
+async function persistShopeeDiscoveryItems(accountId, products) {
+  const rows = [];
+  for (const product of products) {
+    const title = clean(product.productName,220);
+    const productUrl = httpsUrl(product.productLink,2000) || '';
+    const affiliateUrl = httpsUrl(product.offerLink,2000) || '';
+    const imageUrl = directImageUrl(product.imageUrl) ? product.imageUrl : '';
+    const price = Number(product.priceMin);
+    const commission = Number(product.commissionRate);
+    const rating = Number(product.ratingStar);
+    const sales = Number(product.sales);
+    const missingFields = [];
+    if (!title) missingFields.push('title');
+    if (!productUrl) missingFields.push('productUrl');
+    if (!affiliateUrl) missingFields.push('affiliateUrl');
+    if (!imageUrl) missingFields.push('imageUrl');
+    if (!Number.isFinite(price) || price<=0) missingFields.push('priceMin');
+    if (!Number.isFinite(commission) || commission<=0) missingFields.push('commissionRate');
+    const safetyBlocked = isMedicationProduct({title,productUrl});
+    const externalId = clean(product.itemId,80) || productUrl || [clean(product.shopId,80),title].filter(Boolean).join(':');
+    if (!externalId) continue;
+    rows.push({
+      id:crypto.randomUUID(),external_id:externalId,title,brand_name:'',
+      product_url:productUrl,affiliate_url:affiliateUrl,image_url:imageUrl,
+      price_cents:Number.isFinite(price)&&price>0?Math.round(price*100):null,
+      commission_rate:Number.isFinite(commission)?commission:null,
+      rating:Number.isFinite(rating)&&rating>0?rating:null,
+      sales_count:Number.isFinite(sales)&&sales>=0?Math.floor(sales):null,
+      available:safetyBlocked?false:null,
+      processing_status:safetyBlocked?'BLOCKED':missingFields.length?'INCOMPLETE':'DISCOVERED',
+      raw_data:{...product,radarDiscovery:{keyword:clean(product.__radarKeyword,120),source:(product.__discoverySources||[product.__discoverySource]).join(','),missingFields,safetyBlocked}}
+    });
+  }
+  let stored = 0;
+  for (let offset=0; offset<rows.length; offset+=100) {
+    const batch = rows.slice(offset,offset+100);
+    await db.query(
+      `INSERT INTO affiliate_discovery_items(
+        id,account_id,marketplace,kind,external_id,title,brand_name,product_url,affiliate_url,image_url,
+        price_cents,commission_rate,rating,sales_count,available,processing_status,raw_data,first_seen_at,last_seen_at
+      )
+      SELECT x.id,$1,'SHOPEE','PRODUCT',x.external_id,x.title,x.brand_name,x.product_url,x.affiliate_url,x.image_url,
+        x.price_cents,x.commission_rate,x.rating,x.sales_count,x.available,x.processing_status,x.raw_data,now(),now()
+      FROM jsonb_to_recordset($2::jsonb) AS x(
+        id text,external_id text,title text,brand_name text,product_url text,affiliate_url text,image_url text,
+        price_cents bigint,commission_rate numeric,rating numeric,sales_count bigint,available boolean,
+        processing_status text,raw_data jsonb
+      )
+      ON CONFLICT(account_id,marketplace,kind,external_id) DO UPDATE SET
+        title=EXCLUDED.title,brand_name=EXCLUDED.brand_name,product_url=EXCLUDED.product_url,
+        affiliate_url=EXCLUDED.affiliate_url,image_url=EXCLUDED.image_url,price_cents=EXCLUDED.price_cents,
+        commission_rate=EXCLUDED.commission_rate,rating=EXCLUDED.rating,sales_count=EXCLUDED.sales_count,
+        available=EXCLUDED.available,raw_data=EXCLUDED.raw_data,last_seen_at=now(),
+        processing_status=CASE
+          WHEN EXCLUDED.processing_status='BLOCKED' THEN 'BLOCKED'
+          WHEN affiliate_discovery_items.processing_status IN ('IMPORTED','DUPLICATE') THEN affiliate_discovery_items.processing_status
+          ELSE EXCLUDED.processing_status
+        END,
+        processing_error=CASE WHEN affiliate_discovery_items.processing_status IN ('IMPORTED','DUPLICATE') THEN affiliate_discovery_items.processing_error ELSE '' END,
+        processed_at=CASE WHEN affiliate_discovery_items.processing_status IN ('IMPORTED','DUPLICATE') THEN affiliate_discovery_items.processed_at ELSE NULL END,
+        offer_id=CASE WHEN affiliate_discovery_items.processing_status IN ('IMPORTED','DUPLICATE') THEN affiliate_discovery_items.offer_id ELSE NULL END`,
+      [accountId,JSON.stringify(batch)]
+    );
+    stored += batch.length;
+  }
+  const incompleteRows = rows.filter(item=>item.processing_status==='INCOMPLETE');
+  const blockedRows = rows.filter(item=>item.processing_status==='BLOCKED');
+  return {
+    stored,
+    incomplete:incompleteRows.length,
+    blocked:blockedRows.length,
+    incompletePreview:incompleteRows.slice(0,30).map(item=>({itemId:item.external_id,title:item.title,missingFields:item.raw_data?.radarDiscovery?.missingFields||[]})),
+    safetyBlockedPreview:blockedRows.slice(0,30).map(item=>({itemId:item.external_id,title:item.title,reason:'blocked_by_product_safety_policy'}))
+  };
+}
 async function createTrackedLink(creds, productUrl, itemId, category) {
   const itemTag = ('ITEM'+clean(itemId,36).replace(/[^a-z0-9]/gi,'')).slice(0,50);
   const categoryTag = ('CAT'+clean(category,30).replace(/[^a-z0-9]/gi,'')).slice(0,50);
@@ -62,7 +173,7 @@ async function createTrackedLink(creds, productUrl, itemId, category) {
 export default async function handler(req,res) {
   const dryRun = req.body?.dryRun === true || String(req.body?.dryRun ?? req.query?.dryRun ?? '').toLowerCase() === 'true';
   const rows = (await db.query("SELECT account_id,credentials_enc,nonce FROM marketplace_api_credentials WHERE marketplace='SHOPEE' AND status='VALIDATED'")).rows;
-  const totals = {accounts:rows.length,scanned:0,imported:0,duplicates:0,skipped:0,safetyBlocked:0,selected:0,failed:0,autopilotRuns:0,preview:[]};
+  const totals = {accounts:rows.length,scanned:0,imported:0,duplicates:0,skipped:0,safetyBlocked:0,selected:0,failed:0,autopilotRuns:0,preview:[],incompletePreview:[],safetyBlockedPreview:[]};
   for (const row of rows) {
     let importedForAccount = 0;
     try {
@@ -70,32 +181,69 @@ export default async function handler(req,res) {
       // Rotate a curated catalog of thousands of product, brand, intent and attribute phrases.
       // Keep each run bounded to protect Shopee quotas; expand discovery across sort modes and partner shops.
       const slot = Math.floor(Date.now()/1800000);
-      const selectedKeywords = selectShopeeKeywords(slot,3);
-      const productQuery = 'query($keyword: String, $shopId: Int64, $listType: Int, $sortType: Int, $page: Int, $limit: Int, $isAMSOffer: Boolean, $isKeySeller: Boolean) { productOfferV2(keyword: $keyword, shopId: $shopId, listType: $listType, sortType: $sortType, page: $page, limit: $limit, isAMSOffer: $isAMSOffer, isKeySeller: $isKeySeller) { nodes { itemId shopId shopName productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate commissionRate sales ratingStar } pageInfo { page limit hasNextPage } } }';
-      const seen = new Set();
+      const selectedKeywords = selectShopeeKeywords(slot,6);
+      const productQuery = 'query($keyword: String, $shopId: Int64, $listType: Int, $sortType: Int, $page: Int, $limit: Int, $isAMSOffer: Boolean, $isKeySeller: Boolean) { productOfferV2(keyword: $keyword, shopId: $shopId, listType: $listType, sortType: $sortType, page: $page, limit: $limit, isAMSOffer: $isAMSOffer, isKeySeller: $isKeySeller) { nodes { itemId shopId shopName productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate commissionRate sellerCommissionRate shopeeCommissionRate commission sales ratingStar } pageInfo { page limit hasNextPage } } }';
+      const seen = new Map();
       const products = [];
       const addProducts = (nodes, discoveryKeyword, discoverySource) => {
-        for (const product of list(nodes).slice(0,50)) {
-          const key = clean(product.itemId,80) || clean(product.productLink,2000) || clean(product.productName,220);
-          if (!key || seen.has(key)) continue;
-          if (discoverySource === 'keyword' && !isRelevantShopeeProduct(product.productName,discoveryKeyword)) continue;
-          seen.add(key);
+        for (const product of list(nodes)) {
+          const key = clean(product.itemId,80) || clean(product.productLink,2000) || [clean(product.shopId,80),clean(product.productName,220)].filter(Boolean).join(':');
+          if (!key) continue;
+          const existing = seen.get(key);
+          if (existing) {
+            // Merge fields from alternate discovery paths instead of dropping the richer record.
+            for (const [field,value] of Object.entries(product)) {
+              if (value !== null && value !== undefined && value !== '') existing[field] = value;
+            }
+            existing.__discoverySources = [...new Set([...(existing.__discoverySources||[]),discoverySource])];
+            if (discoverySource === 'ams_keyword') existing.__isAMSOffer = true;
+            continue;
+          }
+          // Keep every unique API result. Search relevance affects ranking only, never inclusion.
           product.__radarKeyword = discoveryKeyword;
           product.__discoverySource = discoverySource;
+          product.__discoverySources = [discoverySource];
+          product.__isAMSOffer = discoverySource === 'ams_keyword';
+          seen.set(key,product);
           products.push(product);
         }
       };
       // Search each selected phrase by sales and commission. Page rotation broadens catalog coverage over time.
       for (const keyword of selectedKeywords) {
         for (const sortType of [2,5]) {
-          const page = sortType === 2 ? 1 : (Math.floor(slot/3)%3)+1;
           const listType = sortType === 2 ? 2 : 1;
-          const data = await request(creds,productQuery,{keyword,listType,sortType,page,limit:50});
-          addProducts(data.data?.productOfferV2?.nodes,keyword,'keyword');
-          totals.productSearchCalls = (totals.productSearchCalls||0)+1;
+          const discoveryKey = 'keyword:'+keyword;
+          const page = await getShopeeDiscoveryPage(row.account_id,discoveryKey,sortType);
+          const result = await requestProductPages(creds,productQuery,{keyword,listType,sortType,page,limit:50},3);
+          addProducts(result.nodes,keyword,'keyword');
+          if (!dryRun) await saveShopeeDiscoveryPage(row.account_id,discoveryKey,sortType,result);
+          totals.productSearchCalls = (totals.productSearchCalls||0)+result.pagesFetched;
+          totals.productPagesFetched = (totals.productPagesFetched||0)+result.pagesFetched;
+          if (result.hasNextPage) {
+            totals.productSearchContinuations = (totals.productSearchContinuations||0)+1;
+            totals.paginationIncomplete = true;
+          }
         }
       }
       totals.keywordsQueried = (totals.keywordsQueried||0)+selectedKeywords.length;
+
+      // Rotate two AMS/CommissionsXtra-filtered searches per cycle. These are product offers
+      // with seller-funded commission fields, the live-schema route for brand-commission items.
+      const amsKeywords = selectedKeywords.filter((_,index)=>(index+slot)%3===0).slice(0,2);
+      for (const keyword of amsKeywords) {
+        const discoveryKey = 'ams:'+keyword;
+        const page = await getShopeeDiscoveryPage(row.account_id,discoveryKey,5);
+        const result = await requestProductPages(creds,productQuery,{keyword,listType:1,sortType:5,page,limit:50,isAMSOffer:true},3);
+        addProducts(result.nodes,keyword,'ams_keyword');
+        if (!dryRun) await saveShopeeDiscoveryPage(row.account_id,discoveryKey,5,result);
+        totals.amsProductSearchCalls = (totals.amsProductSearchCalls||0)+result.pagesFetched;
+        totals.productPagesFetched = (totals.productPagesFetched||0)+result.pagesFetched;
+        if (result.hasNextPage) {
+          totals.productSearchContinuations = (totals.productSearchContinuations||0)+1;
+          totals.paginationIncomplete = true;
+        }
+      }
+      totals.amsKeywordsQueried = (totals.amsKeywordsQueried||0)+amsKeywords.length;
 
       // Discover affiliate partner shops, then sample products from the two strongest returned shops.
       // Optional discovery failures must not block the core product search.
@@ -106,11 +254,19 @@ export default async function handler(req,res) {
         totals.shopsDiscovered = (totals.shopsDiscovered||0)+shops.length;
         for (const shop of shops.slice(0,2)) {
           const shopId = clean(shop.shopId,80);
-          if (!/^\\d{1,18}$/.test(shopId)) continue;
+          if (!isShopeeShopId(shopId)) continue;
           try {
-            const shopProducts = await request(creds,productQuery,{shopId,listType:2,sortType:2,page:1,limit:50});
-            addProducts(shopProducts.data?.productOfferV2?.nodes,'loja:'+clean(shop.shopName,80),'partner_shop');
-            totals.shopProductCalls = (totals.shopProductCalls||0)+1;
+            const discoveryKey = 'shop:'+shopId;
+            const page = await getShopeeDiscoveryPage(row.account_id,discoveryKey,2);
+            const shopProducts = await requestProductPages(creds,productQuery,{shopId,listType:2,sortType:2,page,limit:50},3);
+            addProducts(shopProducts.nodes,'loja:'+clean(shop.shopName,80),'partner_shop');
+            if (!dryRun) await saveShopeeDiscoveryPage(row.account_id,discoveryKey,2,shopProducts);
+            totals.shopProductCalls = (totals.shopProductCalls||0)+shopProducts.pagesFetched;
+            totals.productPagesFetched = (totals.productPagesFetched||0)+shopProducts.pagesFetched;
+            if (shopProducts.hasNextPage) {
+              totals.productSearchContinuations = (totals.productSearchContinuations||0)+1;
+              totals.paginationIncomplete = true;
+            }
           } catch (shopProductError) {
             console.error('shopee partner shop product discovery skipped',String(shopProductError?.message||'ERROR').slice(0,80));
           }
@@ -132,36 +288,75 @@ export default async function handler(req,res) {
         console.error('shopee campaign discovery skipped',String(campaignError?.message||'ERROR').slice(0,80));
       }
 
-      // Brand partner offers are a separate official discovery surface. Record discovery only;
-      // a brand offer is not a priced product and must not enter the Telegram product pipeline.
-      const brandQuery = 'query($sortType: Int, $page: Int, $limit: Int) { brandOffer(sortType: $sortType, page: $page, limit: $limit) { nodes { brandName offerName offerLink commissionRate } pageInfo { page limit hasNextPage } } }';
-      try {
-        const brandData = await request(creds,brandQuery,{sortType:2,page:1,limit:30});
-        totals.brandOffersDiscovered = (totals.brandOffersDiscovered||0)+list(brandData.data?.brandOffer?.nodes).length;
-      } catch (brandError) {
-        totals.brandOfferDiscoveryUnavailable = true;
-        console.error('shopee brand offer discovery skipped',String(brandError?.message||'ERROR').slice(0,80));
-      }
+      // The live Brazil GraphQL schema exposes only deprecated brandOffer; brandOfferV2
+      // is not a Query field for these credentials. Do not call the deprecated endpoint.
+      totals.brandOfferDiscoveryUnavailable = true;
+      totals.brandOfferDiscoveryReason = 'brand_offer_v2_not_exposed_by_live_brazil_schema';
       totals.scanned += products.length;
+      if (dryRun) {
+        totals.discoveryItemsPreview = (totals.discoveryItemsPreview||0)+products.length;
+      } else {
+        const discoveryStats = await persistShopeeDiscoveryItems(row.account_id,products);
+        totals.discoveryItemsStored = (totals.discoveryItemsStored||0)+discoveryStats.stored;
+        totals.incompleteStored = (totals.incompleteStored||0)+discoveryStats.incomplete;
+        totals.safetyBlocked += discoveryStats.blocked;
+        totals.skipped += discoveryStats.incomplete+discoveryStats.blocked;
+        totals.incompletePreview.push(...discoveryStats.incompletePreview);
+        totals.safetyBlockedPreview.push(...discoveryStats.safetyBlockedPreview);
+      }
+      const processingRows = dryRun ? [] : (await db.query(
+        `SELECT external_id,raw_data FROM affiliate_discovery_items
+         WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT'
+           AND processing_status IN ('DISCOVERED','FAILED')
+         ORDER BY first_seen_at,external_id LIMIT 30`,
+        [row.account_id]
+      )).rows;
+      const processingProducts = dryRun ? products : processingRows.map(item=>({...item.raw_data,__inventoryExternalId:item.external_id}));
+      totals.processingBatch = (totals.processingBatch||0)+processingProducts.length;
       const cats = (await db.query('SELECT id,name FROM categories WHERE account_id=$1',[row.account_id])).rows;
       const candidates = [];
-      for (const p of products) {
-        const title = clean(p.productName,220);
-        const productUrl = httpsUrl(p.productLink,2000) || '';
-        if (isMedicationProduct({title, productUrl})) { totals.safetyBlocked++; totals.skipped++; continue; }
-        const affiliateUrl = httpsUrl(p.offerLink,2000) || '';
+      for (const p of processingProducts) {
+        const title = clean(p.productName || p.name,220);
+        const productUrl = httpsUrl(p.productLink || p.originalUrl,2000) || '';
+        const affiliateUrl = httpsUrl(p.offerLink || p.url,2000) || '';
         const imageUrl = directImageUrl(p.imageUrl) ? p.imageUrl : '';
-        const price = Number(p.priceMin);
-        const rateRaw = Number(p.priceDiscountRate);
+        const price = Number(p.priceMin ?? p.price);
+        const rateRaw = Number(p.priceDiscountRate ?? p.discountRate);
+        const discoveryExternalId = p.__inventoryExternalId || clean(p.itemId,80) || productUrl || [clean(p.shopId,80),title].filter(Boolean).join(':');
+        if (isMedicationProduct({title, productUrl})) {
+          totals.safetyBlocked++; totals.skipped++;
+          totals.safetyBlockedPreview.push({itemId:clean(p.itemId || discoveryExternalId,80),title,discoveryKeyword:clean(p.__radarKeyword,80),reason:'blocked_by_product_safety_policy'});
+          if (!dryRun && discoveryExternalId) await db.query(
+            "UPDATE affiliate_discovery_items SET processing_status='BLOCKED',processed_at=now(),processing_error='blocked_by_product_safety_policy' WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND external_id=$2 AND processing_status IN ('DISCOVERED','FAILED')",
+            [row.account_id,discoveryExternalId]
+          );
+          continue;
+        }
         const discountRate = Number.isFinite(rateRaw) && rateRaw > 0 ? (rateRaw < 1 ? rateRaw : rateRaw/100) : 0;
         const currentPrice = Number.isFinite(price) && price>0 ? Math.round(price*100) : 0;
         const commission = Number(p.commissionRate);
-        if (!title || !productUrl || !affiliateUrl || !imageUrl || !currentPrice || !Number.isFinite(commission) || commission<=0) { totals.skipped++; continue; }
+        const missingFields = [];
+        if (!title) missingFields.push('title');
+        if (!productUrl) missingFields.push('productUrl');
+        if (!affiliateUrl) missingFields.push('affiliateUrl');
+        if (!imageUrl) missingFields.push('imageUrl');
+        if (!currentPrice) missingFields.push('priceMin');
+        if (!Number.isFinite(commission) || commission<=0) missingFields.push('commissionRate');
+        if (missingFields.length) {
+          totals.skipped++;
+          totals.incompletePreview.push({itemId:clean(p.itemId || discoveryExternalId,80),title,shopId:clean(p.shopId,80),shopName:clean(p.shopName,160),discoverySource:(p.__discoverySources||[p.__discoverySource]).join(','),discoveryKeyword:clean(p.__radarKeyword,80),missingFields,priceMin:p.priceMin??p.price??null,commissionRate:p.commissionRate??null});
+          if (!dryRun && discoveryExternalId) await db.query(
+            "UPDATE affiliate_discovery_items SET processing_status='INCOMPLETE',processed_at=now(),processing_error=$3 WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND external_id=$2 AND processing_status IN ('DISCOVERED','FAILED')",
+            [row.account_id,discoveryExternalId,missingFields.join(',')]
+          );
+          continue;
+        }
 
         const sales = Math.max(0, Number(p.sales) || 0);
         const commissionPercent = commission <= 1 ? commission * 100 : commission;
-        const ratingRaw = Number(p.ratingStar);
+        const ratingRaw = Number(p.ratingStar ?? p.rating);
         const rating = Number.isFinite(ratingRaw) && ratingRaw > 0 ? (ratingRaw > 5 ? ratingRaw / 20 : ratingRaw) : null;
+        const classified = classifyProduct({title});
         // API discount is a marketing claim, not historical proof. Use it only as a ranking signal;
         // never synthesize an original price or publish an unverified percentage as confirmed savings.
         let score = 35;
@@ -170,6 +365,7 @@ export default async function handler(req,res) {
         score += sales >= 1000 ? 15 : sales >= 100 ? 10 : sales >= 20 ? 5 : 0;
         score += rating === null ? -2 : rating >= 4.7 ? 8 : rating >= 4.4 ? 6 : rating >= 4.0 ? 3 : rating >= 3.5 ? 0 : -8;
         score += title.length >= 18 ? 3 : 0;
+        score += classified.confidence >= 0.8 ? 8 : classified.confidence >= 0.5 ? 0 : -12;
         const keywordQualityPenalty = getShopeeKeywordQualityPenalty(title,p.__radarKeyword);
         score += keywordQualityPenalty;
         score += productUrl && affiliateUrl && imageUrl ? 6 : 0;
@@ -179,28 +375,27 @@ export default async function handler(req,res) {
         if (commissionPercent > 0) reasons.push('comissão informada pela Shopee');
         if (sales >= 20) reasons.push('popularidade informada pela Shopee');
         if (rating !== null) reasons.push('avaliação Shopee: ' + rating.toFixed(1) + '/5');
+        if (classified.confidence < 0.5) reasons.push('classificação incerta: exige revisão');
         if (keywordQualityPenalty < 0) reasons.push('produto acessório rebaixado em busca de produto principal');
         if (productUrl && affiliateUrl && imageUrl) reasons.push('link, link de afiliado e imagem presentes');
         const fp = await fingerprint({source:'SHOPEE',externalId:clean(p.itemId,80),productUrl,title});
-        const classified = classifyProduct({title});
         const category = cats.find(c=>c.name.toLowerCase()===String(classified.category||'').toLowerCase()) || cats.find(c=>c.name.toLowerCase().includes('gerais'));
-        candidates.push({p,title,productUrl,affiliateUrl,imageUrl,currentPrice,commissionPercent,discountRate,sales,score,reasons,fp,classified,category,id:clean(p.itemId,80),merchantId:clean(p.shopId,80),merchantName:clean(p.shopName,160)});
+        candidates.push({p,title,productUrl,affiliateUrl,imageUrl,currentPrice,commissionPercent,discountRate,sales,score,reasons,fp,classified,category,id:clean(p.itemId,80),discoveryExternalId,merchantId:clean(p.shopId,80),merchantName:clean(p.shopName,160)});
       }
 
       // Rank the full candidate batch first; the cap applies only after comparison and duplicate checks.
       candidates.sort((a,b) => b.score-a.score || b.sales-a.sales || b.commissionPercent-a.commissionPercent || a.currentPrice-b.currentPrice || a.title.localeCompare(b.title,'pt-BR'));
-      const selectedCandidates = selectDiverseCandidates(candidates,{limit:15,perCategory:1,perMerchant:1,fillPerCategory:4,fillPerMerchant:2});
+      // Priority only: retain the complete candidate set, including low-volume and accessory matches.
+      const selectedCandidates = candidates;
       totals.selected += selectedCandidates.length;
+      totals.candidatesRetained = (totals.candidatesRetained || 0) + selectedCandidates.length;
       if (dryRun) {
-        totals.preview.push(...selectedCandidates.map(candidate => ({itemId:clean(candidate.p.itemId,80),title:candidate.title,category:candidate.classified.category,subcategory:candidate.classified.subcategory,confidence:candidate.classified.confidence,shopId:clean(candidate.p.shopId,80),shopName:clean(candidate.p.shopName,160),price:candidate.currentPrice/100,discoveryKeyword:clean(candidate.p.__radarKeyword,80)})));
+        totals.preview.push(...selectedCandidates.map(candidate => ({itemId:clean(candidate.p.itemId,80),title:candidate.title,category:candidate.classified.category,subcategory:candidate.classified.subcategory,confidence:candidate.classified.confidence,score:candidate.score,sales:candidate.sales,rating:candidate.p.ratingStar==null?null:Number(candidate.p.ratingStar),commissionPercent:candidate.commissionPercent,discountRate:candidate.discountRate,shopId:clean(candidate.p.shopId,80),shopName:clean(candidate.p.shopName,160),price:candidate.currentPrice/100,discoverySource:(candidate.p.__discoverySources||[candidate.p.__discoverySource]).join(','),discoveryKeyword:clean(candidate.p.__radarKeyword,80)})));
         continue;
       }
-      let checkedCandidates = 0;
       for (const candidate of selectedCandidates) {
-        if (checkedCandidates >= 15) break;
-        checkedCandidates++;
         await pause(250);
-        const {p,title,productUrl,affiliateUrl,imageUrl,currentPrice,score,fp,classified,category,reasons} = candidate;
+        const {p,title,productUrl,affiliateUrl,imageUrl,currentPrice,score,fp,classified,category,reasons,discoveryExternalId} = candidate;
         const exists = await db.query('SELECT id,current_price,original_price FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1',[row.account_id,fp]);
         if (exists.rows.length) {
           const existing = exists.rows[0];
@@ -211,6 +406,10 @@ export default async function handler(req,res) {
           if (Number(existing.current_price)===currentPrice && existing.original_price===null) {
             await db.query("INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) SELECT $1,$2,$3,$4,NULL,'OFFICIAL_API',$5,now() WHERE NOT EXISTS(SELECT 1 FROM offer_price_history WHERE account_id=$2 AND offer_id=$3 AND source_type='OFFICIAL_API' AND verified_at>now()-interval '24 hours' AND price=$4 AND original_price IS NULL)",[crypto.randomUUID(),row.account_id,existing.id,currentPrice,'SHOPEE:'+clean(p.itemId,80)]);
           }
+          await db.query(
+            "UPDATE affiliate_discovery_items SET processing_status='DUPLICATE',processed_at=now(),offer_id=$3,processing_error='' WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND external_id=$2",
+            [row.account_id,discoveryExternalId,existing.id]
+          );
           totals.duplicates++; continue;
         }
         let trackedAffiliateUrl = affiliateUrl;
@@ -229,17 +428,40 @@ export default async function handler(req,res) {
         const promo = formatPromo({title,source:'SHOPEE',category:category?.name||'',currentPrice,originalPrice:0,affiliateUrl:trackedAffiliateUrl,imageUrl});
         const offerId = crypto.randomUUID();
         const inserted = await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible) VALUES($1,$2,$3,'SHOPEE',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'APPROVED',$12,$13,'VALIDATED','AUTO',false) ON CONFLICT DO NOTHING RETURNING id",[offerId,row.account_id,title,originalPrice,currentPrice,category?.id||null,trackedAffiliateUrl,imageUrl,productUrl,discount,score,promo.message,fp]);
-        if (!inserted.rows.length) { totals.duplicates++; continue; }
+        if (!inserted.rows.length) {
+          const conflict = await db.query('SELECT id FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1',[row.account_id,fp]);
+          await db.query(
+            "UPDATE affiliate_discovery_items SET processing_status='DUPLICATE',processed_at=now(),offer_id=$3,processing_error='' WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND external_id=$2",
+            [row.account_id,discoveryExternalId,conflict.rows[0]?.id||null]
+          );
+          totals.duplicates++; continue;
+        }
         try {
           await db.query("INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,$4,$5,'OFFICIAL_API',$6,now())",[crypto.randomUUID(),row.account_id,offerId,currentPrice,originalPrice,'SHOPEE:'+clean(p.itemId,80)]);
           const scoreReason = 'radar_score='+score+'; '+reasons.join('; ')+'; '+subIdNote;
           await db.query('UPDATE offers SET subcategory=$1,classification_tags=$2::jsonb,classification_confidence=$3,classification_status=$4,classification_reason=$5,source_category=$6 WHERE id=$7 AND account_id=$8',[classified.subcategory,JSON.stringify(classified.tags||[]),classified.confidence||0,classified.needsReview?'REVIEW':'AUTO',(classified.reason||'official_shopee_api')+'; '+scoreReason+'; discovery_keyword='+clean(p.__radarKeyword,80),null,offerId,row.account_id]);
+          await db.query(
+            "UPDATE affiliate_discovery_items SET processing_status='IMPORTED',processed_at=now(),offer_id=$3,processing_error='' WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND external_id=$2",
+            [row.account_id,discoveryExternalId,offerId]
+          );
           totals.imported++; importedForAccount++;
         } catch (e) {
           await db.query("UPDATE offers SET status='PENDING',validation_status='NEEDS_REVIEW' WHERE id=$1 AND account_id=$2",[offerId,row.account_id]);
+          await db.query(
+            "UPDATE affiliate_discovery_items SET processing_status='FAILED',processing_error=$3 WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND external_id=$2",
+            [row.account_id,discoveryExternalId,clean(e?.message||'offer_import_failed',160)]
+          );
           totals.failed++;
         }
       }
+      if (!dryRun) {
+        const pending = await db.query(
+          "SELECT count(*)::int AS count FROM affiliate_discovery_items WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND processing_status IN ('DISCOVERED','FAILED')",
+          [row.account_id]
+        );
+        totals.pendingInventory = (totals.pendingInventory||0)+(Number(pending.rows[0]?.count)||0);
+      }
+
       // Reconcile a small number of previously queued Shopee offers by their exact item ID.
       // Search results are accepted only when the official API returns the same item ID.
       const staleOffers = (await db.query(`
@@ -262,7 +484,7 @@ export default async function handler(req,res) {
         try {
           const parts = new URL(stale.product_url).pathname.split('/').filter(Boolean);
           const itemId = parts[parts.length-1];
-          if (!/^\\d{8,}$/.test(itemId)) continue;
+          if (!isShopeeItemId(itemId)) continue;
           const found = list((await request(creds,reconcileQuery,{keyword:clean(stale.title,120),sortType:5,page:1,limit:50})).data?.productOfferV2?.nodes)
             .find(product=>String(product.itemId)===itemId);
           const livePrice = Math.round(Number(found?.priceMin)*100);
@@ -287,7 +509,7 @@ export default async function handler(req,res) {
     } catch (e) {
       totals.failed++;
       const code = String(e?.message||'').slice(0,100);
-      await db.query("UPDATE marketplace_api_credentials SET last_error=$2,updated_at=now() WHERE account_id=$1 AND marketplace='SHOPEE'",[row.account_id,code]);
+      if (!dryRun) await db.query("UPDATE marketplace_api_credentials SET last_error=$2,updated_at=now() WHERE account_id=$1 AND marketplace='SHOPEE'",[row.account_id,code]);
       console.error('shopee ingestion failed',code);
     }
   }

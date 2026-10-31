@@ -17,7 +17,15 @@ const API_URL = 'https://api-sg.aliexpress.com/sync';
 const clean = (v, max = 500) => String(v ?? '').trim().slice(0, max);
 const fromB64 = v => Uint8Array.from(atob(v), c => c.charCodeAt(0));
 const fields = 'product_id,product_title,product_main_image_url,product_detail_url,promotion_link,target_sale_price,target_original_price,sale_price,discount,commission_rate,evaluate_rate,lastest_volume,first_level_category_id,second_level_category_id,shop_id,shop_url';
-const keywords = ['fone bluetooth', 'air fryer', 'smartwatch', 'notebook', 'fralda bebê', 'cafeteira', 'power bank', 'organizador casa', 'perfume feminino', 'tênis masculino', 'mochila', 'carregador rápido'];
+const keywords = [
+  'fone bluetooth','fone sem fio','fone gamer','headset','caixa de som bluetooth','smartwatch','relogio inteligente','pulseira inteligente','celular','smartphone','iphone','android','tablet','notebook','laptop','monitor','teclado mecanico','mouse gamer','webcam','impressora','ssd','memoria ram','placa de video','roteador wifi','camera de seguranca','camera ip','projetor','tv box','controle videogame','console jogos',
+  'air fryer','fritadeira eletrica','cafeteira','maquina de cafe','liquidificador','batedeira','processador alimentos','panela eletrica','panela pressao','aspirador robo','aspirador de po','ventilador','ar condicionado','umidificador','purificador agua','bebedouro','geladeira','microondas','forno eletrico','maquina lavar','ferro passar','lava loucas',
+  'organizador casa','organizador cozinha','organizador banheiro','armario','guarda roupa','sapateira','estante','prateleira','mesa escritorio','cadeira escritorio','sofa','colchao','travesseiro','jogo cama','cortina','tapete','luminaria','lampada led','decoracao','ferramentas','furadeira','parafusadeira','chave impacto','lavadora alta pressao','jardim','piscina','churrasqueira',
+  'fralda bebe','lenço umedecido','carrinho bebe','cadeirinha carro','berco','mamadeira','chupeta','brinquedo educativo','lego','boneca','pelucia','material escolar','mochila escolar','lancheira',
+  'perfume feminino','perfume masculino','maquiagem','skincare','protetor solar','secador cabelo','chapinha','modelador cabelo','barbeador','aparador pelos','escova secadora','shampoo','creme cabelo','bolsa feminina','carteira','oculos sol','relogio masculino','tenis feminino','tenis masculino','sandalia','chinelo','camiseta','vestido','jaqueta','moletom',
+  'suplemento esportivo','whey protein','creatina','halter','kit academia','bicicleta','acessorios bicicleta','barraca camping','mochila trilha','pesca','bola futebol','pet shop','racao cachorro','racao gato','cama pet','brinquedo pet','coleira cachorro','areia gato',
+  'carregador rapido','carregador usb c','cabo usb c','power bank','adaptador tomada','hub usb','suporte celular','pelicula celular','capinha celular','acessorios carro','camera veicular','pneu bicicleta','pecas automotivas','ferramenta automotiva','ofertas casa','ofertas tecnologia','ofertas beleza','ofertas infantil','ofertas esporte'
+];
 function safeAliExpressAffiliateUrl(value) {
   try {
     const url = new URL(String(value || '').trim());
@@ -233,7 +241,7 @@ function normalize(p) {
     affiliateUrl: safeAliExpressAffiliateUrl(p.promotion_link || p.promotionLink || p.promotion_link_url),
     imageUrl: directImageUrl(p.product_main_image_url || p.productMainImageUrl) ? (p.product_main_image_url || p.productMainImageUrl) : '',
     currentPrice: Number.isFinite(price) && price > 0 ? Math.round(price * 100) : 0,
-    originalPrice: Number.isFinite(original) && original > 0 ? Math.round(original * 100) : 0,
+    originalPrice: Number.isFinite(original) && original > 0 ? Math.round(original * 100) : (Number.isFinite(price) && price > 0 ? Math.round(price * 100) : 0),
     commission: percent(p.commission_rate ?? p.commision_rate),
     rating: ratingPercent(p.evaluate_rate ?? p.evaluateRate),
     sales: Math.max(0, Number(p.lastest_volume ?? p.lastestVolume) || 0),
@@ -354,11 +362,10 @@ export default async function handler(req, res) {
         else if (!p.currentPrice || p.currentPrice <= 0) reason = 'invalidPrice';
         else if (!p.affiliateUrl) reason = 'missingAffiliateLink';
         else if (!p.imageUrl) reason = 'missingImage';
-        else if (p.originalPrice <= p.currentPrice) reason = 'noVerifiedDiscount';
+        // Products without a verified discount remain discoverable; they are ranked below discounted offers.
         // No internal category exclusion.
         if (reason) { totals.skipped++; totals.rejectedBy[reason]++; continue; }
-        const discount = Math.round((p.originalPrice - p.currentPrice) * 100 / p.originalPrice);
-        if (discount < 10) { totals.skipped++; totals.rejectedBy.discountBelowThreshold++; continue; }
+        const discount = p.originalPrice > p.currentPrice ? Math.round((p.originalPrice - p.currentPrice) * 100 / p.originalPrice) : 0;
         // Missing commission/rating data no longer discards otherwise valid offers.
         // Known values are used for ranking; known low commission/rating are flagged for review.
         if (p.commission === null) totals.qualitySignals.missingCommission++;
@@ -375,7 +382,7 @@ export default async function handler(req, res) {
         candidates.push({ ...p, qualityFlags, discount, classified, category, fp, id:p.id, merchantId:p.shopId, score: offerScore({ title: p.title, currentPrice: p.currentPrice, originalPrice: p.originalPrice }) });
       }
       candidates.sort((a, b) => b.score - a.score || b.sales - a.sales || (b.commission || 0) - (a.commission || 0) || a.currentPrice - b.currentPrice);
-      const selectedCandidates = selectDiverseCandidates(candidates,{limit:20,perCategory:1,perMerchant:1,fillPerCategory:2,fillPerMerchant:2});
+      const selectedCandidates = selectDiverseCandidates(candidates,{limit:20,perCategory:20,perMerchant:20,fillPerCategory:20,fillPerMerchant:20});
       totals.selected += selectedCandidates.length;
       if (dryRun) {
         totals.preview.push(...selectedCandidates.slice(0, 20).map(p => ({productId:p.id,title:p.title,category:p.classified.category,subcategory:p.classified.subcategory,confidence:p.classified.confidence,sourceCategory:p.sourceCategory||null,price:p.currentPrice/100,discountPercent:p.discount,shopId:p.shopId||null})));

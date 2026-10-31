@@ -63,6 +63,8 @@ function categoryIds(rows) {
 }
 
 export default async function handler(req, res) {
+  let externalDiscoveryEnabled = false;
+  try { externalDiscoveryEnabled = String(await config.get('lomadee_external_discovery_enabled') || '').toLowerCase() === 'true'; } catch {}
   const credentialsRows = (await db.query(
     "SELECT account_id,credentials_enc,nonce FROM marketplace_api_credentials WHERE marketplace='LOMADEE' AND status='VALIDATED'"
   )).rows;
@@ -73,7 +75,7 @@ export default async function handler(req, res) {
   const pages = catalogPages(basePage, dryRunPage);
   const totals = {
     accounts: credentialsRows.length, scanned: 0, imported: 0, duplicates: 0, skipped: 0,
-    failed: 0, autopilotRuns: 0, dryRun, pages, classificationPolicyVersion: LOMADEE_CATALOG_POLICY.version,
+    failed: 0, autopilotRuns: 0, dryRun, externalDiscoveryEnabled, pages, classificationPolicyVersion: LOMADEE_CATALOG_POLICY.version,
     maxImportsPerRun: LOMADEE_CATALOG_POLICY.maxImportsPerRun,
     eligibleBeforeAffiliate: 0, selected: 0, skipReasons: {
       unavailable: 0, missingTitle: 0, missingOrganization: 0, missingProductUrl: 0,
@@ -98,21 +100,53 @@ export default async function handler(req, res) {
       const candidates = [];
       let successfulPages = 0;
       totals.skipReasons ||= {};
+      let productBatches = [];
 
-      for (const page of pages) {
-        let response;
-        try {
-          response = await request('/affiliate/products', apiKey, { page, limit: 100, isAvailable: true });
-          successfulPages++;
-        } catch (error) {
-          totals.failed++;
-          totals.pageErrors ||= [];
-          totals.pageErrors.push({ page, status: Number(error?.status) || 0 });
-          if (Number(error?.status) === 429) break;
-          continue;
+      if (externalDiscoveryEnabled) {
+        const latestRun = (await db.query(
+          "SELECT id FROM affiliate_discovery_runs WHERE account_id=$1 AND marketplace='LOMADEE' AND operation='external_worker_products' AND status='COMPLETED' AND started_at>now()-interval '90 minutes' ORDER BY started_at DESC LIMIT 1",
+          [row.account_id]
+        )).rows[0];
+        if (latestRun) {
+          const externalRows = (await db.query(
+            "SELECT raw_data FROM affiliate_discovery_items WHERE account_id=$1 AND marketplace='LOMADEE' AND kind='PRODUCT' AND last_run_id=$2 ORDER BY title LIMIT 100",
+            [row.account_id, latestRun.id]
+          )).rows;
+          const externalProducts = externalRows.map(item => {
+            if (typeof item.raw_data === 'string') {
+              try { return JSON.parse(item.raw_data); } catch { return null; }
+            }
+            return item.raw_data && typeof item.raw_data === 'object' ? item.raw_data : null;
+          }).filter(Boolean);
+          if (externalProducts.length) {
+            productBatches = [externalProducts];
+            successfulPages = 1;
+            totals.discoverySource = 'EXTERNAL_WORKER';
+            totals.externalDiscoveryRunId = latestRun.id;
+          }
         }
+      }
 
-        const products = list(response);
+      if (!productBatches.length) {
+        totals.discoverySource = externalDiscoveryEnabled ? 'HATCHABLE_FALLBACK' : 'HATCHABLE';
+        totals.externalDiscoveryFallback = externalDiscoveryEnabled;
+        for (const page of pages) {
+          let response;
+          try {
+            response = await request('/affiliate/products', apiKey, { page, limit: 100, isAvailable: true });
+            successfulPages++;
+          } catch (error) {
+            totals.failed++;
+            totals.pageErrors ||= [];
+            totals.pageErrors.push({ page, status: Number(error?.status) || 0 });
+            if (Number(error?.status) === 429) break;
+            continue;
+          }
+          productBatches.push(list(response));
+        }
+      }
+
+      for (const products of productBatches) {
         totals.scanned += products.length;
         for (const product of products) {
           const option = (Array.isArray(product.options) ? product.options : []).find(item => item?.available) || product.options?.[0] || {};
@@ -121,8 +155,10 @@ export default async function handler(req, res) {
           const classification = classifyLomadeeProduct(product);
           const productUrl = typeof product.url === 'string' && /^https:\/\//i.test(product.url) ? product.url : '';
           const imageUrl = product.images?.[0]?.url || option.images?.[0]?.url || '';
-          const originalPrice = priceCents(pricing.listPrice);
           const currentPrice = priceCents(pricing.price);
+          const listedOriginalPrice = priceCents(pricing.listPrice);
+          // A missing/equal list price is not a reason to discard a valid product; record it at current price with 0% discount.
+          const originalPrice = Number.isSafeInteger(currentPrice) ? Math.max(Number.isSafeInteger(listedOriginalPrice) ? listedOriginalPrice : currentPrice, currentPrice) : listedOriginalPrice;
 
           if (classification.blocked) { totals.skipped++; totals.skipReasons.medication++; continue; }
           if (!product.available || option.available === false) { totals.skipped++; totals.skipReasons.unavailable++; continue; }
@@ -140,7 +176,7 @@ export default async function handler(req, res) {
             });
             continue;
           }
-          if (originalPrice <= currentPrice) { totals.skipped++; totals.skipReasons.noDiscount++; continue; }
+          // Zero-discount products remain eligible; discount is a ranking signal, not an exclusion rule.
 
           candidates.push({
             product, option, title, productUrl, imageUrl, originalPrice, currentPrice, classification,

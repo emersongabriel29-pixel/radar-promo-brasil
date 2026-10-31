@@ -13,6 +13,7 @@ export const methods = ['GET', 'POST'];
 
 const API_URL = 'https://open-api.affiliate.shopee.com.br/graphql';
 const clean = (value, max = 200) => String(value ?? '').trim().slice(0, max);
+const discoveryCategories = new Set(['bebe-maternidade','casa-decoracao','cozinha-utensilios','beleza-cuidados','moda-feminina','moda-masculina','eletronicos-acessorios','informatica-celulares','pet-shop','ferramentas-utilidades']);
 const fromB64 = value => Uint8Array.from(atob(value), char => char.charCodeAt(0));
 const hex = bytes => Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('');
 
@@ -179,9 +180,10 @@ export default async function handler(req, res) {
       return res.json({ok:true,action:'import_offers',imported:imported.length,skipped:skipped.length,items:imported,skippedItems:skipped,reviewRequired:true,autopilotTriggered:false,publicationTriggered:false,note:'Ofertas Shopee importadas como rascunhos com preço oficial e link de afiliado. A publicação depende de aprovação humana e das regras do canal.'});
     }
     if (action === 'offers') {
-      const kindMap = { product: 'productOfferV2', shop: 'shopOfferV2', shopee: 'shopeeOfferV2', brand: 'brandOffer' };
+      const kindMap = { product: 'productOfferV2', shop: 'shopOfferV2', shopee: 'shopeeOfferV2', brand: 'brandOfferV2' };
       const kind = kindMap[clean(req.body?.kind, 20).toLowerCase()];
       if (!kind) return res.status(400).json({ error: 'Escolha ofertas de produto, loja, campanha ou marca Shopee.' });
+      if (kind === 'brandOfferV2') return res.status(501).json({ code: 'SHOPEE_BRAND_OFFERS_UNAVAILABLE', error: 'A Open API brasileira desta conexão não expõe brandOfferV2 e o endpoint brandOffer legado está descontinuado. A descoberta continua disponível por produto, loja e campanha.' });
       const keyword = clean(req.body?.keyword || 'phone', 80).replace(/[\r\n]/g, ' ').trim() || 'phone';
       // The documented offer endpoints support large pages. Keep the default useful for interactive use,
       // while allowing authorized callers to request up to 500 records per page.
@@ -209,15 +211,19 @@ export default async function handler(req, res) {
         query = 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int, $shopType: [Int!], $isKeySeller: Boolean) { shopOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit, shopType: $shopType, isKeySeller: $isKeySeller) { nodes { shopName shopId offerLink commissionRate ratingStar shopType imageUrl remainingBudget sellerCommCoveRatio periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
         if (shopType.length) variables.shopType = shopType;
         if (req.body?.isKeySeller !== undefined && req.body?.isKeySeller !== '') variables.isKeySeller = isKeySeller;
-      } else if (kind === 'brandOffer') {
-        query = 'query($sortType: Int, $page: Int, $limit: Int) { brandOffer(sortType: $sortType, page: $page, limit: $limit) { nodes { brandName offerName offerLink commissionRate } pageInfo { page limit hasNextPage } } }';
+      } else if (kind === 'brandOfferV2') {
+        query = 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { brandOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { brandId brandName commissionRate imageUrl offerLink originalLink periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
+        variables.keyword = keyword;
+        variables.sortType = sortType;
       } else {
         query = 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { shopeeOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { offerName offerLink originalLink imageUrl commissionRate offerType categoryId collectionId periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
       }
       const shouldPersist=req.body?.persistDiscovery===true||req.body?.persistDiscovery==='true';
+      const categorySlug=clean(req.body?.categorySlug,60);
+      if(shouldPersist && categorySlug && !discoveryCategories.has(categorySlug))return res.status(400).json({error:'Categoria inválida para atribuição do catálogo.'});
       if(shouldPersist){
         if(saved.status!=='VALIDATED')return res.status(412).json({error:'Valide a credencial Shopee antes de persistir o catálogo.'});
-        const discoveryKind=kind==='productOfferV2'?'PRODUCT':kind==='shopOfferV2'?'SHOP':kind==='brandOffer'?'BRAND':'CAMPAIGN';
+        const discoveryKind=kind==='productOfferV2'?'PRODUCT':kind==='shopOfferV2'?'SHOP':kind==='brandOfferV2'?'BRAND':'CAMPAIGN';
         const maxPages=Math.min(5,Math.max(1,Math.floor(Number(req.body?.maxPages)||3)));
         let currentPage=page,pagesCompleted=0,hasNextPage=false,finalPageInfo=null;
         const allItems=[],discoveries=[];
@@ -227,7 +233,7 @@ export default async function handler(req, res) {
           const pageNormalized=safeOfferRows(kind,pageResult);
           allItems.push(...pageNormalized.items);finalPageInfo=pageNormalized.pageInfo;
           hasNextPage=Boolean(finalPageInfo?.hasNextPage);
-          discoveries.push(await persistDiscoveryPage(db,{accountId:account.id,marketplace:'SHOPEE',operation:kind,kind:discoveryKind,items:pageNormalized.items,cursorIn:String(currentPage),cursorOut:hasNextPage?String(currentPage+1):null}));
+          discoveries.push(await persistDiscoveryPage(db,{accountId:account.id,marketplace:'SHOPEE',operation:kind,kind:discoveryKind,items:pageNormalized.items,cursorIn:String(currentPage),cursorOut:hasNextPage?String(currentPage+1):null,categorySlug:categorySlug||null,sourceKeyword:keyword}));
           pagesCompleted++;
           if(!hasNextPage)break;
           currentPage++;
@@ -317,12 +323,12 @@ export default async function handler(req, res) {
       if (orderStatus && !['UNPAID','PENDING','COMPLETED','CANCELLED'].includes(orderStatus)) return res.status(400).json({ error: 'Status deve ser UNPAID, PENDING, COMPLETED ou CANCELLED.' });
       if (buyerType && !['NEW','EXISTING'].includes(buyerType)) return res.status(400).json({ error: 'Tipo de comprador deve ser NEW ou EXISTING.' });
       if (device && !['APP','WEB'].includes(device)) return res.status(400).json({ error: 'Dispositivo deve ser APP ou WEB.' });
-      const query = 'query($start: Int64!, $end: Int64!, $limit: Int!, $scrollId: String, $orderStatus: String, $buyerType: String, $device: String) { conversionReport(purchaseTimeStart: $start, purchaseTimeEnd: $end, limit: $limit, scrollId: $scrollId, orderStatus: $orderStatus, buyerType: $buyerType, device: $device) { nodes { conversionId clickTime purchaseTime totalCommission sellerCommission shopeeCommissionCapped buyerType device utmContent orders { orderId orderStatus items { itemId itemName shopName itemPrice qty itemTotalCommission attributionType } } } pageInfo { limit hasNextPage scrollId } } }';
+      const query = 'query($start: Int64!, $end: Int64!, $limit: Int!, $scrollId: String) { conversionReport(purchaseTimeStart: $start, purchaseTimeEnd: $end, limit: $limit, scrollId: $scrollId) { nodes { conversionId clickTime purchaseTime totalCommission sellerCommission shopeeCommissionCapped buyerType device utmContent orders { orderId orderStatus items { itemId itemName shopName itemPrice qty itemTotalCommission attributionType } } } pageInfo { limit hasNextPage scrollId } } }';
       const maxPages = Math.min(5, Math.max(1, Math.floor(Number(req.body?.maxPages) || 3)));
       let currentScrollId = clean(req.body?.scrollId, 1000), pagesCompleted = 0, hasMore = false;
       const conversionItems = [];
       while (pagesCompleted < maxPages) {
-        const pageResult = await signedRequest(credentials, { query, variables: { start, end, limit, ...(currentScrollId ? { scrollId: currentScrollId } : {}), ...(orderStatus ? { orderStatus } : {}), ...(buyerType ? { buyerType } : {}), ...(device ? { device } : {}) } });
+        const pageResult = await signedRequest(credentials, { query, variables: { start: String(start), end: String(end), limit, ...(currentScrollId ? { scrollId: currentScrollId } : {}) } });
         const root = pageResult?.data?.conversionReport || {};
         const pageItems = Array.isArray(root.nodes) ? root.nodes : [];
         conversionItems.push(...pageItems); pagesCompleted++;
