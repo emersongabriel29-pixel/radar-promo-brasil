@@ -106,7 +106,7 @@ export default async function handler(req,res) {
         totals.shopsDiscovered = (totals.shopsDiscovered||0)+shops.length;
         for (const shop of shops.slice(0,2)) {
           const shopId = clean(shop.shopId,80);
-          if (!/^\\d{1,18}$/.test(shopId)) continue;
+          if (!/^\d{1,18}$/.test(shopId)) continue;
           try {
             const shopProducts = await request(creds,productQuery,{shopId,listType:2,sortType:2,page:1,limit:50});
             addProducts(shopProducts.data?.productOfferV2?.nodes,'loja:'+clean(shop.shopName,80),'partner_shop');
@@ -134,10 +134,10 @@ export default async function handler(req,res) {
 
       // Brand partner offers are a separate official discovery surface. Record discovery only;
       // a brand offer is not a priced product and must not enter the Telegram product pipeline.
-      const brandQuery = 'query($sortType: Int, $page: Int, $limit: Int) { brandOffer(sortType: $sortType, page: $page, limit: $limit) { nodes { brandName offerName offerLink commissionRate } pageInfo { page limit hasNextPage } } }';
+      const brandQuery = 'query($sortType: Int, $page: Int, $limit: Int) { brandOfferV2(sortType: $sortType, page: $page, limit: $limit) { nodes { brandId brandName imageUrl offerLink originalLink commissionRate periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
       try {
         const brandData = await request(creds,brandQuery,{sortType:2,page:1,limit:30});
-        totals.brandOffersDiscovered = (totals.brandOffersDiscovered||0)+list(brandData.data?.brandOffer?.nodes).length;
+        totals.brandOffersDiscovered = (totals.brandOffersDiscovered||0)+list(brandData.data?.brandOfferV2?.nodes).length;
       } catch (brandError) {
         totals.brandOfferDiscoveryUnavailable = true;
         console.error('shopee brand offer discovery skipped',String(brandError?.message||'ERROR').slice(0,80));
@@ -162,6 +162,7 @@ export default async function handler(req,res) {
         const commissionPercent = commission <= 1 ? commission * 100 : commission;
         const ratingRaw = Number(p.ratingStar);
         const rating = Number.isFinite(ratingRaw) && ratingRaw > 0 ? (ratingRaw > 5 ? ratingRaw / 20 : ratingRaw) : null;
+        const classified = classifyProduct({title});
         // API discount is a marketing claim, not historical proof. Use it only as a ranking signal;
         // never synthesize an original price or publish an unverified percentage as confirmed savings.
         let score = 35;
@@ -170,6 +171,7 @@ export default async function handler(req,res) {
         score += sales >= 1000 ? 15 : sales >= 100 ? 10 : sales >= 20 ? 5 : 0;
         score += rating === null ? -2 : rating >= 4.7 ? 8 : rating >= 4.4 ? 6 : rating >= 4.0 ? 3 : rating >= 3.5 ? 0 : -8;
         score += title.length >= 18 ? 3 : 0;
+        score += classified.confidence >= 0.8 ? 8 : classified.confidence >= 0.5 ? 0 : -12;
         const keywordQualityPenalty = getShopeeKeywordQualityPenalty(title,p.__radarKeyword);
         score += keywordQualityPenalty;
         score += productUrl && affiliateUrl && imageUrl ? 6 : 0;
@@ -179,10 +181,10 @@ export default async function handler(req,res) {
         if (commissionPercent > 0) reasons.push('comissão informada pela Shopee');
         if (sales >= 20) reasons.push('popularidade informada pela Shopee');
         if (rating !== null) reasons.push('avaliação Shopee: ' + rating.toFixed(1) + '/5');
+        if (classified.confidence < 0.5) reasons.push('classificação incerta: exige revisão');
         if (keywordQualityPenalty < 0) reasons.push('produto acessório rebaixado em busca de produto principal');
         if (productUrl && affiliateUrl && imageUrl) reasons.push('link, link de afiliado e imagem presentes');
         const fp = await fingerprint({source:'SHOPEE',externalId:clean(p.itemId,80),productUrl,title});
-        const classified = classifyProduct({title});
         const category = cats.find(c=>c.name.toLowerCase()===String(classified.category||'').toLowerCase()) || cats.find(c=>c.name.toLowerCase().includes('gerais'));
         candidates.push({p,title,productUrl,affiliateUrl,imageUrl,currentPrice,commissionPercent,discountRate,sales,score,reasons,fp,classified,category,id:clean(p.itemId,80),merchantId:clean(p.shopId,80),merchantName:clean(p.shopName,160)});
       }
@@ -192,7 +194,7 @@ export default async function handler(req,res) {
       const selectedCandidates = selectDiverseCandidates(candidates,{limit:15,perCategory:1,perMerchant:1,fillPerCategory:4,fillPerMerchant:2});
       totals.selected += selectedCandidates.length;
       if (dryRun) {
-        totals.preview.push(...selectedCandidates.map(candidate => ({itemId:clean(candidate.p.itemId,80),title:candidate.title,category:candidate.classified.category,subcategory:candidate.classified.subcategory,confidence:candidate.classified.confidence,shopId:clean(candidate.p.shopId,80),shopName:clean(candidate.p.shopName,160),price:candidate.currentPrice/100,discoveryKeyword:clean(candidate.p.__radarKeyword,80)})));
+        totals.preview.push(...selectedCandidates.map(candidate => ({itemId:clean(candidate.p.itemId,80),title:candidate.title,category:candidate.classified.category,subcategory:candidate.classified.subcategory,confidence:candidate.classified.confidence,score:candidate.score,sales:candidate.sales,rating:candidate.p.ratingStar==null?null:Number(candidate.p.ratingStar),commissionPercent:candidate.commissionPercent,discountRate:candidate.discountRate,shopId:clean(candidate.p.shopId,80),shopName:clean(candidate.p.shopName,160),price:candidate.currentPrice/100,discoverySource:candidate.p.__discoverySource,discoveryKeyword:clean(candidate.p.__radarKeyword,80)})));
         continue;
       }
       let checkedCandidates = 0;
@@ -262,7 +264,7 @@ export default async function handler(req,res) {
         try {
           const parts = new URL(stale.product_url).pathname.split('/').filter(Boolean);
           const itemId = parts[parts.length-1];
-          if (!/^\\d{8,}$/.test(itemId)) continue;
+          if (!/^\d{8,}$/.test(itemId)) continue;
           const found = list((await request(creds,reconcileQuery,{keyword:clean(stale.title,120),sortType:5,page:1,limit:50})).data?.productOfferV2?.nodes)
             .find(product=>String(product.itemId)===itemId);
           const livePrice = Math.round(Number(found?.priceMin)*100);
