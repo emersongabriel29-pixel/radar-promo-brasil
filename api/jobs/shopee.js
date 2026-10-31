@@ -8,6 +8,7 @@ import { cacheOfferImage } from 'lib/offer-images.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 import { isMedicationProduct } from 'lib/product-safety.js';
 import { selectDiverseCandidates } from 'lib/catalog-diversity.js';
+import { selectShopeeKeywords, isRelevantShopeeProduct, getShopeeKeywordQualityPenalty } from 'lib/shopee-keywords.js';
 
 export const access = 'scheduler';
 export const methods = ['POST'];
@@ -29,7 +30,7 @@ async function credentials(row) {
   const plain = await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(row.nonce)},key,fromB64(row.credentials_enc));
   return JSON.parse(new TextDecoder().decode(plain));
 }
-async function request(creds, query, variables) {
+async function request(creds, query, variables, attempt = 0) {
   const payload = {query, ...(variables ? {variables} : {})};
   const appId = clean(creds.appId,200), secret = clean(creds.apiSecret,4096);
   if (!appId || !secret) throw new Error('credentials_missing');
@@ -40,6 +41,10 @@ async function request(creds, query, variables) {
   try { data = raw ? JSON.parse(raw) : {}; } catch { throw new Error('invalid_api_response'); }
   if (!response.ok || data.errors?.length) {
     const code = clean(data.errors?.[0]?.extensions?.code || '',60);
+    if (code === '10030' && attempt < 2) {
+      await pause(attempt === 0 ? 1200 : 2800);
+      return request(creds,query,variables,attempt+1);
+    }
     throw new Error('shopee_api_'+(code || response.status));
   }
   return data;
@@ -62,42 +67,80 @@ export default async function handler(req,res) {
     let importedForAccount = 0;
     try {
       const creds = await credentials(row);
-      // Brazilian Portuguese purchase-intent terms. Three searches run every 30 minutes; rotate terms per run to avoid repeating the same calls twice per hour.
-      const keywords = [
-        'celular', 'smartphone', 'fone bluetooth',
-        'smartwatch', 'notebook', 'monitor gamer',
-        'teclado gamer', 'mouse gamer', 'ssd',
-        'air fryer', 'cafeteira', 'liquidificador',
-        'aspirador de pó', 'ventilador', 'purificador de água',
-        'fralda bebê', 'carrinho de bebê', 'cadeirinha carro bebê',
-        'brinquedo educativo', 'material escolar', 'mochila',
-        'tênis masculino', 'tênis feminino', 'roupa fitness',
-        'perfume feminino', 'perfume masculino', 'skincare',
-        'organizador casa', 'utensílios cozinha', 'luminária',
-        'ferramentas', 'furadeira', 'acessórios automotivos',
-        'câmera segurança', 'power bank', 'carregador rápido',
-        'ração cachorro', 'ração gato', 'coleira cachorro', 'areia para gato',
-        'bicicleta', 'halteres academia', 'barraca camping', 'bola futebol',
-        'café em grãos', 'chocolate', 'massageador íntimo', 'lubrificante íntimo',
-        'preservativo', 'lingerie sensual', 'acessórios automotivos', 'suporte celular carro'
-      ];
+      // Rotate a curated catalog of thousands of product, brand, intent and attribute phrases.
+      // Keep each run bounded to protect Shopee quotas; expand discovery across sort modes and partner shops.
       const slot = Math.floor(Date.now()/1800000);
-      const selectedKeywords = [0,1,2].map(offset => keywords[(slot * 3 + offset) % keywords.length]);
-      const query = 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { productOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { itemId shopId productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate commissionRate sales ratingStar } pageInfo { page limit hasNextPage } } }';
+      const selectedKeywords = selectShopeeKeywords(slot,3);
+      const productQuery = 'query($keyword: String, $shopId: Int64, $listType: Int, $sortType: Int, $page: Int, $limit: Int, $isAMSOffer: Boolean, $isKeySeller: Boolean) { productOfferV2(keyword: $keyword, shopId: $shopId, listType: $listType, sortType: $sortType, page: $page, limit: $limit, isAMSOffer: $isAMSOffer, isKeySeller: $isKeySeller) { nodes { itemId shopId shopName productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate commissionRate sales ratingStar } pageInfo { page limit hasNextPage } } }';
       const seen = new Set();
       const products = [];
-      // Three categories per run; rotate pages every 90 minutes without extra pagination requests.
-      const page = Math.floor(slot/3)%20+1;
-      for (const keyword of selectedKeywords) {
-        const data = await request(creds,query,{keyword,sortType:5,page,limit:50});
-        const nodes = list(data.data?.productOfferV2?.nodes).slice(0,50);
-        for (const product of nodes) {
+      const addProducts = (nodes, discoveryKeyword, discoverySource) => {
+        for (const product of list(nodes).slice(0,50)) {
           const key = clean(product.itemId,80) || clean(product.productLink,2000) || clean(product.productName,220);
           if (!key || seen.has(key)) continue;
+          if (discoverySource === 'keyword' && !isRelevantShopeeProduct(product.productName,discoveryKeyword)) continue;
           seen.add(key);
-          product.__radarKeyword = keyword;
+          product.__radarKeyword = discoveryKeyword;
+          product.__discoverySource = discoverySource;
           products.push(product);
         }
+      };
+      // Search each selected phrase by sales and commission. Page rotation broadens catalog coverage over time.
+      for (const keyword of selectedKeywords) {
+        for (const sortType of [2,5]) {
+          const page = sortType === 2 ? 1 : (Math.floor(slot/3)%3)+1;
+          const listType = sortType === 2 ? 2 : 1;
+          const data = await request(creds,productQuery,{keyword,listType,sortType,page,limit:50});
+          addProducts(data.data?.productOfferV2?.nodes,keyword,'keyword');
+          totals.productSearchCalls = (totals.productSearchCalls||0)+1;
+        }
+      }
+      totals.keywordsQueried = (totals.keywordsQueried||0)+selectedKeywords.length;
+
+      // Discover affiliate partner shops, then sample products from the two strongest returned shops.
+      // Optional discovery failures must not block the core product search.
+      const shopQuery = 'query($sortType: Int, $page: Int, $limit: Int) { shopOfferV2(sortType: $sortType, page: $page, limit: $limit) { nodes { shopId shopName commissionRate ratingStar shopType imageUrl offerLink remainingBudget sellerCommCoveRatio periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
+      try {
+        const shopData = await request(creds,shopQuery,{sortType:2,page:1,limit:30});
+        const shops = list(shopData.data?.shopOfferV2?.nodes);
+        totals.shopsDiscovered = (totals.shopsDiscovered||0)+shops.length;
+        for (const shop of shops.slice(0,2)) {
+          const shopId = clean(shop.shopId,80);
+          if (!/^\\d{1,18}$/.test(shopId)) continue;
+          try {
+            const shopProducts = await request(creds,productQuery,{shopId,listType:2,sortType:2,page:1,limit:50});
+            addProducts(shopProducts.data?.productOfferV2?.nodes,'loja:'+clean(shop.shopName,80),'partner_shop');
+            totals.shopProductCalls = (totals.shopProductCalls||0)+1;
+          } catch (shopProductError) {
+            console.error('shopee partner shop product discovery skipped',String(shopProductError?.message||'ERROR').slice(0,80));
+          }
+        }
+      } catch (shopError) {
+        totals.shopDiscoveryUnavailable = true;
+        console.error('shopee partner shop discovery skipped',String(shopError?.message||'ERROR').slice(0,80));
+      }
+
+      // Campaigns are discovery intelligence, not product offers: never publish a campaign as if it were a priced item.
+      const campaignQuery = 'query($sortType: Int, $page: Int, $limit: Int) { shopeeOfferV2(sortType: $sortType, page: $page, limit: $limit) { nodes { commissionRate imageUrl offerLink originalLink offerName offerType categoryId collectionId periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
+      try {
+        const campaignData = await request(creds,campaignQuery,{sortType:1,page:1,limit:30});
+        const campaigns = list(campaignData.data?.shopeeOfferV2?.nodes);
+        const nowSeconds = Math.floor(Date.now()/1000);
+        totals.campaignsDiscovered = (totals.campaignsDiscovered||0)+campaigns.filter(item=>(!Number(item.periodStartTime)||Number(item.periodStartTime)<=nowSeconds)&&(!Number(item.periodEndTime)||Number(item.periodEndTime)>=nowSeconds)).length;
+      } catch (campaignError) {
+        totals.campaignDiscoveryUnavailable = true;
+        console.error('shopee campaign discovery skipped',String(campaignError?.message||'ERROR').slice(0,80));
+      }
+
+      // Brand partner offers are a separate official discovery surface. Record discovery only;
+      // a brand offer is not a priced product and must not enter the Telegram product pipeline.
+      const brandQuery = 'query($sortType: Int, $page: Int, $limit: Int) { brandOffer(sortType: $sortType, page: $page, limit: $limit) { nodes { brandName offerName offerLink commissionRate } pageInfo { page limit hasNextPage } } }';
+      try {
+        const brandData = await request(creds,brandQuery,{sortType:2,page:1,limit:30});
+        totals.brandOffersDiscovered = (totals.brandOffersDiscovered||0)+list(brandData.data?.brandOffer?.nodes).length;
+      } catch (brandError) {
+        totals.brandOfferDiscoveryUnavailable = true;
+        console.error('shopee brand offer discovery skipped',String(brandError?.message||'ERROR').slice(0,80));
       }
       totals.scanned += products.length;
       const cats = (await db.query('SELECT id,name FROM categories WHERE account_id=$1',[row.account_id])).rows;
@@ -127,6 +170,8 @@ export default async function handler(req,res) {
         score += sales >= 1000 ? 15 : sales >= 100 ? 10 : sales >= 20 ? 5 : 0;
         score += rating === null ? -2 : rating >= 4.7 ? 8 : rating >= 4.4 ? 6 : rating >= 4.0 ? 3 : rating >= 3.5 ? 0 : -8;
         score += title.length >= 18 ? 3 : 0;
+        const keywordQualityPenalty = getShopeeKeywordQualityPenalty(title,p.__radarKeyword);
+        score += keywordQualityPenalty;
         score += productUrl && affiliateUrl && imageUrl ? 6 : 0;
         score = Math.max(0, Math.min(100, Math.round(score)));
         const reasons = [];
@@ -134,6 +179,7 @@ export default async function handler(req,res) {
         if (commissionPercent > 0) reasons.push('comissão informada pela Shopee');
         if (sales >= 20) reasons.push('popularidade informada pela Shopee');
         if (rating !== null) reasons.push('avaliação Shopee: ' + rating.toFixed(1) + '/5');
+        if (keywordQualityPenalty < 0) reasons.push('produto acessório rebaixado em busca de produto principal');
         if (productUrl && affiliateUrl && imageUrl) reasons.push('link, link de afiliado e imagem presentes');
         const fp = await fingerprint({source:'SHOPEE',externalId:clean(p.itemId,80),productUrl,title});
         const classified = classifyProduct({title});
