@@ -144,7 +144,7 @@ export default async function handler(req, res) {
           [credentialRow.account_id, fp]
         )).rows[0];
         if (existing) {
-          await db.query("UPDATE affiliate_discovery_items SET processing_status='LINKED',processing_error='DUPLICATE_OFFER:'||$2,processed_at=now(),last_seen_at=now() WHERE id=$1 AND account_id=$3", [row.id, existing.id, credentialRow.account_id]);
+          await db.query("UPDATE affiliate_discovery_items SET processing_status='LINKED',offer_id=$2,processing_error='DUPLICATE_OFFER',processed_at=now(),last_seen_at=now() WHERE id=$1 AND account_id=$3", [row.id, existing.id, credentialRow.account_id]);
           summary.duplicates++;
           continue;
         }
@@ -182,7 +182,7 @@ export default async function handler(req, res) {
           "INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,$4,$5,'OFFICIAL_API',$6,now())",
           [crypto.randomUUID(), credentialRow.account_id, offerId, item.currentPrice, item.originalPrice, 'LOMADEE:' + clean(row.external_id || item.raw.id, 120)]
         );
-        await db.query("UPDATE affiliate_discovery_items SET processing_status='LINKED',processing_error='',processed_at=now(),last_seen_at=now() WHERE id=$1 AND account_id=$2", [row.id, credentialRow.account_id]);
+        await db.query("UPDATE affiliate_discovery_items SET processing_status='LINKED',offer_id=$2,processing_error='',processed_at=now(),last_seen_at=now() WHERE id=$1 AND account_id=$3", [row.id, offerId, credentialRow.account_id]);
         summary.linked++;
         summary.items.push({ queueId: row.id, offerId, title: item.title, affiliateUrl, status: 'PENDING', validation: 'NEEDS_REVIEW' });
       } catch (error) {
