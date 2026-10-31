@@ -138,3 +138,13 @@ schedule = "5 * * * *"
 [[cron]]
 path = "/api/jobs/social"
 schedule = "10 * * * *"
+[[secret]]
+name = "EXTERNAL_WORKER_SECRET"
+required = false
+description = "Segredo HMAC exclusivo de pelo menos 32 caracteres para autenticar o worker externo Lomadee."
+
+[[config]]
+name = "lomadee_external_discovery_enabled"
+required = false
+default = "false"
+description = "Ativa o consumo de descoberta externa Lomadee somente após validação manual do piloto."
