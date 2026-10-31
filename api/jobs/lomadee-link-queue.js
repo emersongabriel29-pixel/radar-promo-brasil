@@ -98,6 +98,7 @@ async function verifiedShortUrl(apiKey, shortUrl, productUrl) {
 
 export default async function handler(req, res) {
   const limit = Math.min(10, Math.max(1, Math.floor(Number(req.body?.limit) || 5)));
+  await db.query("UPDATE affiliate_discovery_items SET processing_status='READY_FOR_LINK',processing_error='RECOVERED_STALE_PROCESSING',last_seen_at=now() WHERE marketplace='LOMADEE' AND kind='PRODUCT' AND processing_status='PROCESSING' AND last_seen_at<now()-interval '10 minutes'");
   const credentialsRows = (await db.query(
     "SELECT account_id,credentials_enc,nonce FROM marketplace_api_credentials WHERE marketplace='LOMADEE' AND status='VALIDATED' ORDER BY account_id"
   )).rows;
@@ -190,10 +191,21 @@ export default async function handler(req, res) {
         summary.linked++;
         summary.items.push({ queueId: row.id, offerId, title: item.title, affiliateUrl, status: 'PENDING', validation: 'NEEDS_REVIEW' });
       } catch (error) {
-        summary.failed++;
+        const providerMessage = clean(error?.message || '', 240).toLowerCase();
+        const providerStatus = Number(error?.status) || 0;
+        const blockedStatus = /organization approval is required|approval required/.test(providerMessage)
+          ? 'BLOCKED_PROVIDER_APPROVAL'
+          : /channel is not allowed by the organization|channel not allowed/.test(providerMessage)
+            ? 'BLOCKED_PROVIDER_CHANNEL' : '';
         const safeReason = clean(stage + ':' + (error?.message || 'ERROR'), 180);
-        await db.query("UPDATE affiliate_discovery_items SET processing_status='FAILED',processing_error=$2,last_seen_at=now() WHERE id=$1 AND account_id=$3", [row.id, safeReason, credentialRow.account_id]);
-        summary.items.push({ queueId: row.id, error: safeReason });
+        if (blockedStatus) {
+          await db.query('UPDATE affiliate_discovery_items SET processing_status=$2,processing_error=$3,processed_at=now(),last_seen_at=now() WHERE id=$1 AND account_id=$4', [row.id, blockedStatus, safeReason, credentialRow.account_id]);
+          summary.blocked++;
+        } else {
+          summary.failed++;
+          await db.query("UPDATE affiliate_discovery_items SET processing_status='FAILED',processing_error=$2,last_seen_at=now() WHERE id=$1 AND account_id=$3", [row.id, safeReason, credentialRow.account_id]);
+        }
+        summary.items.push({ queueId: row.id, error: safeReason, httpStatus: providerStatus || null, status: blockedStatus || 'FAILED' });
       }
     }
     if (summary.claimed >= limit) break;
