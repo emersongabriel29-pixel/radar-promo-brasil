@@ -290,9 +290,18 @@ export default async function handler(req,res) {
       } else {
         totals.discoveryItemsStored = (totals.discoveryItemsStored||0)+await persistShopeeDiscoveryItems(row.account_id,products);
       }
+      const processingRows = dryRun ? [] : (await db.query(
+        `SELECT external_id,raw_data FROM affiliate_discovery_items
+         WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT'
+           AND processing_status IN ('DISCOVERED','FAILED')
+         ORDER BY first_seen_at,external_id LIMIT 30`,
+        [row.account_id]
+      )).rows;
+      const processingProducts = dryRun ? products : processingRows.map(item=>({...item.raw_data,__inventoryExternalId:item.external_id}));
+      totals.processingBatch = (totals.processingBatch||0)+processingProducts.length;
       const cats = (await db.query('SELECT id,name FROM categories WHERE account_id=$1',[row.account_id])).rows;
       const candidates = [];
-      for (const p of products) {
+      for (const p of processingProducts) {
         const title = clean(p.productName,220);
         const productUrl = httpsUrl(p.productLink,2000) || '';
         if (isMedicationProduct({title, productUrl})) { totals.safetyBlocked++; totals.skipped++; totals.safetyBlockedPreview.push({itemId:clean(p.itemId,80),title,discoveryKeyword:clean(p.__radarKeyword,80),reason:'blocked_by_product_safety_policy'}); continue; }
@@ -320,6 +329,7 @@ export default async function handler(req,res) {
         const commissionPercent = commission <= 1 ? commission * 100 : commission;
         const ratingRaw = Number(p.ratingStar);
         const rating = Number.isFinite(ratingRaw) && ratingRaw > 0 ? (ratingRaw > 5 ? ratingRaw / 20 : ratingRaw) : null;
+        const discoveryExternalId = p.__inventoryExternalId || clean(p.itemId,80) || productUrl || [clean(p.shopId,80),title].filter(Boolean).join(':');
         const classified = classifyProduct({title});
         // API discount is a marketing claim, not historical proof. Use it only as a ranking signal;
         // never synthesize an original price or publish an unverified percentage as confirmed savings.
@@ -344,7 +354,7 @@ export default async function handler(req,res) {
         if (productUrl && affiliateUrl && imageUrl) reasons.push('link, link de afiliado e imagem presentes');
         const fp = await fingerprint({source:'SHOPEE',externalId:clean(p.itemId,80),productUrl,title});
         const category = cats.find(c=>c.name.toLowerCase()===String(classified.category||'').toLowerCase()) || cats.find(c=>c.name.toLowerCase().includes('gerais'));
-        candidates.push({p,title,productUrl,affiliateUrl,imageUrl,currentPrice,commissionPercent,discountRate,sales,score,reasons,fp,classified,category,id:clean(p.itemId,80),merchantId:clean(p.shopId,80),merchantName:clean(p.shopName,160)});
+        candidates.push({p,title,productUrl,affiliateUrl,imageUrl,currentPrice,commissionPercent,discountRate,sales,score,reasons,fp,classified,category,id:clean(p.itemId,80),discoveryExternalId,merchantId:clean(p.shopId,80),merchantName:clean(p.shopName,160)});
       }
 
       // Rank the full candidate batch first; the cap applies only after comparison and duplicate checks.
