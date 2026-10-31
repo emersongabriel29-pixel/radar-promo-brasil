@@ -57,9 +57,21 @@ test('Shopee product discovery paginates and reports when the bounded page windo
   const source = await readFile(new URL('../api/jobs/shopee.js', import.meta.url), 'utf8');
   assert.match(source, /async function requestProductPages/);
   assert.match(source, /requestProductPages\(creds,productQuery/);
+  assert.match(source, /getShopeeDiscoveryPage\(row\.account_id,discoveryKey,sortType\)/);
+  assert.match(source, /saveShopeeDiscoveryPage\(row\.account_id,discoveryKey,sortType,result\)/);
+  assert.match(source, /saveShopeeDiscoveryPage\(row\.account_id,discoveryKey,2,shopProducts\)/);
   assert.match(source, /result\.hasNextPage/);
   assert.match(source, /totals\.paginationIncomplete = true/);
   assert.match(source, /brand_offer_v2_not_exposed_by_live_brazil_schema/);
+  assert.doesNotMatch(source, /list\(nodes\)\.slice\(0,50\)/);
+  assert.match(source, /if \(!dryRun\) await saveShopeeDiscoveryPage/);
   assert.doesNotMatch(source, /brandOfferV2\(/);
   assert.doesNotMatch(source, /brandOffer\(/);
+});
+
+test('Shopee pagination cursor migration stores independent progress per account, query and sort', async () => {
+  const migration = await readFile(new URL('../migrations/052_shopee_discovery_cursors.sql', import.meta.url), 'utf8');
+  assert.match(migration, /PRIMARY KEY \(account_id, discovery_key, sort_type\)/);
+  assert.match(migration, /next_page integer NOT NULL DEFAULT 1/);
+  assert.match(migration, /CHECK \(next_page >= 1\)/);
 });
