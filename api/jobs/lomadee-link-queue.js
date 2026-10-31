@@ -52,7 +52,10 @@ async function apiRequest(path, apiKey, method = 'GET', payload = null) {
   const raw = await response.text();
   let body = {};
   try { body = raw ? JSON.parse(raw) : {}; } catch {}
-  if (!response.ok) throw Object.assign(new Error('LOMADEE_HTTP_' + response.status), { status: response.status });
+  if (!response.ok) {
+    const providerMessage = clean(body?.message || body?.error || body?.detail || body?.subMessage || '', 180);
+    throw Object.assign(new Error('LOMADEE_HTTP_' + response.status + (providerMessage ? ':' + providerMessage : '')), { status: response.status });
+  }
   return body;
 }
 
