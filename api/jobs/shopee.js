@@ -70,7 +70,7 @@ export default async function handler(req,res) {
       // Rotate a curated catalog of thousands of product, brand, intent and attribute phrases.
       // Keep each run bounded to protect Shopee quotas; expand discovery across sort modes and partner shops.
       const slot = Math.floor(Date.now()/1800000);
-      const selectedKeywords = selectShopeeKeywords(slot,3);
+      const selectedKeywords = selectShopeeKeywords(slot,6);
       const productQuery = 'query($keyword: String, $shopId: Int64, $listType: Int, $sortType: Int, $page: Int, $limit: Int, $isAMSOffer: Boolean, $isKeySeller: Boolean) { productOfferV2(keyword: $keyword, shopId: $shopId, listType: $listType, sortType: $sortType, page: $page, limit: $limit, isAMSOffer: $isAMSOffer, isKeySeller: $isKeySeller) { nodes { itemId shopId shopName productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate commissionRate sales ratingStar } pageInfo { page limit hasNextPage } } }';
       const seen = new Set();
       const products = [];
