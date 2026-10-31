@@ -144,6 +144,10 @@ export default async function handler(req, res) {
           [credentialRow.account_id, fp]
         )).rows[0];
         if (existing) {
+          await db.query(
+            "INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) SELECT $1,$2,$3,$4,$5,'OFFICIAL_API',$6,now() WHERE NOT EXISTS (SELECT 1 FROM offer_price_history WHERE account_id=$2 AND offer_id=$3 AND source_reference=$6)",
+            [crypto.randomUUID(), credentialRow.account_id, existing.id, item.currentPrice, item.originalPrice, 'LOMADEE:' + clean(row.external_id || item.raw.id, 120)]
+          );
           await db.query("UPDATE affiliate_discovery_items SET processing_status='LINKED',offer_id=$2,processing_error='DUPLICATE_OFFER',processed_at=now(),last_seen_at=now() WHERE id=$1 AND account_id=$3", [row.id, existing.id, credentialRow.account_id]);
           summary.duplicates++;
           continue;
