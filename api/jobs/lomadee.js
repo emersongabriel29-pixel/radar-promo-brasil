@@ -75,7 +75,7 @@ export default async function handler(req, res) {
   const pages = catalogPages(basePage, dryRunPage);
   const totals = {
     accounts: credentialsRows.length, scanned: 0, imported: 0, duplicates: 0, skipped: 0,
-    failed: 0, autopilotRuns: 0, dryRun, pages, classificationPolicyVersion: LOMADEE_CATALOG_POLICY.version,
+    failed: 0, autopilotRuns: 0, dryRun, externalDiscoveryEnabled, pages, classificationPolicyVersion: LOMADEE_CATALOG_POLICY.version,
     maxImportsPerRun: LOMADEE_CATALOG_POLICY.maxImportsPerRun,
     eligibleBeforeAffiliate: 0, selected: 0, skipReasons: {
       unavailable: 0, missingTitle: 0, missingOrganization: 0, missingProductUrl: 0,
