@@ -104,7 +104,7 @@ async function persistShopeeDiscoveryItems(accountId, products) {
     if (!Number.isFinite(price) || price<=0) missingFields.push('priceMin');
     if (!Number.isFinite(commission) || commission<=0) missingFields.push('commissionRate');
     const safetyBlocked = isMedicationProduct({title,productUrl});
-    const externalId = clean(product.itemId,80) || productUrl || title;
+    const externalId = clean(product.itemId,80) || productUrl || [clean(product.shopId,80),title].filter(Boolean).join(':');
     if (!externalId) continue;
     rows.push({
       id:crypto.randomUUID(),external_id:externalId,title,brand_name:'',
@@ -169,7 +169,7 @@ export default async function handler(req,res) {
       const products = [];
       const addProducts = (nodes, discoveryKeyword, discoverySource) => {
         for (const product of list(nodes)) {
-          const key = clean(product.itemId,80) || clean(product.productLink,2000) || clean(product.productName,220);
+          const key = clean(product.itemId,80) || clean(product.productLink,2000) || [clean(product.shopId,80),clean(product.productName,220)].filter(Boolean).join(':');
           if (!key || seen.has(key)) continue;
           // Keep every unique API result. Search relevance affects ranking only, never inclusion.
           seen.add(key);
