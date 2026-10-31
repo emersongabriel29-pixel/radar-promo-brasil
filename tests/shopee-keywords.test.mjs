@@ -12,6 +12,7 @@ test('Shopee keyword catalog expands curated products into thousands of searchab
   assert.ok(catalog.includes('Samsung smartphone'));
   assert.ok(catalog.includes('Nike tênis masculino'));
   assert.ok(catalog.includes('Pampers fralda bebê'));
+  for (const term of ['drone','impressora tanque de tinta','iphone 16','pneu carro','máquina costura','caderno inteligente','ração premium cachorro','ar condicionado portátil']) assert.ok(catalog.includes(term), `missing expanded term: ${term}`);
   assert.equal(catalog.includes('Apple ração cachorro'), false);
   assert.equal(new Set(catalog.map(value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase())).size, catalog.length);
 });
@@ -51,4 +52,10 @@ test('keyword rotation identifies product families and avoids same-family query 
   const selected = selectShopeeKeywords(100, 3);
   assert.equal(selected.length, 3);
   assert.equal(new Set(selected.map(getShopeeKeywordFamily)).size, 3);
+});
+
+test('expanded keyword catalog normalizes duplicates without losing broad category coverage', () => {
+  const catalog = buildShopeeKeywordCatalog();
+  assert.equal(new Set(catalog).size, catalog.length);
+  assert.ok(catalog.length >= 5000);
 });
