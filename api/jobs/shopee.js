@@ -150,7 +150,15 @@ async function persistShopeeDiscoveryItems(accountId, products) {
     );
     stored += batch.length;
   }
-  return stored;
+  const incompleteRows = rows.filter(item=>item.processing_status==='INCOMPLETE');
+  const blockedRows = rows.filter(item=>item.processing_status==='BLOCKED');
+  return {
+    stored,
+    incomplete:incompleteRows.length,
+    blocked:blockedRows.length,
+    incompletePreview:incompleteRows.slice(0,30).map(item=>({itemId:item.external_id,title:item.title,missingFields:item.raw_data?.radarDiscovery?.missingFields||[]})),
+    safetyBlockedPreview:blockedRows.slice(0,30).map(item=>({itemId:item.external_id,title:item.title,reason:'blocked_by_product_safety_policy'}))
+  };
 }
 async function createTrackedLink(creds, productUrl, itemId, category) {
   const itemTag = ('ITEM'+clean(itemId,36).replace(/[^a-z0-9]/gi,'')).slice(0,50);
@@ -288,7 +296,13 @@ export default async function handler(req,res) {
       if (dryRun) {
         totals.discoveryItemsPreview = (totals.discoveryItemsPreview||0)+products.length;
       } else {
-        totals.discoveryItemsStored = (totals.discoveryItemsStored||0)+await persistShopeeDiscoveryItems(row.account_id,products);
+        const discoveryStats = await persistShopeeDiscoveryItems(row.account_id,products);
+        totals.discoveryItemsStored = (totals.discoveryItemsStored||0)+discoveryStats.stored;
+        totals.incompleteStored = (totals.incompleteStored||0)+discoveryStats.incomplete;
+        totals.safetyBlocked += discoveryStats.blocked;
+        totals.skipped += discoveryStats.incomplete+discoveryStats.blocked;
+        totals.incompletePreview.push(...discoveryStats.incompletePreview);
+        totals.safetyBlockedPreview.push(...discoveryStats.safetyBlockedPreview);
       }
       const processingRows = dryRun ? [] : (await db.query(
         `SELECT external_id,raw_data FROM affiliate_discovery_items
