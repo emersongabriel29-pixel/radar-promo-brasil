@@ -85,6 +85,63 @@ async function saveShopeeDiscoveryPage(accountId, discoveryKey, sortType, result
     [accountId,discoveryKey,sortType,nextPage,result.pagesFetched,result.nodes.length,result.hasNextPage]
   );
 }
+async function persistShopeeDiscoveryItems(accountId, products) {
+  const rows = [];
+  for (const product of products) {
+    const title = clean(product.productName,220);
+    const productUrl = httpsUrl(product.productLink,2000) || '';
+    const affiliateUrl = httpsUrl(product.offerLink,2000) || '';
+    const imageUrl = directImageUrl(product.imageUrl) ? product.imageUrl : '';
+    const price = Number(product.priceMin);
+    const commission = Number(product.commissionRate);
+    const rating = Number(product.ratingStar);
+    const sales = Number(product.sales);
+    const missingFields = [];
+    if (!title) missingFields.push('title');
+    if (!productUrl) missingFields.push('productUrl');
+    if (!affiliateUrl) missingFields.push('affiliateUrl');
+    if (!imageUrl) missingFields.push('imageUrl');
+    if (!Number.isFinite(price) || price<=0) missingFields.push('priceMin');
+    if (!Number.isFinite(commission) || commission<=0) missingFields.push('commissionRate');
+    const safetyBlocked = isMedicationProduct({title,productUrl});
+    const externalId = clean(product.itemId,80) || productUrl || title;
+    if (!externalId) continue;
+    rows.push({
+      external_id:externalId,title,brand_name:'',
+      product_url:productUrl,affiliate_url:affiliateUrl,image_url:imageUrl,
+      price_cents:Number.isFinite(price)&&price>0?Math.round(price*100):null,
+      commission_rate:Number.isFinite(commission)?commission:null,
+      rating:Number.isFinite(rating)&&rating>0?rating:null,
+      sales_count:Number.isFinite(sales)&&sales>=0?Math.floor(sales):null,
+      available:safetyBlocked?false:null,
+      raw_data:{...product,radarDiscovery:{keyword:clean(product.__radarKeyword,120),source:clean(product.__discoverySource,40),missingFields,safetyBlocked}}
+    });
+  }
+  let stored = 0;
+  for (let offset=0; offset<rows.length; offset+=100) {
+    const batch = rows.slice(offset,offset+100);
+    await db.query(
+      `INSERT INTO affiliate_discovery_items(
+        id,account_id,marketplace,kind,external_id,title,brand_name,product_url,affiliate_url,image_url,
+        price_cents,commission_rate,rating,sales_count,available,raw_data,first_seen_at,last_seen_at
+      )
+      SELECT gen_random_uuid()::text,$1,'SHOPEE','PRODUCT',x.external_id,x.title,x.brand_name,x.product_url,x.affiliate_url,x.image_url,
+        x.price_cents,x.commission_rate,x.rating,x.sales_count,x.available,x.raw_data,now(),now()
+      FROM jsonb_to_recordset($2::jsonb) AS x(
+        external_id text,title text,brand_name text,product_url text,affiliate_url text,image_url text,
+        price_cents bigint,commission_rate numeric,rating numeric,sales_count bigint,available boolean,raw_data jsonb
+      )
+      ON CONFLICT(account_id,marketplace,kind,external_id) DO UPDATE SET
+        title=EXCLUDED.title,brand_name=EXCLUDED.brand_name,product_url=EXCLUDED.product_url,
+        affiliate_url=EXCLUDED.affiliate_url,image_url=EXCLUDED.image_url,price_cents=EXCLUDED.price_cents,
+        commission_rate=EXCLUDED.commission_rate,rating=EXCLUDED.rating,sales_count=EXCLUDED.sales_count,
+        available=EXCLUDED.available,raw_data=EXCLUDED.raw_data,last_seen_at=now()`,
+      [accountId,JSON.stringify(batch)]
+    );
+    stored += batch.length;
+  }
+  return stored;
+}
 async function createTrackedLink(creds, productUrl, itemId, category) {
   const itemTag = ('ITEM'+clean(itemId,36).replace(/[^a-z0-9]/gi,'')).slice(0,50);
   const categoryTag = ('CAT'+clean(category,30).replace(/[^a-z0-9]/gi,'')).slice(0,50);
@@ -188,6 +245,11 @@ export default async function handler(req,res) {
       totals.brandOfferDiscoveryUnavailable = true;
       totals.brandOfferDiscoveryReason = 'brand_offer_v2_not_exposed_by_live_brazil_schema';
       totals.scanned += products.length;
+      if (dryRun) {
+        totals.discoveryItemsPreview = (totals.discoveryItemsPreview||0)+products.length;
+      } else {
+        totals.discoveryItemsStored = (totals.discoveryItemsStored||0)+await persistShopeeDiscoveryItems(row.account_id,products);
+      }
       const cats = (await db.query('SELECT id,name FROM categories WHERE account_id=$1',[row.account_id])).rows;
       const candidates = [];
       for (const p of products) {
