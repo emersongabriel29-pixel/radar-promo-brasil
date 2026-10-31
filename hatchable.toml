@@ -212,3 +212,8 @@ schedule = "30 * * * *"
 [[cron]]
 path = "/api/jobs/lomadee-discovery-queue"
 schedule = "20 * * * *"
+
+# Backup hourly tick; the worker chains bounded one-shot batches while backlog remains.
+[[cron]]
+path = "/api/jobs/lomadee-link-queue"
+schedule = "40 * * * *"
