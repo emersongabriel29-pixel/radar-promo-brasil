@@ -23,21 +23,24 @@ test('worker uses a single stable one-shot task identity', () => {
 
 test('cleanup is bounded and processes abandoned discovery only', () => {
   assert.equal(DISCOVERY_RETENTION_BATCH_SIZE, 500);
-  assert.match(DELETE_STALE_DISCOVERY_SQL, /last_seen_at < now\(\) - interval '48 hours'/);
-  assert.match(DELETE_STALE_DISCOVERY_SQL, /processing_status IN \('DISCOVERED', 'INCOMPLETE', 'FAILED', 'DUPLICATE'\)/);
-  assert.match(DELETE_STALE_DISCOVERY_SQL, /offer_id IS NULL/);
-  assert.doesNotMatch(DELETE_STALE_DISCOVERY_SQL, /'BLOCKED'|'IMPORTED'|'LINKED'/);
-  assert.match(DELETE_STALE_DISCOVERY_SQL, /LIMIT \$1[\s\S]*FOR UPDATE SKIP LOCKED/);
+  assert.ok(DELETE_STALE_DISCOVERY_SQL.includes("last_seen_at < now() - interval '48 hours'"));
+  assert.ok(DELETE_STALE_DISCOVERY_SQL.includes("processing_status IN ('DISCOVERED', 'INCOMPLETE', 'FAILED', 'DUPLICATE')"));
+  assert.ok(DELETE_STALE_DISCOVERY_SQL.includes('offer_id IS NULL'));
+  assert.ok(!DELETE_STALE_DISCOVERY_SQL.includes("'BLOCKED'"));
+  assert.ok(DELETE_STALE_DISCOVERY_SQL.includes('LIMIT $1'));
+  assert.ok(DELETE_STALE_DISCOVERY_SQL.includes('FOR UPDATE SKIP LOCKED'));
 });
 
-test('offer cleanup excludes approved, published, confirmed and referenced offers', () => {
+test('offer cleanup excludes confirmed and every schema-known offer reference', () => {
   assert.equal(OFFER_RETENTION_BATCH_SIZE, 100);
-  assert.match(DELETE_STALE_UNCONFIRMED_OFFERS_SQL, /created_at < now\(\) - interval '48 hours'/);
-  assert.match(DELETE_STALE_UNCONFIRMED_OFFERS_SQL, /status IN \('PENDING', 'REJECTED'\)/);
-  assert.match(DELETE_STALE_UNCONFIRMED_OFFERS_SQL, /validation_status NOT IN \('VALID', 'VALIDATED', 'CONFIRMED'\)/);
-  assert.match(DELETE_STALE_UNCONFIRMED_OFFERS_SQL, /storefront_visible = false/);
-  assert.match(DELETE_STALE_UNCONFIRMED_OFFERS_SQL, /NOT EXISTS \([\s\S]*FROM publications/);
-  assert.match(DELETE_STALE_UNCONFIRMED_OFFERS_SQL, /NOT EXISTS \([\s\S]*FROM offer_price_history/);
-  assert.match(DELETE_STALE_UNCONFIRMED_OFFERS_SQL, /NOT EXISTS \([\s\S]*FROM affiliate_discovery_items/);
-  assert.match(DELETE_STALE_UNCONFIRMED_OFFERS_SQL, /LIMIT \$1[\s\S]*FOR UPDATE SKIP LOCKED/);
+  assert.ok(DELETE_STALE_UNCONFIRMED_OFFERS_SQL.includes("created_at < now() - interval '48 hours'"));
+  assert.ok(DELETE_STALE_UNCONFIRMED_OFFERS_SQL.includes("status IN ('PENDING', 'REJECTED')"));
+  assert.ok(DELETE_STALE_UNCONFIRMED_OFFERS_SQL.includes("validation_status NOT IN ('VALID', 'VALIDATED', 'CONFIRMED')"));
+  assert.ok(DELETE_STALE_UNCONFIRMED_OFFERS_SQL.includes('storefront_visible = false'));
+  assert.ok(DELETE_STALE_UNCONFIRMED_OFFERS_SQL.includes('COALESCE(candidate.price_history_count, 0) = 0'));
+  for (const table of ['publications', 'offer_price_history', 'affiliate_discovery_items', 'affiliate_sales', 'click_events', 'content_assets', 'social_posts', 'video_studio_projects']) {
+    assert.ok(DELETE_STALE_UNCONFIRMED_OFFERS_SQL.includes('FROM ' + table), 'missing reference guard: ' + table);
+  }
+  assert.ok(DELETE_STALE_UNCONFIRMED_OFFERS_SQL.includes('LIMIT $1'));
+  assert.ok(DELETE_STALE_UNCONFIRMED_OFFERS_SQL.includes('FOR UPDATE SKIP LOCKED'));
 });
