@@ -166,7 +166,7 @@ async function runShopeeExplorer(){
  else if(op==='getItemFeedData'){payload.action='feed_data';payload.datafeedId=explorerValue('shopeeDatafeedId');payload.offset=Math.max(0,n('shopeeOffset'));payload.limit=Math.min(500,Math.max(1,n('shopeeLimit')||100));}
  else if(op==='generateShortLink'){payload.action='create_link';payload.originUrl=explorerValue('shopeeOriginUrl');payload.subIds=explorerValue('shopeeSubIds');}
  else if(op==='generateBatchShortLink'){const urls=explorerValue('shopeeBatchUrls').split(/\\r?\\n/).map(x=>x.trim()).filter(Boolean).slice(0,20);payload.action='batch_links';payload.subIds=explorerValue('shopeeSubIds');payload.items=urls.map(originUrl=>({originUrl}));}
- if(op==='validatedReport'&&!/^\\d{1,18}$/.test(payload.validationId||'')){status.textContent='Informe um Validation ID numérico válido.';return;}
+ if(op==='validatedReport'&&!/^\d{1,18}$/.test(payload.validationId||'')){status.textContent='Informe um Validation ID numérico válido.';return;}
  if(op==='getItemFeedData'&&!payload.datafeedId){status.textContent='Informe o Datafeed ID retornado por listItemFeeds.';return;}
  if(op==='generateBatchShortLink'&&!payload.items.length){status.textContent='Informe pelo menos uma URL Shopee.';return;}
  if(op==='generateShortLink'&&!payload.originUrl){status.textContent='Informe a URL original Shopee.';return;}
