@@ -159,7 +159,7 @@ export default async function handler(req, res) {
         const categoryName = clean(category.name,180);
         const fullName = clean(category.fullName || category.name,500);
         const level = Math.min(10,Math.max(1,Math.floor(Number(category.level)||1)));
-        if (!/^\\d{1,12}$/.test(categoryId) || !categoryName) {
+        if (!/^\d{1,12}$/.test(categoryId) || !categoryName) {
           results.push({ categoryId, status:'INVALID_INPUT', error:'ID ou nome de categoria inválido.' });
           continue;
         }
