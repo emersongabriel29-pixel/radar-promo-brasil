@@ -7,6 +7,9 @@ test('Shopee keyword catalog expands curated products into thousands of searchab
   assert.equal(catalog.length, shopeeKeywordCatalogSize);
   assert.ok(catalog.length >= 5000, 'expected at least 5,000 phrases');
   assert.ok(catalog.includes('smartphone'));
+  assert.ok(catalog.includes('vibrador intimo'));
+  assert.ok(catalog.includes('massageador intimo'));
+  assert.ok(catalog.includes('preservativo'));
   assert.ok(catalog.includes('oferta smartphone'));
   assert.ok(catalog.includes('smartphone sem fio'));
   assert.ok(catalog.includes('Samsung smartphone'));
