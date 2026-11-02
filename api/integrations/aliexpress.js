@@ -3,7 +3,7 @@ import { signTopParams } from 'lib/top-signature.js';
 import { createAliExpressAffiliateUrl, signAliExpressParams, validateAliExpressProductUrl } from 'lib/afilimax-aliexpress-provider.js';
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
-import { isMedicationProduct } from 'lib/product-safety.js';
+import { isMedicationProduct, isAdultProduct } from 'lib/product-safety.js';
 import { normalizeAliExpressSales, upsertAffiliateSales } from 'lib/affiliate-sales.js';
 import { persistDiscoveryPage } from 'lib/affiliate-discovery.js';
 // API catalog items are not filtered by product category.
