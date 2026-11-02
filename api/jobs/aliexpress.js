@@ -326,6 +326,12 @@ export default async function handler(req, res) {
           totals.skipped++;
           return false;
         }
+        if (isAdultProduct({ title: normalized.title, productUrl: normalized.productUrl, sourceCategory: normalized.sourceCategory })) {
+          totals.rejectedBy.adultPolicy++;
+          totals.safetyBlocked++;
+          totals.skipped++;
+          return false;
+        }
         return true;
       });
       totals.deferredForAffiliateLink += Math.max(0, safeProducts.length - 20);
