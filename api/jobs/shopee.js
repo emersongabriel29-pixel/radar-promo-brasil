@@ -6,7 +6,7 @@ import { directImageUrl, httpsUrl } from 'lib/validation.js';
 import { formatPromo } from 'lib/promo-message.js';
 import { cacheOfferImage } from 'lib/offer-images.js';
 import { classifyProduct } from 'lib/category-classifier.js';
-import { isMedicationProduct } from 'lib/product-safety.js';
+import { isMedicationProduct, isAdultProduct } from 'lib/product-safety.js';
 import { selectShopeeKeywords, getShopeeKeywordQualityPenalty } from 'lib/shopee-keywords.js';
 import { isShopeeShopId, isShopeeItemId } from 'lib/shopee-ids.js';
 
@@ -427,7 +427,7 @@ export default async function handler(req,res) {
         const discount = 0;
         const promo = formatPromo({title,source:'SHOPEE',category:category?.name||'',currentPrice,originalPrice:0,affiliateUrl:trackedAffiliateUrl,imageUrl});
         const offerId = crypto.randomUUID();
-        const inserted = await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible) VALUES($1,$2,$3,'SHOPEE',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'APPROVED',$12,$13,'VALIDATED','AUTO',false) ON CONFLICT DO NOTHING RETURNING id",[offerId,row.account_id,title,originalPrice,currentPrice,category?.id||null,trackedAffiliateUrl,imageUrl,productUrl,discount,score,promo.message,fp]);
+        const inserted = await db.query("INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible) VALUES($1,$2,$3,'SHOPEE',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,$14,$12,$13,$15,$16,false) ON CONFLICT DO NOTHING RETURNING id",[offerId,row.account_id,title,originalPrice,currentPrice,category?.id||null,trackedAffiliateUrl,imageUrl,productUrl,discount,score,promo.message,fp,adultReviewRequired?'PENDING':'APPROVED',adultReviewRequired?'NEEDS_REVIEW':'VALIDATED',adultReviewRequired?'SEX_SHOP_MANUAL_REVIEW':'AUTO']);
         if (!inserted.rows.length) {
           const conflict = await db.query('SELECT id FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1',[row.account_id,fp]);
           await db.query(
@@ -439,12 +439,12 @@ export default async function handler(req,res) {
         try {
           await db.query("INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,$4,$5,'OFFICIAL_API',$6,now())",[crypto.randomUUID(),row.account_id,offerId,currentPrice,originalPrice,'SHOPEE:'+clean(p.itemId,80)]);
           const scoreReason = 'radar_score='+score+'; '+reasons.join('; ')+'; '+subIdNote;
-          await db.query('UPDATE offers SET subcategory=$1,classification_tags=$2::jsonb,classification_confidence=$3,classification_status=$4,classification_reason=$5,source_category=$6 WHERE id=$7 AND account_id=$8',[classified.subcategory,JSON.stringify(classified.tags||[]),classified.confidence||0,classified.needsReview?'REVIEW':'AUTO',(classified.reason||'official_shopee_api')+'; '+scoreReason+'; discovery_keyword='+clean(p.__radarKeyword,80),null,offerId,row.account_id]);
+          await db.query('UPDATE offers SET subcategory=$1,classification_tags=$2::jsonb,classification_confidence=$3,classification_status=$4,classification_reason=$5,source_category=$6 WHERE id=$7 AND account_id=$8',[classified.subcategory,JSON.stringify(classified.tags||[]),classified.confidence||0,(classified.needsReview||adultReviewRequired)?'REVIEW':'AUTO',(adultReviewRequired?'adult_product_requires_manual_review; ':'')+(classified.reason||'official_shopee_api')+'; '+scoreReason+'; discovery_keyword='+clean(p.__radarKeyword,80),null,offerId,row.account_id]);
           await db.query(
             "UPDATE affiliate_discovery_items SET processing_status='IMPORTED',processed_at=now(),offer_id=$3,processing_error='' WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND external_id=$2",
             [row.account_id,discoveryExternalId,offerId]
           );
-          totals.imported++; importedForAccount++;
+          totals.imported++; if(adultReviewRequired) totals.adultProductsHeldForReview=(totals.adultProductsHeldForReview||0)+1; importedForAccount++;
         } catch (e) {
           await db.query("UPDATE offers SET status='PENDING',validation_status='NEEDS_REVIEW' WHERE id=$1 AND account_id=$2",[offerId,row.account_id]);
           await db.query(
