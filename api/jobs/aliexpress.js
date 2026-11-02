@@ -3,7 +3,7 @@ import { fetchWithRetry } from 'lib/http-retry.js';
 import { signAliExpressParams } from 'lib/afilimax-aliexpress-provider.js';
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
-import { isMedicationProduct } from 'lib/product-safety.js';
+import { isMedicationProduct, isAdultProduct } from 'lib/product-safety.js';
 import { selectDiverseCandidates } from 'lib/catalog-diversity.js';
 import { formatPromo } from 'lib/promo-message.js';
 import { directImageUrl, httpsUrl } from 'lib/validation.js';
@@ -264,7 +264,7 @@ function isAliExpressUrl(value) {
 export default async function handler(req, res) {
   const dryRun = req.body?.dryRun === true || String(req.body?.dryRun ?? req.query?.dryRun ?? '').toLowerCase() === 'true';
   const rows = (await db.query("SELECT account_id,credentials_enc,nonce FROM marketplace_api_credentials WHERE marketplace='ALIEXPRESS' AND status='VALIDATED'")).rows;
-  const totals = { ok: true, accounts: rows.length, scanned: 0, deferredForAffiliateLink: 0, imported: 0, duplicates: 0, skipped: 0, safetyBlocked: 0, selected: 0, failed: 0, autopilotRuns: 0, preview: [], rejectedBy: { missingId: 0, missingTitle: 0, invalidProductUrl: 0, missingAffiliateLink: 0, missingImage: 0, invalidPrice: 0, noVerifiedDiscount: 0, safetyFilter: 0, discountBelowThreshold: 0 }, qualitySignals: { missingCommission: 0, lowCommission: 0, missingRating: 0, lowRating: 0 } };
+  const totals = { ok: true, accounts: rows.length, scanned: 0, deferredForAffiliateLink: 0, imported: 0, duplicates: 0, skipped: 0, safetyBlocked: 0, selected: 0, failed: 0, autopilotRuns: 0, preview: [], rejectedBy: { missingId: 0, missingTitle: 0, invalidProductUrl: 0, missingAffiliateLink: 0, missingImage: 0, invalidPrice: 0, noVerifiedDiscount: 0, safetyFilter: 0, adultPolicy: 0, discountBelowThreshold: 0 }, qualitySignals: { missingCommission: 0, lowCommission: 0, missingRating: 0, lowRating: 0 } };
   for (const row of rows) {
     let accountImported = 0;
     try {
