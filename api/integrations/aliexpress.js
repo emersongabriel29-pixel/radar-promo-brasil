@@ -367,7 +367,8 @@ export default async function handler(req,res){
         const discount=originalPrice>0&&currentPrice>0?Math.round((originalPrice-currentPrice)*100/originalPrice):0;
         let reason='';
         if(isMedicationProduct({title,productUrl}))reason='Medicamentos e produtos farmacêuticos são bloqueados pela política do Radar.';
-        else if(!title)reason='Título ausente';
+        else if(isAdultProduct({title,productUrl}))reason='Produto adulto retido: os termos de publicidade de afiliados do AliExpress restringem a promoção de produtos adultos, exceto contraceptivos.';
+         else if(!title)reason='Título ausente';
         // No internal category exclusion.
         else if(!/^https:\/\//i.test(productUrl)||!/^https:\/\//i.test(affiliateUrl)||!/^https:\/\//i.test(imageUrl))reason='Produto sem link original, link de afiliado ou imagem HTTPS válida';
         else if(!Number.isSafeInteger(currentPrice)||currentPrice<=0||!Number.isSafeInteger(originalPrice)||originalPrice<=currentPrice)reason='Preço atual/original inválido ou sem desconto verificável';
