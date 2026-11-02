@@ -396,6 +396,7 @@ export default async function handler(req,res) {
       for (const candidate of selectedCandidates) {
         await pause(250);
         const {p,title,productUrl,affiliateUrl,imageUrl,currentPrice,score,fp,classified,category,reasons,discoveryExternalId} = candidate;
+         const adultReviewRequired = isAdultProduct({title});
         const exists = await db.query('SELECT id,current_price,original_price FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1',[row.account_id,fp]);
         if (exists.rows.length) {
           const existing = exists.rows[0];
