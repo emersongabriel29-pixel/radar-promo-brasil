@@ -30,3 +30,15 @@ Esta alteração de código não executa chamadas autenticadas às contas reais 
 3. Conferir os contadores de itens descobertos, classificados como `Sex shop` e retidos para revisão.
 4. Executar auditoria AliExpress somente para validar a disponibilidade da API; não importar nem publicar produtos adultos.
 5. Manter a revisão humana como condição obrigatória para qualquer item adulto Shopee e respeitar os termos de cada canal de divulgação.
+
+## Validação operacional somente leitura (02/11/2026)
+
+- Shopee `productOfferV2`: a busca `vibrador intimo` retornou 4 ofertas; a busca `massageador intimo` retornou 20 ofertas na primeira página.
+- Os resultados incluíram vibradores, massageadores íntimos e lingerie com pérolas massageadoras, com links de afiliado e taxas de comissão informadas pela API.
+- Algumas palavras-chave (`sex shop`, `anel peniano` e `lubrificante intimo`) retornaram erro do provedor Shopee `10000 System Error`; não interpretar esses erros como ausência de produtos.
+- AliExpress: buscas por `vibrador intimo`, `massageador intimo` e `lubrificante intimo` retornaram zero itens. A busca-controle `fone bluetooth` retornou um item, indicando que a consulta de produtos está respondendo, mas não confirma ausência de toda a categoria no catálogo.
+- Todas as consultas foram somente leitura. Nenhum produto foi importado, aprovado ou publicado durante a auditoria.
+
+## Classificação e revisão
+
+Os exemplos retornados pela Shopee motivaram regras adicionais para classificar vibradores de uso íntimo e lingerie com pérolas massageadoras como `Sex shop`. O filtro de segurança diferencia peças de reposição de vibração de celular e mantém produtos adultos em revisão humana.
