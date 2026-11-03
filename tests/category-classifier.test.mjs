@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { classifyProduct, categoryHint } from '../lib/category-classifier.js';
 
 test('classifies intimate products before broad fashion terms', () => {
-  assert.equal(classifyProduct({ title: 'Lingerie sensual com vibrador íntimo recarregável' }).category, 'Sex shop');\n  assert.equal(classifyProduct({ title: 'Vibrador deusa inquebrável, brinquedo de vibração forte, produtos sexuais' }).category, 'Sex shop');\n  assert.equal(classifyProduct({ title: 'Calcinha Tailandesa Fio Dental Pérola Massageadora' }).category, 'Sex shop');
+  assert.equal(classifyProduct({ title: 'Lingerie sensual com vibrador íntimo recarregável' }).category, 'Sex shop');
+  assert.equal(classifyProduct({ title: 'Vibrador deusa inquebrável, brinquedo de vibração forte, produtos sexuais' }).category, 'Sex shop');
+  assert.equal(classifyProduct({ title: 'Calcinha Tailandesa Fio Dental Pérola Massageadora' }).category, 'Sex shop');
   assert.equal(classifyProduct({ title: 'Lubrificante íntimo à base de água' }).subcategory, 'Lubrificantes e géis');
 });
 
