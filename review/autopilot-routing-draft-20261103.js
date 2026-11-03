@@ -1,0 +1,231 @@
+import { db, scheduler } from 'hatchable';
+// Destination routing is resolved per platform, source and offer category.
+// Lomadee link-read validation is not a publication prerequisite.
+import { calculateRadarScore } from './radar.js';
+import { message } from './automation.js';
+import { httpsUrl, directImageUrl } from './validation.js';
+
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+async function transactionWithBackoff(statements) {
+  const delays = [600, 1200, 2500, 5000, 8000];
+  for (let attempt = 0; ; attempt++) {
+    try { return await db.transaction(statements); }
+    catch (error) {
+      const detail = (String(error?.code || '') + ' ' + String(error?.message || '')).toLowerCase();
+      const limited = detail.includes('rate_limited') || detail.includes('rate limit exceeded for db/transaction');
+      if (!limited || attempt >= delays.length) throw error;
+      await pause(delays[attempt] + Math.floor(Math.random() * 500));
+    }
+  }
+}
+
+export async function evaluateMatches(accountId, sourceFilter = '', options = {}) {
+  const rules = (await db.query("SELECT * FROM autopilot_rules WHERE account_id=$1 AND status='ACTIVE' ORDER BY min_score DESC,updated_at DESC", [accountId])).rows;
+  const offers = (await db.query("SELECT * FROM offers WHERE account_id=$1 AND status IN ('APPROVED','PENDING','READY','NEEDS_REVIEW','REJECTED') AND ($2='' OR source=$2) AND ($2<>'ALIEXPRESS' OR validation_status='VALIDATED') ORDER BY COALESCE(radar_score,score,35) DESC,created_at DESC", [accountId, sourceFilter])).rows;
+  const matches = [];
+  const scoreUpdates = [];
+  const blockedMedication = 0;
+  for (const offer of offers) {
+    const radar = calculateRadarScore({ currentPrice: offer.current_price, originalPrice: offer.original_price, lowestPrice: offer.price_lowest, averagePrice: offer.price_average, historyCount: offer.price_history_count, title: offer.title, coupon: Boolean(offer.coupon_code || offer.coupon_url) });
+    const discount = offer.original_price > offer.current_price ? Math.round((offer.original_price - offer.current_price) * 100 / offer.original_price) : 0;
+    // The radar score is informational only; publication eligibility uses explicit commercial and safety rules.
+    const matchedRules = rules.filter(rule => (!rule.max_price || offer.current_price <= rule.max_price) && (!rule.require_price_history || offer.price_history_count >= 3) && (!rule.category_id || rule.category_id === offer.category_id));
+    scoreUpdates.push({ id: offer.id, score: radar.score, reasons: radar.reasons.join(' • ') });
+    matches.push({ offer, radar, discount, matchedRules });
+  }
+  if (scoreUpdates.length && options?.dryRun !== true) {
+    await db.query("UPDATE offers o SET radar_score=u.score,radar_reasons=u.reasons,radar_updated_at=now() FROM jsonb_to_recordset($1::jsonb) AS u(id text,score integer,reasons text) WHERE o.id=u.id AND o.account_id=$2", [JSON.stringify(scoreUpdates), accountId]);
+  }
+  return { rules, matches, evaluated: offers.length, blockedMedication };
+}
+
+export async function enqueueMatches(accountId, requestedOfferId = '', options = {}) {
+  const dryRun = options?.dryRun === true;
+  const { matches, evaluated, blockedMedication = 0 } = await evaluateMatches(accountId, options?.source || '', options);
+  // O autopilot publica somente ofertas já aprovadas; não promove automaticamente itens em revisão/rejeitados.
+  const approved = matches.filter(x => x.offer.status === 'APPROVED' && (!requestedOfferId || x.offer.id === requestedOfferId));
+  const groups = (await db.query(
+    "SELECT id,name,platform,category_id FROM promo_groups WHERE account_id=$1 AND status='ACTIVE' AND NULLIF(trim(external_id),'') IS NOT NULL AND (platform<>'WHATSAPP' OR whatsapp_destination_type='GROUP') ORDER BY platform,id",
+    [accountId]
+  )).rows;
+  const categories = (await db.query('SELECT id,name,keywords FROM categories WHERE account_id=$1',[accountId])).rows;
+  const settings = (await db.query("SELECT timezone FROM account_settings WHERE account_id=$1", [accountId])).rows[0];
+  const timezone = settings?.timezone || 'America/Sao_Paulo';
+  const day = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const verifiedPriceOffers = new Set((await db.query(
+    "SELECT DISTINCT ph.offer_id FROM offer_price_history ph JOIN offers o ON o.id=ph.offer_id AND o.account_id=ph.account_id WHERE ph.account_id=$1 AND ph.source_type='OFFICIAL_API' AND ph.verified_at IS NOT NULL AND ph.verified_at>now()-interval '24 hours' AND ph.price=o.current_price AND ph.original_price IS NOT DISTINCT FROM o.original_price AND ph.verified_at=(SELECT MAX(ph2.verified_at) FROM offer_price_history ph2 WHERE ph2.account_id=ph.account_id AND ph2.offer_id=ph.offer_id AND ph2.source_type='OFFICIAL_API')",
+    [accountId]
+  )).rows.map(row => row.offer_id));
+  const previouslyQueuedOffers = new Set((await db.query(
+    "SELECT DISTINCT offer_id FROM publications WHERE account_id=$1",
+    [accountId]
+  )).rows.map(row => row.offer_id));
+  // Do not backfill newly added destinations with offers that already entered publication.
+  const queueCandidates = approved.filter(item => !previouslyQueuedOffers.has(item.offer.id)
+    && verifiedPriceOffers.has(item.offer.id)
+    && (item.offer.image_storage_key || directImageUrl(item.offer.image_url))
+    && httpsUrl(item.offer.affiliate_url));
+  const candidates = [];
+  for (const item of queueCandidates) {
+    const offer = item.offer;
+    const telegramGroups = groups.filter(group => group.platform === 'TELEGRAM');
+    const tags = Array.isArray(offer.classification_tags)
+      ? offer.classification_tags.map(tag => String(tag).toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, ''))
+      : [];
+    const title = String(offer.title || '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');
+    const isAutomotive = offer.category_id === '91ec3fe3-138e-4506-9702-6c2f8950f0d1'
+      || tags.some(tag => /automot|acessorios-automotivos|pecas-automotivas|motos?/.test(tag))
+      || /automot|motocicl|motocross|motociclet|\\bmoto\\b|\\bautomovel\\b|\\bveiculo\\b/.test(title) && !/motorola/.test(title);
+    const isBaby = offer.category_id === 'cat-bebes'
+      || tags.some(tag => /bebes|kids|infantil|criancas/.test(tag));
+    // Marketplace is never evidence of shipping origin: both AliExpress and Shopee
+    // can contain domestic-stock products. Route only when the offer has an explicit
+    // imported classification supplied by verified logistics metadata or human review.
+    const isImported = offer.category_id === 'cat-importados'
+      || tags.some(tag => /^(importado|produto-importado|envio-internacional-verificado)$/.test(tag));
+    const selectedTelegram = new Set();
+    const generalGroup = telegramGroups.find(group =>
+      group.category_id === 'cat-gerais' || /ofertas/i.test(group.name || ''));
+
+    // Main Telegram destination is universal. Every other active Telegram group
+    // is an additional destination when its category matches the offer category.
+    if (generalGroup) selectedTelegram.add(generalGroup.id);
+    const categoryText = [offer.title, offer.subcategory, ...tags].join(' ')
+      .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+    const keywordMatches = categories.filter(category => {
+      if (category.id === 'cat-gerais' || /ofertas gerais/i.test(category.name || '')) return false;
+      const keywords = Array.isArray(category.keywords) ? category.keywords : [];
+      return keywords.some(keyword => {
+        const normalized = String(keyword || '').normalize('NFD')
+          .replace(/[\\u0300-\\u036f]/g, '').toLowerCase().trim();
+        return normalized.length >= 3 && categoryText.includes(normalized);
+      });
+    });
+    const currentCategory = categories.find(category => category.id === offer.category_id);
+    if (keywordMatches.length && (!currentCategory || /ofertas gerais/i.test(currentCategory.name || ''))) {
+      offer.category_id = keywordMatches[0].id;
+      if (!dryRun) await db.query('UPDATE offers SET category_id=$1 WHERE id=$2 AND account_id=$3',[offer.category_id,offer.id,accountId]);
+    }
+    for (const group of telegramGroups) {
+      if (!group.category_id) continue;
+      if (group.category_id === offer.category_id) {
+        selectedTelegram.add(group.id);
+        continue;
+      }
+      const category = categories.find(item => item.id === group.category_id);
+      const keywords = Array.isArray(category?.keywords) ? category.keywords : [];
+      const matchedKeyword = keywords.some(keyword => {
+        const normalized = String(keyword || '').normalize('NFD')
+          .replace(/[\\u0300-\\u036f]/g, '').toLowerCase().trim();
+        return normalized.length >= 3 && categoryText.includes(normalized);
+      });
+      if (matchedKeyword) selectedTelegram.add(group.id);
+    }
+
+    // Preserve the established special routing for imported offers and legacy
+    // groups whose category metadata may not yet match the offer taxonomy.
+    if (isImported) {
+      const importedGroup = telegramGroups.find(group =>
+        group.category_id === 'cat-importados' || /importados/i.test(group.name || ''));
+      if (importedGroup) selectedTelegram.add(importedGroup.id);
+    }
+    if (isAutomotive) {
+      const automotiveGroup = telegramGroups.find(group =>
+        group.category_id === '91ec3fe3-138e-4506-9702-6c2f8950f0d1'
+        || /auto,? moto|auto.*moto|moto.*pecas/i.test(group.name || ''));
+      if (automotiveGroup) selectedTelegram.add(automotiveGroup.id);
+    }
+    if (isBaby) {
+      const babyGroup = telegramGroups.find(group =>
+        group.category_id === 'cat-bebes' || /baby|beb[eê]s.*kids/i.test(group.name || ''));
+      if (babyGroup) selectedTelegram.add(babyGroup.id);
+    }
+
+    for (const groupId of selectedTelegram) {
+      const group = telegramGroups.find(candidate => candidate.id === groupId);
+      if (!group) continue;
+      candidates.push({
+        offer_id: offer.id,
+        group_id: group.id,
+        message: message(offer),
+        image_url: offer.image_url || null,
+        priority: Number(item.radar.score) || 0,
+        idempotency_key: `radar:${offer.id}:${group.id}:${day}`,
+        image_storage_key: offer.image_storage_key || null,
+        platform: group.platform,
+        source: offer.source
+      });
+    }
+
+    // Preserve the existing single-destination behavior for WhatsApp.
+    const whatsappGroup = groups
+      .filter(candidate => candidate.platform === 'WHATSAPP' && (candidate.category_id == null || candidate.category_id === 'cat-gerais' || candidate.category_id === offer.category_id))
+      .sort((a,b) => Number(b.category_id === offer.category_id) - Number(a.category_id === offer.category_id) || a.id.localeCompare(b.id))[0];
+    if (whatsappGroup) {
+      candidates.push({
+        offer_id: offer.id,
+        group_id: whatsappGroup.id,
+        message: message(offer),
+        image_url: offer.image_url || null,
+        priority: Number(item.radar.score) || 0,
+        idempotency_key: `radar:${offer.id}:${whatsappGroup.id}:${day}`,
+        image_storage_key: offer.image_storage_key || null,
+        platform: whatsappGroup.platform,
+        source: offer.source
+      });
+    }
+  }
+  const payload = candidates.map(({offer_id,group_id,message,image_url,priority,idempotency_key,image_storage_key}) =>
+    ({offer_id,group_id,message,image_url,priority,idempotency_key,image_storage_key}));
+  let inserted = [];
+  if (dryRun) {
+    if (payload.length) {
+      const preview = await db.query(`
+        SELECT x.offer_id,x.group_id
+        FROM jsonb_to_recordset($1::jsonb) AS x(offer_id text,group_id text,message text,image_url text,priority integer,idempotency_key text,image_storage_key text)
+        JOIN promo_groups g ON g.id=x.group_id AND g.account_id=$2 AND g.status='ACTIVE'
+        WHERE NOT EXISTS(SELECT 1 FROM publications p WHERE p.account_id=$2 AND p.offer_id=x.offer_id AND p.group_id=x.group_id)
+          AND EXISTS(SELECT 1 FROM accounts a WHERE a.id=$2 AND a.status='ACTIVE')
+      `, [JSON.stringify(payload), accountId]);
+      inserted = preview.rows || [];
+    }
+  } else if (payload.length) {
+    const transaction = await transactionWithBackoff([
+      {sql:'SELECT id FROM accounts WHERE id=$1 FOR UPDATE',params:[accountId]},
+      {sql:`
+        INSERT INTO publications(id,account_id,offer_id,group_id,status,message,image_url,mode,priority,idempotency_key,image_storage_key)
+        SELECT gen_random_uuid()::text,$2,x.offer_id,x.group_id,'READY',x.message,x.image_url,'SMART',x.priority,x.idempotency_key,x.image_storage_key
+        FROM jsonb_to_recordset($1::jsonb) AS x(offer_id text,group_id text,message text,image_url text,priority integer,idempotency_key text,image_storage_key text)
+        JOIN promo_groups g ON g.id=x.group_id AND g.account_id=$2 AND g.status='ACTIVE'
+        WHERE EXISTS(SELECT 1 FROM accounts a WHERE a.id=$2 AND a.status='ACTIVE')
+          AND NOT EXISTS(SELECT 1 FROM publications p WHERE p.account_id=$2 AND p.offer_id=x.offer_id AND p.group_id=x.group_id)
+        ON CONFLICT DO NOTHING
+        RETURNING id,offer_id,group_id
+      `,params:[JSON.stringify(payload),accountId]}
+    ]);
+    inserted = transaction.results[1].rows || [];
+  }
+  const count = dryRun ? inserted.length : inserted.length;
+  const insertedKeys = new Set(inserted.map(x=>x.offer_id+'|'+x.group_id));
+  const telegramQueued = candidates.filter(x=>x.platform==='TELEGRAM'&&insertedKeys.has(x.offer_id+'|'+x.group_id)).length;
+  const whatsappQueued = candidates.filter(x=>x.platform==='WHATSAPP'&&insertedKeys.has(x.offer_id+'|'+x.group_id)).length;
+  const queued = dryRun ? count : inserted.length;
+  // Wake the single named dispatcher when new Telegram work enters the queue.
+  // It respects the saved next_turn_at, so ingestion cannot bypass the interval.
+  if (telegramQueued && !dryRun) {
+    await db.query('INSERT INTO publication_scheduler_settings(account_id) VALUES($1) ON CONFLICT(account_id) DO NOTHING',[accountId]);
+    const next=(await db.query("SELECT MIN(next_turn_at) AS next_at FROM publication_scheduler_settings WHERE enabled=true")).rows[0]?.next_at;
+    if(next) {
+      try { await scheduler.at(new Date(Math.max(Date.now()+1000,new Date(next).getTime())),'/api/jobs/telegram',{name:'publication-scheduler-master'}); }
+      catch(error) { console.error('publication scheduler arm failed',String(error?.code||error?.name||'ERROR').slice(0,60)); }
+    }
+  }
+  return {
+    dryRun,published:dryRun?0:queued,queued:dryRun?0:queued,wouldQueue:dryRun?queued:0,
+    evaluated,telegramQueued:dryRun?0:telegramQueued,wouldTelegramQueue:dryRun?telegramQueued:0,
+    whatsappQueued:dryRun?0:whatsappQueued,wouldWhatsappQueue:dryRun?whatsappQueued:0,
+    blockedAffiliate:0,blockedPrice:0,blockedMedication,blockedDuplicate:0,
+    queueBackpressure:{enabled:false,blockedByCapacity:0},
+    results:{approvedOffers:approved.length,candidates:candidates.length,inserted:queued,bySource:Object.fromEntries([...new Set(approved.map(x=>x.offer.source))].map(source=>[source,approved.filter(x=>x.offer.source===source).length]))}
+  };
+}
