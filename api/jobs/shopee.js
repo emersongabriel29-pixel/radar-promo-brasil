@@ -6,6 +6,7 @@ import { directImageUrl, httpsUrl } from 'lib/validation.js';
 import { formatPromo } from 'lib/promo-message.js';
 import { cacheOfferImage } from 'lib/offer-images.js';
 import { classifyProduct } from 'lib/category-classifier.js';
+import { resolveCanonicalCategory } from 'lib/category-routing.js';
 import { isMedicationProduct, isAdultProduct } from 'lib/product-safety.js';
 import { selectShopeeKeywords, getShopeeKeywordQualityPenalty } from 'lib/shopee-keywords.js';
 import { isShopeeShopId, isShopeeItemId } from 'lib/shopee-ids.js';
@@ -379,7 +380,7 @@ export default async function handler(req,res) {
         if (keywordQualityPenalty < 0) reasons.push('produto acessório rebaixado em busca de produto principal');
         if (productUrl && affiliateUrl && imageUrl) reasons.push('link, link de afiliado e imagem presentes');
         const fp = await fingerprint({source:'SHOPEE',externalId:clean(p.itemId,80),productUrl,title});
-        const category = cats.find(c=>c.name.toLowerCase()===String(classified.category||'').toLowerCase()) || cats.find(c=>c.name.toLowerCase().includes('gerais'));
+        const category = resolveCanonicalCategory(cats, classified.category);
         candidates.push({p,title,productUrl,affiliateUrl,imageUrl,currentPrice,commissionPercent,discountRate,sales,score,reasons,fp,classified,category,id:clean(p.itemId,80),discoveryExternalId,merchantId:clean(p.shopId,80),merchantName:clean(p.shopName,160)});
       }
 

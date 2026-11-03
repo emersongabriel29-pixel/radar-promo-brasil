@@ -3,6 +3,7 @@ import { fetchWithRetry } from 'lib/http-retry.js';
 import { signAliExpressParams } from 'lib/afilimax-aliexpress-provider.js';
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
+import { resolveCanonicalCategory } from 'lib/category-routing.js';
 import { isMedicationProduct, isAdultProduct } from 'lib/product-safety.js';
 import { selectDiverseCandidates } from 'lib/catalog-diversity.js';
 import { formatPromo } from 'lib/promo-message.js';
@@ -379,8 +380,7 @@ export default async function handler(req, res) {
         if (p.rating === null) totals.qualitySignals.missingRating++;
         else if (p.rating < 90) totals.qualitySignals.lowRating++;
         const classified = classifyProduct({ title: p.title, sourceCategory: p.sourceCategory });
-        const category = categories.find(c => c.name.toLowerCase() === String(classified.category || '').toLowerCase()) ||
-          categories.find(c => c.name.toLowerCase().includes('gerais')) || null;
+        const category = resolveCanonicalCategory(categories, classified.category);
         const fp = await fingerprint({ source: 'ALIEXPRESS', externalId: p.id, productUrl: p.productUrl, title: p.title });
         const qualityFlags = [];
         if (p.commission !== null && p.commission < 3) qualityFlags.push('LOW_COMMISSION');
