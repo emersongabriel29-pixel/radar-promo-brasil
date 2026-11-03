@@ -22,7 +22,65 @@
 <section class="section card">
 <h2>Explorador de recursos</h2>
 <p>Consultas manuais somente leitura. As operações dependem dos escopos ativos de cada conta e podem consumir cotas das APIs. Nenhuma ação abaixo publica ofertas ou envia mensagens.</p>
-<div class="page-picker"><label for="catalogPage">Página inicial da consulta</label><input id="catalogPage" type="number" min="1" max="1000" value="1"><span class="small">Lomadee percorre até 10 páginas por recurso; Shopee e AliExpress consultam até 3 páginas por lote e oferecem continuação.</span></div><div class="actions">
+<div class="explorer-panel" id="shopee-api-explorer">
+  <div class="explorer-head"><div><h3>Explorador Shopee Open API V2</h3><p class="small">Selecione uma operação oficial, ajuste os parâmetros e execute uma chamada autenticada no servidor. App ID e Secret nunca são enviados ao navegador.</p></div><span class="pill">Credenciais protegidas</span></div>
+  <div class="explorer-grid">
+    <div><label for="shopeeOperation">Operação</label><select id="shopeeOperation">
+      <option value="productOfferV2">productOfferV2 · Produtos</option>
+      <option value="shopOfferV2">shopOfferV2 · Lojas</option>
+      <option value="shopeeOfferV2">shopeeOfferV2 · Campanhas e coleções</option>
+      <option value="conversionReport">conversionReport · Conversões</option>
+      <option value="validatedReport">validatedReport · Pedidos validados</option>
+      <option value="listItemFeeds">listItemFeeds · Listar feeds</option>
+      <option value="getItemFeedData">getItemFeedData · Dados do feed</option>
+      <option value="generateShortLink">generateShortLink · Criar link</option>
+      <option value="generateBatchShortLink">Geração em lote · até 20 links</option>
+    </select></div>
+    <div class="explorer-field" data-for="productOfferV2,shopOfferV2,shopeeOfferV2"><label for="shopeeKeyword">Palavra-chave</label><input id="shopeeKeyword" maxlength="80" placeholder="Ex.: celular, black friday, choice"></div>
+    <div class="explorer-field" data-for="productOfferV2,shopOfferV2,shopeeOfferV2"><label for="shopeePage">Página</label><input id="shopeePage" type="number" min="1" max="1000" value="1"></div>
+    <div class="explorer-field" data-for="productOfferV2,shopOfferV2,shopeeOfferV2,conversionReport,validatedReport,getItemFeedData"><label for="shopeeLimit">Limite por página</label><input id="shopeeLimit" type="number" min="1" max="500" value="50"></div>
+    <div class="explorer-field" data-for="productOfferV2,shopOfferV2,shopeeOfferV2"><label for="shopeeSort">Ordenação (sortType)</label><select id="shopeeSort"><option value="1">1 · Relevância</option><option value="2" selected>2 · Mais vendidos</option><option value="3">3 · Maior preço</option><option value="4">4 · Menor preço</option><option value="5">5 · Comissão</option></select></div>
+    <div class="explorer-field" data-for="productOfferV2"><label for="shopeeListType">Tipo de lista (listType)</label><select id="shopeeListType"><option value="0">Recomendados</option><option value="1">Maior comissão</option><option value="2">Top performance</option></select></div>
+    <div class="explorer-field" data-for="productOfferV2"><label for="shopeeCategoryId">ID da categoria (se conhecido)</label><input id="shopeeCategoryId" inputmode="numeric" maxlength="12" placeholder="Opcional"></div>
+    <div class="explorer-field" data-for="productOfferV2,shopOfferV2"><label for="shopeeShopId">Shop ID (opcional)</label><input id="shopeeShopId" inputmode="numeric" maxlength="24"></div>
+    <div class="explorer-field" data-for="productOfferV2"><label for="shopeeItemId">Item ID (opcional)</label><input id="shopeeItemId" inputmode="numeric" maxlength="24"></div>
+    <div class="explorer-field" data-for="shopOfferV2"><label for="shopeeShopType">Tipo de loja</label><select id="shopeeShopType"><option value="">Todas</option><option value="1">Mall</option><option value="2">Star</option><option value="4">Star+</option><option value="1,2,4">Todos os tipos</option></select></div>
+    <div class="explorer-field" data-for="productOfferV2,shopOfferV2"><label class="checkline"><input id="shopeeKeySeller" type="checkbox"> Somente Key Seller (quando suportado)</label></div>
+    <div class="explorer-field" data-for="productOfferV2"><label class="checkline"><input id="shopeeAms" type="checkbox"> Ofertas AMS / comissão extra</label></div>
+    <div class="explorer-field" data-for="conversionReport"><label for="shopeeStartDate">Início (data de compra)</label><input id="shopeeStartDate" type="date"></div>
+    <div class="explorer-field" data-for="conversionReport"><label for="shopeeEndDate">Fim (data de compra)</label><input id="shopeeEndDate" type="date"></div>
+    <div class="explorer-field" data-for="conversionReport"><label for="shopeeOrderStatus">Status do pedido</label><select id="shopeeOrderStatus"><option value="">Todos</option><option value="UNPAID">UNPAID</option><option value="PENDING">PENDING</option><option value="COMPLETED">COMPLETED</option><option value="CANCELLED">CANCELLED</option></select></div>
+    <div class="explorer-field" data-for="conversionReport"><label for="shopeeBuyerType">Tipo de comprador</label><select id="shopeeBuyerType"><option value="">Todos</option><option value="NEW">NEW</option><option value="EXISTING">EXISTING</option></select></div>
+    <div class="explorer-field" data-for="conversionReport"><label for="shopeeDevice">Dispositivo</label><select id="shopeeDevice"><option value="">Todos</option><option value="APP">APP</option><option value="WEB">WEB</option></select></div>
+    <div class="explorer-field" data-for="conversionReport,validatedReport"><label for="shopeeScrollId">Scroll ID (continuação)</label><input id="shopeeScrollId" maxlength="1000" placeholder="Opcional"></div>
+    <div class="explorer-field" data-for="validatedReport"><label for="shopeeValidationId">Validation ID</label><input id="shopeeValidationId" inputmode="numeric" maxlength="18"></div>
+    <div class="explorer-field" data-for="listItemFeeds"><label for="shopeeFeedMode">Tipo de feed</label><select id="shopeeFeedMode"><option value="">Todos</option><option value="FULL">FULL</option><option value="DELTA">DELTA</option></select></div>
+    <div class="explorer-field" data-for="getItemFeedData"><label for="shopeeDatafeedId">Datafeed ID</label><input id="shopeeDatafeedId" maxlength="160" placeholder="ID_FULL_... ou ID_DELTA_..."></div>
+    <div class="explorer-field" data-for="getItemFeedData"><label for="shopeeOffset">Offset</label><input id="shopeeOffset" type="number" min="0" value="0"></div>
+    <div class="explorer-field" data-for="generateShortLink"><label for="shopeeOriginUrl">URL original Shopee</label><input id="shopeeOriginUrl" type="url" placeholder="https://shopee.com.br/..."></div>
+    <div class="explorer-field" data-for="generateShortLink,generateBatchShortLink"><label for="shopeeSubIds">Sub IDs (até 5, separados por vírgula)</label><input id="shopeeSubIds" maxlength="260" placeholder="telegram,blackfriday"></div>
+    <div class="explorer-field full" data-for="generateBatchShortLink"><label for="shopeeBatchUrls">URLs originais (uma por linha, até 20)</label><textarea id="shopeeBatchUrls" rows="4" placeholder="https://shopee.com.br/..."></textarea></div>
+    <div class="explorer-field full" data-for="productOfferV2,shopOfferV2,shopeeOfferV2"><label class="checkline"><input id="shopeePersist" type="checkbox"> Persistir itens descobertos no catálogo do Radar (até 3 páginas por execução)</label></div>
+  </div>
+  <div class="category-catalog-panel">
+    <div class="explorer-head"><div><h3>Catálogo completo de categorias Shopee</h3><p class="small">Importa as categorias e subcategorias do Guia Seller Center, com seus IDs e caminhos hierárquicos. A carga completa consulta as páginas do catálogo; não consome chamadas da API de afiliados.</p></div><span class="pill" id="shopeeCategoryCount">Ainda não carregado</span></div>
+    <div class="actions"><button id="loadShopeeCategories" type="button">Carregar todas as categorias</button></div>
+    <div class="actions"><button id="validateShopeeCategoryBatch" type="button" disabled>Validar próximo lote (3 categorias)</button><span class="pill" id="shopeeCategoryValidationSummary">Validações ainda não iniciadas</span></div>
+    <div id="shopeeCategoryValidationDetails" class="small">A validação é gradual: até 3 consultas de leitura por lote. Categorias confirmadas ficam registradas para orientar a coleta.</div>
+    <div class="explorer-grid">
+      <div class="full"><label for="shopeeCategorySelect">Categoria / subcategoria</label><select id="shopeeCategorySelect"><option value="">Carregue o catálogo para selecionar</option></select></div>
+      <div><label for="shopeeCategorySearch">Filtrar por nome ou ID</label><input id="shopeeCategorySearch" maxlength="100" placeholder="Ex.: vestidos, ferramentas, 100350"></div>
+      <div><label>Validação do ID</label><button id="testShopeeCategory" type="button" disabled>Testar filtro na API de afiliados</button></div>
+    </div>
+    <div id="shopeeCategoryStatus" class="status" role="status" aria-live="polite">O catálogo ainda não foi carregado.</div>
+    <p class="small">Atenção: o ID do Guia Seller Center não é automaticamente considerado um productCatId válido. O teste faz uma consulta de leitura com um único ID selecionado e informa se a API aceitou o filtro.</p>
+  </div>
+  <div class="actions"><button id="runShopeeExplorer" class="primary" type="button">Executar operação</button><button id="clearShopeeExplorer" type="button">Limpar parâmetros</button><button id="refreshShopeeAudit" type="button">Atualizar histórico</button></div>
+  <div id="shopeeExplorerStatus" class="status" role="status" aria-live="polite">Pronto para consultar. A execução não publica ofertas; a criação de links só ocorre quando solicitada.</div>
+  <pre id="shopeeExplorerResult" class="result" role="status" aria-live="polite">A resposta JSON aparecerá aqui.</pre>
+  <div class="tablewrap"><table><thead><tr><th>Operação</th><th>Status</th><th>Registros</th><th>Páginas</th><th>Última execução</th></tr></thead><tbody id="shopeeAuditRows"><tr><td colspan="5">Histórico ainda não carregado.</td></tr></tbody></table></div>
+</div>
+<div class="page-picker"><label for="catalogCategory">Categoria da rodada</label><select id="catalogCategory"><option value="bebe-maternidade">Bebês e maternidade</option><option value="casa-decoracao">Casa e decoração</option><option value="cozinha-utensilios">Cozinha e utensílios</option><option value="beleza-cuidados">Beleza e cuidados pessoais</option><option value="moda-feminina">Moda feminina</option><option value="moda-masculina">Moda masculina</option><option value="eletronicos-acessorios">Eletrônicos e acessórios</option><option value="informatica-celulares">Informática e celulares</option><option value="pet-shop">Pet shop</option><option value="ferramentas-utilidades">Ferramentas e utilidades</option></select><label for="catalogKeyword">Palavra-chave para produtos Shopee</label><input id="catalogKeyword" type="text" maxlength="80" placeholder="Selecione uma categoria ou digite um termo"><div class="small" id="categoryKeywords">Sugestão de busca: carregando…</div><label for="catalogPage">Página inicial da consulta</label><input id="catalogPage" type="number" min="1" max="1000" value="1"><span class="small">Lomadee percorre até 10 páginas por recurso; Shopee e AliExpress consultam até 3 páginas por lote e oferecem continuação.</span></div><div class="actions">
 <button type="button" data-op="lomadee">Auditar recursos Lomadee</button>
 <button type="button" data-op="aliexpress">Auditar API AliExpress</button><button type="button" data-op="lomadee-catalog">Persistir catálogo Lomadee</button><button type="button" data-op="aliexpress-products">Persistir produtos AliExpress</button><button type="button" data-op="aliexpress-campaigns">Persistir campanhas AliExpress</button><button type="button" data-op="aliexpress-categories">Persistir categorias AliExpress</button>
 <button type="button" data-op="shopee-products">Persistir produtos Shopee</button>
@@ -39,6 +97,72 @@
 </section>
 <section class="section"><h2>Auditorias recentes</h2><div class="tablewrap"><table><thead><tr><th>API</th><th>Recurso</th><th>Status</th><th>Registros</th><th>Páginas</th><th>Data</th></tr></thead><tbody id="audits"></tbody></table></div></section>
 <section class="section"><h2>Oportunidades priorizadas</h2><p class="small">Pontuação de prioridade, não lucro. Conversão só aparece quando há cliques observados.</p><div class="tablewrap"><table><thead><tr><th>Produto</th><th>Origem</th><th>Prioridade</th><th>Cliques</th><th>Pedidos</th><th>Conversão</th><th>Comissão</th></tr></thead><tbody id="ranked"></tbody></table></div></section>
+<section class="section card" id="aliexpress-metrics">
+<div class="head"><div><h2>Desempenho AliExpress</h2><p class="small">Captura, qualidade, consumo da API e distribuição. Atualização independente do painel geral.</p></div><button id="refreshAliExpressMetrics" type="button">Atualizar AliExpress</button></div>
+<div id="aliexpressMetricsStatus" class="status" role="status" aria-live="polite">Carregando métricas AliExpress…</div>
+<div class="grid">
+<div class="card"><div class="kicker">Chamadas API · 24h</div><div id="aeApiCalls" class="value">—</div></div>
+<div class="card"><div class="kicker">Produtos vistos · 24h</div><div id="aeSeen" class="value">—</div></div>
+<div class="card"><div class="kicker">Catálogo único</div><div id="aeCatalog" class="value">—</div></div>
+<div class="card"><div class="kicker">Enviadas · 24h</div><div id="aeSent" class="value">—</div></div>
+<div class="card"><div class="kicker">Na fila</div><div id="aeQueued" class="value">—</div></div>
+<div class="card"><div class="kicker">Em revisão</div><div id="aeReview" class="value">—</div></div>
+</div>
+<div id="aeSkuPermission" class="status" role="status" aria-live="polite">Verificando acesso às variações…</div>
+<div class="two">
+<div class="card"><h3>Palavras-chave com dados</h3><div class="tablewrap"><table><thead><tr><th>Termo</th><th>Produtos</th><th>Nota média</th><th>Sinal de vendas</th></tr></thead><tbody id="aeKeywords"></tbody></table></div></div>
+<div class="card"><h3>Estado da captura</h3><div class="tablewrap"><table><thead><tr><th>Estado</th><th>Produtos</th></tr></thead><tbody id="aeCaptureStates"></tbody></table></div></div>
+</div>
+<div class="two">
+<div class="card"><h3>Ofertas</h3><div class="tablewrap"><table><thead><tr><th>Status</th><th>Validação</th><th>Total</th><th>Nota média</th></tr></thead><tbody id="aeOfferStates"></tbody></table></div></div>
+<div class="card"><h3>Publicações</h3><div class="tablewrap"><table><thead><tr><th>Status</th><th>Total</th><th>Enviadas · 24h</th></tr></thead><tbody id="aePublicationStates"></tbody></table></div></div>
+</div>
+<p class="small">Catálogo de 284 termos em rotação. O limite de processamento imediato é de 8 ofertas por execução; todas as demais descobertas ficam guardadas e voltam à fila. A nota comercial ordena a fila, não elimina produtos.</p>
+</section>
+<section class="section card" id="shopee-intelligence">
+<h2>Inteligência de produtos Shopee</h2>
+<p>Rankings baseados na média de estrelas dos compradores, vendas e crescimento informados pela API oficial. A nota tem peso principal; vendas representam popularidade, não quantidade de avaliações. A média usa os produtos descobertos pelo Radar nos últimos 30 dias.</p>
+<div class="grid">
+<div class="card"><div class="kicker">Produtos analisados</div><div id="shopeeProducts" class="value">—</div></div>
+<div class="card"><div class="kicker">Média de vendidos</div><div id="shopeeAverageSales" class="value">—</div></div>
+<div class="card"><div class="kicker">Mediana de vendidos</div><div id="shopeeMedianSales" class="value">—</div></div>
+<div class="card"><div class="kicker">Nota média</div><div id="shopeeAverageRating" class="value">—</div></div>
+</div>
+<div class="actions"><button id="refreshShopeeIntelligence" type="button">Atualizar rankings</button></div>
+<div id="shopeeIntelligenceStatus" class="status" role="status" aria-live="polite">Carregando rankings…</div>
+<div class="two">
+<div class="card"><h3>🏆 Mais vendidos</h3><div class="tablewrap"><table><thead><tr><th>Produto</th><th>Vendidos</th><th>Nota</th></tr></thead><tbody id="shopeeBestSellers"></tbody></table></div></div>
+<div class="card"><h3>⭐ Melhores avaliados</h3><div class="tablewrap"><table><thead><tr><th>Produto</th><th>Nota</th><th>Vendidos</th></tr></thead><tbody id="shopeeBestRated"></tbody></table></div></div>
+</div>
+<div class="card"><h3>🏬 Lojas oficiais identificadas</h3><p class="small">Sinal baseado no tipo de loja retornado pela API Shopee. A classificação só é aplicada quando há identificação explícita.</p><div class="tablewrap"><table><thead><tr><th>Produto / loja</th><th>Nota</th><th>Vendidos</th></tr></thead><tbody id="shopeeOfficialStores"></tbody></table></div></div>
+<div class="two">
+<div class="card"><h3>📈 Em crescimento</h3><div class="tablewrap"><table><thead><tr><th>Produto</th><th>Variação 7d</th><th>Vendidos</th></tr></thead><tbody id="shopeeRising"></tbody></table></div></div>
+<div class="card"><h3>💎 Oportunidades</h3><div class="tablewrap"><table><thead><tr><th>Produto</th><th>Radar</th><th>Vendidos</th></tr></thead><tbody id="shopeeBestOpportunities"></tbody></table></div></div>
+</div>
+<div class="card"><h3>Média por categoria</h3><div class="tablewrap"><table><thead><tr><th>Categoria</th><th>Produtos</th><th>Média vendida</th><th>Mediana</th><th>Nota média</th></tr></thead><tbody id="shopeeCategoryAverages"></tbody></table></div></div>
+<p class="small">Critério de prioridade: média de estrelas 55%, vendas 30% e crescimento 7d 15%, considerando apenas os sinais disponíveis. Loja oficial Shopee Mall recebe valorização adicional e desempata produtos com a mesma nota. A API usada não fornece quantidade de avaliações; por isso, não calculamos nota ponderada por número de reviews e nunca usamos vendas como substituto. Ofertas com nota menor continuam elegíveis. Crescimento só é exibido quando existem observações separadas por pelo menos sete dias. Dados ausentes não são estimados.</p>
+</section>
+<section class="section card" id="competition">
+<h2>Radar de concorrência Shopee Vídeos</h2>
+<p>O Radar cruza vendas, avaliação, comissão e preço da API oficial com uma amostra de concorrência que você registra manualmente. Não há coleta automática na Shopee Vídeos: os termos da plataforma restringem robôs e scripts de coleta. Use sempre o mesmo tamanho de amostra para comparar produtos.</p>
+<form id="competitionForm" class="competition-form">
+<label for="compProductSelect">Selecionar produto já descoberto (opcional)</label><select id="compProductSelect"><option value="">Escolher produto do catálogo Shopee…</option></select>
+<label for="compProductId">ID numérico do produto Shopee</label><input id="compProductId" inputmode="numeric" pattern="[0-9]+" maxlength="24" required placeholder="Ex.: 1234567890">
+<label for="compTitle">Nome do produto</label><input id="compTitle" maxlength="240" required placeholder="Ex.: Organizador de cozinha">
+<label for="compCategory">Categoria da observação</label><select id="compCategory"><option value="bebe-maternidade">Bebês e maternidade</option><option value="casa-decoracao">Casa e decoração</option><option value="cozinha-utensilios">Cozinha e utensílios</option><option value="beleza-cuidados">Beleza e cuidados pessoais</option><option value="moda-feminina">Moda feminina</option><option value="moda-masculina">Moda masculina</option><option value="eletronicos-acessorios">Eletrônicos e acessórios</option><option value="informatica-celulares">Informática e celulares</option><option value="pet-shop">Pet shop</option><option value="ferramentas-utilidades">Ferramentas e utilidades</option></select>\n<label for="compSearchTerm">Termo pesquisado na Shopee Vídeos</label><input id="compSearchTerm" maxlength="120" required placeholder="Ex.: organizador de cozinha">
+<div class="competition-fields">
+<div><label for="compSample">Resultados analisados</label><input id="compSample" type="number" min="1" max="1000000" step="1" required placeholder="Ex.: 30"></div>
+<div><label for="compVideos">Vídeos encontrados</label><input id="compVideos" type="number" min="0" max="1000000" step="1" required placeholder="Ex.: 12"></div>
+<div><label for="compCreators">Criadores únicos encontrados</label><input id="compCreators" type="number" min="0" max="1000000" step="1" required placeholder="Ex.: 8"></div>
+</div>
+<label for="compNote">Observação (opcional)</label><input id="compNote" maxlength="500" placeholder="Ex.: busca pelo nome exato, primeiros resultados exibidos">
+<p class="small">Analise sempre a mesma quantidade de resultados (por exemplo, os primeiros 30) para comparar produtos de forma justa. Conte criadores únicos, não aparições repetidas.</p>
+<button class="primary" id="saveCompetition" type="submit">Salvar observação manual</button>
+</form>
+<div id="competitionStatus" class="status" role="status" aria-live="polite">Carregando observações…</div>
+<div class="tablewrap"><table><thead><tr><th>Produto</th><th>Categoria / busca</th><th>Preço</th><th>Vendas</th><th>Comissão</th><th>Criadores / 50</th><th>Vídeos / 50</th><th>Concorrência</th><th>Oportunidade</th><th>Confiança</th><th>Crescimento</th></tr></thead><tbody id="competitionRows"><tr><td colspan="11">Carregando…</td></tr></tbody></table></div>
+<p class="small">Atualize a observação a cada 7–14 dias. Acima de 30 dias, a informação é considerada desatualizada. “Criadores encontrados” é uma amostra observada na busca, não a quantidade total de afiliados cadastrados.</p>
+</section>
 </main>
 </body>
 </html>
