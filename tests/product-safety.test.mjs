@@ -17,7 +17,11 @@ test('detects adult products for restricted affiliate handling', () => {
   ]) assert.equal(isAdultProduct({ title }), true, title);
 });
 
-test('does not flag phone vibration replacement parts as adult products', () => {\n  assert.equal(isAdultProduct({ title: 'Vibrador Vibra Call Compatível Galaxy S20 FE Peça de Reposição' }), false);\n});\n\ntest('does not treat contraceptive-only products as adult products', () => {
+test('does not flag phone vibration replacement parts as adult products', () => {
+  assert.equal(isAdultProduct({ title: 'Vibrador Vibra Call Compatível Galaxy S20 FE Peça de Reposição' }), false);
+});
+
+test('does not treat contraceptive-only products as adult products', () => {
   assert.equal(isAdultProduct({ title: 'Preservativo masculino' }), false);
   assert.equal(isAdultProduct({ title: 'Camisinha lubrificada' }), false);
 });
