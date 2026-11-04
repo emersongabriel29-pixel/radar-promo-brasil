@@ -18,7 +18,7 @@ export async function applyMigrations(instance, directory) {
         await tx.query('INSERT INTO standalone_migrations(name,checksum) VALUES($1,$2)', [file, checksum]);
       });
     } catch (cause) {
-      throw new Error(`Falha na migração ${file}; alterações revertidas. Causa SQL: ${cause?.message || String(cause)}`, { cause });
+      throw new Error(`Falha na migração ${file}; alterações revertidas. Causa SQL: ${cause?.stack || cause?.message || String(cause)}`, { cause });
     }
   }
 }
