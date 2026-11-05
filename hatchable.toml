@@ -212,3 +212,8 @@ schedule = "30 * * * *"
 [[cron]]
 path = "/api/jobs/lomadee-discovery-queue"
 schedule = "20 * * * *"
+
+# Backup tick for the bounded Lomadee link queue; resume batches are chained under one stable task name.
+[[cron]]
+path = "/api/jobs/lomadee-link-queue"
+schedule = "40 */6 * * *"
