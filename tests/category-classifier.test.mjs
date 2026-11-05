@@ -16,6 +16,14 @@ test('does not classify every product from a marketplace as imported goods', () 
   assert.equal(classifyProduct({title:'Produto sem categoria',sourceCategory:'Shopee'}).needsReview,true);
 });
 
+
+test('classifies interactive pet toys when the species is explicit', () => {
+  const result = classifyProduct({ title: 'Brinquedo interativo para gatos' });
+  assert.equal(result.category, 'Pet');
+  assert.equal(result.subcategory, 'Brinquedos e entretenimento');
+  assert.equal(result.needsReview, false);
+});
+
 test('returns a review-needed fallback when there is no reliable category signal', () => {
   const result = classifyProduct({ title: 'Produto modelo XYZ 2026' });
   assert.equal(result.category, 'Ofertas gerais');
