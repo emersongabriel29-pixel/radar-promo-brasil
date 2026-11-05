@@ -30,7 +30,7 @@ test('recognized AliExpress source categories improve classification', () => {
 
 test('title rules classify pet and home products', () => {
   assert.equal(classifyProduct({ title: 'Ração premium para cachorro adulto' }).category, 'Pet');
-  assert.equal(classifyProduct({ title: 'Air Fryer 5 litros digital' }).category, 'Casa e cozinha');
+  assert.equal(classifyProduct({ title: 'Air Fryer 5 litros digital' }).category, 'Casa & Lar');
 });
 
 test('medicines remain blocked while ordinary accessories are allowed', () => {
@@ -43,7 +43,7 @@ test('candidate selection spreads categories and merchants before filling', () =
     { id: 'a1', classified: { category: 'Tecnologia' }, merchantId: 'shop-a' },
     { id: 'a2', classified: { category: 'Tecnologia' }, merchantId: 'shop-a' },
     { id: 'b1', classified: { category: 'Pet' }, merchantId: 'shop-b' },
-    { id: 'c1', classified: { category: 'Casa e cozinha' }, merchantId: 'shop-c' },
+    { id: 'c1', classified: { category: 'Casa & Lar' }, merchantId: 'shop-c' },
     { id: 'd1', classified: { category: 'Moda e beleza' }, merchantId: 'shop-d' }
   ];
   const selected = selectDiverseCandidates(candidates, {
