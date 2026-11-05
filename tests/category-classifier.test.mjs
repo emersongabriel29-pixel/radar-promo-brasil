@@ -12,7 +12,7 @@ test('classifies intimate products before broad fashion terms', () => {
 
 test('does not classify every product from a marketplace as imported goods', () => {
   assert.equal(categoryHint('Fone Bluetooth', 'AliExpress'), 'Tecnologia');
-  assert.equal(categoryHint('Liquidificador 2 litros', 'Shopee'), 'Casa e cozinha');
+  assert.equal(categoryHint('Liquidificador 2 litros', 'Shopee'), 'Casa & Lar');
   assert.equal(classifyProduct({title:'Produto sem categoria',sourceCategory:'Shopee'}).needsReview,true);
 });
 
