@@ -1,0 +1,2 @@
+ALTER TABLE affiliate_competition_observations ADD COLUMN IF NOT EXISTS category_slug TEXT;
+CREATE INDEX IF NOT EXISTS affiliate_competition_category_idx ON affiliate_competition_observations(account_id, category_slug, observed_at DESC);
