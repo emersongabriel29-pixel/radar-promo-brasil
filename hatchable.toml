@@ -197,9 +197,7 @@ schedule = "45 * * * *"
 
 # Telegram publication is driven by the named one-shot central scheduler, not a competing cron.
 
-[[cron]]
-path = "/api/jobs/whatsapp-channel"
-schedule = "2 */4 * * *"
+# WhatsApp channel publishing remains disabled pending explicit authorization.
 
 [[cron]]
 path = "/api/jobs/autopilot"
