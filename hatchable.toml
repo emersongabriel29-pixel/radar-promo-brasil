@@ -143,11 +143,6 @@ required = false
 default = ""
 description = "URL HTTPS da API comunitária auto-hospedada para publicar em Canal do WhatsApp."
 
-[[secret]]
-name = "WHATSAPP_CHANNEL_API_KEY"
-required = false
-description = "Chave privada da API auto-hospedada do Canal do WhatsApp. Nunca exponha no navegador ou no GitHub."
-
 [[config]]
 name = "youtube_redirect_uri"
 required = false
@@ -187,28 +182,41 @@ schedule = "15 * * * *"
 path = "/api/jobs/aliexpress"
 schedule = "25 * * * *"
 
+# Independent hourly workers avoid consuming the shared one-shot scheduler budget.
+[[cron]]
+path = "/api/jobs/shopee"
+schedule = "35 * * * *"
+
 [[cron]]
 path = "/api/jobs/aliexpress-review"
 schedule = "45 * * * *"
 
-# Telegram publication is driven by the named one-shot central scheduler, not a competing cron.
+[[cron]]
+path = "/api/jobs/ai-enrichment"
+schedule = "55 * * * *"
+
+# Telegram publication is driven by its central scheduler; do not add a cron here.
 
 [[cron]]
 path = "/api/jobs/whatsapp-channel"
-schedule = "2 * * * *"
+schedule = "2 */4 * * *"
 
 [[cron]]
 path = "/api/jobs/autopilot"
-schedule = "5 * * * *"
+schedule = "5 */3 * * *"
 
 [[cron]]
 path = "/api/jobs/social"
-schedule = "10 * * * *"
+schedule = "10 */8 * * *"
 
 [[cron]]
 path = "/api/jobs/api-health"
-schedule = "30 * * * *"
+schedule = "30 */4 * * *"
 
 [[cron]]
 path = "/api/jobs/lomadee-discovery-queue"
-schedule = "20 * * * *"
+schedule = "20 */6 * * *"
+
+[[cron]]
+path = "/api/jobs/lomadee-link-queue"
+schedule = "40 */6 * * *"
