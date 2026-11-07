@@ -1,5 +1,5 @@
 import { db } from 'hatchable';
-import resolveOffer from './extension-offers-resolve.js';
+import { resolveExtensionOffer } from 'lib/extension-offer-resolver.js';
 
 export const access = 'scheduler';
 export const methods = ['POST'];
@@ -38,21 +38,16 @@ export default async function handler(req, res) {
 
   const results = [];
   for (const row of rows) {
-    let statusCode = 200;
-    let payload = null;
-    const response = {
-      status(code) { statusCode = code; return this; },
-      json(value) { payload = value; return this; }
-    };
     try {
-      await resolveOffer({ body: { offerId: row.id, accountId: row.account_id }, query: {} }, response);
+      const result = await resolveExtensionOffer(row.id, row.account_id);
+      const payload = result?.body || {};
       results.push({
         id: row.id,
         source: row.source,
-        httpStatus: statusCode,
-        verified: payload?.verified === true,
-        status: payload?.status || 'UNKNOWN',
-        reason: payload?.reason || null
+        httpStatus: result?.httpStatus || 200,
+        verified: payload.verified === true,
+        status: payload.status || 'UNKNOWN',
+        reason: payload.reason || payload.error || null
       });
     } catch (error) {
       results.push({
@@ -70,7 +65,7 @@ export default async function handler(req, res) {
     selected: rows.length,
     processed: results.length,
     verified: results.filter(row => row.verified).length,
-    review: results.filter(row => row.status === 'REVIEW' || row.status === 'OFFICIAL_API_VERIFIED').length,
+    review: results.filter(row => row.status === 'REVIEW').length,
     failed,
     publicationsCreated: 0,
     messagesSent: 0,
