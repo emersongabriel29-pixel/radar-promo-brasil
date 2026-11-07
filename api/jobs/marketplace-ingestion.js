@@ -1,38 +1,23 @@
-import { scheduler } from 'hatchable';
-
 export const access = 'scheduler';
 export const methods = ['POST'];
 
 /**
- * Runs marketplace ingestion separately from maintenance and publishing jobs.
- * Runs hourly to comply with the Hatchable Free plan's minimum cron interval.
- * Each call remains responsible for its own API error handling.
+ * Health/visibility endpoint only.
+ *
+ * Marketplace workers have independent recurring hourly crons. Do not fan
+ * them out with scheduler.now(): one-shot runs share the Free-plan daily
+ * budget with unrelated workflows and can starve discovery.
+ *
+ * Keep this response shape stable for existing monitoring consumers.
  */
 export default async function handler(req, res) {
-  const results = {
+  return res.json({
     ok: true,
-    lomadee: { ok: true, accounts: 0, scanned: 0, imported: 0, duplicates: 0, skipped: 0, failed: 0 },
-    shopee: { ok: true, accounts: 0, scanned: 0, imported: 0, duplicates: 0, skipped: 0, failed: 0 },
-    aliexpressReview: { ok: true, scanned: 0, validated: 0, rejected: 0, failed: 0, publicationTriggered: false, messagesSent: 0 }
-  };
-  try {
-    results.lomadee = await scheduler.now('/api/jobs/lomadee');
-  } catch (error) {
-    results.lomadee = { ok: false, error: String(error?.code || error?.name || 'ERROR').slice(0, 60) };
-    console.error('marketplace lomadee ingestion failed', results.lomadee.error);
-  }
-  try {
-    results.shopee = await scheduler.now('/api/jobs/shopee');
-  } catch (error) {
-    results.shopee = { ok: false, error: String(error?.code || error?.name || 'ERROR').slice(0, 60) };
-    console.error('marketplace shopee ingestion failed', results.shopee.error);
-  }
-  try {
-    results.aliexpressReview = await scheduler.now('/api/jobs/aliexpress-review');
-  } catch (error) {
-    results.aliexpressReview = { ok: false, error: String(error?.code || error?.name || 'ERROR').slice(0, 60), publicationTriggered: false, messagesSent: 0 };
-    console.error('marketplace aliexpress review failed', results.aliexpressReview.error);
-  }
-  results.ok = results.lomadee.ok !== false && results.shopee.ok !== false && results.aliexpressReview.ok !== false;
-  return res.json(results);
+    scheduledSeparately: true,
+    lomadee: { ok: true, scheduledSeparately: true },
+    shopee: { ok: true, scheduledSeparately: true },
+    aliexpressReview: { ok: true, scheduledSeparately: true },
+    aiEnrichment: { ok: true, scheduledSeparately: true },
+    note: 'Workers run on independent recurring hourly crons; this endpoint does not enqueue one-shot jobs.'
+  });
 }
