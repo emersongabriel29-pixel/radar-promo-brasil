@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     if (!groupId) return res.status(400).json({ ok: false, error: 'Informe o grupo Telegram cadastrado.' });
     const group = (await db.query("SELECT id, name, external_id AS \"externalId\", status FROM promo_groups WHERE id=$1 AND account_id=$2 AND platform='TELEGRAM' LIMIT 1", [groupId, account.id])).rows[0];
     if (!group || group.status !== 'ACTIVE' || !group.externalId) return res.status(404).json({ ok: false, error: 'Grupo Telegram ativo não encontrado nesta conta.' });
-    const connection = (await db.query("SELECT id, secret_slot AS \"secretSlot\" FROM telegram_connections WHERE account_id=$1 AND status='ACTIVE' ORDER BY failure_count,priority,last_seen_at DESC NULLS LAST LIMIT 1", [account.id])).rows[0];
+    const connection = (await db.query("SELECT id, secret_slot AS \"secretSlot\" FROM telegram_connections WHERE account_id=$1 AND status IN ('ACTIVE','DEGRADED') ORDER BY CASE WHEN status='ACTIVE' THEN 0 ELSE 1 END,failure_count,priority,last_seen_at DESC NULLS LAST LIMIT 1", [account.id])).rows[0];
     if (!connection) return res.status(412).json({ ok: false, error: 'Nenhum bot ativo conectado.' });
     const token = await configuredBotToken(connection.secretSlot, account.id);
     const bot = await telegramCall(token, 'getMe', {});
