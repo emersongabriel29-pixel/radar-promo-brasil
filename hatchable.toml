@@ -176,8 +176,12 @@ path = "/api/jobs/hourly"
 schedule = "0 * * * *"
 
 [[cron]]
-path = "/api/jobs/marketplace-ingestion"
+path = "/api/jobs/shopee"
 schedule = "0 * * * *"
+
+[[cron]]
+path = "/api/jobs/ai-enrichment"
+schedule = "30 * * * *"
 
 [[cron]]
 path = "/api/jobs/lomadee"
@@ -195,20 +199,25 @@ schedule = "45 * * * *"
 
 [[cron]]
 path = "/api/jobs/whatsapp-channel"
-schedule = "2 * * * *"
+schedule = "2 */4 * * *"
 
 [[cron]]
 path = "/api/jobs/autopilot"
-schedule = "5 * * * *"
+schedule = "5 */3 * * *"
 
 [[cron]]
 path = "/api/jobs/social"
-schedule = "10 * * * *"
+schedule = "10 */8 * * *"
 
 [[cron]]
 path = "/api/jobs/api-health"
-schedule = "30 * * * *"
+schedule = "30 */4 * * *"
 
 [[cron]]
 path = "/api/jobs/lomadee-discovery-queue"
-schedule = "20 * * * *"
+schedule = "20 */6 * * *"
+
+# Hourly bounded batches replace one-shot chaining and respect the Free scheduler budget.
+[[cron]]
+path = "/api/jobs/lomadee-link-queue"
+schedule = "40 * * * *"
