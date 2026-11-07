@@ -187,9 +187,18 @@ schedule = "15 * * * *"
 path = "/api/jobs/aliexpress"
 schedule = "25 * * * *"
 
+# Independent hourly workers avoid consuming the shared one-shot scheduler budget.
+[[cron]]
+path = "/api/jobs/shopee"
+schedule = "35 * * * *"
+
 [[cron]]
 path = "/api/jobs/aliexpress-review"
 schedule = "45 * * * *"
+
+[[cron]]
+path = "/api/jobs/ai-enrichment"
+schedule = "55 * * * *"
 
 # Telegram publication is driven by the named one-shot central scheduler, not a competing cron.
 
