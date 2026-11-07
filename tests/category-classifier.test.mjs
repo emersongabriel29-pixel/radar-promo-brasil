@@ -42,3 +42,14 @@ test('exposes stable tags and a reason for traceability', () => {
   assert.ok(result.tags.includes('sex-shop'));
   assert.equal(result.reason, 'keyword_match');
 });
+
+test('routes explicit childrens clothing to Baby e Kids before generic apparel words', () => {
+  const result = classifyProduct({ title: 'Crianças verão nova chegada meninos camiseta e shorts esporte casual conjunto' });
+  assert.equal(result.category, 'Bebês e crianças');
+  assert.equal(result.subcategory, 'Moda e vestuário infantil');
+});
+
+test('uses the official source category to prevent kids clothing from entering Moda e Beleza', () => {
+  const result = classifyProduct({ title: 'Camiseta casual unissex', sourceCategory: 'Kids Clothing' });
+  assert.equal(result.category, 'Bebês e crianças');
+});
