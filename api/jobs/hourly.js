@@ -8,7 +8,7 @@ export const access='scheduler';
 export const methods=['POST'];
 export default async function(req,res){
   const recurrence=await recoverRecurrences(),monitoring=await runMonitors(),retention=await runRetention();
-  // Marketplace ingestion runs independently every hour in /api/jobs/marketplace-ingestion.
+  // Shopee and AI enrichment run on their own declared hourly crons.
   const lomadee={ok:true,scheduledSeparately:true};
   const shopee={ok:true,scheduledSeparately:true};
   const lomadeeReconcile={ok:true,scheduledSeparately:true};
