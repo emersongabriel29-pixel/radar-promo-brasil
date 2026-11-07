@@ -93,6 +93,18 @@ export default async function handler(req, res) {
     const c = validate(saved.credentials || {});
     const body = req.body || {};
     const action = clean(body.action || 'test', 30).toLowerCase();
+    if (action === 'deeplink') {
+      const advertiserId = clean(body.advertiserId, 20);
+      const destinationUrl = clean(body.productUrl, 2000);
+      let destination; try { destination = new URL(destinationUrl); } catch { destination = null; }
+      if (!/^[0-9]{1,20}$/.test(advertiserId) || !destination || destination.protocol !== 'https:' || destination.username || destination.password) return res.status(400).json({ error: 'Informe o ID numérico do anunciante aprovado e uma URL HTTPS válida do produto.' });
+      const query = new URLSearchParams({ advertiserId, destinationUrl: destination.toString() });
+      const raw = await awinRequest('/publishers/' + c.publisherId + '/linkbuilder/generate?' + query.toString(), c);
+      let generated; try { generated = JSON.parse(raw); } catch { generated = {}; }
+      const link = clean(generated.url || generated.deepLink || generated.clickThroughUrl || generated.link || '', 2000);
+      if (!link.startsWith('https://')) return res.status(502).json({ error: 'A Awin não retornou uma URL de deeplink HTTPS utilizável. Verifique parceria, anunciante e permissão Link Builder.' });
+      return res.json({ provider: 'AWIN', affiliateUrl: link, advertiserId, publisherId: c.publisherId, publicationEnabled: false, note: 'Deeplink retornado pelo Link Builder da Awin; nenhuma oferta foi publicada.' });
+    }
     if (action === 'test' || action === 'programmes') {
       const relationship = action === 'test' ? 'joined' : clean(body.relationship || 'joined', 20).toLowerCase();
       if (!['joined','pending','suspended','rejected','notjoined'].includes(relationship)) return res.status(400).json({ error: 'Filtro de relacionamento inválido.' });

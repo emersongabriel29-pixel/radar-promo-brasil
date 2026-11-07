@@ -153,10 +153,20 @@ export default async function(req, res) {
     const hasRealPrice = positiveNumber(product.price) !== null;
     const hasImage = Boolean(product.imageUrl);
     const hasStock = Number.isFinite(product.availableQuantity) && product.availableQuantity > 0;
-    const affiliateLinkCandidate = originalIsShort && ['ITEM','CATALOG'].includes(parsed.kind) ? input.toString() : '';
+    const affiliateQuery = resolved.url.searchParams;
+    const affiliateTag = String(affiliateQuery.get('matt_word') || '').trim();
+    const affiliateToolId = String(affiliateQuery.get('matt_tool') || '').trim();
+    const hasAffiliateTracking = Boolean(affiliateTag);
+    const affiliateLinkCandidate = originalIsShort && (['ITEM','CATALOG'].includes(parsed.kind) || (parsed.kind === 'PROFILE_LINK' && hasAffiliateTracking)) ? input.toString() : '';
     return res.json({
       ok: true,
       marketplace: 'MERCADO_LIVRE',
+      affiliateTracking: {
+        detected: hasAffiliateTracking,
+        tag: affiliateTag,
+        toolId: affiliateToolId,
+        originalShortLink: originalIsShort ? input.toString() : ''
+      },
       kind: parsed.kind,
       productId: parsed.productId,
       inputUrl: input.toString(),
@@ -167,7 +177,7 @@ export default async function(req, res) {
       resolutionNote: resolved.reason || '',
       ...product,
       affiliateLinkCandidate,
-      affiliateStatus: parsed.kind === 'PROFILE_LINK' ? 'PROFILE_URL_NOT_PRODUCT' : (affiliateLinkCandidate ? 'USER_SUPPLIED_NOT_VERIFIED' : 'NOT_PROVIDED'),
+      affiliateStatus: parsed.kind === 'PROFILE_LINK' ? (hasAffiliateTracking ? 'AFFILIATE_PROFILE_LINK_TRACKED' : 'PROFILE_URL_NOT_PRODUCT') : (affiliateLinkCandidate ? 'USER_SUPPLIED_NOT_VERIFIED' : 'NOT_PROVIDED'),
       affiliateLinkCreated: false,
       dataChecks: {
         realPriceConfirmed: hasRealPrice,

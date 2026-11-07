@@ -2,6 +2,7 @@ import { db } from 'hatchable';
 import { offerScore } from 'lib/automation.js';
 import { enqueueMatches } from 'lib/autopilot.js';
 import { isMedicationProduct } from 'lib/product-safety.js';
+// No internal product-category exclusion.
 
 export const access = 'scheduler';
 export const methods = ['POST'];
@@ -22,7 +23,7 @@ const isHttps = value => {
  */
 export default async function handler(req, res) {
   const rows = (await db.query(
-    "SELECT id,account_id,title,original_price,current_price,discount_percent,affiliate_url,image_url,product_url,status,classification_reason FROM offers WHERE source='ALIEXPRESS' AND status='PENDING' AND COALESCE(validation_status,'') IN ('PENDING','PENDING_REVIEW','VALIDATED','') ORDER BY created_at ASC LIMIT 200"
+    "SELECT id,account_id,title,original_price,current_price,discount_percent,affiliate_url,image_url,product_url,status,classification_reason FROM offers WHERE source='ALIEXPRESS' AND status='PENDING' AND COALESCE(validation_status,'') IN ('PENDING','PENDING_REVIEW','VALIDATED','NEEDS_REVIEW','') ORDER BY COALESCE(radar_score,score,0) DESC, score DESC, created_at ASC LIMIT 30"
   )).rows;
   const result = { ok: true, scanned: rows.length, validated: 0, approved: 0, needsReview: 0, rejected: 0, unchanged: 0, failed: 0, publicationTriggered: false, queued: 0, telegramQueued: 0, whatsappQueued: 0, messagesSent: 0 };
   const approvedAccounts = new Set();
@@ -37,15 +38,16 @@ export default async function handler(req, res) {
       else if (isMedicationProduct({ title: offer.title, product_url: offer.product_url })) reason = 'Produto bloqueado pela política de segurança';
       else if (discount < 10) reason = 'Desconto abaixo do mínimo de 10%';
       if (reason) {
+        const blocked = reason === 'Produto bloqueado pela política de segurança';
         await db.query(
-          "UPDATE offers SET validation_status='REJECTED',discount_percent=$1,classification_status='REVIEW',classification_reason=$2,updated_at=now() WHERE id=$3 AND account_id=$4 AND status='PENDING'",
-          [discount, reason, offer.id, offer.account_id]
+          "UPDATE offers SET validation_status=$1,discount_percent=$2,classification_status='REVIEW',classification_reason=$3,updated_at=now() WHERE id=$4 AND account_id=$5 AND status='PENDING'",
+          [blocked ? 'REJECTED' : 'NEEDS_REVIEW', discount, reason, offer.id, offer.account_id]
         );
-        result.rejected++;
+        if (blocked) result.rejected++; else result.needsReview++;
         continue;
       }
       const qualityReason = String(offer.classification_reason || '');
-      if (qualityReason.includes('LOW_COMMISSION') || qualityReason.includes('LOW_RATING')) {
+      if (qualityReason.includes('LOW_COMMISSION') || qualityReason.includes('LOW_RATING') || qualityReason.includes('VARIANT_PRICE_RANGE')) {
         await db.query(
           "UPDATE offers SET validation_status='NEEDS_REVIEW',discount_percent=$1,classification_status='REVIEW',classification_reason=$2,updated_at=now() WHERE id=$3 AND account_id=$4 AND status='PENDING'",
           [discount, 'Comissão ou avaliação abaixo do limite; exige aprovação humana.', offer.id, offer.account_id]
@@ -55,7 +57,7 @@ export default async function handler(req, res) {
       }
       const score = offerScore({ title: offer.title, currentPrice: Math.round(current), originalPrice: Math.round(original) });
       await db.query(
-        "UPDATE offers SET status='APPROVED',validation_status='VALIDATED',discount_percent=$1,score=$2,classification_status='AUTO',classification_reason=$3,updated_at=now() WHERE id=$4 AND account_id=$5 AND status='PENDING'",
+        "UPDATE offers SET status='APPROVED',validation_status='VALIDATED',discount_percent=$1,score=COALESCE(radar_score,$2),radar_score=COALESCE(radar_score,$2),classification_status='AUTO',classification_reason=$3,updated_at=now() WHERE id=$4 AND account_id=$5 AND status='PENDING'",
         [discount, score, 'Requisitos automáticos aprovados; elegível para publicação automática AliExpress.', offer.id, offer.account_id]
       );
       result.validated++;
@@ -73,6 +75,7 @@ export default async function handler(req, res) {
       result.telegramQueued += queued.telegramQueued || 0;
       result.whatsappQueued += queued.whatsappQueued || 0;
       result.publicationTriggered = result.publicationTriggered || (queued.queued || queued.published || 0) > 0;
+      await db.query("UPDATE publications p SET priority=GREATEST(COALESCE(p.priority,0),COALESCE(o.radar_score,o.score,0)) FROM offers o WHERE p.offer_id=o.id AND p.account_id=o.account_id AND p.account_id=$1 AND o.source='ALIEXPRESS' AND p.status IN ('READY','RETRY','SCHEDULED')", [accountId]);
     } catch (error) {
       result.failed++;
       console.error('AliExpress automatic publication queue failed', String(error?.code || error?.name || 'ERROR').slice(0, 60));

@@ -16,8 +16,9 @@ async function accountFor(member) {
 }
 const toB64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)));
 async function rakutenKey(accountId, usages) {
-  const master = String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '');
-  if (master.length < 32) throw Object.assign(new Error('Configure CONNECTOR_ENCRYPTION_KEY nos segredos do projeto.'), { status: 412 });
+  let master = String(await config.get('API_CREDENTIALS_MASTER_KEY') || '');
+  if (master.length < 32) master = String(await config.get('CONNECTOR_ENCRYPTION_KEY') || '');
+  if (master.length < 32) throw Object.assign(new Error('Configure API_CREDENTIALS_MASTER_KEY ou CONNECTOR_ENCRYPTION_KEY nos segredos do projeto, com pelo menos 32 caracteres.'), { status: 412 });
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(master + '|radar-marketplace-credentials|' + accountId + '|RAKUTEN'));
   return crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, usages);
 }
@@ -126,7 +127,7 @@ export default async function handler(req, res) {
     const action = clean(body.action || 'test', 30).toLowerCase();
     if (action === 'test' || action === 'advertisers') {
       const limit = Math.min(50, Math.max(1, Math.floor(Number(body.limit) || 10)));
-      const query = new URLSearchParams({ limit: String(action === 'test' ? 1 : limit), ships_to: clean(body.countryCode || 'BRA', 3).toUpperCase() });
+      const query = new URLSearchParams({ limit: String(action === 'test' ? 1 : limit), ships_to: clean(body.countryCode || 'BR', 3).toUpperCase() });
       const raw = await rakutenRequest('/v2/advertisers?' + query.toString(), token);
       let data;
       try { data = JSON.parse(raw); } catch { throw Object.assign(new Error('A Rakuten retornou uma resposta JSON inválida.'), { status: 502 }); }

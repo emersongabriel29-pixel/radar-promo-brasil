@@ -8,7 +8,7 @@ export const access = 'member';
 export const methods = ['GET', 'POST'];
 
 const txt = (v, n = 1200) => String(v ?? '').trim().slice(0, n);
-const officialHost = host => host === 'magazinevoce.com.br' || host.endsWith('.magazinevoce.com.br') || host === 'magazineluiza.com.br' || host.endsWith('.magazineluiza.com.br');
+const officialHost = host => host === 'magazinevoce.com.br' || host.endsWith('.magazinevoce.com.br') || host === 'magazineluiza.com.br' || host.endsWith('.magazineluiza.com.br') || host === 'magazineluiza.onelink.me';
 function parseMagaluUrl(value) {
   const safe = httpsUrl(value, 2000);
   if (!safe) return null;
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
     if (!title || !affiliateUrl || !body.affiliateLinkConfirmed) return res.status(400).json({ error: 'Informe o título, um link oficial e confirme que ele foi gerado na sua conta do Parceiro Magalu.' });
     if (body.productUrl && !productUrl) return res.status(400).json({ error: 'O link do produto precisa ser HTTPS e pertencer a magazinevoce.com.br ou magazineluiza.com.br.' });
     if (!Number.isFinite(current) || current <= 0 || original !== null && (!Number.isFinite(original) || original < current)) return res.status(400).json({ error: 'Informe preços válidos; o preço original, se preenchido, deve ser maior ou igual ao atual.' });
-    if (!mediaUrl(imageUrl)) return res.status(400).json({ error: 'Informe uma URL HTTPS válida para a imagem do produto.' });
+    if (imageUrl && !mediaUrl(imageUrl)) return res.status(400).json({ error: 'Se informar uma imagem, use uma URL HTTPS válida.' });
     if (categoryId && !(await db.query('SELECT id FROM categories WHERE id=$1 AND account_id=$2', [categoryId, account.id])).rows.length) return res.status(400).json({ error: 'Categoria inválida para esta conta.' });
     const classified = classifyProduct({ title, description: body.description, sourceCategory: body.sourceCategory });
     if (!categoryId) {

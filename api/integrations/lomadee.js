@@ -319,7 +319,7 @@ export default async function handler(req, res) {
           const linkRows = Array.isArray(shortResponse) ? shortResponse : listFrom(shortResponse);
           const affiliateUrl = linkRows.flatMap(x => Array.isArray(x.shortUrls) ? x.shortUrls : []).find(v => typeof v === 'string' && /^https:\/\//i.test(v));
           if (!affiliateUrl) { skipped.push({ id: clean(product.id, 120), reason: 'A Lomadee não retornou um link HTTPS rastreável.' }); continue; }
-          const fp = await fingerprint({ source: 'LOMADEE', externalId: clean(product.id, 120), productUrl, title });
+          const fp = await fingerprint({ source: 'LOMADEE', externalId: clean(product.id, 120), productUrl, title, organizationId:product.organizationId||'', currentPrice, originalPrice, variant:option.id||option.sku||'' });
           const discount = Math.round((originalPrice - currentPrice) * 100 / originalPrice);
           const currentReais = Math.round(currentPrice), originalReais = Math.round(originalPrice);
           const score = offerScore({ title, currentPrice: currentReais, originalPrice: originalReais });
