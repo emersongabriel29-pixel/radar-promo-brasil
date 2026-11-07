@@ -1,4 +1,4 @@
-import { config, db, scheduler } from 'hatchable';
+import { config, db } from 'hatchable';
 import { fetchWithRetry } from 'lib/http-retry.js';
 import { signAliExpressParams } from 'lib/afilimax-aliexpress-provider.js';
 import { fingerprint, offerScore } from 'lib/automation.js';
@@ -447,8 +447,9 @@ export default async function handler(req, res) {
     }
   }
   if (totals.imported > 0) {
-    try { await scheduler.now('/api/jobs/aliexpress-review'); totals.reviewTriggered = true; }
-    catch (error) { totals.reviewTriggered = false; totals.reviewTriggerError = clean(error?.code || error?.name || 'REVIEW_TRIGGER_FAILED', 80); console.error('aliexpress review trigger failed', totals.reviewTriggerError); }
+    // The review worker has its own hourly cron; avoid spending a one-shot scheduler slot.
+    totals.reviewTriggered = false;
+    totals.reviewScheduledByCron = true;
   }
   totals.ok = totals.failed === 0 && !totals.reviewTriggerError;
   return res.json({ ...totals, dryRun, discovery: { standardKeywordSearches: 3, advancedMethodsAttempted: ['hotProducts'], smartmatchSkipped: 'LEGACY_AFFILIATE_API_DEPRECATED_AND_PROVIDER_REJECTED', maxDiscoveryCallsPerAccount: 9, categoryCatalogRead: true, rotatingSearchPages: 10, affiliateLinkGenerationCap: 4 }, publicationEnabled: !dryRun, humanReviewRequired: 'ONLY_FAILED_REQUIREMENTS_OR_LOW_KNOWN_QUALITY', note: dryRun ? 'Prévia somente leitura: nenhum link foi gerado, nenhuma oferta foi gravada e nenhuma publicação foi acionada.' : 'Ofertas que passam os requisitos serão aprovadas e enviadas ao fluxo automático; as que falham requisitos ou têm comissão/avaliação conhecida abaixo do limite ficam para revisão humana.' });

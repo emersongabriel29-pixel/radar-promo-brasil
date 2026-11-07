@@ -3,6 +3,7 @@ import { meliGet } from 'lib/direct-connectors.js';
 import { message as buildMessage } from 'lib/automation.js';
 
 export const access = 'scheduler';
+export const schedule = '0 * * * *';
 export const methods = ['POST'];
 
 const clean = (v, max = 300) => String(v ?? '').split(String.fromCharCode(13)).join(' ').split(String.fromCharCode(10)).join(' ').split(String.fromCharCode(9)).join(' ').trim().slice(0, max);

@@ -4,6 +4,7 @@ import { getLomadeeActiveLinks, listLomadeeRows, lomadeeGet, lomadeeProductPrice
 import { isMedicationProduct } from 'lib/product-safety.js';
 
 export const access = 'scheduler';
+export const schedule = '0 * * * *';
 export const methods = ['POST'];
 
 const clean = (value, max = 220) => String(value ?? '').trim().slice(0, max);

@@ -8,7 +8,7 @@ export default async function(req,res){
   if(!/^[A-Za-z0-9_-]{32,256}$/.test(secret))return res.status(412).json({ok:false,error:'Configure TELEGRAM_WEBHOOK_SECRET com 32–256 caracteres, usando apenas letras, números, hífen ou sublinhado.'});
   const account=(await db.query("SELECT id FROM accounts WHERE owner_member_id=$1 AND status='ACTIVE' LIMIT 1",[String(req.member.id)])).rows[0];
   if(!account)return res.status(412).json({ok:false,error:'Conta ativa não encontrada.'});
-  const connections=(await db.query("SELECT id,secret_slot AS \"secretSlot\" FROM telegram_connections WHERE account_id=$1 AND status='ACTIVE' ORDER BY failure_count,priority,last_seen_at DESC NULLS LAST",[account.id])).rows;
+  const connections=(await db.query("SELECT id,secret_slot AS \"secretSlot\" FROM telegram_connections WHERE account_id=$1 AND status IN ('ACTIVE','DEGRADED') ORDER BY CASE WHEN status='ACTIVE' THEN 0 ELSE 1 END,failure_count,priority,last_seen_at DESC NULLS LAST",[account.id])).rows;
   if(!connections.length)return res.status(412).json({ok:false,error:'Conecte e ative ao menos um bot Telegram antes de configurar o webhook.'});
   const origin=String(await config.get('public_app_url')||'https://radar-promo-brasil.hatchable.site').replace(/\/$/,'');
   const results=[];
