@@ -220,3 +220,17 @@ Copie para cada proposta:
 ## Adendos
 
 Nenhum adendo registrado até o momento.
+
+
+## Adendo 2026-11-07 — confirmação final
+
+- Os três documentos foram criados e relidos no GitHub `main`.
+- Commit de criação de `docs/MASTER-CONTEXT.md`: `9746a283c53f6b2e2a03168cc2e0e8f6bba3345b`.
+- Commit de criação de `docs/AUDIT-LEDGER.md`: `f8d12b52f24f4dff625ddf9b79785f217ce831d7`.
+- Commit de criação de `docs/CHANGE-IMPACT-LOG.md`: `85e2a4f8fdeea2fcf4ca4e217110fe7ad08375de`.
+- Último commit observado: `85e2a4f8fdeea2fcf4ca4e217110fe7ad08375de`.
+- A validação documental foi concluída por leitura dos três caminhos no branch `main`.
+- Não houve alteração de código executável, banco, migrations, integrações, filas, credenciais ou agendamentos. Não houve deploy nem publicação.
+- Hatchable continua sem cópia destes documentos; a interface disponível não aceita `docs/` e não foi usado diretório público como substituto.
+- Nenhum teste npm foi executado; não aplicável à criação exclusiva de Markdown.
+- Resultado: CONCLUÍDA no escopo documental do GitHub; sincronização GitHub ↔ Hatchable não realizada nem alegada.
