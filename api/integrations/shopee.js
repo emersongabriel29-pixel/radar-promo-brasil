@@ -58,9 +58,14 @@ async function signedRequest(credentials, payload) {
   try { result = raw ? JSON.parse(raw) : {}; } catch { throw Object.assign(new Error('A API Shopee retornou uma resposta não JSON.'), { status: 502 }); }
   if (!response.ok || (Array.isArray(result.errors) && result.errors.length)) {
     const apiCode = clean(result?.errors?.[0]?.extensions?.code || result?.errors?.[0]?.extensions?.message || '', 60);
-    throw Object.assign(new Error('A Shopee recusou a operação (HTTP ' + response.status + (apiCode ? ', código ' + apiCode : '') + '). Detalhe: ' + clean(result?.errors?.[0]?.message || 'Confira permissões e parâmetros da Open API.', 220)), { status: 502 });
+    const apiPath = Array.isArray(result?.errors?.[0]?.path) ? result.errors[0].path.join('.') : '';
+    throw Object.assign(new Error('A Shopee recusou a operação (HTTP ' + response.status + (apiCode ? ', código ' + apiCode : '') + (apiPath ? ', campo ' + apiPath : '') + '). Detalhe: ' + clean(result?.errors?.[0]?.message || 'Confira permissões e parâmetros da Open API.', 220)), { status: 502 });
   }
   return result;
+}
+
+async function auditShopee(accountId, operation, status, returnedCount = 0, pageCount = 1, details = {}) {
+  try { await db.query("INSERT INTO marketplace_api_audit(account_id,marketplace,operation,status,returned_count,page_count,details) VALUES($1,'SHOPEE',$2,$3,$4,$5,$6::jsonb)", [accountId, operation, status, Math.max(0, Number(returnedCount) || 0), Math.max(0, Number(pageCount) || 0), JSON.stringify({ readOnly: true, ...details })]); } catch (error) { console.warn('Shopee audit log failed:', String(error?.message || error).slice(0, 120)); }
 }
 
 function safeOfferRows(kind, result) {
@@ -87,6 +92,7 @@ function safeOfferRows(kind, result) {
       shopType: item.shopType == null ? null : Number(item.shopType),
       offerType: item.offerType == null ? null : Number(item.offerType),
       categoryId: item.categoryId == null ? null : String(item.categoryId),
+      productCatIds: Array.isArray(item.productCatIds) ? item.productCatIds.map(value => String(value)).filter(value => /^\d+$/.test(value)).slice(0, 3) : [],
       collectionId: item.collectionId == null ? null : String(item.collectionId),
       periodStartTime: item.periodStartTime == null ? null : Number(item.periodStartTime),
       periodEndTime: item.periodEndTime == null ? null : Number(item.periodEndTime),
@@ -104,6 +110,8 @@ function safeOfferRows(kind, result) {
 
 export default async function handler(req, res) {
   if (!req.member) return res.status(401).json({ error: 'Entre para acessar a integração Shopee.' });
+  let auditAccountId = null;
+  let auditOperation = '';
   try {
     const account = await getAccount(req.member);
     if (!account) return res.status(412).json({ error: 'Abra o painel uma vez para criar sua conta.' });
@@ -122,7 +130,67 @@ export default async function handler(req, res) {
     if (!saved) return res.status(412).json({ error: 'Cadastre as credenciais da Shopee no painel antes de usar a API.' });
     const credentials = saved.credentials || {};
     const action = clean(req.body?.action, 40).toLowerCase();
+    auditAccountId = account.id;
+    auditOperation = action;
     let result;
+    if (action === 'audit_history') {
+      const items = (await db.query("SELECT operation,status,returned_count,total_available,page_count,checked_at,details FROM marketplace_api_audit WHERE account_id=$1 AND marketplace='SHOPEE' ORDER BY checked_at DESC LIMIT 30", [account.id])).rows;
+      return res.json({ items, count: items.length, readOnly: true });
+    }
+
+    if (action === 'category_validation_status') {
+      const rows = (await db.query(
+        'SELECT category_id,category_name,full_name,category_level,validation_status,sample_count,matched_count,last_error,last_checked_at FROM shopee_category_api_validation WHERE account_id=$1 ORDER BY full_name',
+        [account.id]
+      )).rows;
+      const summary = rows.reduce((out,row) => { out[row.validation_status]=(out[row.validation_status]||0)+1; return out; }, {});
+      return res.json({ items: rows, summary, total: rows.length, readOnly: true });
+    }
+
+    if (action === 'category_validate_batch') {
+      if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'Valide a credencial Shopee antes de testar categorias.' });
+      const requested = Array.isArray(req.body?.categories) ? req.body.categories.slice(0,3) : [];
+      if (!requested.length) return res.status(400).json({ error: 'Envie de 1 a 3 categorias do catálogo Seller Center.' });
+      const query = 'query($sortType: Int, $page: Int, $limit: Int, $productCatId: Int) { productOfferV2(sortType: $sortType, page: $page, limit: $limit, productCatId: $productCatId) { nodes { itemId productName sales ratingStar productCatIds } pageInfo { page limit hasNextPage } } }';
+      const results = [];
+      for (let index=0; index<requested.length; index++) {
+        const category = requested[index] || {};
+        const categoryId = String(category.categoryId || '').trim();
+        const categoryName = clean(category.name,180);
+        const fullName = clean(category.fullName || category.name,500);
+        const level = Math.min(10,Math.max(1,Math.floor(Number(category.level)||1)));
+        if (!/^\d{1,12}$/.test(categoryId) || !categoryName) {
+          results.push({ categoryId, status:'INVALID_INPUT', error:'ID ou nome de categoria inválido.' });
+          continue;
+        }
+        try {
+          const response = await signedRequest(credentials,{query,variables:{sortType:2,page:1,limit:10,productCatId:Number(categoryId)}});
+          const root = response?.data?.productOfferV2 || {};
+          const products = Array.isArray(root.nodes) ? root.nodes : [];
+          const matched = products.filter(product => Array.isArray(product.productCatIds) && product.productCatIds.map(String).includes(categoryId)).length;
+          const validationStatus = matched > 0 ? 'CONFIRMED' : 'ACCEPTED_EMPTY';
+          await db.query(
+            'INSERT INTO shopee_category_api_validation(account_id,category_id,category_name,full_name,category_level,validation_status,sample_count,matched_count,last_error,last_checked_at,updated_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,\'\',now(),now()) ON CONFLICT(account_id,category_id) DO UPDATE SET category_name=EXCLUDED.category_name,full_name=EXCLUDED.full_name,category_level=EXCLUDED.category_level,validation_status=EXCLUDED.validation_status,sample_count=EXCLUDED.sample_count,matched_count=EXCLUDED.matched_count,last_error=\'\',last_checked_at=now(),updated_at=now()',
+            [account.id,categoryId,categoryName,fullName,level,validationStatus,products.length,matched]
+          );
+          results.push({categoryId,name:categoryName,fullName,level,status:validationStatus,sampleCount:products.length,matchedCount:matched,hasNextPage:Boolean(root.pageInfo?.hasNextPage)});
+        } catch (error) {
+          const message = clean(error?.message || 'Falha na consulta.',220);
+          const rateLimited = /429|rate.?limit|too many|10030/i.test(message);
+          const rejected = /productCatId.*(invalid|not found|unsupported)|invalid.*productCatId/i.test(message);
+          const validationStatus = rateLimited ? 'RATE_LIMITED' : rejected ? 'REJECTED' : 'ERROR';
+          await db.query(
+            'INSERT INTO shopee_category_api_validation(account_id,category_id,category_name,full_name,category_level,validation_status,sample_count,matched_count,last_error,last_checked_at,updated_at) VALUES($1,$2,$3,$4,$5,$6,0,0,$7,now(),now()) ON CONFLICT(account_id,category_id) DO UPDATE SET category_name=EXCLUDED.category_name,full_name=EXCLUDED.full_name,category_level=EXCLUDED.category_level,validation_status=EXCLUDED.validation_status,last_error=EXCLUDED.last_error,last_checked_at=now(),updated_at=now()',
+            [account.id,categoryId,categoryName,fullName,level,validationStatus,message]
+          );
+          results.push({categoryId,name:categoryName,status:validationStatus,error:message});
+          if (rateLimited) break;
+        }
+      }
+      const totals = results.reduce((out,row)=>{out[row.status]=(out[row.status]||0)+1;return out;},{});
+      await auditShopee(account.id,'category_validate_batch',results.some(row=>row.status==='ERROR'||row.status==='RATE_LIMITED')?'PARTIAL':'OK',results.reduce((n,row)=>n+(row.matchedCount||0),0),results.length,{requested:requested.length,totals});
+      return res.json({results,totals,processed:results.length,requested:requested.length,readOnly:true,publicationEnabled:false,note:'CONFIRMED exige ao menos um produto retornado cujo productCatIds contenha o ID testado. ACCEPTED_EMPTY significa que a API aceitou a consulta, mas a amostra não comprovou correspondência; não é confirmação de categoria ativa.'});
+    }
 
     if (action === 'test') {
       const payload = {
@@ -131,6 +199,7 @@ export default async function handler(req, res) {
       result = await signedRequest(credentials, payload);
       if (!result?.data?.productOfferV2 || result?.errors?.length) throw Object.assign(new Error('A API autenticou, mas a consulta de ofertas não retornou o formato esperado.'), { status: 502 });
       await db.query("UPDATE marketplace_api_credentials SET status='VALIDATED',last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='SHOPEE'", [account.id]);
+      await auditShopee(account.id, 'productOfferV2_auth_test', 'OK', Array.isArray(result.data.productOfferV2.nodes) ? result.data.productOfferV2.nodes.length : 0, 1, { validation: 'read_only' });
       return res.json({ ok: true, status: 'VALIDATED', test: 'read_only_product_offer', itemsReturned: Array.isArray(result.data.productOfferV2.nodes) ? result.data.productOfferV2.nodes.length : 0, publicationEnabled: false, note: 'Autenticação validada por consulta somente leitura. Nenhuma oferta foi publicada e nenhum link foi criado.' });
     }
 
@@ -163,7 +232,7 @@ export default async function handler(req, res) {
         if(reason){skipped.push({itemId:item.itemId,title,reason});continue;}
         const classification=classifyProduct({title});
         const category=categories.find(x=>x.name.toLowerCase()===String(classification.category||'').toLowerCase())||categories.find(x=>x.name.toLowerCase().includes('gerais'))||null;
-        const fp=await fingerprint({source:'SHOPEE',externalId:item.itemId,productUrl,title});
+        const fp=await fingerprint({source:'SHOPEE',externalId:item.itemId,productUrl,title,sellerId:item.shopId||item.merchantId||'',sellerName:item.shopName||'',currentPrice,originalPrice,variant:item.modelId||item.modelName||''});
         const discount=Math.round((originalPrice-currentPrice)*100/originalPrice);
         const score=offerScore({title,currentPrice,originalPrice});
         const promo=formatPromo({title,source:'SHOPEE',category:classification.category,currentPrice,originalPrice,affiliateUrl,imageUrl,productUrl});
@@ -179,6 +248,44 @@ export default async function handler(req, res) {
       await db.query("UPDATE marketplace_api_credentials SET status='VALIDATED',last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='SHOPEE'",[account.id]);
       return res.json({ok:true,action:'import_offers',imported:imported.length,skipped:skipped.length,items:imported,skippedItems:skipped,reviewRequired:true,autopilotTriggered:false,publicationTriggered:false,note:'Ofertas Shopee importadas como rascunhos com preço oficial e link de afiliado. A publicação depende de aprovação humana e das regras do canal.'});
     }
+    if (action === 'category_catalog') {
+      const page = Math.min(1000, Math.max(1, Math.floor(Number(req.body?.page) || 1)));
+      const limit = Math.min(50, Math.max(1, Math.floor(Number(req.body?.limit) || 50)));
+      const keyword = clean(req.body?.keyword || '', 80).replace(/[\\r\\n]/g, ' ').trim();
+      const query = 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { productOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { itemId productName shopId shopName sales ratingStar productCatIds } pageInfo { page limit hasNextPage } } }';
+      const variables = { sortType: 2, page, limit, ...(keyword ? { keyword } : {}) };
+      let categoryResult;
+      try {
+        categoryResult = await signedRequest(credentials, { query, variables });
+      } catch (error) {
+        const detail = String(error?.message || '');
+        if (/productCatIds|Cannot query field|Unknown field/i.test(detail)) {
+          return res.status(501).json({ code: 'SHOPEE_CATEGORY_IDS_UNAVAILABLE', error: 'A API brasileira recusou productCatIds nesta consulta. Não é possível declarar a árvore completa com a credencial atual.', detail: detail.slice(0, 220), readOnly: true });
+        }
+        throw error;
+      }
+      const root = categoryResult?.data?.productOfferV2 || {};
+      const products = Array.isArray(root.nodes) ? root.nodes : [];
+      const ids = new Map();
+      for (const product of products) {
+        for (const id of Array.isArray(product.productCatIds) ? product.productCatIds : []) {
+          const value = String(id);
+          if (!/^\d+$/.test(value)) continue;
+          const current = ids.get(value) || { categoryId: value, productsObserved: 0 };
+          current.productsObserved++;
+          ids.set(value, current);
+        }
+      }
+      const categories = [...ids.values()].sort((a,b) => Number(a.categoryId)-Number(b.categoryId));
+      const shouldPersist = req.body?.persistDiscovery === true || req.body?.persistDiscovery === 'true';
+      let discovery = null;
+      if (shouldPersist && saved.status === 'VALIDATED') {
+        discovery = await persistDiscoveryPage(db, { accountId: account.id, marketplace: 'SHOPEE', operation: 'productOfferV2_category_scan', kind: 'PRODUCT', items: products.map(item => ({ ...item, name: item.productName, externalId: item.itemId, sales: item.sales, rating: item.ratingStar })), cursorIn: String(page), cursorOut: root.pageInfo?.hasNextPage ? String(page+1) : null, sourceKeyword: keyword || '__category_catalog__' });
+      }
+      await auditShopee(account.id, 'productOfferV2_category_scan', 'OK', products.length, 1, { categoryIdsObserved: categories.length, persisted: Boolean(discovery) });
+      return res.json({ report: 'shopee_category_id_discovery', categories, categoryIds: categories.map(item => item.categoryId), productsScanned: products.length, pageInfo: root.pageInfo || null, discovery, taxonomyComplete: false, note: 'IDs observados nos produtos retornados pela Open API de Afiliados. A API não forneceu nomes nem árvore completa nesta operação; use productCatId para consultar uma categoria cujo ID já foi identificado.', readOnly: true, publicationEnabled: false });
+    }
+
     if (action === 'offers') {
       const kindMap = { product: 'productOfferV2', shop: 'shopOfferV2', shopee: 'shopeeOfferV2', brand: 'brandOfferV2' };
       const kind = kindMap[clean(req.body?.kind, 20).toLowerCase()];
@@ -194,15 +301,17 @@ export default async function handler(req, res) {
       const variables = { keyword, sortType, page, limit };
       let query;
       if (kind === 'productOfferV2') {
+        const productCatId = String(req.body?.productCatId || '').trim();
         const listType = Math.min(2, Math.max(0, Math.floor(Number(req.body?.listType) || 0)));
         const shopId = String(req.body?.shopId || '').trim();
         const itemId = String(req.body?.itemId || '').trim();
         const isAMSOffer = req.body?.isAMSOffer === true || req.body?.isAMSOffer === 'true';
         const isKeySeller = req.body?.isKeySeller === true || req.body?.isKeySeller === 'true';
-        query = 'query($keyword: String, $listType: Int, $sortType: Int, $page: Int, $limit: Int, $shopId: Int64, $itemId: Int64, $isAMSOffer: Boolean, $isKeySeller: Boolean) { productOfferV2(keyword: $keyword, listType: $listType, sortType: $sortType, page: $page, limit: $limit, shopId: $shopId, itemId: $itemId, isAMSOffer: $isAMSOffer, isKeySeller: $isKeySeller) { nodes { itemId shopId shopName shopType productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate commissionRate sellerCommissionRate shopeeCommissionRate commission sales ratingStar periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
+        query = 'query($keyword: String, $listType: Int, $sortType: Int, $page: Int, $limit: Int, $shopId: Int64, $itemId: Int64, $productCatId: Int, $isAMSOffer: Boolean, $isKeySeller: Boolean) { productOfferV2(keyword: $keyword, listType: $listType, sortType: $sortType, page: $page, limit: $limit, shopId: $shopId, itemId: $itemId, productCatId: $productCatId, isAMSOffer: $isAMSOffer, isKeySeller: $isKeySeller) { nodes { itemId shopId shopName shopType productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate commissionRate sellerCommissionRate shopeeCommissionRate commission sales ratingStar productCatIds periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
         variables.listType = listType;
         if (/^\d+$/.test(shopId)) variables.shopId = shopId;
         if (/^\d+$/.test(itemId)) variables.itemId = itemId;
+        if (/^\d+$/.test(productCatId)) variables.productCatId = Number(productCatId);
         if (req.body?.isAMSOffer !== undefined && req.body?.isAMSOffer !== '') variables.isAMSOffer = isAMSOffer;
         if (req.body?.isKeySeller !== undefined && req.body?.isKeySeller !== '') variables.isKeySeller = isKeySeller;
       } else if (kind === 'shopOfferV2') {
@@ -233,15 +342,17 @@ export default async function handler(req, res) {
           const pageNormalized=safeOfferRows(kind,pageResult);
           allItems.push(...pageNormalized.items);finalPageInfo=pageNormalized.pageInfo;
           hasNextPage=Boolean(finalPageInfo?.hasNextPage);
-          discoveries.push(await persistDiscoveryPage(db,{accountId:account.id,marketplace:'SHOPEE',operation:kind,kind:discoveryKind,items:pageNormalized.items,cursorIn:String(currentPage),cursorOut:hasNextPage?String(currentPage+1):null,categorySlug:categorySlug||null,sourceKeyword:keyword}));
+          discoveries.push(await persistDiscoveryPage(db,{accountId:account.id,marketplace:'SHOPEE',operation:kind,kind:discoveryKind,items:pageNormalized.items,cursorIn:String(currentPage),cursorOut:hasNextPage?String(currentPage+1):null,categorySlug:categorySlug||null,sourceKeyword:kind==='productOfferV2'&&variables.productCatId?'category_id:'+variables.productCatId:keyword}));
           pagesCompleted++;
           if(!hasNextPage)break;
           currentPage++;
         }
+        await auditShopee(account.id, kind, 'OK', allItems.length, pagesCompleted, { persisted: true, categoryId: kind==='productOfferV2'?(variables.productCatId||null):null, nextPage: hasNextPage ? currentPage + 1 : null });
         return res.json({kind,items:allItems,pageInfo:{...finalPageInfo,page:currentPage,hasNextPage},discovery:discoveries,pagesCompleted,nextPage:hasNextPage?currentPage+1:null,readOnly:true,publicationEnabled:false});
       }
       result = await signedRequest(credentials, { query, variables });
       const normalized = safeOfferRows(kind, result);
+      await auditShopee(account.id, kind, 'OK', normalized.items.length, 1, { persisted: false, page: normalized.pageInfo?.page || page });
       return res.json({ kind, ...normalized, readOnly: true, publicationEnabled: false });
     }
 
@@ -269,7 +380,8 @@ export default async function handler(req, res) {
           output.push({ originUrl: origin.toString(), error: String(error?.message || 'Falha ao gerar link.').slice(0, 220) });
         }
       }
-      return res.json({ items: output, requested: entries.length, created: output.filter(item => item.created).length, failed: output.filter(item => !item.created).length, published: false, note: 'Geração em lote feita com a mutation oficial generateShortLink; nenhum link foi publicado.' });
+      await auditShopee(account.id, 'generateShortLink_batch', 'OK', output.filter(item => item.created).length, 1, { requested: entries.length, failed: output.filter(item => !item.created).length, mutation: 'generateShortLink' });
+      return res.json({ items: output, requested: entries.length, created: output.filter(item => item.created).length, failed: output.filter(item => !item.created).length, published: false, note: 'Geração em lote feita com chamadas individuais à mutation oficial generateShortLink; nenhum link foi publicado.' });
     }
 
     if (action === 'feeds') {
@@ -278,6 +390,7 @@ export default async function handler(req, res) {
       const query = 'query($feedMode: FeedMode) { listItemFeeds(feedMode: $feedMode) { feeds { datafeedId referenceId datafeedName description totalCount date feedMode } } }';
       result = await signedRequest(credentials, { query, variables: feedMode ? { feedMode } : {} });
       const root = result?.data?.listItemFeeds || {};
+      await auditShopee(account.id, 'listItemFeeds', 'OK', Array.isArray(root.feeds) ? root.feeds.length : 0, 1, { feedMode: feedMode || 'ALL' });
       return res.json({ report: 'listItemFeeds', items: Array.isArray(root.feeds) ? root.feeds : [], readOnly: true });
     }
 
@@ -289,6 +402,7 @@ export default async function handler(req, res) {
       const query = 'query($datafeedId: String!, $offset: Int, $limit: Int) { getItemFeedData(datafeedId: $datafeedId, offset: $offset, limit: $limit) { rows { columns updateType } pageInfo { offset limit totalCount hasMore } } }';
       result = await signedRequest(credentials, { query, variables: { datafeedId, offset, limit } });
       const root = result?.data?.getItemFeedData || {};
+      await auditShopee(account.id, 'getItemFeedData', 'OK', Array.isArray(root.rows) ? root.rows.length : 0, 1, { offset, limit, datafeedId });
       return res.json({ report: 'getItemFeedData', items: Array.isArray(root.rows) ? root.rows : [], pageInfo: root.pageInfo || null, readOnly: true });
     }
 
@@ -303,6 +417,7 @@ export default async function handler(req, res) {
       result = await signedRequest(credentials, { query });
       const shortLink = result?.data?.generateShortLink?.shortLink;
       if (typeof shortLink !== 'string' || !/^https:\/\//i.test(shortLink)) throw Object.assign(new Error('A Shopee não retornou um link de afiliado válido.'), { status: 502 });
+      await auditShopee(account.id, 'generateShortLink', 'OK', 1, 1, { published: false });
       return res.json({ shortLink, created: true, published: false, note: 'Link criado pela API oficial, mas não foi publicado em nenhum canal.' });
     }
 
@@ -323,12 +438,15 @@ export default async function handler(req, res) {
       if (orderStatus && !['UNPAID','PENDING','COMPLETED','CANCELLED'].includes(orderStatus)) return res.status(400).json({ error: 'Status deve ser UNPAID, PENDING, COMPLETED ou CANCELLED.' });
       if (buyerType && !['NEW','EXISTING'].includes(buyerType)) return res.status(400).json({ error: 'Tipo de comprador deve ser NEW ou EXISTING.' });
       if (device && !['APP','WEB'].includes(device)) return res.status(400).json({ error: 'Dispositivo deve ser APP ou WEB.' });
-      const query = 'query($start: Int64!, $end: Int64!, $limit: Int!, $scrollId: String) { conversionReport(purchaseTimeStart: $start, purchaseTimeEnd: $end, limit: $limit, scrollId: $scrollId) { nodes { conversionId clickTime purchaseTime totalCommission sellerCommission shopeeCommissionCapped buyerType device utmContent orders { orderId orderStatus items { itemId itemName shopName itemPrice qty itemTotalCommission attributionType } } } pageInfo { limit hasNextPage scrollId } } }';
+      const syncRequested = req.body?.syncToLedger === true || req.body?.syncToLedger === 'true';
+      const detailedQuery = 'query($start: Int64!, $end: Int64!, $limit: Int!, $scrollId: String, $orderStatus: DisplayOrderStatus, $buyerType: BuyerType, $device: DeviceType) { conversionReport(purchaseTimeStart: $start, purchaseTimeEnd: $end, orderStatus: $orderStatus, buyerType: $buyerType, device: $device, limit: $limit, scrollId: $scrollId) { nodes { conversionId clickTime purchaseTime totalCommission sellerCommission shopeeCommissionCapped buyerType device utmContent orders { orderId orderStatus items { itemId itemName shopName itemPrice qty itemTotalCommission } } } pageInfo { limit hasNextPage scrollId } } }';
+      const summaryQuery = 'query($start: Int64!, $end: Int64!, $limit: Int!) { conversionReport(purchaseTimeStart: $start, purchaseTimeEnd: $end, limit: $limit) { nodes { conversionId } } }';
+      const query = syncRequested ? detailedQuery : summaryQuery;
       const maxPages = Math.min(5, Math.max(1, Math.floor(Number(req.body?.maxPages) || 3)));
       let currentScrollId = clean(req.body?.scrollId, 1000), pagesCompleted = 0, hasMore = false;
       const conversionItems = [];
       while (pagesCompleted < maxPages) {
-        const pageResult = await signedRequest(credentials, { query, variables: { start: String(start), end: String(end), limit, ...(currentScrollId ? { scrollId: currentScrollId } : {}) } });
+        const pageResult = await signedRequest(credentials, { query, variables: { start: String(start), end: String(end), limit, ...(currentScrollId ? { scrollId: currentScrollId } : {}), ...(orderStatus ? { orderStatus } : {}), ...(buyerType ? { buyerType } : {}), ...(device ? { device } : {}) } });
         const root = pageResult?.data?.conversionReport || {};
         const pageItems = Array.isArray(root.nodes) ? root.nodes : [];
         conversionItems.push(...pageItems); pagesCompleted++;
@@ -341,6 +459,7 @@ export default async function handler(req, res) {
         if (saved.status !== 'VALIDATED') return res.status(412).json({ error: 'Valide a credencial Shopee antes de sincronizar pedidos.' });
         ledgerSync = await upsertAffiliateSales(db, account.id, 'SHOPEE', normalizeShopeeSales(conversionItems));
       }
+      await auditShopee(account.id, 'conversionReport', 'OK', conversionItems.length, pagesCompleted, { startDate: startDate.toISOString(), endDate: endDate.toISOString(), ledgerSync: Boolean(ledgerSync) });
       return res.json({ report: 'conversionReport', items: conversionItems, pagesCompleted, startDate: startDate.toISOString(), endDate: endDate.toISOString(), pageInfo: { hasNextPage: hasMore, scrollId: hasMore ? currentScrollId : null }, readOnlySource: true, ledgerSync, nextScrollId: hasMore ? currentScrollId : null });
 
     }
@@ -350,15 +469,20 @@ export default async function handler(req, res) {
       if (!/^\d{1,18}$/.test(validationId)) return res.status(400).json({ error: 'Informe o Validation ID numérico exibido no relatório de pagamentos da Shopee.' });
       const limit = Math.min(100, Math.max(1, Math.floor(Number(req.body?.limit) || 20)));
       const scrollId = clean(req.body?.scrollId, 1000);
-      const query = 'query($validationId: Int!, $limit: Int!, $scrollId: String) { validatedReport(validationId: $validationId, limit: $limit, scrollId: $scrollId) { nodes { conversionId totalCommission netCommission } pageInfo { limit hasNextPage scrollId } } }';
-      result = await signedRequest(credentials, { query, variables: { validationId: Number(validationId), limit, ...(scrollId ? { scrollId } : {}) } });
+      const query = 'query($validationId: Int64!, $limit: Int!, $scrollId: String) { validatedReport(validationId: $validationId, limit: $limit, scrollId: $scrollId) { nodes { conversionId totalCommission netCommission } pageInfo { limit hasNextPage scrollId } } }';
+      result = await signedRequest(credentials, { query, variables: { validationId, limit, ...(scrollId ? { scrollId } : {}) } });
       const root = result?.data?.validatedReport || {};
+      await auditShopee(account.id, 'validatedReport', 'OK', Array.isArray(root.nodes) ? root.nodes.length : 0, 1, { validationId });
       return res.json({ report: 'validatedReport', items: Array.isArray(root.nodes) ? root.nodes : [], pageInfo: root.pageInfo || null, readOnly: true, nextScrollId: root.pageInfo?.hasNextPage ? (root.pageInfo.scrollId || null) : null });
     }
 
     return res.status(400).json({ error: 'Ação Shopee não suportada.' });
   } catch (error) {
     const status = Number(error?.status) || 502;
+    if (auditAccountId && auditOperation && auditOperation !== 'audit_history') {
+      const safeMessage = String(error?.message || 'Falha sem mensagem').replace(/(?:secret|token|signature|authorization)\s*[:=]\s*\S+/ig, '[redacted]').slice(0, 220);
+      await auditShopee(auditAccountId, auditOperation, 'ERROR', 0, 1, { httpStatus: status, message: safeMessage });
+    }
     if (req.body?.action === 'test') {
       try {
         const account = await getAccount(req.member);
