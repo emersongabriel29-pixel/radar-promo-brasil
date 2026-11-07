@@ -42,9 +42,12 @@ test('calcula desconto e preserva somente dados fornecidos',()=>{
   assert.match(text,/https:\/\/mercadolivre\.com\.br\/item/);
 });
 
-test('fingerprint é estável e muda entre origens',async()=>{
+test('fingerprint deduplica identidade estável, separa origem e vendedor',async()=>{
+  const stable={...valid,sellerId:'seller-1'};
+  assert.equal(await fingerprint(stable),await fingerprint({...stable}));
+  assert.notEqual(await fingerprint(stable),await fingerprint({...stable,source:'Amazon'}));
+  assert.notEqual(await fingerprint(stable),await fingerprint({...stable,sellerId:'seller-2'}));
   assert.equal(await fingerprint(valid),await fingerprint({...valid}));
-  assert.notEqual(await fingerprint(valid),await fingerprint({...valid,source:'Amazon'}));
 });
 
 test('valida formato do token do Telegram sem armazená-lo em claro',()=>{
