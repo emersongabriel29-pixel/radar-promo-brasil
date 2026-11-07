@@ -38,7 +38,7 @@ export default async function(req,res){
   for(const group of groups){
    const seller=clean(parsed.sellerId||parsed.shopId||parsed.merchantId||parsed.sellerName||parsed.shopName,160).toLowerCase();
    const day=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-   const fp=await fingerprint([group.accountId,parsed.marketplace,seller||'seller-unknown-'+uid(),parsed.productId||parsed.itemId||parsed.productUrl,JSON.stringify({variant:parsed.variant||parsed.variation||'',currentPrice:parsed.currentPrice,originalPrice:parsed.originalPrice||null,couponCode:parsed.couponCode||'',couponUrl:parsed.couponUrl||'',shipping:parsed.shipping||parsed.freight||''}),day].join('|'));
+   const productIdentity=parsed.productId||parsed.itemId||(seller?String(parsed.productUrl||'').replace(/[?#].*$/,''):(parsed.affiliateUrl||parsed.productUrl));\n   const fp=await fingerprint([group.accountId,parsed.marketplace,seller||'seller-unknown',productIdentity,JSON.stringify({variant:parsed.variant||parsed.variation||'',currentPrice:parsed.currentPrice,originalPrice:parsed.originalPrice||null,couponCode:parsed.couponCode||'',couponUrl:parsed.couponUrl||'',shipping:parsed.shipping||parsed.freight||''}),day].join('|'));
    const existing=(await db.query('SELECT id FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1',[group.accountId,fp])).rows[0];
    if(existing){duplicates++;continue;}
    const category=classifyProduct({title:parsed.title});

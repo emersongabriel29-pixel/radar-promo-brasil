@@ -67,7 +67,9 @@ export default async function(req,res){
         await db.query("UPDATE webhook_events SET status='PROCESSED',item_count=0,response=$3::jsonb,processed_at=now(),updated_at=now() WHERE provider='evolution_whatsapp' AND event_key=$1 AND account_id=$2",[eventKey,accountId,JSON.stringify({ignored:true,reason:parsed.reason})]);
         return res.json({ok:true,imported:0,autoPublished:0,reviewRequired:true,reason:parsed.reason});
       }
-      const fp=await fingerprint([accountId,parsed.marketplace,parsed.productUrl,parsed.title.toLowerCase(),parsed.currentPrice].join('|'));
+      const seller=clean(parsed.sellerId||parsed.shopId||parsed.merchantId||parsed.sellerName||parsed.shopName,160).toLowerCase();
+      const day=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+      const productIdentity=parsed.productId||parsed.itemId||(seller?String(parsed.productUrl||'').replace(/[?#].*$/,''):(parsed.affiliateUrl||parsed.productUrl));\n      const fp=await fingerprint([accountId,parsed.marketplace,seller||'seller-unknown',productIdentity,JSON.stringify({variant:parsed.variant||parsed.variation||'',currentPrice:parsed.currentPrice,originalPrice:parsed.originalPrice||null,couponCode:parsed.couponCode||'',couponUrl:parsed.couponUrl||'',shipping:parsed.shipping||parsed.freight||''}),day].join('|'));
       const existing=(await db.query('SELECT id FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1',[accountId,fp])).rows[0];
       if(existing){
         await db.query("UPDATE webhook_events SET status='PROCESSED',item_count=0,response=$3::jsonb,processed_at=now(),updated_at=now() WHERE provider='evolution_whatsapp' AND event_key=$1 AND account_id=$2",[eventKey,accountId,JSON.stringify({duplicate:true})]);

@@ -38,7 +38,7 @@ export default async function handler(req,res){
     const seller=clean(b.sellerId||b.shopId||b.merchantId||b.sellerName||b.shopName,160).toLowerCase();
     const day=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
     const conditions={variant:clean(b.variant||b.variation||b.sku,240).toLowerCase(),current,original,couponCode:clean(b.couponCode,100).toLowerCase(),couponUrl:clean(b.couponUrl,500).toLowerCase(),shipping:clean(b.shipping||b.freight,180).toLowerCase(),condition:clean(b.commercialCondition,240).toLowerCase()};
-    const fingerprint=await hash([source,seller||'seller-unknown-'+uid(),clean(b.productId||b.itemId,200)||product.toLowerCase(),JSON.stringify(conditions),day].join('|'));
+    const productIdentity=clean(b.productId||b.itemId,200)||(seller?product.replace(/[?#].*$/,'').toLowerCase():(affiliate||product).toLowerCase());\n    const fingerprint=await hash([source,seller||'seller-unknown',productIdentity,JSON.stringify(conditions),day].join('|'));
     const existing=(await db.query("SELECT id FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1",[token.account_id,fingerprint])).rows[0];
     if(existing)return res.status(409).json({error:'Esta oferta já está cadastrada.',id:existing.id,duplicate:true});
     const discount=original>current?Math.round((original-current)*100/original):0;
