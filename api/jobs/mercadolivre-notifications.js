@@ -1,4 +1,4 @@
-import { db, scheduler } from 'hatchable';
+import { db } from 'hatchable';
 import { meliGet } from 'lib/direct-connectors.js';
 import { message as buildMessage } from 'lib/automation.js';
 
@@ -89,6 +89,9 @@ async function processEvent(event) {
   const snapshot = snapshotOf(item);
   const priceCents = cents(item.price);
   const originalCents = cents(item.original_price);
+  // Only retain an original price when the official API confirms a real discount.
+  // If Mercado Livre omits or invalidates it, clear the stale discount and keep publishing blocked.
+  const verifiedOriginalCents = originalCents !== null && priceCents !== null && originalCents > priceCents ? originalCents : null;
   let updatedOffers = 0;
 
   if (priceCents && item.status === 'active') {
@@ -99,7 +102,7 @@ async function processEvent(event) {
 
     for (const offer of matches) {
       const priceChanged = Number(offer.current_price) !== priceCents ||
-        (originalCents !== null && Number(offer.original_price) !== originalCents);
+        Number(offer.original_price || 0) !== Number(verifiedOriginalCents || 0);
       const titleChanged = Boolean(snapshot.title && snapshot.title !== offer.title);
       const imageChanged = Boolean(snapshot.thumbnail && snapshot.thumbnail !== offer.image_url);
       if (!priceChanged && !titleChanged && !imageChanged) continue;
@@ -108,20 +111,20 @@ async function processEvent(event) {
         ...offer,
         title: snapshot.title || offer.title,
         current_price: priceCents,
-        original_price: originalCents || offer.original_price
+        original_price: verifiedOriginalCents
       });
 
       const operations = [];
       if (priceChanged) {
         operations.push({
-          sql: 'INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price) VALUES($1,$2,$3,$4,$5)',
-          params: [crypto.randomUUID(), event.account_id, offer.id, priceCents, originalCents]
+          sql: "INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,$4,$5,'OFFICIAL_API',$6,now())",
+          params: [crypto.randomUUID(), event.account_id, offer.id, priceCents, verifiedOriginalCents, 'MERCADOLIVRE:' + itemId]
         });
       }
       if (priceChanged) {
         operations.push({
-          sql: "UPDATE offers SET title=COALESCE(NULLIF($1,''),title), current_price=$2, original_price=COALESCE($3,original_price), image_url=COALESCE(NULLIF($4,''),image_url), price_first_seen=COALESCE(price_first_seen,current_price), price_lowest=(SELECT min(price) FROM offer_price_history WHERE account_id=$5 AND offer_id=$6), price_highest=(SELECT max(price) FROM offer_price_history WHERE account_id=$5 AND offer_id=$6), price_average=(SELECT round(avg(price)) FROM offer_price_history WHERE account_id=$5 AND offer_id=$6), price_history_count=(SELECT count(*) FROM offer_price_history WHERE account_id=$5 AND offer_id=$6), discount_percent=CASE WHEN COALESCE($3,original_price)>$2 THEN round((COALESCE($3,original_price)-$2)*100.0/COALESCE($3,original_price)) ELSE discount_percent END, message=$7, validation_status='VALID', updated_at=now(), radar_updated_at=now() WHERE id=$6 AND account_id=$5",
-          params: [snapshot.title, priceCents, originalCents, snapshot.thumbnail, event.account_id, offer.id, revised]
+          sql: "UPDATE offers SET title=COALESCE(NULLIF($1,''),title), current_price=$2, original_price=$3, image_url=COALESCE(NULLIF($4,''),image_url), price_first_seen=COALESCE(price_first_seen,current_price), price_lowest=(SELECT min(price) FROM offer_price_history WHERE account_id=$5 AND offer_id=$6), price_highest=(SELECT max(price) FROM offer_price_history WHERE account_id=$5 AND offer_id=$6), price_average=(SELECT round(avg(price)) FROM offer_price_history WHERE account_id=$5 AND offer_id=$6), price_history_count=(SELECT count(*) FROM offer_price_history WHERE account_id=$5 AND offer_id=$6), discount_percent=CASE WHEN $3>$2 THEN round(($3-$2)*100.0/$3) ELSE 0 END, message=$7, validation_status='VALID', updated_at=now(), radar_updated_at=now() WHERE id=$6 AND account_id=$5",
+          params: [snapshot.title, priceCents, verifiedOriginalCents, snapshot.thumbnail, event.account_id, offer.id, revised]
         });
       } else {
         operations.push({
@@ -183,12 +186,6 @@ export default async function(req, res) {
       console.error('meli notification worker', JSON.stringify({ id: claimed.id, code: clean(error?.code || error?.name || 'ERROR', 60) }));
     }
   }
-  if (candidates.length === batchSize) {
-    const pending = (await db.query("SELECT id FROM meli_notification_events WHERE status IN ('RECEIVED','FAILED') AND processing_attempts < 5 LIMIT 1")).rows.length > 0;
-    if (pending) {
-      try { await scheduler.now('/api/jobs/mercadolivre-notifications'); }
-      catch (error) { console.error('meli notification continuation failed', clean(error?.code || error?.name || 'ERROR', 60)); }
-    }
-  }
+  // Remaining events are picked up by the hourly cron; no one-shot continuation is armed.
   return res.json({ ok: totals.failed === 0, ...totals });
 }

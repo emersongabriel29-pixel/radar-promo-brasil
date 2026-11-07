@@ -1,4 +1,4 @@
-import { config, db, scheduler } from 'hatchable';
+import { config, db } from 'hatchable';
 import { fetchWithRetry } from 'lib/http-retry.js';
 import { isRetryableShopeeErrorCode, shopeeRetryDelay } from 'lib/shopee-api-errors.js';
 import { fingerprint } from 'lib/automation.js';
@@ -15,6 +15,7 @@ export const access = 'scheduler';
 export const methods = ['POST'];
 const API_URL = 'https://open-api.affiliate.shopee.com.br/graphql';
 const clean = (v, n=300) => String(v ?? '').trim().slice(0,n);
+const shopTypeCodes = value => (Array.isArray(value)?value:String(value??'').split(',')).map(Number).filter(Number.isFinite);
 const fromB64 = value => Uint8Array.from(atob(value), c => c.charCodeAt(0));
 const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,'0')).join('');
 const list = body => Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : Array.isArray(body?.items) ? body.items : [];
@@ -95,7 +96,8 @@ async function persistShopeeDiscoveryItems(accountId, products) {
     const imageUrl = directImageUrl(product.imageUrl) ? product.imageUrl : '';
     const price = Number(product.priceMin);
     const commission = Number(product.commissionRate);
-    const rating = Number(product.ratingStar);
+    const ratingRaw = Number(product.ratingStar);
+    const rating = Number.isFinite(ratingRaw) && ratingRaw > 0 ? (ratingRaw > 5 ? ratingRaw / 20 : ratingRaw) : null;
     const sales = Number(product.sales);
     const missingFields = [];
     if (!title) missingFields.push('title');
@@ -116,7 +118,7 @@ async function persistShopeeDiscoveryItems(accountId, products) {
       sales_count:Number.isFinite(sales)&&sales>=0?Math.floor(sales):null,
       available:safetyBlocked?false:null,
       processing_status:safetyBlocked?'BLOCKED':missingFields.length?'INCOMPLETE':'DISCOVERED',
-      raw_data:{...product,radarDiscovery:{keyword:clean(product.__radarKeyword,120),source:(product.__discoverySources||[product.__discoverySource]).join(','),missingFields,safetyBlocked}}
+      raw_data:{...product,shopType:clean(product.__shopType,80),isOfficialShop:product.__isOfficialShop===true,radarDiscovery:{keyword:clean(product.__radarKeyword,120),source:(product.__discoverySources||[product.__discoverySource]).join(','),missingFields,safetyBlocked}}
     });
   }
   let stored = 0;
@@ -149,6 +151,13 @@ async function persistShopeeDiscoveryItems(accountId, products) {
         offer_id=CASE WHEN affiliate_discovery_items.processing_status IN ('IMPORTED','DUPLICATE') THEN affiliate_discovery_items.offer_id ELSE NULL END`,
       [accountId,JSON.stringify(batch)]
     );
+    await db.query(
+      `INSERT INTO affiliate_discovery_snapshots(id,account_id,marketplace,kind,external_id,sales_count,price_cents,commission_rate,rating,captured_at)
+       SELECT gen_random_uuid()::text,$1,'SHOPEE','PRODUCT',x.external_id,x.sales_count,x.price_cents,x.commission_rate,x.rating,now()
+       FROM jsonb_to_recordset($2::jsonb) AS x(external_id text,sales_count bigint,price_cents bigint,commission_rate numeric,rating numeric)
+       WHERE x.sales_count IS NOT NULL OR x.rating IS NOT NULL`,
+      [accountId,JSON.stringify(batch.map(item=>({external_id:item.external_id,sales_count:item.sales_count,price_cents:item.price_cents,commission_rate:item.commission_rate,rating:item.rating}))) ]
+    );
     stored += batch.length;
   }
   const incompleteRows = rows.filter(item=>item.processing_status==='INCOMPLETE');
@@ -173,6 +182,7 @@ async function createTrackedLink(creds, productUrl, itemId, category) {
 }
 export default async function handler(req,res) {
   const dryRun = req.body?.dryRun === true || String(req.body?.dryRun ?? req.query?.dryRun ?? '').toLowerCase() === 'true';
+  const officialOnly = req.body?.officialOnly === true || String(req.body?.officialOnly ?? req.query?.officialOnly ?? '').toLowerCase() === 'true';
   const rows = (await db.query("SELECT account_id,credentials_enc,nonce FROM marketplace_api_credentials WHERE marketplace='SHOPEE' AND status='VALIDATED'")).rows;
   const totals = {accounts:rows.length,scanned:0,imported:0,duplicates:0,skipped:0,safetyBlocked:0,selected:0,failed:0,autopilotRuns:0,preview:[],incompletePreview:[],safetyBlockedPreview:[]};
   for (const row of rows) {
@@ -182,10 +192,12 @@ export default async function handler(req,res) {
       // Rotate a curated catalog of thousands of product, brand, intent and attribute phrases.
       // Keep each run bounded to protect Shopee quotas; expand discovery across sort modes and partner shops.
       const slot = Math.floor(Date.now()/1800000);
-      const selectedKeywords = selectShopeeKeywords(slot,6);
-      const productQuery = 'query($keyword: String, $shopId: Int64, $listType: Int, $sortType: Int, $page: Int, $limit: Int, $isAMSOffer: Boolean, $isKeySeller: Boolean) { productOfferV2(keyword: $keyword, shopId: $shopId, listType: $listType, sortType: $sortType, page: $page, limit: $limit, isAMSOffer: $isAMSOffer, isKeySeller: $isKeySeller) { nodes { itemId shopId shopName productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate commissionRate sellerCommissionRate shopeeCommissionRate commission sales ratingStar } pageInfo { page limit hasNextPage } } }';
+      const requestedDryRunKeywords = dryRun && Array.isArray(req.body?.dryRunKeywords) ? req.body.dryRunKeywords.map(value=>clean(value,80)).filter(Boolean).slice(0,6) : null;
+      const selectedKeywords = requestedDryRunKeywords?.length ? requestedDryRunKeywords : officialOnly ? [] : selectShopeeKeywords(slot,6);
+      const productQuery = 'query($keyword: String, $shopId: Int64, $listType: Int, $sortType: Int, $page: Int, $limit: Int, $isAMSOffer: Boolean, $isKeySeller: Boolean) { productOfferV2(keyword: $keyword, shopId: $shopId, listType: $listType, sortType: $sortType, page: $page, limit: $limit, isAMSOffer: $isAMSOffer, isKeySeller: $isKeySeller) { nodes { itemId shopId shopName shopType productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate commissionRate sellerCommissionRate shopeeCommissionRate commission sales ratingStar } pageInfo { page limit hasNextPage } } }';
       const seen = new Map();
       const products = [];
+      const shopMetadata = new Map();
       const addProducts = (nodes, discoveryKeyword, discoverySource) => {
         for (const product of list(nodes)) {
           const key = clean(product.itemId,80) || clean(product.productLink,2000) || [clean(product.shopId,80),clean(product.productName,220)].filter(Boolean).join(':');
@@ -252,6 +264,10 @@ export default async function handler(req,res) {
       try {
         const shopData = await request(creds,shopQuery,{sortType:2,page:1,limit:30});
         const shops = list(shopData.data?.shopOfferV2?.nodes);
+        for (const shop of shops) {
+          const shopId = clean(shop.shopId,80);
+          if (shopId) shopMetadata.set(shopId,{shopType:clean(shop.shopType,80),shopName:clean(shop.shopName,160)});
+        }
         totals.shopsDiscovered = (totals.shopsDiscovered||0)+shops.length;
         for (const shop of shops.slice(0,2)) {
           const shopId = clean(shop.shopId,80);
@@ -277,6 +293,41 @@ export default async function handler(req,res) {
         console.error('shopee partner shop discovery skipped',String(shopError?.message||'ERROR').slice(0,80));
       }
 
+      // Dedicated Shopee Mall pass: shopType 1 is the official-store class.
+      // Star (2) and Star+ (4) are reputable preferred shops, not official brand stores.
+      const officialShopQuery = 'query($page: Int, $limit: Int) { shopOfferV2(shopType: [1], sortType: 3, page: $page, limit: $limit) { nodes { shopId shopName commissionRate ratingStar shopType imageUrl offerLink } pageInfo { page limit hasNextPage } } }';
+      try {
+        const officialShopData = await request(creds,officialShopQuery,{page:1,limit:30});
+        const officialShops = list(officialShopData.data?.shopOfferV2?.nodes);
+        totals.officialShopsDiscovered = (totals.officialShopsDiscovered||0)+officialShops.length;
+        for (const shop of officialShops) {
+          const shopId = clean(shop.shopId,80);
+          if (shopId) shopMetadata.set(shopId,{shopType:'1',shopName:clean(shop.shopName,160)});
+        }
+        for (const shop of officialShops.slice(0,2)) {
+          const shopId = clean(shop.shopId,80);
+          if (!isShopeeShopId(shopId)) continue;
+          try {
+            const discoveryKey = 'official-shop:'+shopId;
+            const page = await getShopeeDiscoveryPage(row.account_id,discoveryKey,2);
+            const shopProducts = await requestProductPages(creds,productQuery,{shopId,listType:2,sortType:2,page,limit:50},3);
+            addProducts(shopProducts.nodes,'loja oficial:'+clean(shop.shopName,80),'official_shop');
+            if (!dryRun) await saveShopeeDiscoveryPage(row.account_id,discoveryKey,2,shopProducts);
+            totals.officialShopProductCalls = (totals.officialShopProductCalls||0)+shopProducts.pagesFetched;
+            totals.productPagesFetched = (totals.productPagesFetched||0)+shopProducts.pagesFetched;
+            if (shopProducts.hasNextPage) {
+              totals.productSearchContinuations = (totals.productSearchContinuations||0)+1;
+              totals.paginationIncomplete = true;
+            }
+          } catch (officialProductError) {
+            console.error('shopee official shop product discovery skipped',String(officialProductError?.message||'ERROR').slice(0,80));
+          }
+        }
+      } catch (officialShopError) {
+        totals.officialShopDiscoveryUnavailable = true;
+        console.error('shopee official shop discovery skipped',String(officialShopError?.message||'ERROR').slice(0,80));
+      }
+
       // Campaigns are discovery intelligence, not product offers: never publish a campaign as if it were a priced item.
       const campaignQuery = 'query($sortType: Int, $page: Int, $limit: Int) { shopeeOfferV2(sortType: $sortType, page: $page, limit: $limit) { nodes { commissionRate imageUrl offerLink originalLink offerName offerType categoryId collectionId periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
       try {
@@ -293,6 +344,20 @@ export default async function handler(req,res) {
       // is not a Query field for these credentials. Do not call the deprecated endpoint.
       totals.brandOfferDiscoveryUnavailable = true;
       totals.brandOfferDiscoveryReason = 'brand_offer_v2_not_exposed_by_live_brazil_schema';
+      // Preserve API shop classification on each product when the partner-shop feed identifies it.
+      // Only explicit MALL/OFFICIAL classifications count as verified official-store signals.
+      for (const product of products) {
+        const shop = shopMetadata.get(clean(product.shopId,80));
+        const productTypes = shopTypeCodes(product.shopType);
+        const shopTypes = shopTypeCodes(shop?.shopType);
+        const types = productTypes.length ? productTypes : shopTypes;
+        if (types.length) {
+          product.__shopType = types.join(',');
+          product.__isOfficialShop = types.includes(1); // 1 = Shopee Mall (official brand store)
+          product.__isPreferredShop = types.includes(2) || types.includes(4); // Star / Star+
+        }
+      }
+      totals.officialShopProductsDiscovered = (totals.officialShopProductsDiscovered||0)+products.filter(x=>x.__isOfficialShop).length;
       totals.scanned += products.length;
       if (dryRun) {
         totals.discoveryItemsPreview = (totals.discoveryItemsPreview||0)+products.length;
@@ -305,11 +370,19 @@ export default async function handler(req,res) {
         totals.incompletePreview.push(...discoveryStats.incompletePreview);
         totals.safetyBlockedPreview.push(...discoveryStats.safetyBlockedPreview);
       }
+      // Safe catalog-only mode: persist discovery metadata without creating offers or triggering autopilot/publication.
+      if (officialOnly) {
+        if (!dryRun) await db.query("UPDATE marketplace_api_credentials SET last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='SHOPEE'",[row.account_id]);
+        totals.officialOnlyCompleted = (totals.officialOnlyCompleted||0)+1;
+        continue;
+      }
       const processingRows = dryRun ? [] : (await db.query(
         `SELECT external_id,raw_data FROM affiliate_discovery_items
          WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT'
            AND processing_status IN ('DISCOVERED','FAILED')
-         ORDER BY first_seen_at,external_id LIMIT 30`,
+         ORDER BY sales_count DESC NULLS LAST, rating DESC NULLS LAST,
+           CASE WHEN raw_data->>'isOfficialShop'='true' OR raw_data->>'shopType' ~ '(^|,)1(,|$)' THEN 1 ELSE 0 END DESC,
+           commission_rate DESC NULLS LAST, first_seen_at,external_id LIMIT 30`,
         [row.account_id]
       )).rows;
       const processingProducts = dryRun ? products : processingRows.map(item=>({...item.raw_data,__inventoryExternalId:item.external_id}));
@@ -358,46 +431,54 @@ export default async function handler(req,res) {
         const ratingRaw = Number(p.ratingStar ?? p.rating);
         const rating = Number.isFinite(ratingRaw) && ratingRaw > 0 ? (ratingRaw > 5 ? ratingRaw / 20 : ratingRaw) : null;
         const classified = classifyProduct({title});
-        // API discount is a marketing claim, not historical proof. Use it only as a ranking signal;
-        // never synthesize an original price or publish an unverified percentage as confirmed savings.
-        let score = 35;
-        score += Math.min(20, discountRate * 40);
-        score += Math.min(10, commissionPercent * 0.8);
-        score += sales >= 1000 ? 15 : sales >= 100 ? 10 : sales >= 20 ? 5 : 0;
-        score += rating === null ? -2 : rating >= 4.7 ? 8 : rating >= 4.4 ? 6 : rating >= 4.0 ? 3 : rating >= 3.5 ? 0 : -8;
+        // Ranking: vendas, nota, loja oficial e oportunidade comercial.
+        // Vendas não são quantidade de avaliações; os sinais permanecem separados.
+        const reasons = [];
+        const shopTypes = shopTypeCodes(p.shopType || p.__shopType);
+        const isOfficialShop = p.isOfficialShop === true || p.__isOfficialShop === true || shopTypes.includes(1);
+        const isPreferredShop = p.isPreferredShop === true || p.__isPreferredShop === true || shopTypes.includes(2) || shopTypes.includes(4);
+        let score = 20;
+        score += Math.min(12, discountRate * 24);
+        score += Math.min(8, commissionPercent * 0.6);
+        score += sales > 0 ? Math.min(24, Math.log10(sales + 1) * 6) : 0;
+        score += rating === null ? -2 : rating >= 4.9 ? 20 : rating >= 4.7 ? 18 : rating >= 4.5 ? 15 : rating >= 4.0 ? 10 : rating >= 3.5 ? 4 : -10;
+        if (isOfficialShop) { score += 12; reasons.push('loja oficial Shopee Mall identificada pela API'); }
+        else if (isPreferredShop) { score += 4; reasons.push('loja Preferida/Star identificada pela API'); }
         score += title.length >= 18 ? 3 : 0;
         score += classified.confidence >= 0.8 ? 8 : classified.confidence >= 0.5 ? 0 : -12;
         const keywordQualityPenalty = getShopeeKeywordQualityPenalty(title,p.__radarKeyword);
         score += keywordQualityPenalty;
         score += productUrl && affiliateUrl && imageUrl ? 6 : 0;
         score = Math.max(0, Math.min(100, Math.round(score)));
-        const reasons = [];
         if (discountRate > 0) reasons.push('desconto anunciado pela API (não confirmado por histórico)');
         if (commissionPercent > 0) reasons.push('comissão informada pela Shopee');
-        if (sales >= 20) reasons.push('popularidade informada pela Shopee');
-        if (rating !== null) reasons.push('avaliação Shopee: ' + rating.toFixed(1) + '/5');
+        if (sales > 0) reasons.push('vendas informadas pela Shopee: ' + sales);
+        if (rating !== null) reasons.push('avaliação média Shopee: ' + rating.toFixed(1) + '/5');
         if (classified.confidence < 0.5) reasons.push('classificação incerta: exige revisão');
         if (keywordQualityPenalty < 0) reasons.push('produto acessório rebaixado em busca de produto principal');
         if (productUrl && affiliateUrl && imageUrl) reasons.push('link, link de afiliado e imagem presentes');
-        const fp = await fingerprint({source:'SHOPEE',externalId:clean(p.itemId,80),productUrl,title});
+        const fp = await fingerprint({source:'SHOPEE',externalId:clean(p.itemId,80),productUrl,title,sellerId:clean(p.shopId,80),sellerName:clean(p.shopName,160),currentPrice,variant:p.modelName||p.itemGroupId||''});
         const category = cats.find(c=>c.name.toLowerCase()===String(classified.category||'').toLowerCase()) || cats.find(c=>c.name.toLowerCase().includes('gerais'));
-        candidates.push({p,title,productUrl,affiliateUrl,imageUrl,currentPrice,commissionPercent,discountRate,sales,score,reasons,fp,classified,category,id:clean(p.itemId,80),discoveryExternalId,merchantId:clean(p.shopId,80),merchantName:clean(p.shopName,160)});
+        candidates.push({p,title,productUrl,affiliateUrl,imageUrl,currentPrice,commissionPercent,discountRate,sales,rating,isOfficialShop,isPreferredShop,score,reasons,fp,classified,category,id:clean(p.itemId,80),discoveryExternalId,merchantId:clean(p.shopId,80),merchantName:clean(p.shopName,160)});
       }
 
       // Rank the full candidate batch first; the cap applies only after comparison and duplicate checks.
-      candidates.sort((a,b) => b.score-a.score || b.sales-a.sales || b.commissionPercent-a.commissionPercent || a.currentPrice-b.currentPrice || a.title.localeCompare(b.title,'pt-BR'));
+      const salesTier = value => value >= 1000 ? 3 : value >= 100 ? 2 : value >= 20 ? 1 : 0;
+      candidates.sort((a,b) => salesTier(b.sales)-salesTier(a.sales) || b.score-a.score || b.sales-a.sales || (Number(b.isOfficialShop)-Number(a.isOfficialShop)) || (b.rating||0)-(a.rating||0) || b.commissionPercent-a.commissionPercent || a.currentPrice-b.currentPrice || a.title.localeCompare(b.title,'pt-BR'));
       // Priority only: retain the complete candidate set, including low-volume and accessory matches.
       const selectedCandidates = candidates;
       totals.selected += selectedCandidates.length;
       totals.candidatesRetained = (totals.candidatesRetained || 0) + selectedCandidates.length;
       if (dryRun) {
-        totals.preview.push(...selectedCandidates.map(candidate => ({itemId:clean(candidate.p.itemId,80),title:candidate.title,category:candidate.classified.category,subcategory:candidate.classified.subcategory,confidence:candidate.classified.confidence,score:candidate.score,sales:candidate.sales,rating:candidate.p.ratingStar==null?null:Number(candidate.p.ratingStar),commissionPercent:candidate.commissionPercent,discountRate:candidate.discountRate,shopId:clean(candidate.p.shopId,80),shopName:clean(candidate.p.shopName,160),price:candidate.currentPrice/100,discoverySource:(candidate.p.__discoverySources||[candidate.p.__discoverySource]).join(','),discoveryKeyword:clean(candidate.p.__radarKeyword,80)})));
+        totals.preview.push(...selectedCandidates.map(candidate => ({itemId:clean(candidate.p.itemId,80),title:candidate.title,category:candidate.classified.category,subcategory:candidate.classified.subcategory,adultProduct:isAdultProduct({title:candidate.title,category:candidate.classified.category,subcategory:candidate.classified.subcategory,tags:candidate.classified.tags}),confidence:candidate.classified.confidence,score:candidate.score,sales:candidate.sales,rating:candidate.p.ratingStar==null?null:Number(candidate.p.ratingStar),isOfficialShop:candidate.p.__isOfficialShop===true,shopType:candidate.p.__shopType||null,commissionPercent:candidate.commissionPercent,discountRate:candidate.discountRate,shopId:clean(candidate.p.shopId,80),shopName:clean(candidate.p.shopName,160),price:candidate.currentPrice/100,discoverySource:(candidate.p.__discoverySources||[candidate.p.__discoverySource]).join(','),discoveryKeyword:clean(candidate.p.__radarKeyword,80)})));
         continue;
       }
       for (const candidate of selectedCandidates) {
         await pause(250);
         const {p,title,productUrl,affiliateUrl,imageUrl,currentPrice,score,fp,classified,category,reasons,discoveryExternalId} = candidate;
-         const adultReviewRequired = isAdultProduct({title,category:classified.category,subcategory:classified.subcategory,tags:classified.tags});
+        // Sex shop products follow the same automatic quality and validation flow as other categories.
+        // Adult classification is descriptive only; it must not create a manual-review gate.
+        const adultReviewRequired = false;
         const exists = await db.query('SELECT id,current_price,original_price FROM offers WHERE account_id=$1 AND fingerprint=$2 LIMIT 1',[row.account_id,fp]);
         if (exists.rows.length) {
           const existing = exists.rows[0];
@@ -443,10 +524,10 @@ export default async function handler(req,res) {
           const scoreReason = 'radar_score='+score+'; '+reasons.join('; ')+'; '+subIdNote;
           await db.query('UPDATE offers SET subcategory=$1,classification_tags=$2::jsonb,classification_confidence=$3,classification_status=$4,classification_reason=$5,source_category=$6 WHERE id=$7 AND account_id=$8',[classified.subcategory,JSON.stringify(classified.tags||[]),classified.confidence||0,(classified.needsReview||adultReviewRequired)?'REVIEW':'AUTO',(adultReviewRequired?'adult_product_requires_manual_review; ':'')+(classified.reason||'official_shopee_api')+'; '+scoreReason+'; discovery_keyword='+clean(p.__radarKeyword,80),null,offerId,row.account_id]);
           await db.query(
-            "UPDATE affiliate_discovery_items SET processing_status='IMPORTED',processed_at=now(),offer_id=$3,processing_error='' WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND external_id=$2",
-            [row.account_id,discoveryExternalId,offerId]
+            "UPDATE affiliate_discovery_items SET processing_status='IMPORTED',processed_at=now(),offer_id=$3,processing_error='',category_slug=$4 WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND external_id=$2",
+            [row.account_id,discoveryExternalId,offerId,category?.name||classified.category||null]
           );
-          totals.imported++; if(adultReviewRequired) totals.adultProductsHeldForReview=(totals.adultProductsHeldForReview||0)+1; importedForAccount++;
+          totals.imported++; importedForAccount++;
         } catch (e) {
           await db.query("UPDATE offers SET status='PENDING',validation_status='NEEDS_REVIEW' WHERE id=$1 AND account_id=$2",[offerId,row.account_id]);
           await db.query(
@@ -504,10 +585,7 @@ export default async function handler(req,res) {
         }
       }
       await db.query("UPDATE marketplace_api_credentials SET last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='SHOPEE'",[row.account_id]);
-      if (importedForAccount) {
-        try { await scheduler.now('/api/jobs/autopilot'); totals.autopilotRuns++; }
-        catch (e) { console.error('shopee autopilot trigger failed',String(e?.code||e?.name||'ERROR').slice(0,60)); }
-      }
+      // Autopilot/publication dispatch is intentionally disabled; ingestion remains independent.
     } catch (e) {
       totals.failed++;
       const code = String(e?.message||'').slice(0,100);
