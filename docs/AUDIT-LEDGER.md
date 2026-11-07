@@ -78,3 +78,15 @@ Copie este modelo para cada nova auditoria:
 ## Adendos
 
 Nenhum adendo registrado até o momento.
+
+
+### Adendo 2026-11-07 — confirmação da criação
+
+- Os três arquivos foram relidos com sucesso no GitHub `main` após a criação.
+- Commit de criação de `docs/MASTER-CONTEXT.md`: `9746a283c53f6b2e2a03168cc2e0e8f6bba3345b`.
+- Commit de criação de `docs/AUDIT-LEDGER.md`: `f8d12b52f24f4dff625ddf9b79785f217ce831d7`.
+- Commit de criação de `docs/CHANGE-IMPACT-LOG.md`: `85e2a4f8fdeea2fcf4ca4e217110fe7ad08375de`.
+- Último commit observado após a criação: `85e2a4f8fdeea2fcf4ca4e217110fe7ad08375de`.
+- Resultado: criação documental confirmada no GitHub. A pendência de confirmação dos arquivos foi encerrada.
+- Hatchable permanece na versão 638; os documentos não foram copiados para lá porque o destino `docs/` não apareceu no inventário e a interface de escrita disponível não aceita esse caminho. Nenhum deploy foi realizado.
+- Testes npm não foram executados porque não houve alteração de código executável. Nenhuma afirmação de validação funcional do aplicativo é feita.
