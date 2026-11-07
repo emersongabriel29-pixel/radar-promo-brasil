@@ -39,3 +39,11 @@ test('keeps household products in Casa & Lar', () => {
   const result = classifyProduct({ title: 'Kit organizador modular para gavetas, armários e geladeira' });
   assert.equal(result.category, 'Casa & Lar');
 });
+
+test('classifies dollhouses and plush toys outside Casa & Lar', () => {
+  const dollhouse = classifyProduct({ title: 'Diy mini casa de bonecas de madeira com móveis luz e kit brinquedos' });
+  const plush = classifyProduct({ title: 'Urso de pelúcia brinquedo macio recheado decoração do quarto casa presente' });
+  assert.equal(dollhouse.category, 'Bebês e crianças');
+  assert.equal(plush.category, 'Bebês e crianças');
+  assert.equal(plush.subcategory, 'Brinquedos e figuras colecionáveis');
+});
