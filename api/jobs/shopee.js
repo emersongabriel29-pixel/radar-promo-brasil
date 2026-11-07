@@ -1,5 +1,6 @@
 import { config, db, scheduler } from 'hatchable';
 import { fetchWithRetry } from 'lib/http-retry.js';
+import { isRetryableShopeeErrorCode, shopeeRetryDelay } from 'lib/shopee-api-errors.js';
 import { fingerprint } from 'lib/automation.js';
 import { directImageUrl, httpsUrl } from 'lib/validation.js';
 // API catalog items are not filtered by product category.
@@ -41,8 +42,8 @@ async function request(creds, query, variables, attempt = 0) {
   try { data = raw ? JSON.parse(raw) : {}; } catch { throw new Error('invalid_api_response'); }
   if (!response.ok || data.errors?.length) {
     const code = clean(data.errors?.[0]?.extensions?.code || '',60);
-    if (code === '10030' && attempt < 2) {
-      await pause(attempt === 0 ? 1200 : 2800);
+    if (isRetryableShopeeErrorCode(code, attempt)) {
+      await pause(shopeeRetryDelay(attempt));
       return request(creds,query,variables,attempt+1);
     }
     throw new Error('shopee_api_'+(code || response.status));
