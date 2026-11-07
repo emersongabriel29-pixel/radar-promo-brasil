@@ -1,4 +1,4 @@
-import { config, db, scheduler } from 'hatchable';
+import { config, db } from 'hatchable';
 
 export const access = 'public';
 export const methods = ['GET', 'POST'];
@@ -138,17 +138,7 @@ export default async function(req, res) {
       return { accepted: Boolean(accountId), duplicateSafe: true };
     }));
 
-    // Schedule downstream work only after durable persistence. Scheduling failures do not discard the event;
-    // the hourly recovery job can pick it up later.
-    if (results.some(item => item.accepted)) {
-      const dispatch = await db.query(
-        "INSERT INTO meli_notification_dispatch_state(id,last_scheduled_at) VALUES('worker',now()) ON CONFLICT(id) DO UPDATE SET last_scheduled_at=now() WHERE meli_notification_dispatch_state.last_scheduled_at < now()-interval '15 minutes' RETURNING id"
-      );
-      if (dispatch.rows.length) {
-        try { await scheduler.now('/api/jobs/mercadolivre-notifications'); }
-        catch (scheduleError) { console.error('meli notification scheduling failed', String(scheduleError?.code || scheduleError?.name || 'ERROR').slice(0, 60)); }
-      }
-    }
+    // Events are durably stored; the hourly recovery cron processes them without one-shot scheduler calls.
 
     return res.status(200).json({
       ok: true,
