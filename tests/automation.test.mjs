@@ -45,6 +45,7 @@ test('calcula desconto e preserva somente dados fornecidos',()=>{
 test('fingerprint deduplica identidade estável, separa origem e vendedor',async()=>{
   const stable={...valid,sellerId:'seller-1'};
   assert.equal(await fingerprint(stable),await fingerprint({...stable}));
+  assert.equal(await fingerprint(stable),await fingerprint({...stable,currentPrice:199.9,originalPrice:299.9}),'mudança de preço deve atualizar a mesma oferta, não criar duplicata');
   assert.notEqual(await fingerprint(stable),await fingerprint({...stable,source:'Amazon'}));
   assert.notEqual(await fingerprint(stable),await fingerprint({...stable,sellerId:'seller-2'}));
   assert.equal(await fingerprint(valid),await fingerprint({...valid}));
