@@ -104,3 +104,8 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 
 
 | 2026-11-08 | Aumento do lote técnico do autopilot para 200 e dispatcher Telegram para 14 | lib/autopilot, cache de imagem, worker WhatsApp, settings de publicação | Dry-run anterior sem erros/avisos; configuração DB batch=14/interval=5 confirmada; sem alteração de filtro de elegibilidade | commits 04dae24a, fc1a1059, 7551724f | draft para v664 | Próximo deploy; homologação de WhatsApp bloqueada por ausência de conexão |
+
+
+## Regra adicional do titular — 08/11/2026
+
+Toda atualização deve ser refletida no GitHub **e** no Hatchable. Comparar os arquivos relevantes, preservar divergências válidas e registrar commit GitHub, versão Hatchable, testes e resultado. Uma atualização somente no GitHub, inclusive esta proposta em branch, permanece PARCIAL e NÃO SINCRONIZADA até a aplicação e validação no Hatchable. Não substituir a hospedagem por outra plataforma. Sem acesso ao Hatchable, manter proposta em rascunho e registrar o bloqueio, sem declarar atualização concluída nem fazer merge/deploy por inferência. Documentos internos devem usar destino privado compatível; nunca copiar para public/ como atalho.

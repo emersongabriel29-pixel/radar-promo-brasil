@@ -90,3 +90,30 @@ Nenhum adendo registrado até o momento.
 - Resultado: criação documental confirmada no GitHub. A pendência de confirmação dos arquivos foi encerrada.
 - Hatchable permanece na versão 638; os documentos não foram copiados para lá porque o destino `docs/` não apareceu no inventário e a interface de escrita disponível não aceita esse caminho. Nenhum deploy foi realizado.
 - Testes npm não foram executados porque não houve alteração de código executável. Nenhuma afirmação de validação funcional do aplicativo é feita.
+
+
+### AUD-2026-11-08-CONTINUIDADE — diagnóstico e proposta isolada
+
+- Status: PARCIALMENTE CONCLUÍDA; diagnóstico privado Hatchable BLOQUEADO.
+- Autorização: prompt mestre do titular; sem autorização específica para envio real, gastos ou ações destrutivas.
+- Baseline: main cf20a088e4fe2ac32f43fbe777b7f49fa7423cbb; fonte da proposta é código GitHub, produção não sobrescrita.
+- Branch: codex/audit-medication-enqueue-20261108; sem merge/deploy.
+- Fatos: CSS públicos divergem; JS radar é idêntico. API privada 401 sem sessão. GitHub conectado com escrita.
+- Histórico de versões/crons em documentos anteriores não foi reconfirmado como estado atual.
+- Alteração: gate exclui medicamentos de novos enfileiramentos; preserva registro e acessórios. Não protege sozinho filas preexistentes nem todos os canais.
+- Escopo, evidências, 16 frentes, recuperação, complementares, controles, dez fases e pendências: docs/AUDITORIA-CONTINUIDADE-2026-11-08.md.
+- Risco médio; causa confirmada por reprodução do gate e teste de enqueue em memória. Rollback por reversão do commit, sem rollback de dados.
+- Próxima etapa exata: obter versão/manifesto/arquivos privados Hatchable, reconciliar backend e validar exclusão no dispatcher e demais caminhos antes de merge/deploy.
+
+
+## Validação final da proposta em branch
+
+- npm run build: aprovado, 205 arquivos JavaScript. O script verifica sintaxe, não produz bundle.
+- node --test tests/master-offer-flow.test.mjs tests/medication-enqueue.test.mjs: 10 aprovados, zero falhas; teste de enqueue usa banco em memória e não envia mensagem.
+- npm test: 243 testes, 236 aprovados, sete falhas preexistentes mantidas. Não há liberação integral da suíte.
+- npm run test:e2e: três aprovados no adapter standalone, scheduler desativado.
+- npm audit --audit-level=moderate: nenhuma vulnerabilidade reportada.
+- Teste adicional anterior de lib/category-classifier.test.js: nove aprovados; classificador não modificado nesta proposta.
+- Nenhuma API externa/canal homologado; nenhum dry-run Hatchable disponível; sem deploy, sem merge e sem alteração de dados de produção.
+- Resultado: proposta validada no escopo restrito de novo enqueue via canEnterOfferFlow, não homologada para produção.
+- Commit/PR: consultar o commit e a URL do PR que contém este registro; não há versão Hatchable correspondente.

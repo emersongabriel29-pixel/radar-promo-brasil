@@ -30,3 +30,9 @@
 ## Regra de leitura
 
 Quando houver conflito entre documentação e execução, não presumir que a documentação está certa: abrir achado, inspecionar código/schema/logs, corrigir a fonte correspondente e registrar a reconciliação. Status de integração só pode ser declarado após prova do fluxo real permitido. Nenhum documento transforma recurso planejado em funcionalidade implementada.
+
+
+## Continuidade — auditoria independente de 08/11/2026
+
+- [Diagnóstico e proposta incremental de exclusão de medicamentos](./AUDITORIA-CONTINUIDADE-2026-11-08.md): evidências locais, divergências públicas, falhas da suíte, recuperação de PRs e limites de acesso.
+- A versão Hatchable desta nova verificação é **não verificada**. Os números de versões mencionados acima são históricos; esta proposta em branch não foi implantada.

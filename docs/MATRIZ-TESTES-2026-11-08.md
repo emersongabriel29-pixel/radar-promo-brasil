@@ -51,3 +51,16 @@ Conferir sempre os scripts atuais em package.json antes de executar:
 - Homologação de integrações: não executada nesta tarefa.
 - Publicação real: não executada.
 - Deploy: não executado.
+
+
+## Validação final da proposta em branch
+
+- npm run build: aprovado, 205 arquivos JavaScript. O script verifica sintaxe, não produz bundle.
+- node --test tests/master-offer-flow.test.mjs tests/medication-enqueue.test.mjs: 10 aprovados, zero falhas; teste de enqueue usa banco em memória e não envia mensagem.
+- npm test: 243 testes, 236 aprovados, sete falhas preexistentes mantidas. Não há liberação integral da suíte.
+- npm run test:e2e: três aprovados no adapter standalone, scheduler desativado.
+- npm audit --audit-level=moderate: nenhuma vulnerabilidade reportada.
+- Teste adicional anterior de lib/category-classifier.test.js: nove aprovados; classificador não modificado nesta proposta.
+- Nenhuma API externa/canal homologado; nenhum dry-run Hatchable disponível; sem deploy, sem merge e sem alteração de dados de produção.
+- Resultado: proposta validada no escopo restrito de novo enqueue via canEnterOfferFlow, não homologada para produção.
+- Commit/PR: consultar o commit e a URL do PR que contém este registro; não há versão Hatchable correspondente.
