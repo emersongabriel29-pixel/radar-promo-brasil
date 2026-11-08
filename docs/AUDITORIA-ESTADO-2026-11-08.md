@@ -7,7 +7,7 @@
 - Hatchable: v653 LIVE, implantado em 2026-11-08 13:44:31 UTC; manifesto do último deployment informa 276 arquivos e 130 funções.
 - Snapshot de arquivos consultado depois: 277 arquivos (inclui 121 api/, 53 lib/, 15 public/, 9 pages/, 71 migrations/ e 8 na raiz/outras pastas). Diferença de um arquivo em relação ao manifesto é trabalho local/WIP posterior ao deployment; não assumir que está publicado.
 - Banco publicado: 67 tabelas.
-- GitHub: `emersongabriel29-pixel/radar-promo-brasil`, branch `main`; commit mais recente observado: `a6215ee2264cb70741fa27075f4584c526d93e2f` (08/11/2026 13:44:05 UTC, classificação baseada em metadados verificados).
+- GitHub: `emersongabriel29-pixel/radar-promo-brasil`, branch `main`; commit-base do código observado antes dos commits documentais: `a6215ee2264cb70741fa27075f4584c526d93e2f` (08/11/2026 13:44:05 UTC). A documentação desta auditoria foi adicionada em commits posteriores na mesma branch.
 - README GitHub e README Hatchable não são idênticos. GitHub documenta adaptador standalone e limitações atuais; README Hatchable anterior tem descrição diferente. Não foi comprovada equivalência total dos arquivos entre plataformas.
 
 ## Método e limites
