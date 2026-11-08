@@ -428,15 +428,20 @@ A fila de 4.036 será processada pelo scheduler em lotes. O número de ofertas e
 O dispatcher Telegram agora usa `sendPhoto` quando existe imagem válida e `sendMessage` com link afiliado quando a imagem falta ou falha. O Canal do WhatsApp também permite mensagem textual sem mídia e usa cache de imagem apenas quando possível. Erro de mídia não vira falha definitiva quando o canal aceita texto. A métrica `published` do autopilot foi corrigida: enfileiramento nunca é contado como publicação. Erros reais de transporte, autorização e rate limit continuam com retry/diagnóstico.
 
 
+
+
 ## 18. Cadência e orçamento de execução — v661
 
-- `/api/jobs/autopilot`: cron a cada 15 minutos; lote padrão de 25 por conta (aproximadamente 100/hora/conta).
-- `/api/jobs/extension-autopublish`: cron próprio a cada 15 minutos; não depende de `scheduler.now()`.
-- `/api/jobs/telegram`: cron a cada 5 minutos; lote de 10 por turno; intervalo de 5 minutos; 3,1 segundos entre envios para respeitar aproximadamente 20 mensagens/minuto por grupo.
-- Cache de imagem tem timeout de 2,5 segundos. Se mídia estiver ausente ou lenta, o worker usa mensagem textual com link afiliado.
-- `publication_scheduler_settings` da conta ativa foi ajustado para `interval_minutes=5` e `batch_size=10`.
-- O fluxo automático de ofertas não cria mais one-shot com `scheduler.at()` nem `scheduler.now()` por conta/lote. O cron recorrente drena as filas. One-shots restantes pertencem a fluxos distintos de recorrência e geração de mídia, não à elegibilidade de produtos.
-- WhatsApp não foi ativado: a auditoria encontrou zero `whatsapp_connections`, todos os grupos WhatsApp pausados e sem `external_id`. O worker aceita texto sem imagem, mas só pode publicar depois de existir conexão válida e destino autorizado. Isso não bloqueia a oferta nem o Telegram.
-- A fila Lomadee de geração de links continua com cron próprio horário e lote 10, preservando a taxa de chamadas externa até validar os limites oficiais do provedor.
+O plano Free do Hatchable impõe frequência mínima de uma hora para crons declarados. A implantação não pode declarar crons de 5 ou 15 minutos; o dry-run rejeita essas frequências. Para acelerar o fluxo sem exceder a quota de one-shots:
 
-**Objetivo de throughput:** cerca de 100 ofertas novas enfileiradas/hora por conta e até 120 publicações Telegram/hora no lote configurado, sem exceder o limite de mensagens por grupo. Os valores são limites de execução/serviço, não critérios de produto.
+- `/api/jobs/autopilot`: cron horário no minuto 5; lote padrão de 100 ofertas por conta, máximo 200 por chamada.
+- `/api/jobs/extension-autopublish`: cron horário no minuto 50.
+- `/api/jobs/telegram`: cron horário como rede de segurança; lote de 12 por turno.
+- Quando o autopilot cria novas publicações Telegram, arma **um único wake-up central por conta/lote** para o horário `next_turn_at`. Nunca agenda um one-shot por produto ou por publicação.
+- Configuração da conta ativa: `interval_minutes=5`, `batch_size=12`. Isso permite o cron horário de segurança e um despacho adicional após a ingestão do lote.
+- Telegram espera 3,1s entre mensagens para respeitar aproximadamente 20 mensagens/minuto por grupo. Cache de imagem tem timeout de 1,5s; se mídia falta ou falha, o envio textual com link afiliado continua.
+- O fluxo automático de ofertas não usa mais `scheduler.now()` por importação/extensão. One-shots restantes são no máximo um wake-up central por lote; tarefas de recorrência e mídia são workflows distintos.
+- WhatsApp não foi ativado: há zero `whatsapp_connections`, grupos pausados e sem `external_id`. O worker aceita texto sem imagem, mas precisa de conexão válida e destino autorizado. Isso não bloqueia o catálogo nem Telegram.
+- Descoberta e conversão de links continuam em crons próprios, respeitando quotas oficiais das APIs. Lomadee link queue permanece horária e em lote 10 até homologação de rate limits.
+
+**Capacidade estimada:** autopilot pode colocar até 100 ofertas/hora por conta na fila. O dispatcher Telegram processa até 12 por turno, com até dois turnos por hora quando há wake-up e cron. Essa é a cadência segura disponível no plano atual, não um filtro comercial. Para aumentar frequência declarada além de uma hora, seria necessário um plano Hatchable que permita crons mais frequentes; não foi contratado nem alterado plano.
