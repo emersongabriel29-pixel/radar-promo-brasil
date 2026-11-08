@@ -1,5 +1,7 @@
-import { ai, db } from 'hatchable';
+import { db } from 'hatchable';
+import { generateGeminiText } from 'lib/gemini.js';
 import { calculateRadarScore } from 'lib/radar.js';
+import { checkGeminiCooldown, registerGeminiQuotaError } from 'lib/radar-ai-guard.js';
 
 export const access = 'member';
 export const methods = ['POST'];
@@ -57,8 +59,10 @@ export default async function(req, res) {
     };
   });
 
+  const cooldown=await checkGeminiCooldown();
+  if(cooldown)return res.status(429).json({error:'Gemini em pausa para respeitar a cota gratuita.',retryAfter:cooldown.paused_until});
   try {
-    const result = await ai.generateText({
+    const result = await generateGeminiText({
       purpose: 'radar-offer-curation',
       model: 'gemini',
       userId: String(req.member.id),
@@ -106,6 +110,7 @@ export default async function(req, res) {
       notice: 'Análise consultiva. Não aprova, agenda, altera ofertas nem publica mensagens.'
     });
   } catch (error) {
+    if(/429|quota|rate.?limit|resource_exhausted/i.test(String(error?.message||'')))await registerGeminiQuotaError();
     const message = String(error?.message || '');
     const setup = /setup|configured|credential|provider|API key|not configured/i.test(message);
     console.error('radar/curator-ai', error?.name || 'Error');

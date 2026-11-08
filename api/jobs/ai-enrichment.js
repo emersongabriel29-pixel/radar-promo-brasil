@@ -1,4 +1,5 @@
-import { ai, db } from 'hatchable';
+import { db } from 'hatchable';
+import { generateGeminiText } from 'lib/gemini.js';
 import { formatPromo } from 'lib/promo-message.js';
 
 export const access = 'scheduler';
@@ -34,7 +35,7 @@ export default async function handler(req,res){
       if(result){cacheHits++;}
       else{
         aiCalls++;
-        const response=await ai.generateText({
+        const response=await generateGeminiText({
           purpose:'radar-offer-enrichment',
           model:'gemini-flash',
           maxTokens:420,

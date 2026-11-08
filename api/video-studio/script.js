@@ -1,5 +1,7 @@
 import { ai,db } from 'hatchable';
+import { generateGeminiText } from 'lib/gemini.js';
 import { isSetupRequired } from 'lib/media.js';
+import { checkGeminiCooldown, registerGeminiQuotaError } from 'lib/radar-ai-guard.js';
 
 export const access='member';
 export const methods=['POST'];
@@ -34,7 +36,8 @@ export default async function(req,res){
   ].join('\n');
   try{
     let result,model='gemini';
-    try{result=await ai.generateText({purpose:'video-studio-script',model,userId:String(req.member.id),maxTokens:2200,system:'Você é roteirista de performance para vídeos curtos de comércio eletrônico. Escreva de forma natural, clara, persuasiva e honesta. Nunca invente fatos.',prompt,signal:AbortSignal.timeout(45000)});}
+    if(await checkGeminiCooldown())return res.status(429).json({error:'Gemini em pausa temporária para respeitar a cota gratuita.'});
+    try{result=await generateGeminiText({purpose:'video-studio-script',model,userId:String(req.member.id),maxTokens:2200,system:'Você é roteirista de performance para vídeos curtos de comércio eletrônico. Escreva de forma natural, clara, persuasiva e honesta. Nunca invente fatos.',prompt,signal:AbortSignal.timeout(45000)});}
     catch(first){
       if(!isSetupRequired(first))throw first;
       model='gpt-mini';
@@ -43,6 +46,7 @@ export default async function(req,res){
     if(!clean(result.text,12000)||result.finishReason==='length')return res.status(502).json({error:'A IA não concluiu o roteiro. Tente novamente.'});
     return res.json({ok:true,script:clean(result.text,12000),model:clean(result.model||model,100),facts,usage:result.usage,notice:'Revise o roteiro antes de publicar. O preço só foi incluído porque havia verificação oficial recente.'});
   }catch(error){
+    if(/429|quota|rate.?limit|resource_exhausted/i.test(String(error?.message||'')))await registerGeminiQuotaError();
     console.error('video-studio/script',String(error?.code||error?.message||'AI_ERROR').slice(0,120));
     if(isSetupRequired(error))return res.status(412).json({error:'Configure um provedor de IA em Configurações do projeto → IA. Nenhum custo foi gerado por esta tentativa sem credencial.'});
     return res.status(502).json({error:'Não foi possível gerar o roteiro agora. Você ainda pode usar o roteiro local.'});
