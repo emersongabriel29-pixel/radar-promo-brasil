@@ -224,7 +224,8 @@ export default async function handler(req,res) {
           products.push(product);
         }
       };
-      // Search each selected phrase by sales and commission. Page rotation broadens catalog coverage over time.
+      // Rotate sort mode hourly while keeping every selected phrase in the discovery cycle.
+      let keywordsExecuted = 0;
       for (const keyword of selectedKeywords) {
         for (const sortType of [Math.floor(Date.now()/3600000)%2===0?2:5]) {
           if (!canStartApiCall()) { totals.budgetYielded = true; break; }
@@ -232,6 +233,7 @@ export default async function handler(req,res) {
           const discoveryKey = 'keyword:'+keyword;
           const page = await getShopeeDiscoveryPage(row.account_id,discoveryKey,sortType);
           const result = await requestProductPages(creds,productQuery,{keyword,listType,sortType,page,limit:50},1);
+          keywordsExecuted++;
           addProducts(result.nodes,keyword,'keyword');
           cursorUpdates.push({discoveryKey,sortType,result});
           totals.productSearchCalls = (totals.productSearchCalls||0)+result.pagesFetched;
@@ -242,16 +244,18 @@ export default async function handler(req,res) {
           }
         }
       }
-      totals.keywordsQueried = (totals.keywordsQueried||0)+selectedKeywords.length;
+      totals.keywordsQueried = (totals.keywordsQueried||0)+keywordsExecuted;
 
       // Rotate two AMS/CommissionsXtra-filtered searches per cycle. These are product offers
       // with seller-funded commission fields, the live-schema route for brand-commission items.
       const amsKeywords = selectedKeywords.filter((_,index)=>(index+slot)%3===0).slice(0,1);
+      let amsKeywordsExecuted = 0;
       for (const keyword of amsKeywords) {
         if (!canStartApiCall()) { totals.budgetYielded = true; break; }
         const discoveryKey = 'ams:'+keyword;
         const page = await getShopeeDiscoveryPage(row.account_id,discoveryKey,5);
         const result = await requestProductPages(creds,productQuery,{keyword,listType:1,sortType:5,page,limit:50,isAMSOffer:true},1);
+        amsKeywordsExecuted++;
         addProducts(result.nodes,keyword,'ams_keyword');
         cursorUpdates.push({discoveryKey,sortType:5,result});
         totals.amsProductSearchCalls = (totals.amsProductSearchCalls||0)+result.pagesFetched;
@@ -261,7 +265,7 @@ export default async function handler(req,res) {
           totals.paginationIncomplete = true;
         }
       }
-      totals.amsKeywordsQueried = (totals.amsKeywordsQueried||0)+amsKeywords.length;
+      totals.amsKeywordsQueried = (totals.amsKeywordsQueried||0)+amsKeywordsExecuted;
 
       // Discover affiliate partner shops, then sample products from the two strongest returned shops.
       // Optional discovery failures must not block the core product search.
@@ -296,8 +300,8 @@ export default async function handler(req,res) {
           }
         }
       } catch (shopError) {
-        totals.shopDiscoveryUnavailable = true;
-        console.error('shopee partner shop discovery skipped',String(shopError?.message||'ERROR').slice(0,80));
+        if (String(shopError?.message||'') === 'RUN_BUDGET_YIELDED') totals.budgetYielded = true;
+        else { totals.shopDiscoveryUnavailable = true; console.error('shopee partner shop discovery skipped',String(shopError?.message||'ERROR').slice(0,80)); }
       }
 
       // Dedicated Shopee Mall pass: shopType 1 is the official-store class.
@@ -333,8 +337,8 @@ export default async function handler(req,res) {
           }
         }
       } catch (officialShopError) {
-        totals.officialShopDiscoveryUnavailable = true;
-        console.error('shopee official shop discovery skipped',String(officialShopError?.message||'ERROR').slice(0,80));
+        if (String(officialShopError?.message||'') === 'RUN_BUDGET_YIELDED') totals.budgetYielded = true;
+        else { totals.officialShopDiscoveryUnavailable = true; console.error('shopee official shop discovery skipped',String(officialShopError?.message||'ERROR').slice(0,80)); }
       }
 
       // Campaigns are discovery intelligence, not product offers: never publish a campaign as if it were a priced item.
@@ -346,8 +350,8 @@ export default async function handler(req,res) {
         const nowSeconds = Math.floor(Date.now()/1000);
         totals.campaignsDiscovered = (totals.campaignsDiscovered||0)+campaigns.filter(item=>(!Number(item.periodStartTime)||Number(item.periodStartTime)<=nowSeconds)&&(!Number(item.periodEndTime)||Number(item.periodEndTime)>=nowSeconds)).length;
       } catch (campaignError) {
-        totals.campaignDiscoveryUnavailable = true;
-        console.error('shopee campaign discovery skipped',String(campaignError?.message||'ERROR').slice(0,80));
+        if (String(campaignError?.message||'') === 'RUN_BUDGET_YIELDED') totals.budgetYielded = true;
+        else { totals.campaignDiscoveryUnavailable = true; console.error('shopee campaign discovery skipped',String(campaignError?.message||'ERROR').slice(0,80)); }
       }
 
       // The live Brazil GraphQL schema exposes only deprecated brandOffer; brandOfferV2
