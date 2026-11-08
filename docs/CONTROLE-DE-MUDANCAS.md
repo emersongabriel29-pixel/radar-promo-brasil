@@ -92,3 +92,6 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 
 
 | 2026-11-08 | Fallback de texto após falha de mídia e correção de métrica do autopilot | Telegram, Canal do WhatsApp e métricas da fila | Dry-run sem erros/avisos; nenhum envio manual acionado | commits 53b871b, 3d31757, 84b5109, 2278ab3 | draft para v660 | Código preparado; validação real do canal aguarda operação programada |
+
+
+| 2026-11-08 | Cadência contínua sem one-shot no fluxo de ofertas | Autopilot 15 min, extensão 15 min, Telegram 5 min, lote Telegram 10, mídia 2,5s | Dry-run de deploy sem erros/avisos; configuração DB interval=5/batch=10 confirmada; nenhum worker de envio acionado manualmente | commits f8f881c, cc32df4, 7e05e80, 79911ba, 926b25b, 6614dc3, f45489e, d28cc59 | draft para v661 | WhatsApp externo sem conexão/destinos; APIs externas ainda não homologadas ponta a ponta |
