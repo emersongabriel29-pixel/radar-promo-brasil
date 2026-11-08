@@ -163,7 +163,14 @@ async function processAccount(accountId, settings) {
           if(signals.length)message=message.replace(/\n\nℹ️/, '\n\n'+signals.join('  |  ')+'\n\nℹ️');
         }
         const hasImage=Boolean(item.imageStorageKey||item.imageUrl);
-        const imageUrl=item.contentType==='MESSAGE'||!hasImage?null:await cacheOfferImage({...item,imageUrl:item.imageUrl},db);
+        let imageUrl=null;
+        if(item.contentType!=='MESSAGE'&&hasImage){
+          try{imageUrl=await cacheOfferImage({...item,imageUrl:item.imageUrl},db);}
+          catch(mediaError){
+            if(!String(mediaError?.code||'').startsWith('MEDIA_'))throw mediaError;
+            console.warn('telegram media unavailable; using text fallback',item.id,String(mediaError?.code||'MEDIA_ERROR').slice(0,60));
+          }
+        }
         const external=await sendTelegramOffer(token,{...item,imageUrl,message,affiliateUrl:affiliate});
         providerAccepted=true;
         await runQuery('markPublished', "UPDATE publications SET status='PUBLISHED',published_at=now(),error_message=NULL,telegram_connection_id=$3,external_message_id=$4,dispatch_token=NULL WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$5",[item.id,accountId,connection.id,String(external?.message_id||''),item.dispatchToken]);
