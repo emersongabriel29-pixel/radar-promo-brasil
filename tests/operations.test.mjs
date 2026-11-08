@@ -14,7 +14,7 @@ const {meliGet,seal}=await import('../lib/direct-connectors.js');
 const {nextOccurrence,setScheduleStatus,runSchedule}=await import('../lib/recurrences.js');
 const {fetchOfferFeed,runMonitors,canActivateMonitor}=await import('../lib/monitoring.js');
 const {exportAccountData,verifyPrivacyRequest,resolvePrivacyRequest,runRetention}=await import('../lib/privacy.js');
-const {accountSnapshot,createAccountBackup}=await import('../lib/backups.js');
+const {accountSnapshot,createAccountBackup,LEGACY_BACKUP_TABLES}=await import('../lib/backups.js');
 const {verifyBackup}=await import('../scripts/verify-backup.mjs');
 const {deliverClaim,Journal,WhatsappAdapter}=await import('../workers/whatsapp.mjs');
 const fs=await import('node:fs/promises');
@@ -160,13 +160,14 @@ test('feed aplica um único deadline ao consumo de um corpo lento',async()=>{
  assert.equal(cancelled,true,'o corpo deve ser cancelado ao atingir o deadline');
 });
 test('captura autorizada importa dados reais do feed, deduplica e mantém isolamento',async()=>{
- await db.query("INSERT INTO monitors(id,account_id,name,source_type,source_url,status,source_authorized) VALUES('feed-test',$1,'Feed','FEED','https://example.com/feed','ACTIVE',true),('unauthorized',$2,'Sem autorização','FEED','https://example.com/feed','PAUSED',false)",[a.id,b.id]);
- await assert.rejects(()=>canActivateMonitor(a.id,'unauthorized'),e=>e.status===404);await assert.rejects(()=>canActivateMonitor(b.id,'unauthorized'),e=>e.status===412);
+ const feedAccount=await getOrCreateAccount({id:'isolated-feed-owner'});
+ await db.query("INSERT INTO monitors(id,account_id,name,source_type,source_url,status,source_authorized) VALUES('feed-test',$1,'Feed','FEED','https://example.com/feed','ACTIVE',true),('unauthorized',$2,'Sem autorização','FEED','https://example.com/feed','PAUSED',false)",[feedAccount.id,b.id]);
+ await assert.rejects(()=>canActivateMonitor(feedAccount.id,'unauthorized'),e=>e.status===404);await assert.rejects(()=>canActivateMonitor(b.id,'unauthorized'),e=>e.status===412);
  const fetchFeed=async()=>[{title:'Produto do feed',source:'AMAZON',currentPrice:49.9,originalPrice:99.9,affiliateUrl:'https://amazon.com.br/dp/feed?tag=test',productUrl:'https://amazon.com.br/dp/feed',imageUrl:'https://example.com/feed.png'},null];
- assert.equal((await runMonitors({accountId:a.id,monitorId:'feed-test',manual:true,fetchFeed})).captured,1);
- assert.equal((await runMonitors({accountId:a.id,monitorId:'feed-test',manual:true,fetchFeed})).checked,0);
+ assert.equal((await runMonitors({accountId:feedAccount.id,monitorId:'feed-test',manual:true,fetchFeed})).captured,1);
+ assert.equal((await runMonitors({accountId:feedAccount.id,monitorId:'feed-test',manual:true,fetchFeed})).checked,0);
  await db.query("UPDATE monitors SET last_run_at=now()-interval '2 minutes' WHERE id='feed-test'");
- assert.equal((await runMonitors({accountId:a.id,monitorId:'feed-test',manual:true,fetchFeed})).captured,0);
+ assert.equal((await runMonitors({accountId:feedAccount.id,monitorId:'feed-test',manual:true,fetchFeed})).captured,0);
  const offer=(await db.query("SELECT current_price,source_monitor_id,status FROM offers WHERE title='Produto do feed'")).rows[0];assert.equal(offer.current_price,4990);assert.equal(offer.source_monitor_id,'feed-test');assert.equal(offer.status,'PENDING');
  assert.equal((await db.query("SELECT captured_count FROM monitors WHERE id='feed-test'")).rows[0].captured_count,1);
 });
@@ -190,9 +191,11 @@ test('limpeza desativada por padrão; ao ativar remove apenas eventos antigos de
  assert.equal((await runRetention({accountId:a.id})).removed,1);
  assert.equal((await db.query("SELECT count(*)::int AS n FROM lead_events WHERE phone_hash='old-b'")).rows[0].n,1);
 });
-test('portabilidade remove credenciais; backup restaura 36 tabelas e rejeita tamper ou outra conta',async()=>{
+test('portabilidade remove credenciais; backup restaura tabelas atuais da conta e rejeita tamper ou outra conta',async()=>{
+ await db.query("INSERT INTO marketplace_connections(id,account_id,marketplace,external_user_id,access_token_enc,refresh_token_enc,expires_at,status) VALUES('backup-meli-fixture',$1,'MERCADOLIVRE','fixture',$2,$3,now()+interval '1 hour','ACTIVE') ON CONFLICT(account_id,marketplace) DO NOTHING",[a.id,await seal('fixture-access'),await seal('fixture-refresh')]);
  const portable=await exportAccountData(a.id);assert.equal(portable.portable,true);assert.equal(portable.tables.connector_credential_bindings,undefined);assert.equal(portable.tables.marketplace_connections[0].access_token_enc,undefined);
- const snapshot=await accountSnapshot(a.id);const verified=await verifyBackup(snapshot);assert.equal(verified.restored,true);assert.equal(verified.tables,36);assert.equal(verified.rowCounts.promo_groups,snapshot.rowCounts.promo_groups);
+ const snapshot=await accountSnapshot(a.id);const verified=await verifyBackup(snapshot);assert.equal(verified.restored,true);assert.equal(verified.tables,Object.keys(snapshot.tables).length);assert.equal(verified.completeForCurrentSchema,true);assert.ok(snapshot.tables.ingestion_batches);assert.ok(snapshot.tables.message_templates);assert.ok(snapshot.tables.marketplace_api_credentials);assert.equal(verified.rowCounts.promo_groups,snapshot.rowCounts.promo_groups);
+ const legacy={...structuredClone(snapshot),version:1,schemaVersion:20,tables:Object.fromEntries(LEGACY_BACKUP_TABLES.map(t=>[t,snapshot.tables[t]])),rowCounts:Object.fromEntries(LEGACY_BACKUP_TABLES.map(t=>[t,snapshot.rowCounts[t]]))};const restoredLegacy=await verifyBackup(legacy);assert.equal(restoredLegacy.restored,true);assert.equal(restoredLegacy.completeForCurrentSchema,false);
  const bad=structuredClone(snapshot);bad.tables.accounts[0].id=b.id;await assert.rejects(()=>verifyBackup(bad),/outra conta/);
  const broken=structuredClone(snapshot);broken.rowCounts.offers++;await assert.rejects(()=>verifyBackup(broken),/Contagem/);
  const backup=await createAccountBackup(a.id);assert.ok(backup.sha256);assert.ok(backup.downloadPath.startsWith('/api/backups?id='));

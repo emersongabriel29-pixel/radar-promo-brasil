@@ -1,0 +1,63 @@
+[
+  {
+    "provider": "LOMADEE",
+    "requested_url": "https://docs.lomadee.com.br/llms.txt",
+    "error": "HTTP Error 403: Forbidden"
+  },
+  {
+    "provider": "RAKUTEN",
+    "requested_url": "https://developers.rakutenadvertising.com/",
+    "final_url": "https://developers.rakutenadvertising.com/",
+    "status": 200,
+    "bytes_read": 15850,
+    "title": "",
+    "login_or_challenge_indication": false
+  },
+  {
+    "provider": "AWIN",
+    "requested_url": "https://help.awin.com/apidocs/introduction-1",
+    "final_url": "https://help.awin.com/apidocs/introduction-to-awins-apis",
+    "status": 200,
+    "bytes_read": 412270,
+    "title": "Introduction to Awin's APIs",
+    "login_or_challenge_indication": true
+  },
+  {
+    "provider": "ADMITAD",
+    "requested_url": "https://developers.mitgo.com/hc/en-us/articles/34481290690834-Introduction",
+    "final_url": "https://developers.mitgo.com/hc/en-us/articles/34481290690834-Introduction",
+    "status": 200,
+    "bytes_read": 41839,
+    "title": "Introduction &ndash; API documentation",
+    "login_or_challenge_indication": true
+  },
+  {
+    "provider": "MERCADO_LIVRE",
+    "requested_url": "https://developers.mercadolivre.com.br/pt_br/autenticacao-e-autorizacao",
+    "error": "HTTP Error 403: Forbidden"
+  },
+  {
+    "provider": "SHOPEE",
+    "requested_url": "https://affiliate.shopee.com.br/open_api",
+    "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+  },
+  {
+    "provider": "ALIEXPRESS",
+    "requested_url": "https://open.aliexpress.com/doc/doc.htm",
+    "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+  },
+  {
+    "provider": "MAGALU",
+    "requested_url": "https://developers.magalu.com/docs/",
+    "final_url": "https://developers.magalu.com/docs/",
+    "status": 200,
+    "bytes_read": 16820
+  },
+  {
+    "provider": "AMAZON",
+    "requested_url": "https://associados.amazon.com.br/creatorsapi/docs/en-us/onboarding/register-for-creators-api",
+    "final_url": "https://associados.amazon.com.br/creatorsapi/docs/en-us/onboarding/register-for-creators-api",
+    "status": 200,
+    "bytes_read": 51575
+  }
+]

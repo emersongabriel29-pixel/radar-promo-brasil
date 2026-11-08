@@ -1,3 +1,4 @@
+import { canEnterOfferFlow } from '../lib/offer-flow-policy.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -48,14 +49,14 @@ test('não força classificação quando o título é curto e a URL não explica
   assert.equal(result.subcategory, 'A classificar');
 });
 
-test('bloqueia medicamentos antes da seleção de ofertas', () => {
+test('preserva classificação de medicamento e exclui somente a publicação', () => {
   const result = classifyLomadeeProduct({
     name: 'Dipirona 500mg comprimidos',
     description: 'Medicamento para uso oral',
     url: 'https://loja.example/dipirona'
   });
-  assert.equal(result.blocked, true);
-  assert.equal(result.rule, 'medication-safety');
+  assert.equal(result.blocked, false);
+  assert.equal(canEnterOfferFlow({title:'Dipirona 500mg comprimidos',current_price:1000,affiliate_url:'https://example.com/afiliado'}).eligible,false);
 });
 
 test('seleciona catálogo diversificado, limita concentração por anunciante/categoria e remove duplicatas', () => {

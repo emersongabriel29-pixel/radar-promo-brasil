@@ -1,0 +1,31 @@
+{
+  "mercado_livre": {
+    "http_status": 200,
+    "duration_ms": 159,
+    "result": {
+      "provider": "MERCADO_LIVRE",
+      "checks": [
+        {
+          "providerStatus": 401,
+          "identityConfirmed": false,
+          "storedExpiryInPast": true,
+          "tokenRefreshed": false
+        },
+        {
+          "providerStatus": 401,
+          "identityConfirmed": false,
+          "storedExpiryInPast": true,
+          "tokenRefreshed": false
+        }
+      ],
+      "readOnly": true
+    }
+  },
+  "magalu": {
+    "http_status": 200,
+    "connectionStatus": "CONNECTED",
+    "apiStatus": "ERROR",
+    "tenantIdConfigured": false,
+    "scopeGrantVerified": false
+  }
+}

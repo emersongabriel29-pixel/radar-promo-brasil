@@ -1,16 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { isMedicationProduct } from '../lib/product-safety.js';
+import { canEnterOfferFlow } from '../lib/offer-flow-policy.js';
 import { readFileSync } from 'node:fs';
 
 const safety = readFileSync(new URL('../lib/product-safety.js', import.meta.url), 'utf8');
 const aliReview = readFileSync(new URL('../api/jobs/aliexpress-review.js', import.meta.url), 'utf8');
 const delivery = readFileSync(new URL('../lib/delivery.js', import.meta.url), 'utf8');
 
-test('medication safety blocks anti-allergy products and rejects them in AliExpress review', () => {
-  assert.match(safety, /antialergic\[oa\]s\?/);
-  assert.match(aliReview, /isMedicationProduct/);
-  assert.match(aliReview, /Produto bloqueado pela política de segurança/);
-  assert.match(aliReview, /REJECTED/);
+test('medicamentos não são publicáveis e acessórios são preservados', () => {
+  const offer={title:'Loratadina antialérgico',current_price:1000,affiliate_url:'https://example.com/afiliado'};
+  assert.equal(isMedicationProduct(offer),true);
+  assert.equal(canEnterOfferFlow(offer).reason,'MEDICATION_PUBLICATION_EXCLUDED');
+  assert.equal(canEnterOfferFlow({...offer,title:'Porta comprimidos semanal'}).eligible,true);
 });
 
 test('delivery requires validated offers, official price evidence, and usable assets', () => {

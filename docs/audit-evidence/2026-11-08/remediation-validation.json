@@ -1,0 +1,43 @@
+{
+  "date": "2026-11-08",
+  "baseCommit": "59c432594a4fb4f784806d0c108e773aa83b9a9f",
+  "branch": "codex/audit-remediation-20261108",
+  "productionObserved": 664,
+  "unit": {
+    "tests": 258,
+    "passed": 258,
+    "failed": 0,
+    "scope": "isolated PGlite and mocked providers",
+    "logSha256": "9fdbdd05aefad7d8da92f8bd0a9119fe1458e2544437917972698b183e65aa89"
+  },
+  "build": {
+    "javascriptFiles": 209,
+    "result": "PASS"
+  },
+  "e2e": {
+    "passed": 3,
+    "failed": 0,
+    "bypassCSP": true
+  },
+  "dependencyAudit": {
+    "vulnerabilities": 0
+  },
+  "hostedPrewrite": {
+    "checked": true,
+    "nonidenticalTargets": [
+      "api/r/[id].js",
+      "lib/documentation/BANCO-DADOS-2026-11-08.md",
+      "lib/documentation/INTEGRACOES-IA-2026-11-08.md",
+      "lib/documentation/OPERACAO-2026-11-08.md"
+    ],
+    "explanation": "AST-equivalent redirect baseline; docs identical after stripping terminal whitespace. All other existing changed runtime targets hash-identical to GitHub base."
+  },
+  "migration": {
+    "file": "068_ingestion_batches.sql",
+    "productionApplied": false,
+    "destructive": false
+  },
+  "liveSendsExecuted": false,
+  "secretsChanged": false,
+  "globalReleaseApproved": false
+}

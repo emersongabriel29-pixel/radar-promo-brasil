@@ -1,3 +1,4 @@
+import { assertAliExpressResponse } from 'lib/aliexpress-response.js';
 import { config, db } from 'hatchable';
 import { fetchWithRetry } from 'lib/http-retry.js';
 import { signAliExpressParams } from 'lib/afilimax-aliexpress-provider.js';
@@ -108,6 +109,7 @@ async function requestProducts(credentials, keyword, pageNo = 1) {
     const e = data.error_response;
     throw new Error('aliexpress_rejected_' + clean(e.code || e.sub_code || 'API_ERROR', 60));
   }
+  assertAliExpressResponse(data, 'aliexpress.affiliate.product.query');
   const root = data?.aliexpress_affiliate_product_query_response || Object.values(data).find(v => v && typeof v === 'object' && v.resp_result);
   const result = root?.resp_result?.result || root?.resp_result || root || data;
   const records = findProducts(result);
@@ -144,6 +146,7 @@ async function requestAffiliateLink(credentials, productUrl) {
     const e = data.error_response;
     throw new Error('aliexpress_rejected_' + clean(e.code || e.sub_code || 'API_ERROR', 60));
   }
+  assertAliExpressResponse(data, 'aliexpress.affiliate.link.generate');
   const textLinks = [];
   const walk = (value, depth = 0) => {
     if (!value || depth > 6) return;
@@ -179,6 +182,7 @@ async function requestSkuDetails(credentials, productId) {
   let data; try { data = raw ? JSON.parse(raw) : {}; } catch { throw new Error('aliexpress_sku_detail_invalid_json'); }
   if (!response.ok) throw new Error('aliexpress_sku_detail_http_'+response.status);
   if (data?.error_response) { const e=data.error_response; throw new Error('aliexpress_sku_detail_rejected_'+clean(e.code||e.sub_code||'API_ERROR',60)); }
+  assertAliExpressResponse(data, method);
   const root=data?.[method.replaceAll('.','_')+'_response']||Object.values(data).find(v=>v&&typeof v==='object'&&v.resp_result);
   const result=root?.resp_result?.result||root?.resp_result||root||data;
   return findProducts(result).slice(0,20);
@@ -246,6 +250,7 @@ async function requestAdvanced(credentials, method, keyword, productId = '') {
     const e = data.error_response;
     throw new Error('aliexpress_rejected_' + clean(e.code || e.sub_code || 'API_ERROR', 60));
   }
+  assertAliExpressResponse(data, method);
   const root = data?.[method.replaceAll('.', '_') + '_response'] || Object.values(data).find(v => v && typeof v === 'object' && v.resp_result);
   const result = root?.resp_result?.result || root?.resp_result || root || data;
   if (method === 'aliexpress.affiliate.featuredpromo.get') {

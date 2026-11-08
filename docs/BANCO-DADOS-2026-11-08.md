@@ -37,3 +37,8 @@ Schema lido diretamente do PostgreSQL do projeto Hatchable: **67 tabelas**, com 
 7. Atualizar este documento e a matriz de testes com nome, objetivo, tabelas e prova.
 
 Não marcar migração como aplicada manualmente sem evidência do ledger e do schema. Não apagar tabelas para rollback; preferir rollback de código compatível ou migração corretiva para frente.
+
+
+## Adendo de remediação — 08/11/2026
+
+Preparada migration 068_ingestion_batches.sql (não aplicada em produção nesta rodada): payload/options integrais, cursor, estados, lease, contadores e retomada por conta/evento. Backup v2 descobre tabelas account_id e dependências; restauração somente isolada. Limites e exclusões: REMEDIACAO-AUDITORIA-2026-11-08.md.

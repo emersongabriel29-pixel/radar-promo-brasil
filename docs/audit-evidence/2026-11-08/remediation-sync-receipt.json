@@ -1,0 +1,256 @@
+{
+  "date": "2026-11-08",
+  "codeCommit": "58dd247dc6190e6709756a1147859cf5162436d8",
+  "pullRequest": "https://github.com/emersongabriel29-pixel/radar-promo-brasil/pull/194",
+  "githubBlobs": {
+    "verified": 41,
+    "mismatched": 0
+  },
+  "hatchable": {
+    "projectId": "proj_1Xj94QxQmCam",
+    "productionObservedVersion": 664,
+    "scope": "WIP, not deployed",
+    "filesVerified": 41,
+    "mismatched": 0,
+    "dryRun": {
+      "ok": true,
+      "errors": [],
+      "warnings": [],
+      "would_deploy": {
+        "public_files": 15,
+        "api_functions": 124,
+        "pages": 9,
+        "migrations": 74,
+        "auth_enabled": false,
+        "next_version": 665
+      }
+    }
+  },
+  "ci": {
+    "runId": 42517572938,
+    "url": "https://github.com/emersongabriel29-pixel/radar-promo-brasil/actions/runs/42517572938",
+    "job": "validate",
+    "conclusion": "success",
+    "checks": [
+      "npm ci",
+      "build",
+      "258 tests",
+      "npm audit",
+      "3 E2E"
+    ]
+  },
+  "mapping": [
+    {
+      "source": "api/ingestion/status.js",
+      "target": "api/ingestion/status.js",
+      "sha256": "cd14934150a26b98ccd157a8bec50df687481dffd4b892f7011f9cbb449d2c15"
+    },
+    {
+      "source": "api/integrations/aliexpress.js",
+      "target": "api/integrations/aliexpress.js",
+      "sha256": "10e92f801035009f52bdfa606b918f6c05b6ac0504a5746d95128a43fa7e73c7"
+    },
+    {
+      "source": "api/jobs/aliexpress-review.js",
+      "target": "api/jobs/aliexpress-review.js",
+      "sha256": "320c1441c1e611971d437a04160af4aca2f1b709d92442ed5210ca6f5140c3a5"
+    },
+    {
+      "source": "api/jobs/aliexpress.js",
+      "target": "api/jobs/aliexpress.js",
+      "sha256": "d65a0f327f873ef2600588bacc6fcd6205ed1ad3c0912aef422fc14a678c3006"
+    },
+    {
+      "source": "api/jobs/autopilot.js",
+      "target": "api/jobs/autopilot.js",
+      "sha256": "c323a8d62654cf1f0e9628835351d2801f26eafeafe719bbe638020dbf242fbb"
+    },
+    {
+      "source": "api/jobs/ingestion.js",
+      "target": "api/jobs/ingestion.js",
+      "sha256": "2087237c22cecf21cfbaa5b8a0ab5d63bec2130a60040d9b979ca587773e372f"
+    },
+    {
+      "source": "api/jobs/telegram.js",
+      "target": "api/jobs/telegram.js",
+      "sha256": "587d0fe64be3ec1551d6ca46610df88ce213ab5e8e3b136f6bc3cffccfdc9d39"
+    },
+    {
+      "source": "api/r/[id].js",
+      "target": "api/r/[id].js",
+      "sha256": "31fdc70d2a940ca6214d9b99a4006b90f26ecd51b88e1c878d8931668cae8238"
+    },
+    {
+      "source": "docs/BANCO-DADOS-2026-11-08.md",
+      "target": "lib/documentation/BANCO-DADOS-2026-11-08.md",
+      "sha256": "3abb508d92d1c5f481da2caee29cc76dfe7d5100089082e1ce801a317c4c6abe"
+    },
+    {
+      "source": "docs/CHANGE-IMPACT-LOG.md",
+      "target": "lib/documentation/CHANGE-IMPACT-LOG.md",
+      "sha256": "c2af06862d2ec753027d525ec9aa307e7031c1afa281ae1a63fc1946fe41e526"
+    },
+    {
+      "source": "docs/CONTROLE-DE-MUDANCAS.md",
+      "target": "lib/documentation/CONTROLE-DE-MUDANCAS.md",
+      "sha256": "8e9dc27c0d368e20b190ffa9b468c97a86720342c4306e92fd163890bf3ec945"
+    },
+    {
+      "source": "docs/INDICE.md",
+      "target": "lib/documentation/INDICE.md",
+      "sha256": "d2ee18c4b4c1bf80a5b55ebc6c759554a686c63e6ce82ff184575e0f63ac696b"
+    },
+    {
+      "source": "docs/INTEGRACOES-IA-2026-11-08.md",
+      "target": "lib/documentation/INTEGRACOES-IA-2026-11-08.md",
+      "sha256": "662b178ea4ff1aa3b181a3836768c707b95c4811ecdc447d7db95ce15b8c9659"
+    },
+    {
+      "source": "docs/MATRIZ-TESTES-2026-11-08.md",
+      "target": "lib/documentation/MATRIZ-TESTES-2026-11-08.md",
+      "sha256": "f85bce8d5ef01ea0eaa4bf19976c1fa2a3d159a7f30510fa34f39086cf51099c"
+    },
+    {
+      "source": "docs/OPERACAO-2026-11-08.md",
+      "target": "lib/documentation/OPERACAO-2026-11-08.md",
+      "sha256": "2d848c4b5096e623ddf793d9a5ce78bc5e063436e717a8b5b3db64914ce22515"
+    },
+    {
+      "source": "docs/REGRA-MASTER-E-FLUXOS-PONTA-A-PONTA.md",
+      "target": "lib/documentation/REGRA-MASTER-E-FLUXOS-PONTA-A-PONTA.md",
+      "sha256": "fe9456cef4f282f2d615a961e2d535e583f4b018b7c5004c018bd4ad03a41db2"
+    },
+    {
+      "source": "docs/REMEDIACAO-AUDITORIA-2026-11-08.md",
+      "target": "lib/documentation/REMEDIACAO-AUDITORIA-2026-11-08.md",
+      "sha256": "d0e901d38f6293264b085d6dc0b5eb2eb6a00742a1043441b6e048d074e93c54"
+    },
+    {
+      "source": "docs/audit-evidence/2026-11-08/remediation-validation.json",
+      "target": "lib/documentation/audit-evidence/2026-11-08/remediation-validation.json",
+      "sha256": "aba43fc5eed2f0ac331708b3b554f19b85d1a17e3d710b979b6c796251c0aca4"
+    },
+    {
+      "source": "hatchable.toml",
+      "target": "hatchable.toml",
+      "sha256": "ffdf42bfb21a24633f95d47a7f0fd7ab3be57e3b2715b0b00e1da98aa09e2c1a"
+    },
+    {
+      "source": "lib/aliexpress-response.js",
+      "target": "lib/aliexpress-response.js",
+      "sha256": "20da8632167fd61332376f33cbcae41907ced3fabbbd79b4c16cbde8966347f0"
+    },
+    {
+      "source": "lib/autopilot.js",
+      "target": "lib/autopilot.js",
+      "sha256": "33eff2121a9122672088ea5f06647fafc619caa3c944191b9a4405fb57426475"
+    },
+    {
+      "source": "lib/backups.js",
+      "target": "lib/backups.js",
+      "sha256": "c2dcecb8920802c967b0e230a8732d5f75f37ab0ee5d07ae1abaeec2e840714b"
+    },
+    {
+      "source": "lib/delivery-retry.js",
+      "target": "lib/delivery-retry.js",
+      "sha256": "e2b126c393df69b27a83425894e257179cbf4472f6b426b1c116055bed1c2aad"
+    },
+    {
+      "source": "lib/delivery.js",
+      "target": "lib/delivery.js",
+      "sha256": "cf1e4577712b588a719927e7cbaf1d7a2feb5e2c6da72fb219e8795833aad486"
+    },
+    {
+      "source": "lib/ingestion.js",
+      "target": "lib/ingestion.js",
+      "sha256": "03bf1ef29cd4108b7126f7de72c3a8093284d7f0346d6895f1a62ecfd284547c"
+    },
+    {
+      "source": "lib/product-safety.js",
+      "target": "lib/product-safety.js",
+      "sha256": "ede09a8777930afd6029812f8b07f9c243026782c233dd629387a384155f41f9"
+    },
+    {
+      "source": "lib/social-autopilot.js",
+      "target": "lib/social-autopilot.js",
+      "sha256": "fd035580f9f2a28b1bf64fd139c4a0d32de011aaad4b60458989cc31ac1be7ba"
+    },
+    {
+      "source": "lib/telegram.js",
+      "target": "lib/telegram.js",
+      "sha256": "efef4c80f00f2a3f6909a5d04d99796cefd9bc9f77d458f444fa8946aa926b5e"
+    },
+    {
+      "source": "migrations/068_ingestion_batches.sql",
+      "target": "migrations/068_ingestion_batches.sql",
+      "sha256": "bc68691e8fbe06be1d0cb622c17a06d0f5bfc0a9c7008b2b34ffcc1b276e5ab8"
+    },
+    {
+      "source": "scripts/verify-backup.mjs",
+      "target": "lib/documentation/remediation-source/scripts/verify-backup.mjs.txt",
+      "sha256": "8e4cb1cc9f7079743cf4c4671b0b7cb89c6f8641a9a6ac9908240577af44ce96"
+    },
+    {
+      "source": "tests/affiliate-safety-contract.test.mjs",
+      "target": "lib/documentation/remediation-source/tests/affiliate-safety-contract.test.mjs.txt",
+      "sha256": "04b78e06e1b7c9c8522674e3cf808aa85c495d1757e840a1fe9a561d80a103b9"
+    },
+    {
+      "source": "tests/aliexpress-response.test.mjs",
+      "target": "lib/documentation/remediation-source/tests/aliexpress-response.test.mjs.txt",
+      "sha256": "27538ce318cd72e42fb43f785203e1cf54173222505085ad51080b4067841d0e"
+    },
+    {
+      "source": "tests/aliexpress-review.test.mjs",
+      "target": "lib/documentation/remediation-source/tests/aliexpress-review.test.mjs.txt",
+      "sha256": "b5fd4a8297d8fa336a61dffdd36d8619b95de6e472a782a839c3f5085427f143"
+    },
+    {
+      "source": "tests/automation.test.mjs",
+      "target": "lib/documentation/remediation-source/tests/automation.test.mjs.txt",
+      "sha256": "b11f0166388c316651b6d31d6e28dfab779d8802cb2bacf12b241b471576ba6a"
+    },
+    {
+      "source": "tests/delivery-retry.test.mjs",
+      "target": "lib/documentation/remediation-source/tests/delivery-retry.test.mjs.txt",
+      "sha256": "bd97f394df5817dbdf66d15e73f22fa848162707a53f16cc122b812958b65062"
+    },
+    {
+      "source": "tests/ingestion-batches.test.mjs",
+      "target": "lib/documentation/remediation-source/tests/ingestion-batches.test.mjs.txt",
+      "sha256": "9f1d3530056444dd0836cccb368e516ea0444f35c84f704373ee984f6bda936d"
+    },
+    {
+      "source": "tests/lomadee-catalog.test.js",
+      "target": "lib/documentation/remediation-source/tests/lomadee-catalog.test.js.txt",
+      "sha256": "88eab6dd018f085aa397abac27a6336f12074449bb3b6d7504a9dfe47569932f"
+    },
+    {
+      "source": "tests/medication-publication.test.mjs",
+      "target": "lib/documentation/remediation-source/tests/medication-publication.test.mjs.txt",
+      "sha256": "bac65f3d857ef36a8e3e29be09d8f516e06c9b26c6e01d2f07b25103791426e2"
+    },
+    {
+      "source": "tests/operations.test.mjs",
+      "target": "lib/documentation/remediation-source/tests/operations.test.mjs.txt",
+      "sha256": "4b3fe0d89bc6d32eaaa415792f71c97f039c6c95064fadf337dbb1fd60a7d398"
+    },
+    {
+      "source": "tests/production.test.mjs",
+      "target": "lib/documentation/remediation-source/tests/production.test.mjs.txt",
+      "sha256": "b5e50434ac6d1227a4a0b0e8af0820ca95633c3553a8513f776fba3e4dfde7ba"
+    },
+    {
+      "source": "docs/STATUS-REMEDIACAO-35-ITENS-2026-11-08.md",
+      "target": "lib/documentation/STATUS-REMEDIACAO-35-ITENS-2026-11-08.md",
+      "sha256": "84ebfde4849752389df198d7202bd6a9b1ae43203725e6d971c6306b871ba18d"
+    }
+  ],
+  "limitations": [
+    "No production migration applied",
+    "No live message sent",
+    "No secrets changed",
+    "Global audit release still rejected",
+    "Receipt and final narrative update are documentation-only following the verified code snapshot"
+  ]
+}
