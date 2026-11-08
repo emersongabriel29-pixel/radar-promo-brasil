@@ -18,22 +18,12 @@ export default async function(req, res) {
     SELECT DISTINCT o.account_id
     FROM offers o
     JOIN accounts a ON a.id=o.account_id AND a.status='ACTIVE'
-    WHERE o.status='APPROVED'
-      AND NULLIF(trim(o.affiliate_url),'') IS NOT NULL
-      AND (o.image_storage_key IS NOT NULL OR NULLIF(trim(o.image_url),'') IS NOT NULL)
-      AND EXISTS (
-        SELECT 1 FROM offer_price_history ph
-        WHERE ph.account_id=o.account_id AND ph.offer_id=o.id
-          AND ph.source_type='OFFICIAL_API' AND ph.verified_at IS NOT NULL
-          AND ph.verified_at>now()-interval '24 hours'
-          AND ph.price=o.current_price
-          AND ph.original_price IS NOT DISTINCT FROM o.original_price
-          AND ph.verified_at=(
-            SELECT max(ph2.verified_at) FROM offer_price_history ph2
-            WHERE ph2.account_id=ph.account_id AND ph2.offer_id=ph.offer_id
-              AND ph2.source_type='OFFICIAL_API'
-          )
-      )
+    WHERE o.status IN ('PENDING','NEEDS_REVIEW','READY','APPROVED')
+      AND NULLIF(trim(o.title),'') IS NOT NULL
+      AND o.current_price>0
+      AND COALESCE(o.validation_status,'') <> 'REJECTED'
+      AND NULLIF(trim(o.affiliate_url),'') LIKE 'https://%'
+      AND NOT EXISTS(SELECT 1 FROM publications p WHERE p.account_id=o.account_id AND p.offer_id=o.id)
     ORDER BY o.account_id
   `)).rows;
 
@@ -56,20 +46,9 @@ export default async function(req, res) {
         JOIN accounts a ON a.id=o.account_id AND a.status='ACTIVE'
         LEFT JOIN extension_autopublish_settings s ON s.account_id=o.account_id
         WHERE COALESCE(s.enabled,false)=true
-          AND o.imported_by='CHROME_EXTENSION' AND o.status='PENDING'
-          AND o.created_at>now()-interval '7 days'
-          AND EXISTS (
-            SELECT 1 FROM offer_price_history ph
-            WHERE ph.account_id=o.account_id AND ph.offer_id=o.id
-              AND ph.source_type='OFFICIAL_API' AND ph.verified_at>now()-interval '24 hours'
-              AND ph.price=o.current_price
-              AND ph.original_price IS NOT DISTINCT FROM o.original_price
-              AND ph.verified_at=(
-                SELECT max(ph2.verified_at) FROM offer_price_history ph2
-                WHERE ph2.account_id=ph.account_id AND ph2.offer_id=ph.offer_id
-                  AND ph2.source_type='OFFICIAL_API'
-              )
-          )
+          AND o.imported_by='CHROME_EXTENSION' AND o.status='PENDING' AND COALESCE(o.validation_status,'') <> 'REJECTED'
+          AND NULLIF(trim(o.title),'') IS NOT NULL AND o.current_price>0
+          AND NULLIF(trim(o.affiliate_url),'') LIKE 'https://%'
       ) AS pending
     `)).rows[0]?.pending === true;
 
