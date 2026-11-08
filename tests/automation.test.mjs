@@ -47,7 +47,8 @@ test('fingerprint deduplica identidade estável, separa origem e vendedor',async
   assert.equal(await fingerprint(stable),await fingerprint({...stable}));
   assert.notEqual(await fingerprint(stable),await fingerprint({...stable,source:'Amazon'}));
   assert.notEqual(await fingerprint(stable),await fingerprint({...stable,sellerId:'seller-2'}));
-  assert.equal(await fingerprint(valid),await fingerprint({...valid}));\n  assert.notEqual(await fingerprint(valid),await fingerprint({...valid,affiliateUrl:'https://mercadolivre.com.br/another-item?tag=other'}));
+  assert.equal(await fingerprint(valid),await fingerprint({...valid}));
+  assert.notEqual(await fingerprint(valid),await fingerprint({...valid,affiliateUrl:'https://mercadolivre.com.br/another-item?tag=other'}));
 });
 
 test('valida formato do token do Telegram sem armazená-lo em claro',()=>{
