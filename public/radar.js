@@ -315,18 +315,18 @@ function offerRow(o) {
     (o.status === "APPROVED" ? "live" : "") +
     '">' +
     (LABEL[o.status] || o.status) +
-    '</span></div><div class="price">' +
+    '</span>' + (o.classificationStatus === 'REVIEW' ? ' <span class="pill warn">Classificação pendente</span>' : '') + '</div><div class="price">' +
     brl(o.currentPrice) +
     (o.originalPrice
       ? ' <del class="muted">' + brl(o.originalPrice) + "</del>"
       : "") +
     (o.discountPercent ? " · " + o.discountPercent + "% OFF" : "") +
     '</div></div><div class="actions">' +
-    (o.status === "PENDING"
-      ? "<button class=\"btn green\" data-action=\"status('offer','" +
-        o.id +
-        "','APPROVED')\">Aprovar</button>"
-      : "") +
+    (o.classificationStatus === 'REVIEW' && ["PENDING", "APPROVED"].includes(o.status)
+      ? "<button class=\"btn green\" data-action=\"reviewOffer('" + o.id + "')\">" + (o.status === "APPROVED" ? "Revisar e liberar fila" : "Classificar e aprovar") + "</button>"
+      : o.status === "PENDING"
+        ? "<button class=\"btn green\" data-action=\"status('offer','" + o.id + "','APPROVED')\">Aprovar</button>"
+        : "") +
     '<button class="btn dark" data-action="prepare(\'' +
     o.id +
     "')\">Preparar envio</button><button class=\"btn danger\" data-action=\"removeItem('offer','" +
@@ -4045,6 +4045,26 @@ async function status(entity, id, value) {
   } catch (e) {
     toast(e.message);
   }
+}
+async function reviewOffer(id) {
+  var offer = off(id);
+  if (!offer) return;
+  var queued = D.publications.filter(function (p) { return p.offerId === id && ["READY", "RETRY"].includes(p.status); }).length;
+  var options = D.categories.map(function (c) { return '<option value="' + esc(c.id) + '" ' + (c.id === offer.categoryId ? 'selected' : '') + '>' + esc(c.name) + '</option>'; }).join('');
+  var warning = queued
+    ? '<div class="callout"><b>Atenção:</b> existem ' + queued + ' publicações prontas ou em nova tentativa para esta oferta. Ao confirmar a categoria e aprovar, elas poderão seguir pela fila, respeitando os horários e limites configurados.</div>'
+    : '<div class="callout">A oferta só poderá entrar no fluxo automático depois desta revisão e da validação comercial.</div>';
+  openModal('Revisar classificação', 'Confirme a categoria real do produto antes de liberar a oferta.', select('Categoria correta', 'categoryId', options) + warning, async function (event) {
+    event.preventDefault();
+    var categoryId = String(new FormData(event.target).get('categoryId') || '').trim();
+    if (!categoryId) return toast('Escolha uma categoria.');
+    try {
+      await call('PUT', { entity: 'offer', id: id, status: 'APPROVED', categoryId: categoryId });
+      closeModal();
+      show('offers');
+      toast('Classificação manual salva e oferta aprovada.');
+    } catch (error) { toast(error.message || 'Não foi possível revisar a oferta.'); }
+  });
 }
 async function removeItem(entity, id) {
   if (!confirm("Deseja realmente excluir?")) return;
