@@ -4,7 +4,6 @@ import { persistDiscoveryPage } from 'lib/affiliate-discovery.js';
 import { normalizeShopeeDatafeedId } from 'lib/shopee-feed.js';
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
-import { isMedicationProduct } from 'lib/product-safety.js';
 // API catalog items are not filtered by product category.
 import { formatPromo } from 'lib/promo-message.js';
 
@@ -222,31 +221,30 @@ export default async function handler(req, res) {
         try { const parsed=new URL(productUrl); if(parsed.protocol==='https:') productHost=parsed.hostname.toLowerCase(); } catch {}
         try { const parsed=new URL(affiliateUrl); if(parsed.protocol==='https:') affiliateHost=parsed.hostname.toLowerCase(); } catch {}
         let reason='';
-        if(isMedicationProduct({title,productUrl})) reason='Medicamentos e produtos farmacêuticos são bloqueados pela política do Radar.';
-        else if(!title||!item.itemId) reason='Produto sem título ou identificador.';
+        if(!title||!item.itemId) reason='Produto sem título ou identificador.';
         else if(!(productHost==='shopee.com.br'||productHost.endsWith('.shopee.com.br'))) reason='Link original não pertence à Shopee Brasil.';
         else if(!(affiliateHost==='shope.ee'||affiliateHost.endsWith('.shopee.com.br'))) reason='Link de afiliado Shopee ausente ou inválido.';
-        else if(!/^https:\/\//i.test(imageUrl)) reason='Imagem ausente.';
-        else if(!Number.isSafeInteger(currentPrice)||currentPrice<=0||!Number.isSafeInteger(originalPrice)||originalPrice<=currentPrice) reason='Preço ou desconto verificável ausente.';
+        else if(!Number.isSafeInteger(currentPrice)||currentPrice<=0) reason='Preço atual ausente ou inválido.';
         // No internal category exclusion.
         if(reason){skipped.push({itemId:item.itemId,title,reason});continue;}
         const classification=classifyProduct({title});
         const category=categories.find(x=>x.name.toLowerCase()===String(classification.category||'').toLowerCase())||categories.find(x=>x.name.toLowerCase().includes('gerais'))||null;
-        const fp=await fingerprint({source:'SHOPEE',externalId:item.itemId,productUrl,title,sellerId:item.shopId||item.merchantId||'',sellerName:item.shopName||'',currentPrice,originalPrice,variant:item.modelId||item.modelName||''});
-        const discount=Math.round((originalPrice-currentPrice)*100/originalPrice);
-        const score=offerScore({title,currentPrice,originalPrice});
-        const promo=formatPromo({title,source:'SHOPEE',category:classification.category,currentPrice,originalPrice,affiliateUrl,imageUrl,productUrl});
+        const fp=await fingerprint({source:'SHOPEE',externalId:item.itemId,productUrl,title,sellerId:item.shopId||item.merchantId||'',sellerName:item.shopName||'',currentPrice,originalPrice:Number.isSafeInteger(originalPrice)&&originalPrice>currentPrice?originalPrice:currentPrice,variant:item.modelId||item.modelName||''});
+        const normalizedOriginalPrice=Number.isSafeInteger(originalPrice)&&originalPrice>currentPrice?originalPrice:currentPrice;
+        const discount=normalizedOriginalPrice>currentPrice?Math.round((normalizedOriginalPrice-currentPrice)*100/normalizedOriginalPrice):0;
+        const score=offerScore({title,currentPrice,originalPrice:normalizedOriginalPrice});
+        const promo=formatPromo({title,source:'SHOPEE',category:classification.category,currentPrice,originalPrice:normalizedOriginalPrice,affiliateUrl,imageUrl,productUrl});
         const savedOffer=await db.query(
           "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,subcategory,classification_tags,classification_confidence,classification_status,classification_reason,source_category) VALUES($1,$2,$3,'SHOPEE',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'VALIDATED','SHOPEE_AFFILIATE_API',false,$14,$15::jsonb,$16,'REVIEW','Imported as draft; human review required',NULL) ON CONFLICT DO NOTHING RETURNING id",
-          [crypto.randomUUID(),account.id,title,originalPrice,currentPrice,category?.id||null,affiliateUrl,imageUrl,productUrl,discount,score,promo.message,fp,classification.subcategory||null,JSON.stringify(classification.tags||[]),classification.confidence||0]
+          [crypto.randomUUID(),account.id,title,normalizedOriginalPrice,currentPrice,category?.id||null,affiliateUrl,imageUrl||null,productUrl,discount,score,promo.message,fp,classification.subcategory||null,JSON.stringify(classification.tags||[]),classification.confidence||0]
         );
         if(!savedOffer.rows.length){skipped.push({itemId:item.itemId,title,reason:'Produto duplicado.'});continue;}
         const offerId=savedOffer.rows[0].id;
-        await db.query("INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,$4,$5,'OFFICIAL_API',$6,now())",[crypto.randomUUID(),account.id,offerId,currentPrice,originalPrice,'SHOPEE:'+item.itemId]);
-        imported.push({offerId,itemId:item.itemId,title,currentPrice:currentPrice/100,originalPrice:originalPrice/100,discountPercent:discount,status:'PENDING_REVIEW',priceVerified:true});
+        await db.query("INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,$4,$5,'OFFICIAL_API',$6,now())",[crypto.randomUUID(),account.id,offerId,currentPrice,normalizedOriginalPrice,'SHOPEE:'+item.itemId]);
+        imported.push({offerId,itemId:item.itemId,title,currentPrice:currentPrice/100,originalPrice:normalizedOriginalPrice/100,discountPercent:discount,status:'READY_FOR_FLOW',priceVerified:true});
       }
       await db.query("UPDATE marketplace_api_credentials SET status='VALIDATED',last_checked_at=now(),last_error='',updated_at=now() WHERE account_id=$1 AND marketplace='SHOPEE'",[account.id]);
-      return res.json({ok:true,action:'import_offers',imported:imported.length,skipped:skipped.length,items:imported,skippedItems:skipped,reviewRequired:true,autopilotTriggered:false,publicationTriggered:false,note:'Ofertas Shopee importadas como rascunhos com preço oficial e link de afiliado. A publicação depende de aprovação humana e das regras do canal.'});
+      return res.json({ok:true,action:'import_offers',imported:imported.length,skipped:skipped.length,items:imported,skippedItems:skipped,reviewRequired:false,autopilotTriggered:false,publicationTriggered:false,note:'Ofertas Shopee importadas com preço e link afiliado. Comissão, avaliação e imagem são sinais opcionais; o autopilot processa em lotes.'});
     }
     if (action === 'category_catalog') {
       const page = Math.min(1000, Math.max(1, Math.floor(Number(req.body?.page) || 1)));
