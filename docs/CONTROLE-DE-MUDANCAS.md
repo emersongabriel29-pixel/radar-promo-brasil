@@ -98,3 +98,6 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 
 
 | 2026-11-08 | Cadência compatível com Free e wake-up central sem one-shot por produto | Autopilot cron horário, extensão minuto 50, Telegram cron horário + wake-up por lote; batch Telegram 12 | Dry-run aceitou cron horário e rejeita <1h no plano Free; scheduler DB interval=5/batch=12 confirmado | commits da configuração v661 no GitHub main | draft para v661 | Frequência limitada pelo plano Free; WhatsApp sem conexão e destinos ativos |
+
+
+| 2026-11-08 | Reconciliação de 26 falsos duplicados e migração gradual de 2.329 publicações legacy | Migration 067, canonical_offer_id, status DUPLICATE_MERGED, restauração de 9 variantes e promoção Master por lote no Telegram | Consulta read-only confirmou 17 duplicatas exatas com canônico e 9 variantes únicas; 0 publicações nas duplicatas; 0 validation REJECTED após transação; dry-run sem erros/avisos | commit 1853074480a9e4e4e79b23f9f75734c4dfc2b4c8 e migration 067 | draft para v663 | Aguardando deploy v663; dispatch automático depende do cron/one-shot e conexão Telegram ativa |
