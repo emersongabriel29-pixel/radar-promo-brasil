@@ -34,15 +34,12 @@ function normalizeProduct(row) {
   const classification = classifyLomadeeProduct(raw);
   let status = 'READY_FOR_LINK';
   let reason = '';
-  if (classification.blocked) {
-    status = 'BLOCKED_SAFETY';
-    reason = 'Produto bloqueado pela política de medicamentos.';
-  } else if (raw.available === false || option.available === false || row.available === false) {
+  if (raw.available === false || option.available === false || row.available === false) {
     status = 'UNAVAILABLE';
     reason = 'Produto indisponível na origem.';
-  } else if (!title || !currentPrice || !directImageUrl(image) || !/^https:\/\//i.test(productUrl)) {
+  } else if (!title || !currentPrice || !/^https:\/\//i.test(productUrl)) {
     status = 'NEEDS_DATA';
-    reason = 'Faltam título, preço válido, imagem HTTPS ou URL do produto.';
+    reason = 'Faltam título, preço válido ou URL HTTPS do produto.';
   }
   return {
     id: row.id,
@@ -63,6 +60,7 @@ export default async function handler(req, res) {
     WHERE marketplace='LOMADEE' AND kind='PRODUCT'
       AND processing_status='PROCESSING' AND last_seen_at<now()-interval '10 minutes'
   `);
+  await db.query(`UPDATE affiliate_discovery_items SET processing_status='DISCOVERED',processing_error='MASTER_RULE_REPROCESS',last_seen_at=now() WHERE marketplace='LOMADEE' AND kind='PRODUCT' AND (processing_status='BLOCKED_SAFETY' OR (processing_status='NEEDS_DATA' AND NULLIF(trim(title),'') IS NOT NULL AND price_cents>0 AND product_url LIKE 'https://%'))`);
   const claimed = await db.query(`
     WITH batch AS (
       SELECT id FROM affiliate_discovery_items
