@@ -52,6 +52,11 @@ test('rejeição explícita de integridade/duplicidade aguarda reconciliação s
   assert.equal(canEnterOfferFlow({ ...base, validation_status: 'REJECTED' }).reason, 'DUPLICATE_OR_DATA_INTEGRITY_RECONCILIATION_REQUIRED');
 });
 
+test('restrição oficial de um provedor é isolada e não vira filtro global por +18', () => {
+  assert.equal(canEnterOfferFlow({ ...base, title: 'Produto adulto +18', source: 'SHOPEE' }).eligible, true);
+  assert.equal(canEnterOfferFlow({ ...base, status: 'PROVIDER_RESTRICTED' }).reason, 'EXTERNAL_PROVIDER_POLICY_RESTRICTION');
+});
+
 test('publicações novas usam política Master versionada sem gates de classificação ou histórico', () => {
   assert.match(eligiblePublication, /eligibility_policy_version='master_v1'/);
   assert.match(eligiblePublication, /verified_offer\.current_price>0/);
