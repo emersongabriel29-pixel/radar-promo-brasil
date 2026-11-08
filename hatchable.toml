@@ -51,6 +51,29 @@ name = "YOUTUBE_CLIENT_SECRET"
 required = false
 description = "OAuth Client Secret do projeto Google Cloud para conectar o canal do YouTube."
 
+[[config]]
+name = "RADAR_AI_PROVIDER"
+required = false
+default = "gemini"
+description = "Provedor principal de texto e análise: gemini ou ollama. O padrão permanece Gemini até a configuração e validação do servidor Ollama."
+
+[[config]]
+name = "OLLAMA_BASE_URL"
+required = false
+default = ""
+description = "URL HTTPS pública do proxy autenticado do servidor Ollama, sem credenciais ou token na URL."
+
+[[config]]
+name = "OLLAMA_MODEL"
+required = false
+default = ""
+description = "Nome exato do modelo já instalado no servidor Ollama, incluindo tag quando aplicável."
+
+[[secret]]
+name = "OLLAMA_API_KEY"
+required = false
+description = "Token Bearer do proxy HTTPS que protege o servidor Ollama. Nunca exponha no navegador ou GitHub."
+
 [[secret]]
 name = "GEMINI_API_KEY"
 required = false
