@@ -101,3 +101,6 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 
 
 | 2026-11-08 | Reconciliação de 26 falsos duplicados e migração gradual de 2.329 publicações legacy | Migration 067, canonical_offer_id, status DUPLICATE_MERGED, restauração de 9 variantes e promoção Master por lote no Telegram | Consulta read-only confirmou 17 duplicatas exatas com canônico e 9 variantes únicas; 0 publicações nas duplicatas; 0 validation REJECTED após transação; dry-run sem erros/avisos | commit 1853074480a9e4e4e79b23f9f75734c4dfc2b4c8 e migration 067 | draft para v663 | Aguardando deploy v663; dispatch automático depende do cron/one-shot e conexão Telegram ativa |
+
+
+| 2026-11-08 | Aumento do lote técnico do autopilot para 200 e dispatcher Telegram para 14 | lib/autopilot, cache de imagem, worker WhatsApp, settings de publicação | Dry-run anterior sem erros/avisos; configuração DB batch=14/interval=5 confirmada; sem alteração de filtro de elegibilidade | commits 04dae24a, fc1a1059, 7551724f | draft para v664 | Próximo deploy; homologação de WhatsApp bloqueada por ausência de conexão |
