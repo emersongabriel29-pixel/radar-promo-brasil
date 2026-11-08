@@ -220,19 +220,19 @@ schedule = "45 * * * *"
 
 [[cron]]
 path = "/api/jobs/telegram"
-schedule = "*/5 * * * *"
+schedule = "0 * * * *"
 
-# Telegram dispatch drains bounded batches every 5 minutes; it does not create one-shot runs.
+# Telegram dispatch uses the Free-plan hourly cron plus one central batch wake-up; never one-shot per offer.
 
 # WhatsApp channel publishing remains disabled pending explicit authorization.
 
 [[cron]]
 path = "/api/jobs/autopilot"
-schedule = "*/15 * * * *"
+schedule = "5 * * * *"
 
 [[cron]]
 path = "/api/jobs/extension-autopublish"
-schedule = "*/15 * * * *"
+schedule = "50 * * * *"
 
 [[cron]]
 path = "/api/jobs/social"
