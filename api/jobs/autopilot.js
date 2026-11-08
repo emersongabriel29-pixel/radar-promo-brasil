@@ -12,8 +12,8 @@ export default async function(req, res) {
     blockedMedication: 0, blockedDuplicate: 0, failed: 0
   };
 
-  // Only wake accounts that have an approved offer with a fresh official price.
-  // This avoids rescoring every historical offer on every hourly tick.
+  // Wake accounts with technically complete offers that have not entered a publication queue.
+  // A bounded batch keeps each invocation inside the hosting execution budget; commercial signals never exclude products.
   const accounts = (await db.query(`
     SELECT DISTINCT o.account_id
     FROM offers o
@@ -37,7 +37,7 @@ export default async function(req, res) {
     }
   }
 
-  // Extension approval runs only when there is a verified pending import to process.
+  // Extension imports enter the same Master flow when their factual fields are present.
   let extensionAutopublish = { ok: true, scanned: 0, approved: 0, queued: 0, blocked: 0, failed: 0, skipped: true };
   if (!dryRun) {
     const pendingExtension = (await db.query(`
