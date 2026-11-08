@@ -95,3 +95,6 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 
 
 | 2026-11-08 | Cadência contínua sem one-shot no fluxo de ofertas | Autopilot 15 min, extensão 15 min, Telegram 5 min, lote Telegram 10, mídia 2,5s | Dry-run de deploy sem erros/avisos; configuração DB interval=5/batch=10 confirmada; nenhum worker de envio acionado manualmente | commits f8f881c, cc32df4, 7e05e80, 79911ba, 926b25b, 6614dc3, f45489e, d28cc59 | draft para v661 | WhatsApp externo sem conexão/destinos; APIs externas ainda não homologadas ponta a ponta |
+
+
+| 2026-11-08 | Cadência compatível com Free e wake-up central sem one-shot por produto | Autopilot cron horário, extensão minuto 50, Telegram cron horário + wake-up por lote; batch Telegram 12 | Dry-run aceitou cron horário e rejeita <1h no plano Free; scheduler DB interval=5/batch=12 confirmado | commits da configuração v661 no GitHub main | draft para v661 | Frequência limitada pelo plano Free; WhatsApp sem conexão e destinos ativos |
