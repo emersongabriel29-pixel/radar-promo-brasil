@@ -134,6 +134,16 @@ export default async function(req,res){
       const item=txt(b.id,100),status=txt(b.status,20),table={offer:'offers',group:'promo_groups',publication:'publications',monitor:'monitors',queue:'queues',schedule:'schedules'}[entity];
       if(!table||!allowed[entity]?.includes(status))return res.status(400).json({error:'Status ou ação inválida.'});
       if(entity==='schedule'){const changed=await setScheduleStatus(a.id,item,status);return res.json({ok:true,...changed});}
+      if(entity==='offer'&&status==='APPROVED'){
+        const currentOffer=(await db.query('SELECT classification_status FROM offers WHERE id=$1 AND account_id=$2',[item,a.id])).rows[0];
+        if(!currentOffer)return res.status(404).json({error:'Oferta não encontrada.'});
+        const selectedCategory=txt(b.categoryId,80);
+        if(String(currentOffer.classification_status||'').toUpperCase()==='REVIEW'&&!selectedCategory)return res.status(412).json({error:'A classificação exige revisão. Escolha a categoria correta antes de aprovar.'});
+        if(selectedCategory){
+          if(!(await categoryOk(selectedCategory,a.id)))return res.status(400).json({error:'Categoria inválida.'});
+          await db.query("UPDATE offers SET category_id=$1,classification_status='MANUAL',classification_confidence=1,classification_reason='manual_category_override',updated_at=now() WHERE id=$2 AND account_id=$3",[selectedCategory,item,a.id]);
+        }
+      }
       if(entity==='publication'){
         if(status==='PUBLISHED')return res.status(412).json({error:'A entrega precisa ser confirmada pelo conector oficial.'});
         const current=(await db.query('SELECT status FROM publications WHERE id=$1 AND account_id=$2',[item,a.id])).rows[0];
