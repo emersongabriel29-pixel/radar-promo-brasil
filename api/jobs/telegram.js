@@ -60,9 +60,6 @@ async function processAccount(accountId, settings) {
       AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now())
       AND g.status='ACTIVE' AND g.platform='TELEGRAM'
       AND NULLIF(trim(g.external_id),'') IS NOT NULL
-      AND (p.content_type='MESSAGE' OR p.image_storage_key IS NOT NULL OR o.image_storage_key IS NOT NULL OR o.image_url IS NOT NULL
-        OR lower(split_part(p.image_url,'?',1)) LIKE ANY (ARRAY['%.jpg','%.jpeg','%.png','%.webp','%.gif','%.avif','%.bmp'])
-        OR lower(p.image_url) LIKE 'https://cf.shopee.com.br/file/%')
       AND ${eligiblePublication}
         AND COALESCE(upper(o.source),CASE WHEN p.content_type='MESSAGE' THEN 'MANUAL' END) IS NOT NULL
   `,[accountId])).rows;
@@ -103,9 +100,6 @@ async function processAccount(accountId, settings) {
         AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now())
         AND g.status='ACTIVE' AND g.platform='TELEGRAM'
         AND NULLIF(trim(g.external_id),'') IS NOT NULL
-        AND (p.content_type='MESSAGE' OR p.image_storage_key IS NOT NULL OR o.image_storage_key IS NOT NULL OR o.image_url IS NOT NULL
-          OR lower(split_part(p.image_url,'?',1)) LIKE ANY (ARRAY['%.jpg','%.jpeg','%.png','%.webp','%.gif','%.avif','%.bmp'])
-          OR lower(p.image_url) LIKE 'https://cf.shopee.com.br/file/%')
         AND ${eligiblePublication} AND COALESCE(upper(o.source),CASE WHEN p.content_type='MESSAGE' THEN 'MANUAL' ELSE '' END)=$2
         AND (upper(COALESCE(o.source,''))<>'ALIEXPRESS' OR NOT EXISTS (
           SELECT 1 FROM publications recent
@@ -168,7 +162,8 @@ async function processAccount(accountId, settings) {
           if(item.shopeeOfficialShop===true)signals.unshift('🏬 Loja oficial');
           if(signals.length)message=message.replace(/\n\nℹ️/, '\n\n'+signals.join('  |  ')+'\n\nℹ️');
         }
-        const imageUrl=item.contentType==='MESSAGE'?null:await cacheOfferImage({...item,imageUrl:item.imageUrl},db);
+        const hasImage=Boolean(item.imageStorageKey||item.imageUrl);
+        const imageUrl=item.contentType==='MESSAGE'||!hasImage?null:await cacheOfferImage({...item,imageUrl:item.imageUrl},db);
         const external=await sendTelegramOffer(token,{...item,imageUrl,message,affiliateUrl:affiliate});
         providerAccepted=true;
         await runQuery('markPublished', "UPDATE publications SET status='PUBLISHED',published_at=now(),error_message=NULL,telegram_connection_id=$3,external_message_id=$4,dispatch_token=NULL WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$5",[item.id,accountId,connection.id,String(external?.message_id||''),item.dispatchToken]);
