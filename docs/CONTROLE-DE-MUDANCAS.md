@@ -86,3 +86,6 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 
 
 | 2026-11-08 | Ajustes finais da política Master v1: restrição externa AliExpress isolada, Shopee incompletos recuperáveis, helper e testes ampliados | Elegibilidade e retomada de descoberta | Dry-run Hatchable 0 erros/avisos; 4.036 ofertas elegíveis sem publicação identificadas em consulta read-only; nenhum worker ou envio manual acionado | commits finais em GitHub main; consultar histórico | draft para v659 | Pronto para deploy documental/funcional; testes npm e homologação externa ainda não executados |
+
+
+| 2026-11-08 | Fallback de publicação textual sem imagem | Dispatchers Telegram e Canal do WhatsApp, entrega Master | Dry-run de deploy sem erros/avisos; nenhum dispatcher acionado manualmente | commits 9016ef3, 64dbf37, ba838c5 | draft para v659 | Código preparado; homologação real de canal pendente |
