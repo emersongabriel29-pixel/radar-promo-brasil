@@ -44,12 +44,49 @@ async function claimBatch(accountId, ids) {
 }
 
 async function processAccount(accountId, settings) {
-  const result = { accountId, claimedTurn: true, source: null, processed: 0, published: 0, failed: 0, unconfirmed: 0, skipped: 0 };
+  const result = { accountId, claimedTurn: true, source: null, processed: 0, published: 0, failed: 0, unconfirmed: 0, skipped: 0, legacyPromoted: 0 };
   const runQuery = async (stage, sql, params) => {
     try { return await db.query(sql, params); }
     catch (error) { if (error && typeof error === 'object') error.schedulerStage = stage; throw error; }
   };
   const config = settings.source_config && typeof settings.source_config === 'object' ? settings.source_config : {};
+  const legacyPromotion = await runQuery('promoteLegacyReady', `
+    WITH candidates AS (
+      SELECT p.id,p.offer_id
+      FROM publications p
+      JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id
+      JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id AND g.status='ACTIVE' AND g.platform='TELEGRAM' AND NULLIF(trim(g.external_id),'') IS NOT NULL
+      WHERE p.account_id=$1 AND p.status='READY'
+        AND COALESCE(p.eligibility_policy_version,'legacy')='legacy'
+        AND p.content_type='PROMOTION'
+        AND p.attempts<5
+        AND o.status IN ('PENDING','NEEDS_REVIEW','READY','APPROVED','PUBLISHED')
+        AND COALESCE(o.validation_status,'')<>'REJECTED'
+        AND NULLIF(trim(o.title),'') IS NOT NULL
+        AND o.current_price>0
+        AND NULLIF(trim(o.affiliate_url),'') LIKE 'https://%'
+        AND EXISTS(SELECT 1 FROM telegram_connections tc WHERE tc.account_id=p.account_id AND tc.status='ACTIVE')
+      ORDER BY p.priority DESC,p.created_at ASC
+      LIMIT $2
+      FOR UPDATE OF p SKIP LOCKED
+    ), promoted AS (
+      UPDATE publications p
+      SET eligibility_policy_version='master_v1'
+      FROM candidates c
+      WHERE p.id=c.id
+      RETURNING p.offer_id
+    ), offers_ready AS (
+      UPDATE offers o
+      SET status='READY',updated_at=now()
+      FROM promoted p
+      WHERE o.id=p.offer_id AND o.account_id=$1
+        AND o.status IN ('PENDING','NEEDS_REVIEW','APPROVED')
+      RETURNING o.id
+    )
+    SELECT (SELECT count(*)::int FROM promoted) AS promoted_publications,
+           (SELECT count(*)::int FROM offers_ready) AS offers_ready
+  `,[accountId,Math.max(1,Math.min(50,Number(settings.batch_size)||12))]);
+  result.legacyPromoted = Number(legacyPromotion.rows[0]?.promoted_publications||0);
   const configuredOrder = asArray(settings.source_order).map(x=>clean(x,60).toUpperCase()).filter(Boolean);
   const availableRows = (await runQuery('availableRows', `
     SELECT DISTINCT COALESCE(upper(o.source),CASE WHEN p.content_type='MESSAGE' THEN 'MANUAL' END) AS source
@@ -211,7 +248,7 @@ async function processAccount(accountId, settings) {
 }
 
 export default async function handler(req,res) {
-  const totals={accounts:0,turns:0,processed:0,published:0,failed:0,unconfirmed:0,skipped:0,results:[]};
+  const totals={accounts:0,turns:0,processed:0,published:0,failed:0,unconfirmed:0,skipped:0,legacyPromoted:0,results:[]};
   try {
     await db.query(`
       INSERT INTO publication_scheduler_settings(account_id)
@@ -233,7 +270,7 @@ export default async function handler(req,res) {
       totals.turns++;
       try{
         const result=await processAccount(row.account_id,claimed);
-        totals.accounts++;totals.processed+=result.processed;totals.published+=result.published;totals.failed+=result.failed;totals.unconfirmed+=result.unconfirmed;totals.skipped+=result.skipped;
+        totals.accounts++;totals.processed+=result.processed;totals.published+=result.published;totals.failed+=result.failed;totals.unconfirmed+=result.unconfirmed;totals.skipped+=result.skipped;totals.legacyPromoted+=result.legacyPromoted;
         totals.results.push(result);
       }catch(error){
         totals.failed++;
