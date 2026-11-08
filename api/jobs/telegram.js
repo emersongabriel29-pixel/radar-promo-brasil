@@ -88,7 +88,7 @@ async function processAccount(accountId, settings) {
         o.title AS "offerTitle",o.source,o.current_price AS "currentPrice",o.original_price AS "originalPrice",
         o.affiliate_url AS "affiliateUrl",o.coupon_code AS "couponCode",o.coupon_url AS "couponUrl",
         c.name AS "category",g.external_id AS "groupExternalId",
-        d.sales_count AS "shopeeSales",d.rating AS "shopeeRating",(d.raw_data->>'isOfficialShop'='true') AS "shopeeOfficialShop"
+        d.sales_count AS "shopeeSales",d.rating AS "shopeeRating",d.raw_data AS "promoMetadata",(d.raw_data->>'isOfficialShop'='true') AS "shopeeOfficialShop"
       FROM publications p
       LEFT JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id
       LEFT JOIN categories c ON c.id=o.category_id AND c.account_id=o.account_id
@@ -97,7 +97,7 @@ async function processAccount(accountId, settings) {
         WHERE account_id=o.account_id AND kind='PRODUCT'
           AND offer_id=o.id
         ORDER BY last_seen_at DESC LIMIT 1
-      ) d ON upper(o.source)='SHOPEE'
+      ) d ON true
       JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id
       WHERE p.account_id=$1 AND p.status IN ('READY','RETRY')
         AND (p.next_attempt_at IS NULL OR p.next_attempt_at<=now())
@@ -160,7 +160,7 @@ async function processAccount(accountId, settings) {
         const couponUrl=String(item.couponUrl||'').trim();
         let message=item.contentType==='MESSAGE'
           ? (item.couponCode&&couponUrl&&!baseMessage.includes(couponUrl)?baseMessage+String.fromCharCode(10,10)+'🎟️ Resgate o cupom aqui: '+couponUrl:baseMessage)
-          : formatPromo({title:item.offerTitle,source:item.source,category:item.category,currentPrice:Number(item.currentPrice)||0,originalPrice:Number(item.originalPrice)||0,affiliateUrl:affiliate,couponCode:item.couponCode,couponUrl}).message;
+          : formatPromo({title:item.offerTitle,source:item.source,category:item.category,currentPrice:Number(item.currentPrice)||0,originalPrice:Number(item.originalPrice)||0,affiliateUrl:affiliate,couponCode:item.couponCode,couponUrl,promoMetadata:item.promoMetadata}).message;
         if(item.contentType!=='MESSAGE'&&String(item.source||'').toUpperCase()==='SHOPEE'){
           const signals=[];
           if(item.shopeeSales!==null&&item.shopeeSales!==undefined&&Number.isFinite(Number(item.shopeeSales)))signals.push('🔥 '+Number(item.shopeeSales).toLocaleString('pt-BR')+' vendidos');

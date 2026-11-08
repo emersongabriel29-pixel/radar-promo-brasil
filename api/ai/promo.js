@@ -22,10 +22,10 @@ export default async function(req, res) {
   if (!title || !Number.isFinite(amount) || amount<=0 || !link) return res.status(400).json({ error: 'Informe produto, preço e link.' });
   if(!httpsUrl(link)||b.couponUrl&&!httpsUrl(b.couponUrl))return res.status(400).json({error:'Use links HTTPS válidos.'});
   const originalAmount=Number(String(b.originalPrice||'').replace(/[^0-9,.-]/g,'').replace(',','.'))||0,category=categoryHint(title,store);
-  const base=(shortTitle=title)=>formatPromo({title,shortTitle,source:store,category,currentPrice:Math.round(amount*100),originalPrice:Math.round(originalAmount*100),affiliateUrl:link,couponCode:b.couponCode,couponUrl:b.couponUrl,template:b.template});
+  const base=(shortTitle=title)=>formatPromo({title,shortTitle,source:store,category,currentPrice:Math.round(amount*100),originalPrice:Math.round(originalAmount*100),affiliateUrl:link,couponCode:b.couponCode,couponUrl:b.couponUrl,template:b.template,promoMetadata:b.promoMetadata});
   const compose=shortTitle=>base(shortTitle||title);
   const cooldown=await checkGeminiCooldown();
-  if(cooldown){const fallback=compose(title);return res.json({message:fallback.message,shortTitle:fallback.shortTitle,template:fallback.template,discountPercent:fallback.discountPercent,category,aiUsed:false,validated:true,notice:'Gemini em pausa temporária; foi aplicado o texto automático seguro.'});}
+  if(cooldown){const fallback=compose(title);return res.json({message:fallback.message,shortTitle:fallback.shortTitle,template:fallback.template,discountPercent:fallback.discountPercent,promoType:fallback.promoType,promoConfidence:fallback.promoConfidence,promoEvidence:fallback.promoEvidence,category,aiUsed:false,validated:true,notice:'Gemini em pausa temporária; foi aplicado o texto automático seguro.'});}
   try {
     const aiInput = {
       purpose: 'affiliate-promo-copy',
@@ -39,16 +39,16 @@ export default async function(req, res) {
     // Uma única tentativa por solicitação; em falha ou truncamento usamos o texto seguro local.
     if (result.finishReason === 'length' || !String(result.text || '').trim()) {
       const fallback=compose(title);
-      return res.json({message:fallback.message,shortTitle:fallback.shortTitle,template:fallback.template,discountPercent:fallback.discountPercent,category,aiUsed:false,validated:true,notice:'A IA não concluiu uma resposta íntegra; foi aplicado o texto automático seguro.'});
+      return res.json({message:fallback.message,shortTitle:fallback.shortTitle,template:fallback.template,discountPercent:fallback.discountPercent,promoType:fallback.promoType,promoConfidence:fallback.promoConfidence,promoEvidence:fallback.promoEvidence,category,aiUsed:false,validated:true,notice:'A IA não concluiu uma resposta íntegra; foi aplicado o texto automático seguro.'});
     }
     const aiTitle=String(result.text||'').replace(/[\r\n]+/g,' ').replace(/[<>*_`]/g,'').trim().slice(0,70);
     const safe=safeCreative(aiTitle)||title;
     const ready=compose(safe);
     await db.query("INSERT INTO account_integration_health(account_id,name,status,details,last_checked_at) SELECT id,'ai','TESTED','Texto promocional gerado e filtrado',now() FROM accounts WHERE owner_member_id=$1 ON CONFLICT(account_id,name) DO UPDATE SET status='TESTED',details=EXCLUDED.details,last_checked_at=now()",[String(req.member.id)]);
-    return res.json({message:ready.message,shortTitle:ready.shortTitle,template:ready.template,discountPercent:ready.discountPercent,category,usage:result.usage,validated:true,model:result.model||'gemini'});
+    return res.json({message:ready.message,shortTitle:ready.shortTitle,template:ready.template,discountPercent:ready.discountPercent,promoType:ready.promoType,promoConfidence:ready.promoConfidence,promoEvidence:ready.promoEvidence,category,usage:result.usage,validated:true,model:result.model||'gemini'});
   } catch (e) {
     if(/429|quota|rate.?limit|resource_exhausted/i.test(String(e?.message||'')))await registerGeminiQuotaError();
     const fallback=compose(title);
-    return res.json({message:fallback.message,shortTitle:fallback.shortTitle,template:fallback.template,discountPercent:fallback.discountPercent,category,aiUsed:false,validated:true,notice:'Mensagem criada pelo modo automático com todos os dados confirmados.'});
+    return res.json({message:fallback.message,shortTitle:fallback.shortTitle,template:fallback.template,discountPercent:fallback.discountPercent,promoType:fallback.promoType,promoConfidence:fallback.promoConfidence,promoEvidence:fallback.promoEvidence,category,aiUsed:false,validated:true,notice:'Mensagem criada pelo modo automático com todos os dados confirmados.'});
   }
 }
