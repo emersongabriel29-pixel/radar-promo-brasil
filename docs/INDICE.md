@@ -12,6 +12,7 @@
 - [Auditoria do estado real — 08/11/2026](./AUDITORIA-ESTADO-2026-11-08.md)
 - [Arquitetura e limites de execução](./ARQUITETURA-ESTADO-2026-11-08.md)
 - [Inventário de rotas e funções implantadas](./INVENTARIO-ROTAS-2026-11-08.md)
+- [Inventário técnico completo: 121 rotas, 53 módulos, 71 migrações](./INVENTARIO-TECNICO-COMPLETO-2026-11-08.md)
 - [Banco de dados e migrações](./BANCO-DADOS-2026-11-08.md)
 - [Operação, filas, crons e recuperação](./OPERACAO-2026-11-08.md)
 - [Integrações e IA Gemini](./INTEGRACOES-IA-2026-11-08.md)
