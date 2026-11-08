@@ -68,4 +68,13 @@ Uma alteração só pode ser marcada como concluída quando implementação, doc
 
 | Data UTC | Mudança | Escopo | Testes/evidência | GitHub commit | Hatchable versão | Estado |
 |---|---|---|---|---|---|---|
-| 2026-11-08 | Instituída política de documentação obrigatória e criada baseline documental | Governança/documentação | Inventário Hatchable v653; dry-run sem erros/avisos | A registrar após commit | v653 (sem deploy documental) | Em reconciliação |
+| 2026-11-08 | Instituída política de documentação obrigatória e criada baseline documental | Governança/documentação | Inventário Hatchable v655; dry-run documental sem erros/avisos | A registrar após commit | v653 (sem deploy documental) | Em reconciliação |
+
+
+## Regra Master de ofertas e fluxos ponta a ponta
+
+A especificação normativa é [REGRA-MASTER-E-FLUXOS-PONTA-A-PONTA.md](./REGRA-MASTER-E-FLUXOS-PONTA-A-PONTA.md). Ela prevalece sobre instruções antigas de score mínimo, desconto mínimo, limite de publicações/dia, cooldown comercial ou filtros de categoria/+18. Score, desconto, comissão, avaliação, idade, categoria e confiança de IA são informativos; não podem descartar ou estacionar uma oferta.
+
+A única limitação interna de processamento é a capacidade/quota real da hospedagem. Ao atingir o limite, persistir cursor/checkpoint, preservar o item e reagendar automaticamente em lotes, sem descarte e sem one-shot por oferta. Nenhuma oferta pode ficar sem causa, responsável e próxima ação. Falhas externas e requisitos técnicos devem ser registrados e recuperados sem inventar dados ou burlar políticas/autorização do provedor.
+
+Toda alteração em regras de elegibilidade, classificação, descoberta, links, publicação, retries, cron ou dados deve atualizar a Regra Master e o documento do domínio na mesma tarefa. Não zerar backlog por atualização SQL em massa sem reconciliação, idempotência, checkpoint e rollback.
