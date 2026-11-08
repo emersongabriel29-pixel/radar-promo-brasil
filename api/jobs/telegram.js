@@ -200,7 +200,8 @@ async function processAccount(accountId, settings) {
   const interval = selectedConfig?.intervalMinutes == null ? Number(settings.interval_minutes)||10 : Math.max(1,Math.min(1440,Number(selectedConfig.intervalMinutes)||Number(settings.interval_minutes)||10));
   await runQuery('markTurnComplete', `
     UPDATE publication_scheduler_settings
-    SET last_source=$2,last_run_at=now(),next_turn_at=now()+($3::text||' minutes')::interval,
+    SET last_source=$2,
+        next_turn_at=COALESCE(last_run_at,now())+($3::text||' minutes')::interval,
         last_result=$4::jsonb,updated_at=now()
     WHERE account_id=$1
   `,[accountId,selected,interval,JSON.stringify({status:'PROCESSED',source:selected,processed:result.processed,published:result.published,failed:result.failed,unconfirmed:result.unconfirmed,intervalMinutes:interval})]);
