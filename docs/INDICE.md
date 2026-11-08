@@ -1,6 +1,6 @@
 # Documentação oficial — Radar Promo Brasil
 
-> Estado observado em 08/11/2026. Fonte de verdade técnica: código efetivamente verificado, schema e manifesto implantado no Hatchable v653; GitHub `main` consultado no commit mais recente observado `a6215ee2264cb70741fa27075f4584c526d93e2f`. Este índice é a porta de entrada; documentos históricos não substituem a auditoria atual.
+> Estado observado em 08/11/2026. Fonte de verdade técnica: código efetivamente verificado, schema e manifesto implantado no Hatchable v653; GitHub `main` com baseline do código em `a6215ee2264cb70741fa27075f4584c526d93e2f`; os commits seguintes desta sessão registram a documentação. Este índice é a porta de entrada; documentos históricos não substituem a auditoria atual.
 
 ## Regra obrigatória
 
