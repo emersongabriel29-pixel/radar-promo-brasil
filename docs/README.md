@@ -6,7 +6,7 @@ Maximizar descoberta e oportunidade comercial sem limites artificiais de quantid
 ## Leitura obrigatória
 - MASTER-RULES.md — constituição e regras invioláveis.
 - ARCHITECTURE.md — módulos e contratos.
-- API-CATALOG.md e API-INTEGRATIONS/INTEGRATION-CONTRACT.md — integrações.
+- API-CATALOG.md e API-INTEGRATIONS/ — fichas de integrações e contratos.
 - DISCOVERY-ENGINE.md — descoberta e cobertura.
 - OFFER-LIFECYCLE-AND-VALIDATION.md — ciclo de ofertas.
 - QUEUE-MANAGEMENT.md — filas e recuperação.
@@ -27,3 +27,5 @@ Maximizar descoberta e oportunidade comercial sem limites artificiais de quantid
 Regra normativa, contrato, estado observado ou proposta. Documentação não prova implementação. Classificar como funcional somente após teste real autorizado; sincronizado somente após comparação dos ambientes.
 
 Atualizar documentos junto de mudanças relevantes, indicando evidência, testes, impacto, versão e pendências.
+
+Fichas por fornecedor: Shopee, Mercado Livre, Lomadee, AliExpress, Magalu, Rakuten, Amazon, Admitad, Awin, Temu, SHEIN e Collshp.
