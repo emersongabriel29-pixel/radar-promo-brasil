@@ -31,7 +31,7 @@ export default async function(req, res) {
       AND NULLIF(trim(g.external_id),'') IS NOT NULL
       AND ${eligiblePublication}
     ORDER BY ${publicationPrioritySql('p','o','d')} DESC,p.created_at
-    LIMIT 12
+    LIMIT 14
   `)).rows;
   let processed = 0, published = 0, failed = 0, unconfirmed = 0, waitingConnection = 0;
   for (const item of rows) {
