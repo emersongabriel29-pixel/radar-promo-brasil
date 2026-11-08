@@ -85,7 +85,7 @@ test('painel de consumo agrega o ledger direto do Gemini sem expor prompts ou cu
     assert.equal(Number(response.body.gemini.totals.input_tokens),25);
     assert.equal(Number(response.body.gemini.totals.output_tokens),40);
     assert.equal(response.body.gemini.cost_is_calculated,false);
-    assert.equal(response.body.gemini.by_model[0].model,'gemini-flash-lite-latest');
+    assert.equal(response.body.gemini.by_model[0].model,'gemini-flash-lite-latest');assert.equal(response.body.gemini.series.length,1);
   }finally{ai.usage=previous;}
 });
 test('imagens armazenadas usam rota privada estável pelo identificador da oferta',async()=>{const {hydrateImages}=await import('../lib/offer-images.js');const result=await hydrateImages([{id:'image',imageUrl:'https://storage.example.com/expired',imageStorageKey:'products/a/image.png'}]);assert.equal(result[0].imageUrl,'/api/media/offer/image');});
