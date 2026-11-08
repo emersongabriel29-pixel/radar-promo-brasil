@@ -8,3 +8,4 @@ test('Telegram clone deduplicates imported offers by account-scoped fingerprint'
   assert.ok(source.includes('const seller=clean(parsed.sellerId||parsed.shopId'));
   assert.ok(source.includes('const productIdentity=parsed.productId||parsed.itemId'));
   assert.ok(source.includes("seller||'seller-unknown'"));
+});
