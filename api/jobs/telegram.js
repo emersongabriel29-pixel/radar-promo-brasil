@@ -201,7 +201,7 @@ async function processAccount(accountId, settings) {
   await runQuery('markTurnComplete', `
     UPDATE publication_scheduler_settings
     SET last_source=$2,
-        next_turn_at=COALESCE(last_run_at,now())+($3::text||' minutes')::interval,
+        next_turn_at=CASE WHEN $3::integer=60 THEN date_trunc('hour',COALESCE(last_run_at,now()))+interval '1 hour' ELSE COALESCE(last_run_at,now())+($3::text||' minutes')::interval END,
         last_result=$4::jsonb,updated_at=now()
     WHERE account_id=$1
   `,[accountId,selected,interval,JSON.stringify({status:'PROCESSED',source:selected,processed:result.processed,published:result.published,failed:result.failed,unconfirmed:result.unconfirmed,intervalMinutes:interval})]);
