@@ -244,7 +244,7 @@ export default async function handler(req,res) {
         await db.query("UPDATE publication_scheduler_settings SET last_result=$2::jsonb,updated_at=now() WHERE account_id=$1",[row.account_id,JSON.stringify({status:'ERROR',stage:errorStage,error:errorCode,detail:errorDetail})]);
       }
     }
-    return res.json({ok:totals.failed===0,...totals,centralScheduler:true,cadence:'5-minute-cron'});
+    return res.json({ok:totals.failed===0,...totals,centralScheduler:true,cadence:'hourly-cron'});
   }catch(error){
     console.error('publication scheduler failed',String(error?.code||error?.name||'ERROR').slice(0,80),String(error?.message||'').slice(0,180));
     return res.status(500).json({error:'Falha no escalonador central de publicações.'});
