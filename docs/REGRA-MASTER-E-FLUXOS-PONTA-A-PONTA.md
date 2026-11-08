@@ -1,0 +1,337 @@
+# REGRA MASTER E FLUXOS PONTA A PONTA — RADAR PROMO BRASIL
+
+**Versão:** 1.0  
+**Data da auditoria:** 08/11/2026  
+**Projeto:** Radar Promo Brasil  
+**Produção observada:** Hatchable v655 LIVE  
+**GitHub:** `emersongabriel29-pixel/radar-promo-brasil`, branch `main`, baseline documental `db156b23ef64b83cbe85fa296b3761364e5073f0`  
+**Status deste documento:** especificação mestre aprovada pelo titular; implementação integral ainda em auditoria e harmonização. Este documento não declara fluxos como funcionais sem teste ponta a ponta.
+
+---
+
+## 1. Regra Master — prioridade máxima
+
+O Radar Promo Brasil deve descobrir, importar, organizar, enriquecer, converter links, distribuir e publicar oportunidades de afiliados com o máximo de abrangência permitido pelas APIs oficiais e pelos canais conectados.
+
+### 1.1 O que NÃO pode limitar uma oferta
+
+Não usar como motivo interno para descartar, bloquear, rejeitar, ocultar, deixar indefinidamente pendente ou impedir o processamento:
+
+- Categoria, subcategoria, palavra-chave, nicho ou classificação comercial.
+- Produto adulto / +18, por sua categoria ou idade.
+- Desconto mínimo, preço mínimo, score mínimo ou nota mínima.
+- Comissão mínima, quantidade de vendas, popularidade ou avaliação mínima.
+- Idade da oferta, desde que a fonte ainda a reconheça como disponível.
+- Falta temporária de imagem, preço secundário, descrição, cupom ou metadado enriquecido.
+- Falta temporária de link afiliado quando a integração oficial ainda pode gerá-lo.
+- Baixa confiança da IA ou ausência de resposta da IA.
+- Ordem de prioridade, volume de uma loja ou concentração de categoria.
+
+Score, comissão, avaliação, desconto, popularidade e confiança são sinais informativos para ordenação, relatórios e texto — nunca gates de elegibilidade.
+
+### 1.2 Único limitador operacional interno
+
+A única limitação interna de processamento é a capacidade real da hospedagem: tempo máximo de execução, quota diária, limite de transações, concorrência, memória, chamadas de funções e capacidade de banco.
+
+Quando a capacidade acabar:
+1. Persistir o item e o ponto de continuação antes de encerrar.
+2. Marcar o trabalho como aguardando capacidade/reagendamento, nunca como oferta rejeitada.
+3. Guardar cursor, página, lote, tentativas, última etapa concluída e próximo horário.
+4. Retomar automaticamente no próximo ciclo disponível, sem recomeçar do zero.
+5. Usar lotes adaptativos, paginação, backoff exponencial com jitter, cache e idempotência.
+6. Nunca criar um one-shot por produto/oferta; preferir crons recorrentes e workers que drenam lotes.
+7. Não ultrapassar quotas do plano nem provocar tempestades de retry.
+8. Exibir no painel o motivo operacional, quantidade preservada, próximo processamento e idade da fila.
+
+O limite da hospedagem regula **quando e em que lote** o Radar trabalha; não decide **quais produtos merecem existir**.
+
+### 1.3 Condições técnicas e externas — não são filtros comerciais
+
+O Radar deve preservar e recuperar itens mesmo quando houver:
+- Link temporariamente ausente/inválido, preço não retornado, imagem indisponível, produto fora de estoque ou metadado incompleto.
+- Falha temporária, timeout, rate limit ou indisponibilidade da API.
+- Credencial ausente/expirada, autorização de campanha/canal ainda não concedida ou destino desconectado.
+- Recusa do provedor ou limitação documentada do canal.
+
+Nesses casos, não apagar nem classificar a oferta como rejeitada por preferência comercial. Registrar a dependência exata, tentar novamente quando tecnicamente possível e apresentar a ação necessária quando depender de autorização externa. Não inventar preço, disponibilidade, link afiliado, comissão ou confirmação de publicação.
+
+A implementação deve cumprir leis, políticas oficiais das APIs e regras dos canais. Não contornar autenticação, autorização, limites, CAPTCHA ou proteções antiautomação. A regra de ausência de filtro por categoria não transforma uma operação proibida pelo provedor em operação permitida.
+
+### 1.4 Duplicidade, fraude e integridade
+
+- Duplicatas não podem causar perda do produto ou de seus dados. Consolidar referências e histórico sob uma identidade canônica; preservar URLs, fontes, SubIDs, campanhas e eventos.
+- Um item semelhante não é automaticamente duplicado: comparar identificadores, variante, loja, URL canônica e atributos.
+- Dados suspeitos, alegações enganosas, spam, links maliciosos ou origem não confiável devem ser sinalizados e investigados; não apagar o registro original.
+- Nunca publicar preço, desconto, estoque, cupom, comissão ou alegação que não tenha evidência na fonte.
+- O Radar não deve criar links que pareçam afiliados sem validação do provedor.
+
+---
+
+## 2. Semântica obrigatória dos estados
+
+Os estados técnicos são rastreamento de execução, não julgamento do produto.
+
+- **Descoberto/capturado:** o registro foi persistido; não pode ser perdido.
+- **Processando:** um worker possui lease temporário. Se expirar, outro worker recupera.
+- **Aguardando capacidade:** pausa exclusivamente operacional, com próximo ciclo/cursor persistido.
+- **Aguardando fonte/provedor:** dependência externa identificada, com retry e diagnóstico.
+- **Pronto para link:** possui dados suficientes para solicitar/validar link afiliado.
+- **Linkado:** link foi gerado/validado pelo provedor e SubID rastreável foi preservado.
+- **Disponível para distribuição:** conteúdo factual e destino estão prontos.
+- **Na fila de canal:** publicação idempotente criada para um destino conectado.
+- **Enviado/publicado:** confirmação do provedor ou receipt externo persistido.
+- **Falha recuperável:** erro técnico com próxima tentativa definida.
+- **Falha externa terminal:** somente quando o provedor comprovar que não há operação possível; manter histórico e permitir reabertura.
+
+**Não pode existir estado final genérico PENDING, NEEDS_REVIEW, BLOCKED ou FAILED sem proprietário, causa, próximo passo e política de recuperação.** Estados transitórios podem existir durante uma execução curta, mas não podem virar estacionamento indefinido. O objetivo operacional é zero oferta abandonada/sem próxima ação; não é maquiar contagens renomeando status.
+
+---
+
+## 3. Fluxo mestre de ponta a ponta
+
+```mermaid
+flowchart TD
+ A[Fontes e APIs oficiais] --> B[Descoberta paginada com cursor]
+ B --> C[Persistência idempotente do item bruto]
+ C --> D[Normalização de título, preço, URL e imagem]
+ D --> E[Classificação e categorias sem filtro]
+ E --> F[Enriquecimento opcional Gemini]
+ F --> G[Conversão/validação do link afiliado e SubID]
+ G --> H[Oferta canônica e histórico de preço]
+ H --> I[Priorização informativa]
+ I --> J[Roteamento por categoria, subcategoria e palavras-chave]
+ J --> K[Fila de publicação por destino]
+ K --> L[Worker de canal com lease e idempotência]
+ L --> M[Confirmação do provedor e registro de mensagem]
+ M --> N[Links de clique, eventos e conversões]
+ N --> O[Relatórios, reconciliação e reprocessamento]
+```
+
+Em qualquer etapa, erro transitório retorna à etapa exata com cursor e dados preservados. Nenhuma etapa usa score, desconto, categoria ou +18 para descartar.
+
+---
+
+## 4. Fluxos por origem
+
+### 4.1 APIs de afiliados e marketplaces
+
+Rotas atualmente inventariadas incluem Shopee, Lomadee, AliExpress, Mercado Livre, Magalu, Rakuten, Admitad, Awin, Amazon, Temu e SHEIN. A existência de rota não comprova que o provedor oferece API pública, que a credencial está configurada ou que a operação foi homologada.
+
+Para cada provedor, o fluxo obrigatório é:
+
+1. Ler credencial do cofre/configuração segura da conta, sem expor segredo.
+2. Verificar autorização, escopos, campanhas, canais e limites documentados.
+3. Descobrir produtos/ofertas em páginas/lotes, salvando cursor e resposta bruta.
+4. Fazer upsert por conta + provedor + ID externo; deduplicar sem perder variantes.
+5. Normalizar dados e preservar payload original.
+6. Classificar categoria/subcategoria e tags sem bloquear categoria.
+7. Gerar link afiliado pelo endpoint oficial; preservar URL original, URL afiliada, campanha, canal e SubID.
+8. Atualizar preço/histórico apenas com dados recebidos da fonte; não inventar desconto.
+9. Criar/atualizar oferta canônica sem criar publicação duplicada.
+10. Encaminhar para os destinos correspondentes e registrar resultado.
+
+**Shopee:** preservar cursores de descoberta, rotação de palavras-chave/famílias, chamadas GraphQL oficiais, retry de códigos transitórios, links e SubIDs. Remover gates de categoria/medicamento/+18 e thresholds comerciais como condição interna, sem alterar assinatura/autenticação da API.
+
+**Lomadee:** separar descoberta de produtos/campanhas/marcas/canais, criação de links, validação de short URL e reconciliação. Não perder os itens já capturados. Estados históricos `BLOCKED_PROVIDER_APPROVAL` e `BLOCKED_PROVIDER_CHANNEL` significam dependência do provedor, não autorização para descartar o item. `BLOCKED_SAFETY` não deve ser usado como filtro de categoria interno; manter item e rastreio. A autorização externa da Lomadee não pode ser simulada.
+
+**AliExpress:** manter descoberta paginada, produtos, campanhas, links de promoção, preço e comissões informados. Remover desconto mínimo, avaliação/comissão mínima e filtro de categoria como gate interno. O link precisa ser efetivamente emitido pelo provedor antes de distribuição.
+
+**Mercado Livre:** manter OAuth, callback, notificações, parsing de links, criação de links e SubID por grupo; renovar tokens conforme documentação oficial e reconciliar notificações sem duplicidade.
+
+**Magalu, Rakuten, Admitad, Awin, Amazon, Temu e SHEIN:** classificar individualmente como não implementada, implementada não configurada, configurada não validada, testada com sucesso ou bloqueada por autorização/documentação externa. Não apresentar rota ou tela como integração concluída.
+
+### 4.2 Captura manual, extensão e modo clone
+
+1. Receber URL/texto/imagem e identificar fonte.
+2. Persistir evento bruto e conta de origem.
+3. Extrair identificadores e resolver página/API oficial.
+4. Criar/atualizar item sem duplicar.
+5. Converter para link afiliado da conta quando permitido pelo provedor.
+6. Aplicar categorias e destino conforme configuração.
+7. Encaminhar para fila e relatório.
+8. Retornar ao usuário protocolo/status e não exigir novo compartilhamento para retomar o processamento.
+
+Falha na extração ou na conversão mantém o registro e agenda resolução; nunca descarta silenciosamente.
+
+---
+
+## 5. Categorias, subcategorias e palavras-chave
+
+- Classificação é universal e independente da API.
+- Toda oferta recebe categoria/subcategoria quando houver evidência; caso contrário, usa categoria genérica e continua no fluxo.
+- Palavras-chave e tags ampliam descoberta e roteamento; não são filtros de descarte.
+- Uma oferta pode pertencer a várias tags/categorias sem criar cópias.
+- Grupo sem categoria específica recebe ofertas gerais; grupos específicos recebem correspondências, sem eliminar oferta que não encontrou grupo.
+- O foco atual Casa & Lar deve ser roteamento prioritário, não exclusividade nem bloqueio de outras categorias.
+- Reclassificação posterior não apaga publicação, histórico, cliques ou atribuição.
+
+---
+
+## 6. Gemini e demais recursos de IA
+
+A IA é enriquecimento, nunca porteira de entrada.
+
+- Pode gerar chamada curta, CTA, título auxiliar, categoria, subcategoria, tags e texto promocional.
+- Deve diferenciar “oferta”, “oferta relâmpago”, “Black Friday”, cupom e outras campanhas somente quando a fonte fornecer evidência; sem evidência, usar chamada neutra.
+- Não inventar urgência, estoque, preço anterior, desconto, frete, comissão, avaliações ou atributos.
+- Falha, quota 429 ou indisponibilidade Gemini não interrompe a oferta: usar template determinístico e retomar enriquecimento depois.
+- Cache por fingerprint, limite de tokens, lote adaptativo e backoff protegem a hospedagem.
+- A chamada de IA não pode mudar status para rejeitado nem criar pendência permanente.
+
+---
+
+## 7. Links afiliados, preço e atribuição
+
+- Cada oferta deve manter URL de origem, URL final, URL afiliada, provedor, campanha, canal, SubID e histórico de alterações.
+- SubID deve identificar destino/grupo quando suportado.
+- Link encurtado só é considerado válido após confirmação no endpoint oficial ou teste seguro de resolução.
+- Não substituir link afiliado por link comum sem sinalizar.
+- Preço ausente não autoriza invenção; a mensagem pode omitir preço até atualização.
+- Histórico de preço registra fonte, moeda, timestamp e valor bruto/normalizado.
+- Não exigir desconto mínimo ou histórico de preço como condição para manter a oferta.
+- Duplicatas preservam todas as origens e atribuições.
+
+---
+
+## 8. Publicação WhatsApp e Telegram
+
+```mermaid
+flowchart TD
+ A[Oferta disponível] --> B[Resolver grupos e canais ativos]
+ B --> C[Aplicar categoria, subcategoria e palavras-chave]
+ C --> D[Montar texto factual + CTA]
+ D --> E[Resolver imagem opcional]
+ E --> F[Gerar chave idempotente por oferta e destino]
+ F --> G[Enfileirar]
+ G --> H[Worker reivindica lote com lease]
+ H --> I{Resposta do provedor}
+ I -->|Confirmada| J[Gravar receipt e external_message_id]
+ I -->|Timeout incerto| K[Consultar destino antes de retry]
+ I -->|Rate limit| L[Backoff e reprogramar]
+ I -->|Destino/credencial inválido| M[Diagnóstico e recuperação]
+ K --> J
+ L --> G
+ M --> B
+```
+
+- WhatsApp e Telegram têm filas, credenciais, limites e workers independentes.
+- Uma falha de canal não bloqueia outra plataforma nem outra API.
+- Não criar mensagem duplicada; usar idempotency key e receipt.
+- Timeout incerto exige reconciliação antes de reenviar.
+- Rate limit do canal provoca espera/retry, não rejeição da oferta.
+- Destino sem conexão fica como dependência do destino; a oferta permanece no catálogo e pode seguir para outros destinos.
+- Imagem é opcional quando o canal aceitar texto; não perder oferta por falha de mídia.
+- Horários e intervalos configurados controlam ritmo do canal, não a elegibilidade do produto.
+- Publicação só é confirmada com resposta/receipt do provedor.
+
+---
+
+## 9. Hospedagem, scheduler e proteção contra perda
+
+- Priorizar crons recorrentes declarados e workers que processam lotes.
+- Evitar `scheduler.at()` por item; consolidar tarefas.
+- Cursor por provedor/conta/operação e checkpoint por lote.
+- Claim transacional com `FOR UPDATE SKIP LOCKED`, lease, idempotência e recuperação de leases expirados.
+- Limite adaptativo por duração, erros, quota remanescente e janela do plano.
+- Backoff exponencial com jitter; respeitar `Retry-After` quando fornecido.
+- Não executar fan-out ilimitado por conta ou provedor.
+- Circuit breaker apenas pausa chamadas à fonte indisponível; não pausa o catálogo nem outras fontes.
+- Registrar execução, lote, itens lidos/criados/atualizados, chamadas externas, duração, quota, erro e cursor.
+- Alertar quando fila envelhece, cursor não avança, cron não dispara, erro 5xx aumenta ou quota aproxima do teto.
+- Toda pausa operacional precisa de próximo horário e rotina de retomada automática.
+
+---
+
+## 10. Relatórios e observabilidade
+
+Painel deve exibir por fonte, categoria e destino:
+- Descobertos, capturados, linkados, prontos, enfileirados, publicados, cliques, conversões e comissões.
+- Itens em processamento, aguardando capacidade, aguardando provedor e falhas recuperáveis, sempre com causa e próximo passo.
+- Itens sem cursor/sem próxima tentativa (meta: zero).
+- Tentativas, taxa de sucesso, idade máxima da fila, chamadas API, quotas e duração.
+- Publicações confirmadas vs incertas vs falhas.
+- Duplicatas consolidadas e referências preservadas.
+- Estado de credenciais e integrações, sem revelar segredos.
+
+Não apresentar “ofertas bloqueadas” como decisão comercial. Exibir dependências técnicas e externas separadamente.
+
+---
+
+## 11. Dados existentes — fotografia da auditoria de 08/11/2026
+
+Consulta read-only executada no banco real do Hatchable v655:
+
+- Ofertas: 8.020 total; 3.985 `APPROVED`, 4.035 `PENDING`.
+- Validação: 3.951 `VALIDATED`, 4.035 `NEEDS_REVIEW`, 26 `REJECTED` (motivo dominante: URL de produto duplicada/variante), além de estados residuais.
+- Classificação: 4.998 `REVIEW`, 2.945 `AUTO`, 42 `MANUAL`, 35 `CLASSIFIED`.
+- Descoberta Lomadee PRODUCT: 1.835 `READY_FOR_LINK`, 351 `LINKED`, 159 `DISCOVERED`, 161 `BLOCKED_SAFETY`, 27 `BLOCKED_PROVIDER_APPROVAL`, 17 `BLOCKED_PROVIDER_CHANNEL`, 662 `DUPLICATE`, 26 `NEEDS_DATA`.
+- Descoberta Shopee PRODUCT: 66.458 `DISCOVERED`, 2.052 `IMPORTED`, 184 `BLOCKED`, 75 `DUPLICATE`, 15 `INCOMPLETE`.
+- Descoberta AliExpress PRODUCT: 9.639 `CAPTURED`, 825 `LINKED`, 17 `BLOCKED_SAFETY`, 16 `DISCOVERED`, 20 `NEEDS_ENRICHMENT`.
+- Publicações: 2.726 `PUBLISHED`, 2.333 `READY`, 136 `FAILED`, 37 `RETRY`, 4 `WAITING_CONFIRMATION`.
+
+Esses números são fotografia pontual, não garantia de estado futuro. Nenhum dado foi alterado nesta auditoria. Não executar limpeza em massa, reclassificação ou publicação em massa sem reconciliação por lote, idempotência e teste de segurança.
+
+---
+
+## 12. Pendências técnicas já comprovadas
+
+1. Harmonizar a Regra Master com os gates legados de medicamento, desconto mínimo, comissão/avaliação, score e classificação REVIEW.
+2. Corrigir o funil Lomadee: descoberta, normalização, geração/validação de link e reconciliação dos 1.835 itens READY_FOR_LINK e 159 DISCOVERED sem perda.
+3. Auditar e recuperar 4.035 ofertas PENDING/NEEDS_REVIEW; não aprovar em massa sem checar identidade, fonte e integridade dos campos.
+4. Recuperar itens BLOCKED/INCOMPLETE/NEEDS_DATA com nova tentativa e enriquecimento, sem apagar histórico.
+5. Revisar a regra de duplicidade: consolidar referências/variantes, preservar todos os links e não rejeitar variantes legítimas.
+6. Revisar `lib/delivery.js`: hoje exige oferta APPROVED/PUBLISHED, VALIDATED/APPROVED, classificação diferente de REVIEW, preço positivo, link HTTPS, imagem e histórico oficial de preço nas últimas 24h. Esses gates comerciais/de metadados conflitam com a Regra Master e precisam ser substituídos por pré-condições técnicas mínimas, sem publicar dados inventados.
+7. Harmonizar autopilot, Shopee, AliExpress, Lomadee, Gemini e os demais workers para usar uma política comum.
+8. Corrigir excesso de one-shots e quota do scheduler: auditoria anterior encontrou 200 tarefas one-shot/dia no plano e rejeições HTTP 422 quando o projeto excedeu esse limite.
+9. Investigar erros observados nos jobs: hourly 40/147, Lomadee link queue 12/125, Shopee 6/119 e Telegram 1/478 em janela de 7 dias na fotografia anterior; diagnósticos Telegram também tiveram respostas 5xx.
+10. Completar homologação de cada API/canal e confirmar a sincronização dos arquivos funcionais GitHub ↔ Hatchable.
+11. Executar build, testes unitários, E2E e auditoria de dependências; os testes npm não foram executados nesta auditoria documental.
+12. Implementar painel de saúde das filas com causa, cursor, próxima tentativa, idade e recuperação.
+
+---
+
+## 13. Critérios objetivos de conclusão ponta a ponta
+
+Um fluxo só pode ser marcado como **TESTADO COM SUCESSO** quando houver evidência de:
+
+1. Credencial/autorização validada sem expor segredo.
+2. Chamada real de leitura ao provedor, com resposta documentada.
+3. Cursor/paginação avançando e dados persistidos sem duplicidade.
+4. Item preservado mesmo com metadado incompleto ou falha transitória.
+5. Classificação sem filtro por categoria/+18/score/desconto/comissão/avaliação.
+6. Link afiliado gerado/validado oficialmente, com SubID quando suportado.
+7. Oferta canônica e histórico atualizados.
+8. Roteamento correto por categoria e destino.
+9. Publicação de teste em ambiente isolado ou sandbox oficial; nunca enviar mensagem real durante teste sem autorização expressa.
+10. Idempotência, retry, rate limit, timeout incerto e recuperação testados.
+11. Cliques/conversões reconciliados quando o provedor disponibilizar esses eventos.
+12. Relatório e logs coerentes.
+13. Documentação atualizada na mesma tarefa.
+14. Commit, deploy e equivalência GitHub ↔ Hatchable verificados separadamente.
+
+Status permitidos: **NÃO IMPLEMENTADO**, **IMPLEMENTADO NÃO CONFIGURADO**, **CONFIGURADO NÃO VALIDADO**, **TESTADO COM SUCESSO**, **BLOQUEADO POR ACESSO/PROVEDOR**. Nunca inferir sucesso pela existência de tela, rota ou credencial.
+
+---
+
+## 14. Ordem obrigatória de execução para concluir
+
+1. Congelar e registrar fotografia de banco, filas, cursores, cron e manifesto; não excluir nem limpar.
+2. Corrigir documentação e instruções de desenvolvimento para que a Regra Master seja a fonte normativa.
+3. Mapear cada gate legado em todas as fontes e pontos de publicação.
+4. Implementar política comum e migração compatível, sem destruir histórico.
+5. Criar testes unitários e de integração para produto +18, categoria, desconto zero, comissão zero/ausente, avaliação ausente, IA indisponível, imagem ausente, link pendente, rate limit e retomada de cursor.
+6. Homologar cada provedor isoladamente, sem publicar em canal real.
+7. Reprocessar backlog em lotes pequenos, com checkpoints e reconciliação; preservar todos os IDs e referências.
+8. Validar fila de publicação e reconciliação de receipts em ambiente seguro.
+9. Testar scheduler abaixo da quota e provar retomada após interrupção.
+10. Atualizar relatórios, alertas e documentação.
+11. Comparar os arquivos alterados no GitHub e Hatchable; revisar commit e versão implantada.
+12. Só então declarar o fluxo concluído. Qualquer dependência externa real deve aparecer como bloqueio externo identificado, nunca escondido como sucesso.
+
+---
+
+## 15. Regra permanente de documentação
+
+Toda alteração — código, banco, configuração, integração, prompt, categoria, fila, worker, cron, segurança, interface, teste, deploy ou rollback — deve atualizar este documento ou o documento de domínio correspondente na mesma tarefa. Registrar motivo, arquivos/rotas/tabelas, comportamento anterior/novo, riscos, testes, resultados, commit, versão Hatchable, sincronização e rollback. Sem documentação e evidência, a alteração não está concluída.
+
+**Regra final:** nenhuma oferta se perde; nenhuma categoria é excluída por decisão interna; nenhuma falha transitória vira descarte; a hospedagem controla o ritmo, e o Radar retoma automaticamente o trabalho.
