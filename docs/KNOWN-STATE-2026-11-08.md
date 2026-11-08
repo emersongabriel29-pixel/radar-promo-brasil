@@ -62,3 +62,11 @@ Esses números são fotografia de produção, não alvo para zerar indiscriminad
 
 ## Correção de recorrências — observação complementar
 Após o deploy v646, dois registros `schedules` estavam ativos e apontavam para IDs de tarefas one-shot com status `completed`, apesar de `next_run_at` futuro. O cron Telegram recorrente estava ativo. Isso indica ponteiro de scheduler obsoleto; foi preparada correção para nome determinístico único por ocorrência e rearmamento dos registros ativos sem apagar histórico. O rearmamento deve ser confirmado na lista de cron após a implantação.
+
+
+## Implantação final desta rodada
+- Documentação mestre PR #181 mesclada na main (merge squash `1115ecf1e2f37c3cef62b88ea5f8b327d7afb36c`).
+- Correção do limite one-shot PR #182 mesclada (merge squash `50fea25e13214ebdbf31783786ab0c5da3fc5158`) e publicada no Hatchable v646.
+- Correção de identidade por ocorrência PR #183 mesclada (merge squash `5e728c7049ca961d7c66e5bdb604d6b8e05a33bd`) e publicada no Hatchable v647.
+- Dois schedules ativos foram rearmados com novos IDs one-shot exclusivos e verificados como `active`, ambos para 09/11/2026 12:00 UTC. Os registros antigos concluídos foram preservados.
+- A publicação recorrente não dispara one-shot adicional por mensagem; cron Telegram permanece horário.
