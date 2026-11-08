@@ -2,7 +2,7 @@ import { db, config } from 'hatchable';
 import { eligiblePublication, claimPublication } from 'lib/delivery.js';
 import { publicationPrioritySql, discoveryPriorityJoin } from 'lib/publication-priority.js';
 import { sendWhatsAppChannelText } from 'lib/whatsapp-channel.js';
-import { offerImage } from 'lib/offer-images.js';
+import { cacheOfferImage } from 'lib/offer-images.js';
 import { formatPromo } from 'lib/promo-message.js';
 
 export const access = 'scheduler';
@@ -13,7 +13,7 @@ export default async function(req, res) {
   const origin = String(await config.get('public_app_url') || 'https://radar-promo-brasil.hatchable.site').replace(/\/$/, '');
   const rows = (await db.query(`
     SELECT p.id, p.content_type AS "contentType", p.account_id AS "accountId",
-      p.message, p.attempts, p.image_url AS "imageUrl",
+      p.message, p.attempts, p.offer_id AS "offerId", p.image_url AS "imageUrl",
       COALESCE(p.image_storage_key,o.image_storage_key) AS "imageStorageKey",
       o.image_url AS "offerImageUrl", o.title AS "offerTitle", o.source,
       o.current_price AS "currentPrice", o.original_price AS "originalPrice",
@@ -52,7 +52,14 @@ export default async function(req, res) {
       if (item.couponCode && couponUrl && !message.includes(couponUrl)) {
         message += String.fromCharCode(10, 10) + '🎟️ Cupom: ' + String(item.couponCode).trim() + String.fromCharCode(10) + 'Resgate: ' + couponUrl;
       }
-      const imageUrl = item.contentType === 'MESSAGE' ? '' : String(await offerImage({ imageUrl: item.imageUrl || item.offerImageUrl, imageStorageKey: item.imageStorageKey }) || '').trim();
+      let imageUrl='';
+      if(item.contentType!=='MESSAGE'&&(item.imageStorageKey||item.imageUrl||item.offerImageUrl)){
+        try{imageUrl=String(await cacheOfferImage({...item,imageUrl:item.imageUrl||item.offerImageUrl},db)||'').trim();}
+        catch(mediaError){
+          if(!String(mediaError?.code||'').startsWith('MEDIA_'))throw mediaError;
+          console.warn('whatsapp media unavailable; using text fallback',item.id,String(mediaError?.code||'MEDIA_ERROR').slice(0,60));
+        }
+      }
       const result = await sendWhatsAppChannelText({ channel: item.groupExternalId, message, publicationId: item.id, imageUrl });
       if (result.status === 'WAITING_CONFIRMATION') {
         await db.query("UPDATE publications SET status='WAITING_CONFIRMATION',error_message=$3 WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$4",
