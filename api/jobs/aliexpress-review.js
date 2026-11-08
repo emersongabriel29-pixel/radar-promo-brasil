@@ -1,6 +1,7 @@
 import { db } from 'hatchable';
 import { offerScore } from 'lib/automation.js';
 import { enqueueMatches } from 'lib/autopilot.js';
+import { isAdultProduct } from 'lib/product-safety.js';
 // No internal product-category exclusion.
 
 export const access = 'scheduler';
@@ -24,7 +25,7 @@ export default async function handler(req, res) {
   const rows = (await db.query(
     "SELECT id,account_id,title,original_price,current_price,discount_percent,affiliate_url,image_url,product_url,status,classification_reason FROM offers WHERE source='ALIEXPRESS' AND status='PENDING' AND COALESCE(validation_status,'') IN ('PENDING','PENDING_REVIEW','VALIDATED','NEEDS_REVIEW','') ORDER BY COALESCE(radar_score,score,0) DESC, score DESC, created_at ASC LIMIT 30"
   )).rows;
-  const result = { ok: true, scanned: rows.length, validated: 0, approved: 0, needsReview: 0, rejected: 0, unchanged: 0, failed: 0, publicationTriggered: false, queued: 0, telegramQueued: 0, whatsappQueued: 0, messagesSent: 0 };
+  const result = { ok: true, scanned: rows.length, validated: 0, approved: 0, needsReview: 0, providerRestricted: 0, rejected: 0, unchanged: 0, failed: 0, publicationTriggered: false, queued: 0, telegramQueued: 0, whatsappQueued: 0, messagesSent: 0 };
   const approvedAccounts = new Set();
   for (const offer of rows) {
     try {
@@ -32,14 +33,18 @@ export default async function handler(req, res) {
       const discount = original > current && original > 0 ? Math.round((original - current) * 100 / original) : 0;
       let reason = '';
       if (!String(offer.title || '').trim()) reason = 'Título ausente';
+      else if (isAdultProduct({title:offer.title,productUrl:offer.product_url})) reason = 'RESTRICAO_EXTERNA_ALIEXPRESS_ADULT_ADVERTISING';
       else if (!isHttps(offer.affiliate_url) || !isAliExpressUrl(offer.product_url)) reason = 'Link de afiliado ou produto AliExpress ausente/inválido';
       else if (!Number.isSafeInteger(current) || current <= 0) reason = 'Preço atual ausente ou inválido';
       if (reason) {
         await db.query(
-          "UPDATE offers SET validation_status='NEEDS_REVIEW',discount_percent=$1,classification_reason=$2,updated_at=now() WHERE id=$3 AND account_id=$4 AND status='PENDING'",
+          reason === 'RESTRICAO_EXTERNA_ALIEXPRESS_ADULT_ADVERTISING'
+            ? "UPDATE offers SET status='PROVIDER_RESTRICTED',validation_status='PROVIDER_RESTRICTED',discount_percent=$1,classification_reason=$2,updated_at=now() WHERE id=$3 AND account_id=$4 AND status='PENDING'"
+            : "UPDATE offers SET validation_status='NEEDS_REVIEW',discount_percent=$1,classification_reason=$2,updated_at=now() WHERE id=$3 AND account_id=$4 AND status='PENDING'",
           [discount, reason, offer.id, offer.account_id]
         );
-        result.needsReview++;
+        if (reason === 'RESTRICAO_EXTERNA_ALIEXPRESS_ADULT_ADVERTISING') result.providerRestricted++;
+        else result.needsReview++;
         continue;
       }
       const score = offerScore({ title: offer.title, currentPrice: Math.round(current), originalPrice: Math.round(original) });
