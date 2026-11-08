@@ -80,9 +80,8 @@ function normalize(row) {
   const originalPrice = listedPrice && currentPrice ? Math.max(listedPrice, currentPrice) : currentPrice;
   const organizationId = clean(raw.organizationId, 80);
   const classification = classifyLomadeeProduct(raw);
-  if (classification.blocked) return { error: 'BLOCKED_SAFETY' };
   if (raw.available === false || option.available === false || row.available === false) return { error: 'UNAVAILABLE' };
-  if (!title || !currentPrice || currentPrice <= 0 || !originalPrice || !/^https:\/\//i.test(productUrl) || !directImageUrl(imageUrl) || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(organizationId)) return { error: 'NEEDS_DATA' };
+  if (!title || !currentPrice || currentPrice <= 0 || !/^https:\/\//i.test(productUrl) || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(organizationId)) return { error: 'NEEDS_DATA' };
   return { raw, title, productUrl, imageUrl, currentPrice, originalPrice, organizationId, classification, option };
 }
 
@@ -130,6 +129,8 @@ async function verifiedShortUrl(apiKey, shortUrl, productUrl) {
 export default async function handler(req, res) {
   const limit = Math.min(10, Math.max(1, Math.floor(Number(req.body?.limit) || 10)));
   await db.query("UPDATE affiliate_discovery_items SET processing_status='READY_FOR_LINK',processing_error='RECOVERED_STALE_PROCESSING',last_seen_at=now() WHERE marketplace='LOMADEE' AND kind='PRODUCT' AND processing_status='PROCESSING' AND last_seen_at<now()-interval '10 minutes'");
+  await db.query(`UPDATE affiliate_discovery_items SET processing_status='READY_FOR_LINK',processing_error='MASTER_RULE_REPROCESS',last_seen_at=now() WHERE marketplace='LOMADEE' AND kind='PRODUCT' AND processing_status='BLOCKED_SAFETY'`);
+  await db.query(`UPDATE affiliate_discovery_items SET processing_status='READY_FOR_LINK',processing_error='MASTER_RULE_REPROCESS',last_seen_at=now() WHERE marketplace='LOMADEE' AND kind='PRODUCT' AND processing_status='NEEDS_DATA' AND NULLIF(trim(title),'') IS NOT NULL AND price_cents>0 AND product_url LIKE 'https://%' AND COALESCE(raw_data->>'organizationId','') <> ''`);
   const credentialsRows = (await db.query(
     "SELECT account_id,credentials_enc,nonce FROM marketplace_api_credentials WHERE marketplace='LOMADEE' AND status='VALIDATED' ORDER BY account_id"
   )).rows;
