@@ -1,4 +1,4 @@
-import { db, scheduler } from 'hatchable';
+import { db } from 'hatchable';
 import { enqueueMatches } from 'lib/autopilot.js';
 
 export const access = 'scheduler';
@@ -13,7 +13,7 @@ export default async function(req, res) {
   };
 
   // Wake accounts with technically complete offers that have not entered a publication queue.
-  // A bounded batch keeps each invocation inside the hosting execution budget; commercial signals never exclude products.
+  // A 25-offer batches every 15 minutes keep ingestion close to channel throughput and inside the hosting execution budget; commercial signals never exclude products.
   const accounts = (await db.query(`
     SELECT DISTINCT o.account_id
     FROM offers o
@@ -37,34 +37,12 @@ export default async function(req, res) {
     }
   }
 
-  // Extension imports enter the same Master flow when their factual fields are present.
-  let extensionAutopublish = { ok: true, scanned: 0, approved: 0, queued: 0, blocked: 0, failed: 0, skipped: true };
-  if (!dryRun) {
-    const pendingExtension = (await db.query(`
-      SELECT EXISTS (
-        SELECT 1 FROM offers o
-        JOIN accounts a ON a.id=o.account_id AND a.status='ACTIVE'
-        LEFT JOIN extension_autopublish_settings s ON s.account_id=o.account_id
-        WHERE COALESCE(s.enabled,false)=true
-          AND o.imported_by='CHROME_EXTENSION' AND o.status='PENDING' AND COALESCE(o.validation_status,'') <> 'REJECTED'
-          AND NULLIF(trim(o.title),'') IS NOT NULL AND o.current_price>0
-          AND NULLIF(trim(o.affiliate_url),'') LIKE 'https://%'
-      ) AS pending
-    `)).rows[0]?.pending === true;
-
-    if (pendingExtension) {
-      try {
-        extensionAutopublish = await scheduler.now('/api/jobs/extension-autopublish');
-      } catch (error) {
-        extensionAutopublish = { ok: false, error: String(error?.code || error?.name || 'ERROR').slice(0, 60) };
-        totals.failed++;
-      }
-    }
-  }
+  // Extension imports have their own recurring bounded worker; no one-shot task per import.
+  const extensionAutopublish = { ok: true, scheduledSeparately: true };
 
   return res.json({
     ok: totals.failed === 0, dryRun, accounts: accounts.length,
-    idle: accounts.length === 0 && extensionAutopublish.skipped === true,
+    idle: accounts.length === 0,
     ...totals, extensionAutopublish
   });
 }
