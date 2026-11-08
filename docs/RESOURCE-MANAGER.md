@@ -20,3 +20,6 @@ Fatia mínima configurável por API ativa; excedente por backlog, frescor, prior
 
 ## Painel
 Orçamento, consumo por janela, previsão, reserva, concorrência, fila, latência, erros, pausas e motivo.
+
+## Limite confirmado do plano Hatchable Free
+Logs reais registraram rejeição HTTP 422 ao tentar armar one-shots quando o projeto alcançou 200 execuções one-shot agendadas no dia UTC. O erro foi produzido por `scheduler.now()` chamado a cada recorrência Telegram, em cascata. A regra correta é preservar a publicação READY no banco e deixar o cron recorrente `/api/jobs/telegram` consumi-la, evitando fan-out de one-shots. Chamadas imediatas manuais continuam sujeitas à cota e devem ser usadas com parcimônia. Nunca contornar ou falsificar a cota do provedor.
