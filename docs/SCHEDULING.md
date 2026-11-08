@@ -10,3 +10,7 @@ Testar timezone, fronteira horária, atraso, sobreposição, falha, reinício e 
 
 ## Recuperação de recorrências sem explosão de one-shots
 `recoverRecurrences()` pode enfileirar várias publicações de uma vez. Não disparar `scheduler.now('/api/jobs/telegram')` dentro de cada recorrência: o cron Telegram recorrente já consome a fila persistente. A fila READY é a fonte de verdade; a execução agendada imediata é apenas um acelerador e não pode comprometer o limite diário da hospedagem.
+
+
+## Identidade única por ocorrência
+Cada ocorrência de uma recorrência precisa de nome de tarefa one-shot único e determinístico por `scheduleId + next_run_at`. Reutilizar apenas o nome estável da recorrência pode deixar o ponteiro do banco associado a uma tarefa já concluída, sem próxima execução ativa. Na recuperação, reconciliar ponteiros antigos com tarefas efetivamente ativas; não apagar histórico.
