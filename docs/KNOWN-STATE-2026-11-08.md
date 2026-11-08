@@ -70,3 +70,7 @@ Após o deploy v646, dois registros `schedules` estavam ativos e apontavam para 
 - Correção de identidade por ocorrência PR #183 mesclada (merge squash `5e728c7049ca961d7c66e5bdb604d6b8e05a33bd`) e publicada no Hatchable v647.
 - Dois schedules ativos foram rearmados com novos IDs one-shot exclusivos e verificados como `active`, ambos para 09/11/2026 12:00 UTC. Os registros antigos concluídos foram preservados.
 - A publicação recorrente não dispara one-shot adicional por mensagem; cron Telegram permanece horário.
+
+
+## Shopee — estado após ajuste do worker
+Logs de 24h até 08/11 mostravam cinco execuções 504 no limite de 65s e cinco respostas 429, além de execuções 200 que registraram `shopee_api_10000`. O teste de autenticação/leitura simples foi bem-sucedido. O worker foi alterado para lotes de uma página, orçamento de 30s para iniciar trabalho, timeout HTTP de 8s/duas tentativas, uma repetição de erro GraphQL, 6 keywords com alternância de ordenação por hora, lote de 10 itens e cursor salvo somente depois da persistência dos itens. A validação final depende do próximo cron automático; não foi executado manualmente para não consumir chamadas nem alterar ofertas.

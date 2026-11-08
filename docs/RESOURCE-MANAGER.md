@@ -23,3 +23,7 @@ Orçamento, consumo por janela, previsão, reserva, concorrência, fila, latênc
 
 ## Limite confirmado do plano Hatchable Free
 Logs reais registraram rejeição HTTP 422 ao tentar armar one-shots quando o projeto alcançou 200 execuções one-shot agendadas no dia UTC. O erro foi produzido por `scheduler.now()` chamado a cada recorrência Telegram, em cascata. A regra correta é preservar a publicação READY no banco e deixar o cron recorrente `/api/jobs/telegram` consumi-la, evitando fan-out de one-shots. Chamadas imediatas manuais continuam sujeitas à cota e devem ser usadas com parcimônia. Nunca contornar ou falsificar a cota do provedor.
+
+
+## Shopee — orçamento de execução
+O worker Shopee foi ajustado para proteger o limite de 65 segundos do scheduler: janela de início de novas operações de até 30s; timeout de rede 8s; até 2 tentativas HTTP; uma repetição para erros GraphQL 10000/10030; uma página por consulta com cursor persistido após os itens de descoberta serem gravados; seis palavras-chave por execução e alternância horária entre ordenação por vendas/comissão; uma consulta AMS, uma amostra de loja parceira e uma de Shopee Mall; lote de processamento de 10 itens e reconciliação de um item. Não há teto diário de ofertas: páginas e itens continuam nos cursores/filas para os próximos ciclos. Se o orçamento terminar, o trabalho restante permanece pendente sem perder cursor ou apagar dados.
