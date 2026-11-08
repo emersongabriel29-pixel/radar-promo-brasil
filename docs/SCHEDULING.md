@@ -14,3 +14,7 @@ Testar timezone, fronteira horária, atraso, sobreposição, falha, reinício e 
 
 ## Identidade única por ocorrência
 Cada ocorrência de uma recorrência precisa de nome de tarefa one-shot único e determinístico por `scheduleId + next_run_at`. Reutilizar apenas o nome estável da recorrência pode deixar o ponteiro do banco associado a uma tarefa já concluída, sem próxima execução ativa. Na recuperação, reconciliar ponteiros antigos com tarefas efetivamente ativas; não apagar histórico.
+
+
+## Verificação de recorrências após v649
+Dois schedules ativos foram rearmados com nomes determinísticos únicos por ocorrência: `recurrence-aa1cc821-2b16-4d34-9b08-bd3396b6427b-1794225600000` e `recurrence-1192b0c0-7d9e-42d5-ac5a-41a37568e468-1794225600000`. Ambos aparecem ACTIVE para 09/11/2026 12:00 UTC. O cron Telegram continua horário e as recorrências não criam um one-shot imediato por item enfileirado.
