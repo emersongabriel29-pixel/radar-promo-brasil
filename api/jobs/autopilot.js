@@ -13,7 +13,7 @@ export default async function(req, res) {
   };
 
   // Wake accounts with technically complete offers that have not entered a publication queue.
-  // A 25-offer batches every 15 minutes keep ingestion close to channel throughput and inside the hosting execution budget; commercial signals never exclude products.
+  // A bounded hourly batches keep ingestion inside the Free scheduler and hosting execution budget; commercial signals never exclude products.
   const accounts = (await db.query(`
     SELECT DISTINCT o.account_id
     FROM offers o
