@@ -27,3 +27,7 @@ Logs reais registraram rejeição HTTP 422 ao tentar armar one-shots quando o pr
 
 ## Shopee — orçamento de execução
 O worker Shopee foi ajustado para proteger o limite de 65 segundos do scheduler: janela de início de novas operações de até 30s; timeout de rede 8s; até 2 tentativas HTTP; uma repetição para erros GraphQL 10000/10030; uma página por consulta com cursor persistido após os itens de descoberta serem gravados; seis palavras-chave por execução e alternância horária entre ordenação por vendas/comissão; uma consulta AMS, uma amostra de loja parceira e uma de Shopee Mall; lote de processamento de 10 itens e reconciliação de um item. Não há teto diário de ofertas: páginas e itens continuam nos cursores/filas para os próximos ciclos. Se o orçamento terminar, o trabalho restante permanece pendente sem perder cursor ou apagar dados.
+
+
+## Estado de operação após v649
+Shopee usa orçamento de execução por janela (30s para iniciar novas chamadas) e cursores persistidos após armazenamento. A capacidade comercial não tem teto diário artificial: páginas restantes continuam no cursor e itens permanecem na fila. O limite real do scheduler Free (200 one-shots/dia UTC) é respeitado; recorrências não fazem fan-out one-shot.
