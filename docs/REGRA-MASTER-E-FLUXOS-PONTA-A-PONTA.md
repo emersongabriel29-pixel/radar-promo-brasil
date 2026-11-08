@@ -358,6 +358,44 @@ Levantamento estático/read-only em 08/11/2026. Os arquivos abaixo precisam ser 
 
 **Exceção externa importante:** o código atual identifica uma restrição do programa de afiliados AliExpress para publicidade de produtos adultos (com exceções descritas pelo próprio programa). A Regra Master remove a proibição interna genérica do Radar, mas não autoriza violar termos oficiais de um provedor. O item deve permanecer salvo e rastreável, e o relatório deve dizer que o destino/provedor não permite aquela distribuição. Não marcar como oferta perdida.
 
-### O que não foi feito nesta etapa
+### Registro da etapa documental anterior
 
-Nenhum arquivo funcional foi alterado e nenhum status foi atualizado no banco. Não foram aprovadas as 4.035 ofertas pendentes, não foram disparados workers de publicação, não foram enviadas mensagens e não houve reprocessamento em massa. Esta etapa entregou a especificação e identificou os gates reais; a harmonização de código e a recuperação do backlog exigem implementação por lotes, testes e confirmação de não duplicidade antes de qualquer envio real.
+A etapa documental identificou os gates legados e não alterou código ou banco. A implementação inicial descrita abaixo foi realizada posteriormente e está versionada separadamente.
+
+
+## 17. Implementação inicial da Regra Master — versão de fluxo v1
+
+**Estado de preparação:** código gravado no Hatchable como draft; dry-run válido; aguardando publicação controlada.  
+**Baseline funcional consultado:** Hatchable v658 LIVE e GitHub `main` antes das alterações.  
+**Migração:** `migrations/066_master_offer_flow_policy.sql`.
+
+### 17.1 O que mudou no código
+
+- Criado `lib/offer-flow-policy.js`: elegibilidade comum exige apenas título, preço atual positivo em centavos, link afiliado HTTPS sem credenciais e ausência de rejeição explícita por integridade.
+- `lib/autopilot.js`: processa APPROVED, PENDING, READY e NEEDS_REVIEW; não exige aprovação prévia, classificação diferente de REVIEW, desconto, comissão, avaliação, imagem ou histórico de preço. Lotes padrão de 100 e máximo de 200. Itens já presentes na fila de publicações não são inseridos novamente.
+- `api/jobs/autopilot.js`: acorda contas com ofertas elegíveis sem exigir imagem/histórico oficial recente; extensão segue o mesmo princípio.
+- `lib/delivery.js`: adicionada política versionada. Novas publicações `master_v1` validam título, preço atual e link afiliado, sem gates comerciais/classificação/imagem/histórico. Publicações antigas continuam `legacy` e mantêm as regras antigas até reconciliação explícita, evitando liberar 2.333 READY/37 RETRY antigos em massa.
+- Novas publicações gravam `eligibility_policy_version='master_v1'`; quando inseridas, a oferta passa a status READY. A confirmação final de envio continua dependendo do receipt do canal.
+- AliExpress review e extensão deixam de rejeitar por medicamento, imagem, desconto, comissão, avaliação ou REVIEW; faltas técnicas são contabilizadas como adiamento, não rejeição comercial.
+- Shopee: filtros internos de medicamento e exigências de imagem/comissão removidos da descoberta e importação; registros antigos BLOCKED/INCOMPLETE com dados técnicos suficientes são retomados.
+- Lomadee: removedor o gate interno de medicamento, imagem não é pré-requisito e registros BLOCKED_SAFETY/NEEDS_DATA com dados essenciais são recolocados em READY_FOR_LINK. Reconciliação não rebaixa oferta para PENDING só porque não há desconto.
+- AliExpress: medicamento não é mais filtro interno e imagem é opcional. A restrição oficial do programa para publicidade de determinados produtos adultos permanece como restrição do provedor, identificada como `PROVIDER_RESTRICTED`; não pode ser contornada.
+- Amazon: medicamento, imagem e desconto deixaram de ser gates internos; Partner Tag/URL HTTPS e preço atual continuam obrigatórios.
+- Comissão, avaliação, desconto, score e imagem continuam disponíveis como sinais informativos para ordenação e relatório.
+
+### 17.2 Preservação e limites de segurança
+
+- A migração adiciona `publications.eligibility_policy_version` com default `legacy`; não altera nem reenvia publicações antigas.
+- O autopilot exclui `validation_status='REJECTED'` e `status='REJECTED'` até reconciliação canônica de duplicidade/integridade. Os 26 casos identificados não serão publicados em duplicidade.
+- Não foi executado SQL de aprovação em massa, não foram acionados workers manualmente e nenhuma mensagem foi enviada durante esta etapa.
+- Não foi executada chamada real às APIs externas durante testes. O processamento real seguirá os crons configurados e limites oficiais dos provedores/canais.
+- O lote de 100 por conta por ciclo é controle de capacidade/continuidade da hospedagem; não é limite comercial. Checkpoints são as próprias filas e o registro de publicações idempotentes.
+- Os registros antigos `legacy` permanecem preservados e precisam de reconciliação antes de eventual migração para `master_v1`.
+
+### 17.3 Validação e pendências honestas
+
+- Dry-run Hatchable: `ok=true`, 0 erros, 0 avisos; 122 funções API, 9 páginas, 72 migrações; próxima versão prevista v659.
+- Testes unitários adicionados em `tests/master-offer-flow.test.mjs`, cobrindo +18, score/desconto/comissão/avaliação ausentes, imagem/histórico opcionais, link inválido e duplicidade rejeitada. Os testes ainda não foram executados neste ambiente.
+- `npm run build`, `npm test`, `npm run test:e2e` e `npm audit --audit-level=moderate` ainda não foram executados.
+- Não foi feita homologação ponta a ponta com APIs/canais, pois isso exigiria operações reais ou sandbox documentado.
+- O backlog anterior de ofertas e publicações não foi alterado nesta etapa. A retomada automática começará após o deploy e o próximo ciclo dos crons. A contagem de pendências deve ser atualizada depois de cada lote.
