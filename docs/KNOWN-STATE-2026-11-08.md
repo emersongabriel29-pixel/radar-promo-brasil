@@ -58,3 +58,7 @@ Não foram executados workers reais nem alterados filas, credenciais, banco, cro
 - O diagnóstico Telegram teve respostas 200 e 502 intercaladas em 08/11. Os logs não guardam corpo da resposta para os 502; não é possível atribuir a falha a token, chat ou permissão sem novo diagnóstico controlado. Nenhuma mensagem foi enviada nesta auditoria.
 
 Esses números são fotografia de produção, não alvo para zerar indiscriminadamente. READY são mensagens reais ainda não entregues; FAILED e WAITING_CONFIRMATION exigem reconciliação para evitar duplicidade. Nenhuma oferta, publicação, agendamento, credencial ou fila foi apagada ou reenviada.
+
+
+## Correção de recorrências — observação complementar
+Após o deploy v646, dois registros `schedules` estavam ativos e apontavam para IDs de tarefas one-shot com status `completed`, apesar de `next_run_at` futuro. O cron Telegram recorrente estava ativo. Isso indica ponteiro de scheduler obsoleto; foi preparada correção para nome determinístico único por ocorrência e rearmamento dos registros ativos sem apagar histórico. O rearmamento deve ser confirmado na lista de cron após a implantação.
