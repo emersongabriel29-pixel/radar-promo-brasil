@@ -392,7 +392,7 @@ export default async function handler(req,res) {
       const processingRows = dryRun ? [] : (await db.query(
         `SELECT external_id,raw_data FROM affiliate_discovery_items
          WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT'
-           AND processing_status IN ('DISCOVERED','FAILED','INCOMPLETE')
+           AND processing_status IN ('DISCOVERED','FAILED')
          ORDER BY sales_count DESC NULLS LAST, rating DESC NULLS LAST,
            CASE WHEN raw_data->>'isOfficialShop'='true' OR raw_data->>'shopType' ~ '(^|,)1(,|$)' THEN 1 ELSE 0 END DESC,
            commission_rate DESC NULLS LAST, first_seen_at,external_id LIMIT 10`,
