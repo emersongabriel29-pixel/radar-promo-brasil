@@ -83,3 +83,6 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 
 
 | 2026-11-08 | Implementação inicial da Regra Master v1 | Elegibilidade, autopilot, entrega versionada, Shopee, Lomadee, AliExpress, Amazon, extensão e migração 066 | Dry-run Hatchable ok, 0 erros/avisos; testes unitários adicionados mas não executados; nenhuma mensagem manual enviada | commits sequenciais da implementação v1; consultar histórico GitHub main | draft para v659 | Código e documentação preparados; homologação real e reconciliação do backlog pendentes |
+
+
+| 2026-11-08 | Ajustes finais da política Master v1: restrição externa AliExpress isolada, Shopee incompletos recuperáveis, helper e testes ampliados | Elegibilidade e retomada de descoberta | Dry-run Hatchable 0 erros/avisos; 4.036 ofertas elegíveis sem publicação identificadas em consulta read-only; nenhum worker ou envio manual acionado | commits finais em GitHub main; consultar histórico | draft para v659 | Pronto para deploy documental/funcional; testes npm e homologação externa ainda não executados |
