@@ -7,7 +7,7 @@ import { directImageUrl, httpsUrl } from 'lib/validation.js';
 import { formatPromo } from 'lib/promo-message.js';
 import { cacheOfferImage } from 'lib/offer-images.js';
 import { classifyProduct } from 'lib/category-classifier.js';
-import { isMedicationProduct, isAdultProduct } from 'lib/product-safety.js';
+import { isAdultProduct } from 'lib/product-safety.js';
 import { selectShopeeKeywords, getShopeeKeywordQualityPenalty } from 'lib/shopee-keywords.js';
 import { isShopeeShopId, isShopeeItemId } from 'lib/shopee-ids.js';
 
@@ -103,10 +103,7 @@ async function persistShopeeDiscoveryItems(accountId, products) {
     if (!title) missingFields.push('title');
     if (!productUrl) missingFields.push('productUrl');
     if (!affiliateUrl) missingFields.push('affiliateUrl');
-    if (!imageUrl) missingFields.push('imageUrl');
     if (!Number.isFinite(price) || price<=0) missingFields.push('priceMin');
-    if (!Number.isFinite(commission) || commission<=0) missingFields.push('commissionRate');
-    const safetyBlocked = isMedicationProduct({title,productUrl});
     const externalId = clean(product.itemId,80) || productUrl || [clean(product.shopId,80),title].filter(Boolean).join(':');
     if (!externalId) continue;
     rows.push({
@@ -116,9 +113,9 @@ async function persistShopeeDiscoveryItems(accountId, products) {
       commission_rate:Number.isFinite(commission)?commission:null,
       rating:Number.isFinite(rating)&&rating>0?rating:null,
       sales_count:Number.isFinite(sales)&&sales>=0?Math.floor(sales):null,
-      available:safetyBlocked?false:null,
-      processing_status:safetyBlocked?'BLOCKED':missingFields.length?'INCOMPLETE':'DISCOVERED',
-      raw_data:{...product,shopType:clean(product.__shopType,80),isOfficialShop:product.__isOfficialShop===true,radarDiscovery:{keyword:clean(product.__radarKeyword,120),source:(product.__discoverySources||[product.__discoverySource]).join(','),missingFields,safetyBlocked}}
+      available:null,
+      processing_status:missingFields.length?'INCOMPLETE':'DISCOVERED',
+      raw_data:{...product,shopType:clean(product.__shopType,80),isOfficialShop:product.__isOfficialShop===true,radarDiscovery:{keyword:clean(product.__radarKeyword,120),source:(product.__discoverySources||[product.__discoverySource]).join(','),missingFields}}
     });
   }
   let stored = 0;
@@ -391,10 +388,11 @@ export default async function handler(req,res) {
         totals.officialOnlyCompleted = (totals.officialOnlyCompleted||0)+1;
         continue;
       }
+      if (!dryRun) await db.query(`UPDATE affiliate_discovery_items SET processing_status='DISCOVERED',processing_error='MASTER_RULE_REPROCESS',last_seen_at=now() WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND (processing_status='BLOCKED' OR (processing_status='INCOMPLETE' AND NULLIF(trim(title),'') IS NOT NULL AND price_cents>0 AND product_url LIKE 'https://%' AND affiliate_url LIKE 'https://%'))`,[row.account_id]);
       const processingRows = dryRun ? [] : (await db.query(
         `SELECT external_id,raw_data FROM affiliate_discovery_items
          WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT'
-           AND processing_status IN ('DISCOVERED','FAILED')
+           AND processing_status IN ('DISCOVERED','FAILED','INCOMPLETE')
          ORDER BY sales_count DESC NULLS LAST, rating DESC NULLS LAST,
            CASE WHEN raw_data->>'isOfficialShop'='true' OR raw_data->>'shopType' ~ '(^|,)1(,|$)' THEN 1 ELSE 0 END DESC,
            commission_rate DESC NULLS LAST, first_seen_at,external_id LIMIT 10`,
@@ -412,15 +410,6 @@ export default async function handler(req,res) {
         const price = Number(p.priceMin ?? p.price);
         const rateRaw = Number(p.priceDiscountRate ?? p.discountRate);
         const discoveryExternalId = p.__inventoryExternalId || clean(p.itemId,80) || productUrl || [clean(p.shopId,80),title].filter(Boolean).join(':');
-        if (isMedicationProduct({title, productUrl})) {
-          totals.safetyBlocked++; totals.skipped++;
-          totals.safetyBlockedPreview.push({itemId:clean(p.itemId || discoveryExternalId,80),title,discoveryKeyword:clean(p.__radarKeyword,80),reason:'blocked_by_product_safety_policy'});
-          if (!dryRun && discoveryExternalId) await db.query(
-            "UPDATE affiliate_discovery_items SET processing_status='BLOCKED',processed_at=now(),processing_error='blocked_by_product_safety_policy' WHERE account_id=$1 AND marketplace='SHOPEE' AND kind='PRODUCT' AND external_id=$2 AND processing_status IN ('DISCOVERED','FAILED')",
-            [row.account_id,discoveryExternalId]
-          );
-          continue;
-        }
         const discountRate = Number.isFinite(rateRaw) && rateRaw > 0 ? (rateRaw < 1 ? rateRaw : rateRaw/100) : 0;
         const currentPrice = Number.isFinite(price) && price>0 ? Math.round(price*100) : 0;
         const commission = Number(p.commissionRate);
@@ -428,9 +417,7 @@ export default async function handler(req,res) {
         if (!title) missingFields.push('title');
         if (!productUrl) missingFields.push('productUrl');
         if (!affiliateUrl) missingFields.push('affiliateUrl');
-        if (!imageUrl) missingFields.push('imageUrl');
         if (!currentPrice) missingFields.push('priceMin');
-        if (!Number.isFinite(commission) || commission<=0) missingFields.push('commissionRate');
         if (missingFields.length) {
           totals.skipped++;
           totals.incompletePreview.push({itemId:clean(p.itemId || discoveryExternalId,80),title,shopId:clean(p.shopId,80),shopName:clean(p.shopName,160),discoverySource:(p.__discoverySources||[p.__discoverySource]).join(','),discoveryKeyword:clean(p.__radarKeyword,80),missingFields,priceMin:p.priceMin??p.price??null,commissionRate:p.commissionRate??null});
