@@ -374,7 +374,7 @@ A etapa documental identificou os gates legados e não alterou código ou banco.
 - Criado `lib/offer-flow-policy.js`: elegibilidade comum exige apenas título, preço atual positivo em centavos, link afiliado HTTPS sem credenciais e ausência de rejeição explícita por integridade.
 - `lib/autopilot.js`: processa APPROVED, PENDING, READY e NEEDS_REVIEW; não exige aprovação prévia, classificação diferente de REVIEW, desconto, comissão, avaliação, imagem ou histórico de preço. Lotes padrão de 100 e máximo de 200. Itens já presentes na fila de publicações não são inseridos novamente.
 - `api/jobs/autopilot.js`: acorda contas com ofertas elegíveis sem exigir imagem/histórico oficial recente; extensão segue o mesmo princípio.
-- `lib/delivery.js`: adicionada política versionada. Novas publicações `master_v1` validam título, preço atual e link afiliado, sem gates comerciais/classificação/imagem/histórico. Publicações antigas continuam `legacy` e mantêm as regras antigas até reconciliação explícita, evitando liberar 2.333 READY/37 RETRY antigos em massa.
+- `lib/delivery.js`: adicionada política versionada. Novas publicações `master_v1` validam título, preço atual e link afiliado, sem gates comerciais/classificação/imagem/histórico. Publicações antigas continuam `legacy` e mantêm as regras antigas até reconciliação explícita, evitando liberar 2.329 READY/37 RETRY antigos em massa.
 - Novas publicações gravam `eligibility_policy_version='master_v1'`; quando inseridas, a oferta passa a status READY. A confirmação final de envio continua dependendo do receipt do canal.
 - AliExpress review e extensão deixam de rejeitar por medicamento, imagem, desconto, comissão, avaliação ou REVIEW; faltas técnicas são contabilizadas como adiamento, não rejeição comercial.
 - Shopee: filtros internos de medicamento e exigências de imagem/comissão removidos da descoberta e importação; registros antigos BLOCKED/INCOMPLETE com dados técnicos suficientes são retomados.
@@ -386,7 +386,7 @@ A etapa documental identificou os gates legados e não alterou código ou banco.
 ### 17.2 Preservação e limites de segurança
 
 - A migração adiciona `publications.eligibility_policy_version` com default `legacy`; não altera nem reenvia publicações antigas.
-- O autopilot exclui `validation_status='REJECTED'` e `status='REJECTED'` até reconciliação canônica de duplicidade/integridade. Os 26 casos identificados não serão publicados em duplicidade.
+- O autopilot exclui `validation_status='REJECTED'` e `status='REJECTED'` até reconciliação canônica de duplicidade/integridade. Os 26 casos identificados não serão publicados em duplicidade; a política Master também exclui status PROVIDER_RESTRICTED, usado apenas para restrição externa específica do programa AliExpress.
 - Não foi executado SQL de aprovação em massa, não foram acionados workers manualmente e nenhuma mensagem foi enviada durante esta etapa.
 - Não foi executada chamada real às APIs externas durante testes. O processamento real seguirá os crons configurados e limites oficiais dos provedores/canais.
 - O lote de 100 por conta por ciclo é controle de capacidade/continuidade da hospedagem; não é limite comercial. Checkpoints são as próprias filas e o registro de publicações idempotentes.
@@ -395,7 +395,29 @@ A etapa documental identificou os gates legados e não alterou código ou banco.
 ### 17.3 Validação e pendências honestas
 
 - Dry-run Hatchable: `ok=true`, 0 erros, 0 avisos; 122 funções API, 9 páginas, 72 migrações; próxima versão prevista v659.
-- Testes unitários adicionados em `tests/master-offer-flow.test.mjs`, cobrindo +18, score/desconto/comissão/avaliação ausentes, imagem/histórico opcionais, link inválido e duplicidade rejeitada. Os testes ainda não foram executados neste ambiente.
+- Sete testes unitários adicionados em `tests/master-offer-flow.test.mjs`, cobrindo +18 sem filtro global, score/desconto/comissão/avaliação ausentes, imagem/histórico opcionais, link inválido, duplicidade rejeitada e restrição externa por provedor. Os testes ainda não foram executados neste ambiente.
 - `npm run build`, `npm test`, `npm run test:e2e` e `npm audit --audit-level=moderate` ainda não foram executados.
 - Não foi feita homologação ponta a ponta com APIs/canais, pois isso exigiria operações reais ou sandbox documentado.
 - O backlog anterior de ofertas e publicações não foi alterado nesta etapa. A retomada automática começará após o deploy e o próximo ciclo dos crons. A contagem de pendências deve ser atualizada depois de cada lote.
+
+
+### 17.4 Fotografia atual do backlog antes do deploy v659
+
+Consulta read-only executada em Hatchable v658 após preparar o código:
+
+| Origem | Ofertas elegíveis sem publicação | Observação |
+|---|---:|---|
+| Lomadee | 4.002 | Status PENDING; link e preço atual presentes; seguirá em lotes de 100 por conta/ciclo |
+| AliExpress | 26 | 21 APPROVED + 5 PENDING; os itens adultos sujeitos a termos do programa ficam separados em PROVIDER_RESTRICTED |
+| Shopee | 8 | Status APPROVED, sem publicação existente |
+| **Total elegível sem publicação** | **4.036** | Não foram inseridas publicações nem alterados status nesta consulta |
+
+Outros registros preservados:
+- 26 ofertas com `validation_status=REJECTED` (duplicidade/integridade): aguardam reconciliação canônica, não são descartadas nem reenviadas.
+- Publicações existentes: 2.329 READY, 37 RETRY, 136 FAILED, 4 WAITING_CONFIRMATION e 2.746 PUBLISHED.
+- Descoberta Lomadee: 161 BLOCKED_SAFETY e 26 NEEDS_DATA; o código recoloca em processamento os registros com campos técnicos essenciais.
+- Descoberta Shopee: 184 BLOCKED e 15 INCOMPLETE; o código recupera os que já têm título, preço, URL de produto e link afiliado.
+- Descoberta AliExpress: 17 BLOCKED_SAFETY; serão reavaliados quando a fonte os retornar novamente. Restrição adulta oficial continua isolada em PROVIDER_RESTRICTED.
+- Lomadee com BLOCKED_PROVIDER_APPROVAL/CHANNEL (27/17) depende de autorização externa; não há contorno permitido.
+
+A fila de 4.036 será processada pelo scheduler em lotes. O número de ofertas elegíveis não equivale a mensagens enviadas; a publicação depende de grupos ativos, receipt e intervalo/rate limit dos canais.
