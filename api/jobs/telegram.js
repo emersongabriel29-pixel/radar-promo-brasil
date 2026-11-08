@@ -195,8 +195,8 @@ async function processAccount(accountId, settings) {
       await runQuery('markRetryOrFailed', "UPDATE publications SET status=CASE WHEN attempts<5 THEN 'RETRY' ELSE 'FAILED' END,error_message=$3,next_attempt_at=CASE WHEN attempts<5 THEN now()+($4::text||' minutes')::interval ELSE NULL END,telegram_connection_id=NULL,dispatch_token=NULL WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$5",[item.id,accountId,lastError,retryMinutes,item.dispatchToken]);
       result.failed++;
     }
-    // Telegram group delivery is limited to about 1 message/second; keep a small safety margin without holding the function for 4 seconds per offer.
-    if (result.processed>1) await wait(1100);
+    // Telegram groups are rate-limited to roughly 20 messages/minute; keep a 3.1s gap per message.
+    if (result.processed>1) await wait(3100);
   }
 
   const interval = selectedConfig?.intervalMinutes == null ? Number(settings.interval_minutes)||10 : Math.max(1,Math.min(1440,Number(selectedConfig.intervalMinutes)||Number(settings.interval_minutes)||10));
@@ -244,7 +244,7 @@ export default async function handler(req,res) {
         await db.query("UPDATE publication_scheduler_settings SET last_result=$2::jsonb,updated_at=now() WHERE account_id=$1",[row.account_id,JSON.stringify({status:'ERROR',stage:errorStage,error:errorCode,detail:errorDetail})]);
       }
     }
-    return res.json({ok:totals.failed===0,...totals,centralScheduler:true,cadence:'hourly-cron'});
+    return res.json({ok:totals.failed===0,...totals,centralScheduler:true,cadence:'5-minute-cron'});
   }catch(error){
     console.error('publication scheduler failed',String(error?.code||error?.name||'ERROR').slice(0,80),String(error?.message||'').slice(0,180));
     return res.status(500).json({error:'Falha no escalonador central de publicações.'});
