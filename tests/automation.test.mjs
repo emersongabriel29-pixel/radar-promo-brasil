@@ -103,7 +103,7 @@ test('monta mensagem completa sem inventar preço, desconto ou cupom',()=>{
 
 test('modelo automático exige evidência de origem internacional e omite fatos ausentes',()=>{
   const marketplaceOnly=formatPromo({title:'Organizador',source:'AliExpress',currentPrice:5990,affiliateUrl:'https://pt.aliexpress.com/item/1',template:'AUTO'});
-  assert.equal(resolveTemplate('AUTO','Produtos importados','AliExpress'),'COMPLETE');
+  assert.equal(resolveTemplate('AUTO','Produtos importados','AliExpress'),'IMPORTED');
   assert.equal(marketplaceOnly.template,'COMPLETE');
   const knownOrigin=formatPromo({title:'Organizador',source:'AliExpress',category:'Origem internacional',currentPrice:5990,affiliateUrl:'https://pt.aliexpress.com/item/1',template:'AUTO'});
   assert.equal(knownOrigin.template,'IMPORTED');
