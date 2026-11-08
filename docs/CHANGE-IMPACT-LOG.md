@@ -299,3 +299,18 @@ Nenhum adendo registrado até o momento.
 - O código do gate e os documentos foram comparados por SHA-256 com o inventário WIP. Não existe alegação de sincronização integral das plataformas: persistem 77 divergências de hash na baseline, incluindo adapters e migrations, e a produção continua v664.
 - A suíte local continua com 236 aprovações e sete falhas preexistentes. O patch não resolve filas preexistentes/dispatchers. Portanto, PR #193 permanece em rascunho, sem merge e sem deploy.
 - Próximas ações: revisar diferenças funcionais em arquivos de entrega; validar todos os caminhos de publicação de medicamentos; tratar testes legados e causas de falhas; homologar APIs oficiais e receitas; backup/restauração; só então concluir reconciliação e liberação.
+
+
+### AUD-2026-11-08-PARECER-35 — consolidação rastreável
+
+- Autorização: titular solicitou auditoria completa dos 35 itens e reiterou atualização documental no GitHub e Hatchable.
+- Baseline: main cf20a088e4fe2ac32f43fbe777b7f49fa7423cbb; PR #193 antes da consolidação a16aac9a432257fbe93befb7bce8873ef970f8f3; produção v664.
+- Escopo: parecer de cada seção P01–P35, 16 frentes, recuperação de 44 PRs, nove complementares, 22 controles e dez fases.
+- Leitura integral dos 77 arquivos divergentes; 47 diferenças de formatação/comentários normalizadas e 30 diferenças restantes de código/conteúdo/configuração. Não reconciliadas em lote.
+- Testes novos de leitura: Shopee/Lomadee retornam um produto; AliExpress resp_code405 não tratado; Rakuten falha com token salvo; dois tokens Mercado Livre retornam401; Magalu sem TenantID; diagnóstico Telegram Casa & Lar/Pet passa sem envio.
+- Risco/resultado: REPROVADO PARA LIBERAÇÃO; sistema não está 100% homologado. Bloqueios não foram convertidos em aprovações.
+- Nenhum código de aplicação alterado nesta consolidação. Nenhum token renovado, dado operacional escrito, mensagem enviada, migration, merge, deploy ou gasto realizado.
+- Documentos de domínio atualizados; JSONs de evidência sanitizados versionados e espelhados em lib/documentation no WIP.
+- Teste filtrado de backup falhou por dependência de fixture; operations completo:19/20, restore36tabelas passa. CI falha em npm test e pula audit/E2E.
+- Próximo passo: tratar F01(envelope AliExpress), F02(testes/CI) e F03(reconciliação por arquivo), com análise de impacto antes de implementação. Filas reais não serão reprocessadas sem plano quantitativo/recuperação.
+- Commit final: consultar o commit que contém esta entrada no PR#193; versão publicada continua664. Rollback documental por reversão de commit/conteúdo WIP; sem dados a reverter.
