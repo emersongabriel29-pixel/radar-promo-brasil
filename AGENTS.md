@@ -11,3 +11,12 @@ Valide com `npm run build`, `npm test`, `npm run test:e2e` e `npm audit --audit-
 ## Regra obrigatória: Hatchable ↔ GitHub
 
 Antes e depois de qualquer alteração, siga [`docs/HATCHABLE-GITHUB-SYNC-RULE.md`](docs/HATCHABLE-GITHUB-SYNC-RULE.md). Nunca presuma sincronização automática entre as plataformas: compare arquivos/versões, registre a fonte de verdade da tarefa, reconcilie diferenças sem sobrescrever mudanças e confirme a versão/commit publicado. Se não for possível verificar equivalência, informe a divergência e não declare o projeto sincronizado ou pronto para produção.
+
+
+## Regra obrigatória: documentação em toda alteração
+
+**Toda alteração no Radar Promo Brasil deve atualizar a documentação na mesma tarefa, sem exceção por tamanho ou urgência.** Isso inclui código, API, interface, configurações, integrações, credenciais (somente nomes/escopos, nunca valores), banco/migrações, categorias, IA/prompts, filas, workers, cron, segurança, privacidade, testes, CI, deploy e rollback.
+
+Antes de alterar, consulte `docs/INDICE.md` e `docs/CONTROLE-DE-MUDANCAS.md`, compare o estado real do GitHub e Hatchable e defina a fonte de verdade. Depois, atualize o índice/documento do domínio, registre data, motivo, arquivos/rotas/tabelas afetados, comportamento anterior/novo, riscos, testes e resultados, commit, versão Hatchable, estado de sincronização e rollback. Se a documentação funcional não mudar, registre no changelog técnico a revisão e o motivo. Não declare concluído enquanto código, documentação e evidências não estiverem coerentes. Nunca registrar tokens, cookies, segredos ou dados pessoais.
+
+A documentação completa deve permanecer versionada no diretório `docs/` deste repositório. O manifesto Hatchable `AGENTS.md` é gerado automaticamente e não deve ser editado manualmente; a regra deve ser mantida também nos arquivos de documentação próprios do projeto no Hatchable.
