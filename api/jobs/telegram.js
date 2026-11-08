@@ -37,7 +37,7 @@ async function claimBatch(accountId, ids) {
       return tokenById;
     } catch (error) {
       const limited = /rate limit exceeded for db\/transaction/i.test(String(error?.message || ''));
-      if (!limited || attempt >= delays.length) throw error;
+      if (!limited || attempt >= delays.length) { if (error && typeof error === 'object') error.schedulerStage='claimBatch'; throw error; }
       await wait(delays[attempt] + Math.floor(Math.random()*350));
     }
   }
@@ -45,9 +45,13 @@ async function claimBatch(accountId, ids) {
 
 async function processAccount(accountId, settings) {
   const result = { accountId, claimedTurn: true, source: null, processed: 0, published: 0, failed: 0, unconfirmed: 0, skipped: 0 };
+  const runQuery = async (stage, sql, params) => {
+    try { return await db.query(sql, params); }
+    catch (error) { if (error && typeof error === 'object') error.schedulerStage = stage; throw error; }
+  };
   const config = settings.source_config && typeof settings.source_config === 'object' ? settings.source_config : {};
   const configuredOrder = asArray(settings.source_order).map(x=>clean(x,60).toUpperCase()).filter(Boolean);
-  const availableRows = (await db.query(`
+  const availableRows = (await runQuery('availableRows', `
     SELECT DISTINCT COALESCE(upper(o.source),CASE WHEN p.content_type='MESSAGE' THEN 'MANUAL' END) AS source
     FROM publications p
     LEFT JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id
@@ -66,7 +70,7 @@ async function processAccount(accountId, settings) {
   const discovered = [...available].filter(source=>!configuredOrder.includes(source)).sort();
   const order = [...configuredOrder,...discovered];
   if (discovered.length) {
-    await db.query('UPDATE publication_scheduler_settings SET source_order=$2::jsonb,updated_at=now() WHERE account_id=$1',[accountId,JSON.stringify(order)]);
+    await runQuery('persistSourceOrder', 'UPDATE publication_scheduler_settings SET source_order=$2::jsonb,updated_at=now() WHERE account_id=$1',[accountId,JSON.stringify(order)]);
   }
   const last = clean(settings.last_source,60).toUpperCase();
   const start = last ? Math.max(0,order.indexOf(last)+1) % Math.max(1,order.length) : 0;
@@ -77,7 +81,7 @@ async function processAccount(accountId, settings) {
     if (item.enabled === false || !available.has(source)) { result.skipped++; continue; }
     const sourceBatch = Math.max(1,Math.min(100,Math.floor(Number(item.batchSize)||Number(settings.batch_size)||20)));
     const limit = Math.min(Number(settings.batch_size)||20,sourceBatch);
-    const candidates = (await db.query(`
+    const candidates = (await runQuery('candidates', `
       SELECT p.id,p.group_id AS "groupId",p.content_type AS "contentType",p.account_id AS "accountId",
         p.message,p.offer_id AS "offerId",COALESCE(p.image_url,o.image_url) AS "imageUrl",
         COALESCE(p.image_storage_key,o.image_storage_key) AS "imageStorageKey",p.attempts,
@@ -123,14 +127,14 @@ async function processAccount(accountId, settings) {
   }
 
   if (!selected || !rows.length) {
-    await db.query("UPDATE publication_scheduler_settings SET last_result=$2::jsonb,updated_at=now() WHERE account_id=$1",[accountId,JSON.stringify({status:'IDLE',reason:'NO_ELIGIBLE_PUBLICATIONS',skipped:result.skipped})]);
+    await runQuery('markIdle', "UPDATE publication_scheduler_settings SET last_result=$2::jsonb,updated_at=now() WHERE account_id=$1",[accountId,JSON.stringify({status:'IDLE',reason:'NO_ELIGIBLE_PUBLICATIONS',skipped:result.skipped})]);
     return result;
   }
 
   result.source = selected;
-  const connections = (await db.query("SELECT id,secret_slot AS \"secretSlot\" FROM telegram_connections WHERE account_id=$1 AND status='ACTIVE' ORDER BY failure_count,priority,last_seen_at DESC NULLS LAST",[accountId])).rows;
+  const connections = (await runQuery('loadConnections', "SELECT id,secret_slot AS \"secretSlot\" FROM telegram_connections WHERE account_id=$1 AND status='ACTIVE' ORDER BY failure_count,priority,last_seen_at DESC NULLS LAST",[accountId])).rows;
   if (!connections.length) {
-    await db.query("UPDATE publication_scheduler_settings SET last_source=$2,last_result=$3::jsonb,updated_at=now() WHERE account_id=$1",[accountId,selected,JSON.stringify({status:'BLOCKED',reason:'NO_ACTIVE_TELEGRAM_BOT',source:selected})]);
+    await runQuery('markBlocked', "UPDATE publication_scheduler_settings SET last_source=$2,last_result=$3::jsonb,updated_at=now() WHERE account_id=$1",[accountId,selected,JSON.stringify({status:'BLOCKED',reason:'NO_ACTIVE_TELEGRAM_BOT',source:selected})]);
     return result;
   }
 
@@ -167,26 +171,26 @@ async function processAccount(accountId, settings) {
         const imageUrl=item.contentType==='MESSAGE'?null:await cacheOfferImage({...item,imageUrl:item.imageUrl},db);
         const external=await sendTelegramOffer(token,{...item,imageUrl,message,affiliateUrl:affiliate});
         providerAccepted=true;
-        await db.query("UPDATE publications SET status='PUBLISHED',published_at=now(),error_message=NULL,telegram_connection_id=$3,external_message_id=$4,dispatch_token=NULL WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$5",[item.id,accountId,connection.id,String(external?.message_id||''),item.dispatchToken]);
-        await db.query("UPDATE telegram_connections SET failure_count=0,last_seen_at=now(),status='ACTIVE',updated_at=now() WHERE id=$1 AND account_id=$2",[connection.id,accountId]);
+        await runQuery('markPublished', "UPDATE publications SET status='PUBLISHED',published_at=now(),error_message=NULL,telegram_connection_id=$3,external_message_id=$4,dispatch_token=NULL WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$5",[item.id,accountId,connection.id,String(external?.message_id||''),item.dispatchToken]);
+        await runQuery('markConnectionHealthy', "UPDATE telegram_connections SET failure_count=0,last_seen_at=now(),status='ACTIVE',updated_at=now() WHERE id=$1 AND account_id=$2",[connection.id,accountId]);
         result.published++;sent=true;break;
       } catch(error) {
         lastError=String(error?.message||error).slice(0,500);
         if(providerAccepted||error?.code==='DELIVERY_UNCONFIRMED'||/timeout|timed out|ECONNRESET|socket hang up/i.test(lastError)){
-          await db.query("UPDATE publications SET status='WAITING_CONFIRMATION',error_message='Entrega incerta. Confira o destino antes de reenviar.',dispatch_token=NULL WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$3",[item.id,accountId,item.dispatchToken]);
+          await runQuery('markWaitingConfirmation', "UPDATE publications SET status='WAITING_CONFIRMATION',error_message='Entrega incerta. Confira o destino antes de reenviar.',dispatch_token=NULL WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$3",[item.id,accountId,item.dispatchToken]);
           result.unconfirmed++;sent=true;break;
         }
         if(['MEDIA_IMAGE_NOT_FOUND','MEDIA_URL_INVALID','MEDIA_TYPE_UNSUPPORTED','MEDIA_SIZE_INVALID'].includes(error?.code)){
-          await db.query("UPDATE publications SET status='FAILED',error_message=$3,next_attempt_at=NULL,telegram_connection_id=NULL,dispatch_token=NULL WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$4",[item.id,accountId,lastError,item.dispatchToken]);
+          await runQuery('markMediaFailed', "UPDATE publications SET status='FAILED',error_message=$3,next_attempt_at=NULL,telegram_connection_id=NULL,dispatch_token=NULL WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$4",[item.id,accountId,lastError,item.dispatchToken]);
           result.failed++;sent=true;break;
         }
         if(String(error?.code||'').startsWith('MEDIA_')) break;
-        await db.query("UPDATE telegram_connections SET failure_count=failure_count+1,status=CASE WHEN failure_count+1>=3 THEN 'DEGRADED' ELSE status END,updated_at=now() WHERE id=$1 AND account_id=$2",[connection.id,accountId]);
+        await runQuery('markConnectionFailure', "UPDATE telegram_connections SET failure_count=failure_count+1,status=CASE WHEN failure_count+1>=3 THEN 'DEGRADED' ELSE status END,updated_at=now() WHERE id=$1 AND account_id=$2",[connection.id,accountId]);
       }
     }
     if(!sent){
       const retryMinutes=Math.min(360,5*Math.pow(2,Math.min(6,Number(item.attempts)||0)))+Math.floor(Math.random()*3);
-      await db.query("UPDATE publications SET status=CASE WHEN attempts<5 THEN 'RETRY' ELSE 'FAILED' END,error_message=$3,next_attempt_at=CASE WHEN attempts<5 THEN now()+($4::text||' minutes')::interval ELSE NULL END,telegram_connection_id=NULL,dispatch_token=NULL WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$5",[item.id,accountId,lastError,retryMinutes,item.dispatchToken]);
+      await runQuery('markRetryOrFailed', "UPDATE publications SET status=CASE WHEN attempts<5 THEN 'RETRY' ELSE 'FAILED' END,error_message=$3,next_attempt_at=CASE WHEN attempts<5 THEN now()+($4::text||' minutes')::interval ELSE NULL END,telegram_connection_id=NULL,dispatch_token=NULL WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$5",[item.id,accountId,lastError,retryMinutes,item.dispatchToken]);
       result.failed++;
     }
     // Telegram group delivery is limited to about 1 message/second; keep a small safety margin without holding the function for 4 seconds per offer.
@@ -194,7 +198,7 @@ async function processAccount(accountId, settings) {
   }
 
   const interval = selectedConfig?.intervalMinutes == null ? Number(settings.interval_minutes)||10 : Math.max(1,Math.min(1440,Number(selectedConfig.intervalMinutes)||Number(settings.interval_minutes)||10));
-  await db.query(`
+  await runQuery('markTurnComplete', `
     UPDATE publication_scheduler_settings
     SET last_source=$2,last_run_at=now(),next_turn_at=now()+($3::text||' minutes')::interval,
         last_result=$4::jsonb,updated_at=now()
@@ -230,10 +234,11 @@ export default async function handler(req,res) {
         totals.results.push(result);
       }catch(error){
         totals.failed++;
+        const errorStage=String(error?.schedulerStage||'processAccount').slice(0,60);
         const errorCode=String(error?.code||error?.name||'ERROR').slice(0,80);
         const errorDetail=String(error?.message||'').replace(/Bearer\s+\S+/gi,'Bearer [redacted]').replace(/(token|secret|api[_-]?key)=?[^&\s]+/gi,'$1=[redacted]').slice(0,160);
-        console.error('publication scheduler account failed',row.account_id,errorCode,errorDetail);
-        await db.query("UPDATE publication_scheduler_settings SET last_result=$2::jsonb,updated_at=now() WHERE account_id=$1",[row.account_id,JSON.stringify({status:'ERROR',error:errorCode,detail:errorDetail})]);
+        console.error('publication scheduler account failed',row.account_id,errorStage,errorCode,errorDetail);
+        await db.query("UPDATE publication_scheduler_settings SET last_result=$2::jsonb,updated_at=now() WHERE account_id=$1",[row.account_id,JSON.stringify({status:'ERROR',stage:errorStage,error:errorCode,detail:errorDetail})]);
       }
     }
     return res.json({ok:totals.failed===0,...totals,centralScheduler:true,cadence:'hourly-cron'});
