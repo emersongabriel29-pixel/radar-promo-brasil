@@ -3,7 +3,7 @@ import { signTopParams } from 'lib/top-signature.js';
 import { createAliExpressAffiliateUrl, signAliExpressParams, validateAliExpressProductUrl } from 'lib/afilimax-aliexpress-provider.js';
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
-import { isMedicationProduct, isAdultProduct } from 'lib/product-safety.js';
+import { isAdultProduct } from 'lib/product-safety.js';
 import { normalizeAliExpressSales, upsertAffiliateSales } from 'lib/affiliate-sales.js';
 import { persistDiscoveryPage } from 'lib/affiliate-discovery.js';
 // API catalog items are not filtered by product category.
@@ -379,9 +379,6 @@ export default async function handler(req,res){
       return res.json({ok:true,action,items,discovery,page,pageSize,readOnlySource:true,publicationEnabled:false,note:'Itens de catálogo persistidos para análise. Nenhuma oferta foi criada ou publicada.'});
     }
     if(action==='importOffers'){
-      const minDiscount=Math.max(0,Math.min(90,Number(req.body?.minDiscountPercent??0)||0));
-      const minCommission=Math.max(0,Math.min(100,Number(req.body?.minCommissionRate??3)||0));
-      const maxRating=Math.max(0,Math.min(100,Number(req.body?.minimumRating??90)||0));
       const cats=(await db.query('SELECT id,name FROM categories WHERE account_id=$1 ORDER BY name',[account.id])).rows;
       const imported=[],skipped=[];
       for(const item of items){
@@ -392,31 +389,28 @@ export default async function handler(req,res){
         const rating=Number.parseFloat(String(item.rating??'').replace('%','').replace(',','.'));
         const discount=originalPrice>0&&currentPrice>0?Math.round((originalPrice-currentPrice)*100/originalPrice):0;
         let reason='';
-        if(isMedicationProduct({title,productUrl}))reason='Medicamentos e produtos farmacêuticos são bloqueados pela política do Radar.';
-        else if(isAdultProduct({title,productUrl}))reason='Produto adulto retido: os termos de publicidade de afiliados do AliExpress restringem a promoção de produtos adultos, exceto contraceptivos.';
+        if(isAdultProduct({title,productUrl}))reason='RESTRICAO_EXTERNA_ALIEXPRESS_ADULT_ADVERTISING';
         else if(!title)reason='Título ausente';
         // No internal category exclusion.
-        else if(!/^https:\/\//i.test(productUrl)||!/^https:\/\//i.test(affiliateUrl)||!/^https:\/\//i.test(imageUrl))reason='Produto sem link original, link de afiliado ou imagem HTTPS válida';
-        else if(!Number.isSafeInteger(currentPrice)||currentPrice<=0||!Number.isSafeInteger(originalPrice)||originalPrice<=currentPrice)reason='Preço atual/original inválido ou sem desconto verificável';
-        else if(discount<minDiscount)reason='Desconto abaixo do mínimo de '+minDiscount+'%';
-        else if(!Number.isFinite(commission)||commission<minCommission)reason='Comissão ausente ou abaixo do mínimo de '+minCommission+'%';
-        else if(Number.isFinite(rating)&&rating<maxRating)reason='Indicador de avaliação abaixo de '+maxRating+'%';
+        else if(!/^https:\/\//i.test(productUrl)||!/^https:\/\//i.test(affiliateUrl))reason='Produto sem link original ou link de afiliado HTTPS válido';
+        else if(!Number.isSafeInteger(currentPrice)||currentPrice<=0)reason='Preço atual ausente ou inválido';
         if(reason){skipped.push({id:item.id,title,reason});continue;}
         const classification=classifyProduct({title,sourceCategory:item.rawType||''});
         const category=cats.find(c=>c.name.toLowerCase()===String(classification.category||'').toLowerCase())||cats.find(c=>c.name.toLowerCase().includes('gerais'))||null;
         const fp=await fingerprint({source:'ALIEXPRESS',externalId:item.id,productUrl,title,sellerId:item.shopId||item.sellerId||item.storeId||'',sellerName:item.shopName||item.sellerName||'',currentPrice,originalPrice,variant:item.sku||item.variant||''});
-        const promo=formatPromo({title,source:'ALIEXPRESS',category:classification.category,currentPrice,originalPrice,affiliateUrl,imageUrl,productUrl});
-        const score=offerScore({title,currentPrice,originalPrice});
+        const normalizedOriginalPrice=Number.isSafeInteger(originalPrice)&&originalPrice>currentPrice?originalPrice:currentPrice;
+        const promo=formatPromo({title,source:'ALIEXPRESS',category:classification.category,currentPrice,originalPrice:normalizedOriginalPrice,affiliateUrl,imageUrl,productUrl});
+        const score=offerScore({title,currentPrice,originalPrice:normalizedOriginalPrice});
         const saved=await db.query(
           "INSERT INTO offers(id,account_id,title,source,original_price,current_price,category_id,affiliate_url,image_url,product_url,coupon_url,coupon_code,discount_percent,score,status,message,fingerprint,validation_status,imported_by,storefront_visible,subcategory,classification_tags,classification_confidence,classification_status,classification_reason,source_category) VALUES($1,$2,$3,'ALIEXPRESS',$4,$5,$6,$7,$8,$9,NULL,NULL,$10,$11,'PENDING',$12,$13,'VALIDATED','ALIEXPRESS_API',false,$14,$15::jsonb,$16,'REVIEW','Imported as draft; human review required',NULL) ON CONFLICT DO NOTHING RETURNING id",
-          [crypto.randomUUID(),account.id,title,originalPrice,currentPrice,category?.id||null,affiliateUrl,imageUrl,productUrl,discount,score,promo.message,fp,classification.subcategory||null,JSON.stringify(classification.tags||[]),classification.confidence||0]
+          [crypto.randomUUID(),account.id,title,normalizedOriginalPrice,currentPrice,category?.id||null,affiliateUrl,imageUrl||null,productUrl,discount,score,promo.message,fp,classification.subcategory||null,JSON.stringify(classification.tags||[]),classification.confidence||0]
         );
         if(!saved.rows.length){skipped.push({id:item.id,title,reason:'Produto duplicado; não foi importado novamente.'});continue;}
         const offerId=saved.rows[0].id;
-        await db.query("INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,$4,$5,'OFFICIAL_API',$6,now())",[crypto.randomUUID(),account.id,offerId,currentPrice,originalPrice,'ALIEXPRESS:'+clean(item.id,120)]);
+        await db.query("INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) VALUES($1,$2,$3,$4,$5,'OFFICIAL_API',$6,now())",[crypto.randomUUID(),account.id,offerId,currentPrice,normalizedOriginalPrice,'ALIEXPRESS:'+clean(item.id,120)]);
         imported.push({offerId,productId:item.id,title,price:currentPrice/100,originalPrice:originalPrice/100,discountPercent:discount,commissionRate:item.commissionRate,score,status:'PENDING_REVIEW',priceVerified:true});
       }
-      return res.json({ok:true,action:'importOffers',keyword:clean(req.body?.keyword,120),criteria:{minDiscountPercent:minDiscount,minCommissionRate:minCommission,minimumRating:maxRating},imported:imported.length,skipped:skipped.length,items:imported,skippedItems:skipped,readOnlySource:true,reviewRequired:true,autopilotTriggered:false,publicationTriggered:false,publicationEnabled:false,note:'Produtos importados apenas como ofertas pendentes de revisão humana. Nenhuma oferta foi aprovada, publicada ou enviada a grupos.'});
+      return res.json({ok:true,action:'importOffers',keyword:clean(req.body?.keyword,120),criteria:{commercialSignals:'INFORMATIONAL_ONLY',adultAdvertising:'SUBJECT_TO_OFFICIAL_ALIEXPRESS_PROGRAM_TERMS'},imported:imported.length,skipped:skipped.length,items:imported,skippedItems:skipped,readOnlySource:true,reviewRequired:false,autopilotTriggered:false,publicationTriggered:false,publicationEnabled:false,note:'Produtos importados com preço e link de afiliado válidos; comissão, avaliação, desconto e imagem não são filtros internos. Restrições oficiais do programa AliExpress continuam aplicáveis.'});
     }
     if(action==='generateLink'){
       const raw=result?.promotion_links?.promotion_link;
