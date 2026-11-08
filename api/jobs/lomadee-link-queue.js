@@ -95,6 +95,7 @@ function canonicalProductUrl(value) {
     const url = new URL(String(value || ''));
     if (url.protocol !== 'https:') return '';
     const hostname = url.hostname.toLowerCase().replace(/^www\./, '');
+    // Variant/model/SKU parameters are product identity and must be preserved; only tracking parameters are removed.
     url.hash = '';
     for (const key of [...url.searchParams.keys()]) {
       if (/^(utm_.+|gclid|fbclid|msclkid|lmdeetracking)$/i.test(key)) url.searchParams.delete(key);
