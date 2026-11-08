@@ -1,5 +1,5 @@
 import { getOllamaStatus } from 'lib/ollama.js';
-export const access='admin';
+export const access='member';
 export const methods=['GET'];
 export default async function(req,res){
   const status=await getOllamaStatus();
