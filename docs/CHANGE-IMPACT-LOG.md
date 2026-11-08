@@ -314,3 +314,8 @@ Nenhum adendo registrado até o momento.
 - Teste filtrado de backup falhou por dependência de fixture; operations completo:19/20, restore36tabelas passa. CI falha em npm test e pula audit/E2E.
 - Próximo passo: tratar F01(envelope AliExpress), F02(testes/CI) e F03(reconciliação por arquivo), com análise de impacto antes de implementação. Filas reais não serão reprocessadas sem plano quantitativo/recuperação.
 - Commit final: consultar o commit que contém esta entrada no PR#193; versão publicada continua664. Rollback documental por reversão de commit/conteúdo WIP; sem dados a reverter.
+
+
+## Adendo de remediação — 08/11/2026
+
+08/11/2026 — remediação baseada no PR #193. Risco alto em ingestão/entrega, médio em backup e envelope AliExpress. Migração aditiva 068; dados existentes preservados. Testes isolados de cursor/lease, idempotência, medicamento, opt-in, retry explícito/incerto, restauração v1/v2. Sem envios ou alteração de credenciais. Detalhes e rollback: REMEDIACAO-AUDITORIA-2026-11-08.md.

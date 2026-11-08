@@ -109,3 +109,8 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 ## Regra adicional do titular — 08/11/2026
 
 Toda atualização deve ser refletida no GitHub **e** no Hatchable. Comparar os arquivos relevantes, preservar divergências válidas e registrar commit GitHub, versão Hatchable, testes e resultado. Uma atualização somente no GitHub, inclusive esta proposta em branch, permanece PARCIAL e NÃO SINCRONIZADA até a aplicação e validação no Hatchable. Não substituir a hospedagem por outra plataforma. Sem acesso ao Hatchable, manter proposta em rascunho e registrar o bloqueio, sem declarar atualização concluída nem fazer merge/deploy por inferência. Documentos internos devem usar destino privado compatível; nunca copiar para public/ como atalho.
+
+
+## Adendo de remediação — 08/11/2026
+
+Remediação 08/11: contratos AliExpress, proteção de medicamentos em todos os caminhos, opt-in da extensão, inbox persistente 068, retry/backpressure e backup v2; documentação e testes na mesma alteração. Consulte REMEDIACAO-AUDITORIA-2026-11-08.md para riscos, evidências, rollback e bloqueios.

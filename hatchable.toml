@@ -254,3 +254,7 @@ schedule = "40 * * * *"
 [[cron]]
 path = "/api/jobs/extension-offers-resolve-queue"
 schedule = "50 * * * *"
+# Persisted ingestion batches resume in bounded recurring runs, never one-shot per offer.
+[[cron]]
+path = "/api/jobs/ingestion"
+schedule = "35 * * * *"

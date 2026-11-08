@@ -1,3 +1,4 @@
+import { assertAliExpressResponse } from 'lib/aliexpress-response.js';
 import { config, db } from 'hatchable';
 import { signTopParams } from 'lib/top-signature.js';
 import { createAliExpressAffiliateUrl, signAliExpressParams, validateAliExpressProductUrl } from 'lib/afilimax-aliexpress-provider.js';
@@ -69,7 +70,7 @@ async function topRequest(credentials, method, business={}) {
     const detail=['AliExpress recusou a operação. Código: '+code,subCode?'Subcódigo: '+subCode:'','Detalhe: '+message,requestId?'Request ID: '+requestId:''].filter(Boolean).join(' | ');
     throw Object.assign(new Error(detail),{status:502});
   }
-  return data;
+  return assertAliExpressResponse(data, method);
 }
 function unwrap(data, method) {
   const root=data?.[method.replaceAll('.','_')+'_response']||Object.values(data||{}).find(v=>v&&typeof v==='object'&&String(Object.keys(v).join(' ')).includes('resp_result'))||data;

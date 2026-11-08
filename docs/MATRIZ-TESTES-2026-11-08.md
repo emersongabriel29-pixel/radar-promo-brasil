@@ -100,3 +100,8 @@ Conferir sempre os scripts atuais em package.json antes de executar:
 - Teste filtrado de backup falhou por dependência de fixture; operations completo:19/20, restore36tabelas passa. CI falha em npm test e pula audit/E2E.
 - Próximo passo: tratar F01(envelope AliExpress), F02(testes/CI) e F03(reconciliação por arquivo), com análise de impacto antes de implementação. Filas reais não serão reprocessadas sem plano quantitativo/recuperação.
 - Commit final: consultar o commit que contém esta entrada no PR#193; versão publicada continua664. Rollback documental por reversão de commit/conteúdo WIP; sem dados a reverter.
+
+
+## Adendo de remediação — 08/11/2026
+
+Rodada de remediação: suíte isolada ampliada para contratos AliExpress, cursor/lease e lote de 57 itens, claim/redirect/social de medicamentos, opt-in, backpressure e backup v1/v2. Build 209 arquivos, E2E 3/3 e npm audit 0. E2E usa bypassCSP e não valida CSP hosted. Evidência final em audit-evidence/2026-11-08/remediation-validation.json.

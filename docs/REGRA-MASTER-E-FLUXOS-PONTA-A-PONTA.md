@@ -487,3 +487,8 @@ Após validar o tempo de execução, o lote padrão do autopilot foi elevado ao 
 A solicitação mais recente do titular determina excluir medicamentos das ofertas publicáveis. Esta exceção prevalece sobre os trechos históricos deste documento que mandam remover o filtro de medicamentos. Não estender a exceção a produtos +18 ou outras categorias. O registro deve ser preservado.
 
 Proposta em branch: `canEnterOfferFlow` consulta `isMedicationProduct` e devolve `MEDICATION_PUBLICATION_EXCLUDED`; o autopilot usa esse gate antes de criar publicações. Acessórios não medicinais, como porta-comprimidos, continuam elegíveis. Esta proposta NÃO garante bloqueio de filas preexistentes, dispatchers ou todos os demais caminhos de publicação. A homologação desses caminhos e a reconciliação Hatchable continuam pendentes. Nenhum medicamento real foi enfileirado ou publicado durante os testes.
+
+
+## Adendo de remediação — 08/11/2026
+
+Remediação preparada em 08/11: medicamentos preservados no catálogo e excluídos da publicação/redirect histórico segundo exceção do prompt mestre; acessórios e +18 continuam permitidos. Score social apenas ordena; teto diário comercial não impede geração. Pausas, consentimento, aprovação, cadência e limites reais de execução permanecem. Ingestão integral persistida e retomável via migration 068; ver REMEDIACAO-AUDITORIA-2026-11-08.md.

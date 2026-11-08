@@ -46,3 +46,8 @@ Arquivo observado: `api/ai/promo.js`.
 ## Pendências
 
 A auditoria de 08/11 não executou chamadas de homologação de cada provedor. Portanto, não declara todos os conectores operacionais. A causa dos 502 de diagnóstico Telegram também permanece aberta.
+
+
+## Adendo de remediação — 08/11/2026
+
+Correção preparada: envelope de negócio AliExpress é validado além do HTTP e erros não validam credencial. Telegram expõe retry_after nas recusas explícitas, diferenciando transporte incerto. Isso não resolve credenciais vencidas/ausentes nem configura infraestrutura. Ver REMEDIACAO-AUDITORIA-2026-11-08.md.

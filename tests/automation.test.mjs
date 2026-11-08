@@ -115,30 +115,8 @@ test('bloqueia link inseguro na mensagem',()=>{
 });
 
 
-test('AliExpress auto-approves only qualifying offers and leaves known low-quality offers for human review', async () => {
-  const { readFile } = await import('node:fs/promises');
-  const review = await readFile(new URL('../api/jobs/aliexpress-review.js', import.meta.url), 'utf8');
-  const ingestion = await readFile(new URL('../api/jobs/aliexpress.js', import.meta.url), 'utf8');
-  assert.match(review, /status='APPROVED',validation_status='VALIDATED'/);
-  assert.match(review, /validation_status='NEEDS_REVIEW'/);
-  assert.match(review, /discount < 10/);
-  assert.match(review, /isMedicationProduct/);
-  assert.match(ingestion, /LOW_COMMISSION/);
-  assert.match(ingestion, /LOW_RATING/);
-});
-
-test('AliExpress auto-publication queue is source-isolated and does not enqueue other marketplaces', async () => {
-  const { readFile } = await import('node:fs/promises');
-  const review = await readFile(new URL('../api/jobs/aliexpress-review.js', import.meta.url), 'utf8');
-  const autopilot = await readFile(new URL('../lib/autopilot.js', import.meta.url), 'utf8');
-  assert.match(review, /enqueueMatches\(accountId, '', \{ source: 'ALIEXPRESS' \}\)/);
-  assert.match(autopilot, /AND \(\$2='' OR source=\$2\) AND \(\$2<>'ALIEXPRESS' OR validation_status='VALIDATED'\)/);
-  assert.match(autopilot, /evaluateMatches\(accountId, options\?\.source \|\| '', options\)/);
-  assert.match(autopilot, /if \(scoreUpdates\.length && options\?\.dryRun !== true\) \{/);
-  assert.match(autopilot, /export async function evaluateMatches\(accountId, sourceFilter = '', options = \{\}\)/);
-});
-
-
+// AliExpress review and source isolation are exercised against the real in-memory
+// flow in aliexpress-review.test.mjs, rather than matching obsolete thresholds.
 test('Telegram autopilot enfileira ofertas aprovadas em lote, sem teto artificial de 10 e com deduplicação', async () => {
   const { readFile } = await import('node:fs/promises');
   const autopilot = await readFile(new URL('../lib/autopilot.js', import.meta.url), 'utf8');

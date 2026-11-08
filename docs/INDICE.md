@@ -45,3 +45,10 @@ Quando houver conflito entre documentação e execução, não presumir que a do
 - [Comparação dos 77 arquivos](./audit-evidence/2026-11-08/comparison-77.json), [caminhos exclusivos](./audit-evidence/2026-11-08/path-differences.json) e [recuperação dos 44 PRs](./audit-evidence/2026-11-08/recovery-44.json).
 - [Testes de runtime/integrações](./audit-evidence/2026-11-08/runtime-checks.json), [OAuth](./audit-evidence/2026-11-08/oauth-checks.json), [qualidade/headers/licenças](./audit-evidence/2026-11-08/quality-checks.json) e [documentação oficial consultada](./audit-evidence/2026-11-08/official-documentation.json).
 - Parecer de liberação: **REPROVADO**. Cobertura documental não certifica operação. Espelho privado no WIP Hatchable; produção permanece v664 sem novo deploy.
+
+
+## Adendo de remediação — 08/11/2026
+
+Correções implementadas, validação e pendências: [Remediação da auditoria](./REMEDIACAO-AUDITORIA-2026-11-08.md). Produção observada v664; alterações desta rodada em preparação, sem equivaler a implantação.
+
+Matriz de acompanhamento: [efeito das correções nas 35 seções](./STATUS-REMEDIACAO-35-ITENS-2026-11-08.md).
