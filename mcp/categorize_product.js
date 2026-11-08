@@ -1,3 +1,5 @@
+import { generateGeminiText } from 'lib/gemini.js';
+
 export const access = 'admin';
 
 export default {
@@ -20,7 +22,7 @@ export default {
       ? args.categories.map((value) => String(value || '').trim().slice(0, 80)).filter(Boolean).slice(0, 80)
       : [];
     if (!title || !categories.length) throw new Error('Informe o título e ao menos uma categoria permitida.');
-    const result = await ctx.ai.generateText({
+    const result = await generateGeminiText({
       purpose: 'mcp-categorize-product',
       model: 'gemini',
       maxTokens: 300,

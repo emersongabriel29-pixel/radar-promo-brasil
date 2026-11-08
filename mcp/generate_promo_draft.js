@@ -1,3 +1,5 @@
+import { generateGeminiText } from 'lib/gemini.js';
+
 export const access = 'admin';
 
 export default {
@@ -23,7 +25,7 @@ export default {
     if (!facts || typeof facts !== 'object' || Array.isArray(facts)) throw new Error('Informe os fatos verificados como objeto.');
     const factsJson = JSON.stringify(facts);
     if (factsJson.length > 5000) throw new Error('Os fatos fornecidos excedem 5.000 caracteres.');
-    const result = await ctx.ai.generateText({
+    const result = await generateGeminiText({
       purpose: 'mcp-promo-draft',
       model: 'gemini',
       maxTokens: 700,
