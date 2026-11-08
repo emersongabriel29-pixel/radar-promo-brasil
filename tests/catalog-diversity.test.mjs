@@ -25,7 +25,8 @@ test('explicit intimate products classify as sex shop', () => {
 test('recognized AliExpress source categories improve classification', () => {
   const result = classifyProduct({ title: 'Produto importado', sourceCategory: 'Phones & Telecommunications' });
   assert.equal(result.category, 'Tecnologia');
-  assert.equal(result.reason, 'source_category_match');
+  assert.equal(result.reason, 'source_category_suggestion_only');
+  assert.equal(result.needsReview, true);
 });
 
 test('title rules classify pet and home products', () => {

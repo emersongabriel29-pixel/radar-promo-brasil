@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { isRetryableShopeeErrorCode, shopeeRetryDelay } from '../lib/shopee-api-errors.js';
 
-test('retries Shopee System Error 10000 and Rate Limit 10030 at most twice', () => {
+test('retries Shopee System Error 10000 and Rate Limit 10030 at most once', () => {
   assert.equal(isRetryableShopeeErrorCode('10000', 0), true);
-  assert.equal(isRetryableShopeeErrorCode('10000', 1), true);
+  assert.equal(isRetryableShopeeErrorCode('10000', 1), false);
   assert.equal(isRetryableShopeeErrorCode('10000', 2), false);
   assert.equal(isRetryableShopeeErrorCode('10030', 0), true);
-  assert.equal(isRetryableShopeeErrorCode('10030', 2), false);
+  assert.equal(isRetryableShopeeErrorCode('10030', 1), false);
 });
 
 test('does not retry non-transient Shopee errors', () => {

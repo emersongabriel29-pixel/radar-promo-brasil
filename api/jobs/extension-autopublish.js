@@ -42,6 +42,7 @@ export default async function handler(req, res) {
     else if(!(o.image_storage_key||directImageUrl(o.image_url))) reason='Imagem inválida ou indisponível';
     else if(!Number.isSafeInteger(current)||current<=0||(original!==null&&(!Number.isSafeInteger(original)||original<current))) reason='Preço inválido';
     else if(isMedicationProduct({title:o.title,productUrl:o.product_url})) reason='Produto bloqueado pela política de segurança';
+    else if(String(o.classification_status||'').toUpperCase()==='REVIEW') reason='Classificação exige revisão humana';
     else if(String(o.classification_reason||'').includes('LOW_COMMISSION')||String(o.classification_reason||'').includes('LOW_RATING')) reason='Critério comercial exige revisão humana';
     if(reason){result.blocked++;continue;}
     eligible.push({id:o.id,account_id:o.account_id,current_price:current,original_price:original});
@@ -52,7 +53,6 @@ export default async function handler(req, res) {
   if(eligible.length){
     const updated=await db.query(`
       UPDATE offers o SET status='APPROVED',validation_status='VALIDATED',
-        classification_status=CASE WHEN o.classification_status='REVIEW' THEN 'AUTO' ELSE o.classification_status END,
         classification_reason='Aprovação automática após preço oficial confirmado e validações comerciais.',
         updated_at=now()
       FROM jsonb_to_recordset($1::jsonb) AS x(id text,account_id text,current_price numeric,original_price numeric)

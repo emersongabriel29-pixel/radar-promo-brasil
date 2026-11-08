@@ -179,7 +179,7 @@ function offersWorkspace() {
     visibleItems.map(function (item) {
       return '<button type="button" class="group-tab offers-view-tab ' + (item[0] === active[0] ? "on" : "") + '" aria-current="' + (item[0] === active[0] ? "page" : "false") + '" data-action="switchGroup(&quot;offers&quot;,&quot;' + item[0] + '&quot;)"><span class="ico" aria-hidden="true">' + item[2] + '</span><span>' + item[1] + '</span></button>';
     }).join("") +
-    (category.id === "ai" ? '<a class="offers-video-link" href="/radar-video-ia"><span class="offers-video-icon" aria-hidden="true">▶</span><span><b>Radar Vídeo IA</b><small>Roteiros e geração de vídeo</small></span><span aria-hidden="true">↗</span></a>' : "") +
+    (category.id === "ai" ? '<a class="offers-video-link" href="/estudio-videos"><span class="offers-video-icon" aria-hidden="true">▶</span><span><b>Estúdio de Vídeos</b><small>Crie, renderize e salve vídeos</small></span><span aria-hidden="true">↗</span></a><a class="offers-video-link" href="/radar-video-ia"><span class="offers-video-icon" aria-hidden="true">✦</span><span><b>Radar Vídeo IA</b><small>Análise de link e roteiro com IA</small></span><span aria-hidden="true">↗</span></a>' : "") +
     '</div><div class="offers-rail-foot">Todos os recursos e conexões da conta continuam disponíveis.</div></aside><section class="offers-content" id="group-panel" aria-label="' + active[1] + '">' + window[active[3]]() + '</section></div>' + offerBuilderSettingsPanel();
 }
 function groupPage(key) {
@@ -315,18 +315,18 @@ function offerRow(o) {
     (o.status === "APPROVED" ? "live" : "") +
     '">' +
     (LABEL[o.status] || o.status) +
-    '</span></div><div class="price">' +
+    '</span>' + (o.classificationStatus === 'REVIEW' ? ' <span class="pill warn">Classificação pendente</span>' : '') + '</div><div class="price">' +
     brl(o.currentPrice) +
     (o.originalPrice
       ? ' <del class="muted">' + brl(o.originalPrice) + "</del>"
       : "") +
     (o.discountPercent ? " · " + o.discountPercent + "% OFF" : "") +
     '</div></div><div class="actions">' +
-    (o.status === "PENDING"
-      ? "<button class=\"btn green\" data-action=\"status('offer','" +
-        o.id +
-        "','APPROVED')\">Aprovar</button>"
-      : "") +
+    (o.classificationStatus === 'REVIEW' && ["PENDING", "APPROVED"].includes(o.status)
+      ? "<button class=\"btn green\" data-action=\"reviewOffer('" + o.id + "')\">" + (o.status === "APPROVED" ? "Revisar e liberar fila" : "Classificar e aprovar") + "</button>"
+      : o.status === "PENDING"
+        ? "<button class=\"btn green\" data-action=\"status('offer','" + o.id + "','APPROVED')\">Aprovar</button>"
+        : "") +
     '<button class="btn dark" data-action="prepare(\'' +
     o.id +
     "')\">Preparar envio</button><button class=\"btn danger\" data-action=\"removeItem('offer','" +
@@ -1308,6 +1308,32 @@ function reportTable(items, label) {
     "</tbody></table></div>"
   );
 }
+function queueTrendPanel(queue) {
+  var q=queue||{},trend=q.trend||[],alerts=q.alerts||[],maxSeen=Math.max(1,...trend.map(function(x){return Number(x.records_seen||0)})),maxUpserted=Math.max(1,...trend.map(function(x){return Number(x.records_upserted||0)}));
+  var alertHtml=alerts.map(function(a){var ok=a.level==='success';return '<div class="queue-alert '+(ok?'queue-alert-ok':'queue-alert-warn')+'"><b>'+esc(a.title||'Alerta')+'</b><span>'+esc(a.message||'')+'</span></div>';}).join('');
+  var chart=trend.length?trend.map(function(x){var seen=Number(x.records_seen||0),up=Number(x.records_upserted||0),h1=Math.max(3,Math.round(seen*88/maxSeen)),h2=Math.max(2,Math.round(up*88/maxUpserted));return '<div class="queue-trend-day" title="'+esc(String(x.day)+' · '+seen+' vistos · '+up+' gravados · '+Number(x.failed_runs||0)+' falhas')+'"><div class="queue-trend-bars"><i style="height:'+h1+'px"></i><i style="height:'+h2+'px"></i></div><small>'+String(x.day).slice(8,10)+'</small></div>';}).join(''):'<p class="muted">Ainda não há execuções suficientes para montar a evolução.</p>';
+  return '<div class="card csp-margin-top-16px"><h3>Alertas da fila</h3><p class="muted">Avisos calculados com os dados registrados: fila pendente a partir de 1.000 itens e falhas nos últimos 30 dias.</p><div class="queue-alert-list">'+alertHtml+'</div></div><div class="card csp-margin-top-16px"><h3>Atividade das integrações · últimos 30 dias</h3><p class="muted">Barras por dia: registros vistos e registros gravados. Isso mede atividade das execuções, não o tamanho histórico da fila.</p><div class="queue-chart-legend"><span><i></i>Vistos</span><span><i></i>Gravados</span></div><div class="queue-trend-chart">'+chart+'</div></div>';
+}
+function queueReportsPanel(queue) {
+  var q=queue||{},items=q.items||[],runs=q.runs||[],totals={},platforms={};
+  items.forEach(function(row){var status=String(row.processing_status||'UNKNOWN'),n=Number(row.total||0);totals[status]=(totals[status]||0)+n;platforms[row.marketplace]=platforms[row.marketplace]||{};platforms[row.marketplace][status]=n;});
+  var pending=(totals.DISCOVERED||0)+(totals.FAILED||0)+(totals.PROCESSING||0),ready=(totals.READY_FOR_LINK||0)+(totals.LINKED||0)+(totals.IMPORTED||0),blocked=Object.keys(totals).filter(function(k){return k.indexOf('BLOCKED')===0;}).reduce(function(n,k){return n+totals[k];},0);
+  var labels={DISCOVERED:'Descobertos',PROCESSING:'Em processamento',FAILED:'Falhas',READY_FOR_LINK:'Prontos para link',LINKED:'Vinculados',IMPORTED:'Importados',DUPLICATE:'Duplicados',BLOCKED:'Bloqueados',BLOCKED_SAFETY:'Bloqueados por segurança',BLOCKED_PROVIDER_APPROVAL:'Aguardando aprovação do provedor',BLOCKED_PROVIDER_CHANNEL:'Bloqueados por canal',NEEDS_DATA:'Precisam de dados',UNAVAILABLE:'Indisponíveis'};
+  var names={SHOPEE:'Shopee',LOMADEE:'Lomadee',ALIEXPRESS:'AliExpress',MERCADO_LIVRE:'Mercado Livre'};
+  return '<div class="sectionhead"><div><h2>Fila de descoberta</h2><p>Volume real da fila por plataforma e situação de processamento. Atualizado junto com os relatórios.</p></div><button class="btn secondary" data-action="load()">Atualizar painel</button></div><div class="metrics">'+metric('Aguardando processamento',pending,'descobertos, falhas e em andamento')+metric('Prontos / vinculados',ready,'não significa publicação')+metric('Bloqueados',blocked,'segurança, provedor ou canal')+metric('Execuções registradas',runs.reduce(function(n,x){return n+Number(x.runs||0);},0),'últimos 30 dias')+'</div>'+queueTrendPanel(q)+'<div class="card"><div class="tablewrap"><table><thead><tr><th>Plataforma</th><th>Descobertos</th><th>Processando</th><th>Prontos</th><th>Importados/vinculados</th><th>Bloqueados</th><th>Falhas</th></tr></thead><tbody>'+Object.keys(platforms).map(function(key){var x=platforms[key];return '<tr><td><b>'+esc(names[key]||key)+'</b></td><td>'+Number(x.DISCOVERED||0)+'</td><td>'+Number(x.PROCESSING||0)+'</td><td>'+Number(x.READY_FOR_LINK||0)+'</td><td>'+Number((x.IMPORTED||0)+(x.LINKED||0))+'</td><td>'+Object.keys(x).filter(function(k){return k.indexOf('BLOCKED')===0||k==='BLOCKED';}).reduce(function(n,k){return n+Number(x[k]||0);},0)+'</td><td>'+Number(x.FAILED||0)+'</td></tr>';}).join('')+'</tbody></table></div></div><div class="card csp-margin-top-16px"><h3>Detalhamento da fila</h3><div class="tablewrap"><table><thead><tr><th>Plataforma</th><th>Situação</th><th>Quantidade</th><th>Última atualização</th></tr></thead><tbody>'+items.map(function(x){return '<tr><td>'+esc(names[x.marketplace]||x.marketplace)+'</td><td>'+esc(labels[x.processing_status]||x.processing_status)+'</td><td><b>'+Number(x.total||0).toLocaleString('pt-BR')+'</b></td><td>'+ (x.last_seen_at?new Date(x.last_seen_at).toLocaleString('pt-BR'):'—')+'</td></tr>';}).join('')+'</tbody></table></div></div><div class="card csp-margin-top-16px"><h3>Execuções das integrações</h3><p class="muted">Contagem de execuções registradas no banco nos últimos 30 dias; não substitui a telemetria do agendador.</p><div class="tablewrap"><table><thead><tr><th>Plataforma</th><th>Resultado</th><th>Execuções</th><th>Registros vistos</th><th>Gravados</th><th>Última execução</th><th>Último erro</th></tr></thead><tbody>'+runs.map(function(x){return '<tr><td>'+esc(names[x.marketplace]||x.marketplace)+'</td><td>'+esc(x.status)+'</td><td>'+Number(x.runs||0)+'</td><td>'+Number(x.records_seen||0).toLocaleString('pt-BR')+'</td><td>'+Number(x.records_upserted||0).toLocaleString('pt-BR')+'</td><td>'+(x.latest_run?new Date(x.latest_run).toLocaleString('pt-BR'):'—')+'</td><td>'+esc(x.last_error||'—')+'</td></tr>';}).join('')+'</tbody></table></div></div><div class="callout">A fila mostra descoberta e preparação. Produtos descobertos, prontos para link ou vinculados não são automaticamente ofertas aprovadas nem publicações enviadas.</div>';
+}
+function publicationQueuePanel(rows) {
+  rows=Array.isArray(rows)?rows:[];
+  var totals={},overdue=0,attempts=0,unconfirmed=0,failed=0,pending=0;
+  rows.forEach(function(x){var s=String(x.status||'UNKNOWN');totals[s]=(totals[s]||0)+Number(x.total||0);overdue+=Number(x.overdue||0);attempts+=Number(x.attempts||0);});
+  pending=(totals.READY||0)+(totals.RETRY||0)+(totals.SCHEDULED||0)+(totals.WAITING_CONNECTION||0);
+  unconfirmed=totals.WAITING_CONFIRMATION||0;failed=totals.FAILED||0;
+  var labels={READY:'Pronta',RETRY:'Nova tentativa',SCHEDULED:'Agendada',DISPATCHING:'Em envio',PUBLISHED:'Publicada',FAILED:'Falha definitiva',WAITING_CONFIRMATION:'Entrega incerta',WAITING_CONNECTION:'Aguardando conexão'};
+  var channels={TELEGRAM:'Telegram',WHATSAPP:'WhatsApp'};
+  var body=rows.map(function(x){return '<tr><td><b>'+esc(x.source||'—')+'</b></td><td>'+esc(channels[x.channel]||x.channel||'—')+'</td><td>'+esc(labels[x.status]||x.status||'—')+'</td><td><b>'+Number(x.total||0).toLocaleString('pt-BR')+'</b></td><td>'+Number(x.overdue||0).toLocaleString('pt-BR')+'</td><td>'+Number(x.attempts||0).toLocaleString('pt-BR')+'</td><td>'+(x.oldest_created?new Date(x.oldest_created).toLocaleString('pt-BR'):'—')+'</td></tr>';}).join('');
+  var alert=overdue||unconfirmed||failed;
+  return '<div class="sectionhead csp-margin-top-24px"><div><h2>Fila de compartilhamento</h2><p>Envios por API de origem, canal, estado, tentativas e prazo. Publicação concluída não comprova visualização ou venda.</p></div></div><div class="metrics">'+metric('Aguardando envio',pending,'prontas, agendadas ou aguardando conexão')+metric('Tentativas vencidas',overdue,'precisam de revalidação')+metric('Entrega incerta',unconfirmed,'não reenviar sem reconciliar')+metric('Falhas definitivas',failed,'exigem diagnóstico')+'</div><div class="card"><div class="tablewrap"><table><thead><tr><th>Origem</th><th>Canal</th><th>Situação</th><th>Quantidade</th><th>Vencidas</th><th>Tentativas</th><th>Registro mais antigo</th></tr></thead><tbody>'+(body||'<tr><td colspan="7">Sem registros de fila no período.</td></tr>')+'</tbody></table></div></div><div class="callout">'+(alert?'Há itens que exigem reconciliação antes de qualquer reenvio.':'Nenhuma pendência crítica identificada na fila de compartilhamento.')+' Regras de elegibilidade: conta e grupo ativos; oferta aprovada e validada; link HTTPS; imagem válida; preço oficial correspondente ao cadastro e verificado nas últimas 24 horas; janela e intervalo do grupo respeitados. Mensagens sem oferta seguem as regras específicas de agenda. Entregas incertas ficam retidas para evitar duplicidade.</div>';
+}
 function reports() {
   var r = D.reportsData || {},
     s = r.summary || {},
@@ -1337,6 +1363,8 @@ function reports() {
     metric("Ticket médio", brl(s.averageTicket || 0), "por venda") +
     metric("Comissão média", brl(s.averageCommission || 0), "por venda") +
     '</div><div class="callout">Vendas e comissões são importadas dos relatórios oficiais ou registradas manualmente. O sistema não estima valores.</div>' +
+    queueReportsPanel(r.queue) +
+    publicationQueuePanel(r.queue && r.queue.publications) +
     section(
       "Evolução diária",
       "Cliques registrados nos últimos " + reportDays + " dias.",
@@ -3761,7 +3789,7 @@ function openGroup(id) {
           "</option>"
         );
       })
-      .join(""),
+      .join("") + '<option value="__new__">＋ Criar nova categoria…</option>',
     platformOptions =
       '<option value=\"WHATSAPP\" ' +
       (g && g.platform === "WHATSAPP" ? "selected" : "") +
@@ -3780,7 +3808,8 @@ function openGroup(id) {
     ) +
       select("Plataforma", "platform", platformOptions) +
       select("Tipo de destino WhatsApp", "destinationType", destinationTypeOptions) +
-      select("Categoria", "categoryId", categoryOptions) +
+      select("Categoria", "categoryId", '<option value="">Geral / sem categoria</option>' + categoryOptions) +
+      '<div id="newGroupCategory" class="callout" hidden>' + field('Nome da nova categoria', 'newCategoryName', 'text', 'maxlength="80" placeholder="Ex.: Games"') + field('Palavras-chave para identificar produtos (separadas por vírgula)', 'newCategoryKeywords', 'text', 'maxlength="500" required placeholder="Ex.: videogame, console, controle gamer, jogos"') + field('Ícone (opcional)', 'newCategoryIcon', 'text', 'maxlength="8" value="🏷️"') + '<small>As palavras-chave ajudam o Radar a reconhecer automaticamente os produtos e encaminhá-los também para este grupo. A categoria será vinculada ao destino.</small></div>' +
       field(
         "Link de convite",
         "inviteUrl",
@@ -3820,6 +3849,14 @@ function openGroup(id) {
           Object.fromEntries(new FormData(e.target)),
         );
         if (g) payload.id = g.id;
+        if (payload.categoryId === "__new__") {
+          var newCategoryName = String(payload.newCategoryName || "").trim();
+          if (!newCategoryName) throw Error("Informe o nome da nova categoria.");
+          var createdCategory = await call("POST", { entity: "category", name: newCategoryName, icon: String(payload.newCategoryIcon || "🏷️").trim(), keywords: String(payload.newCategoryKeywords || "").split(",").map(function(x){return x.trim();}).filter(Boolean) });
+          if (!createdCategory || !createdCategory.id) throw Error("A categoria foi criada, mas não foi possível confirmar seu identificador. Atualize a tela antes de salvar o destino.");
+          payload.categoryId = createdCategory.id;
+        }
+        delete payload.newCategoryName; delete payload.newCategoryIcon; delete payload.newCategoryKeywords;
         await call(g ? "PUT" : "POST", payload);
         closeModal();
         toast(g ? "Destino atualizado" : "Destino salvo");
@@ -3828,6 +3865,9 @@ function openGroup(id) {
       }
     },
   );
+  var categoryField=document.querySelector('#form [name="categoryId"]');
+  var newCategoryPanel=document.getElementById('newGroupCategory');
+  if(categoryField&&newCategoryPanel)categoryField.addEventListener('change',function(){newCategoryPanel.hidden=categoryField.value!=="__new__";});
   var platformField=document.querySelector('#form [name="platform"]');
   var destinationField=document.querySelector('#form [name="destinationType"]');
   var syncDestinationType=function(){
@@ -4046,6 +4086,26 @@ async function status(entity, id, value) {
     toast(e.message);
   }
 }
+async function reviewOffer(id) {
+  var offer = off(id);
+  if (!offer) return;
+  var queued = D.publications.filter(function (p) { return p.offerId === id && ["READY", "RETRY"].includes(p.status); }).length;
+  var options = D.categories.map(function (c) { return '<option value="' + esc(c.id) + '" ' + (c.id === offer.categoryId ? 'selected' : '') + '>' + esc(c.name) + '</option>'; }).join('');
+  var warning = queued
+    ? '<div class="callout"><b>Atenção:</b> existem ' + queued + ' publicações prontas ou em nova tentativa para esta oferta. Ao confirmar a categoria e aprovar, elas poderão seguir pela fila, respeitando os horários e limites configurados.</div>'
+    : '<div class="callout">A oferta só poderá entrar no fluxo automático depois desta revisão e da validação comercial.</div>';
+  openModal('Revisar classificação', 'Confirme a categoria real do produto antes de liberar a oferta.', select('Categoria correta', 'categoryId', options) + warning, async function (event) {
+    event.preventDefault();
+    var categoryId = String(new FormData(event.target).get('categoryId') || '').trim();
+    if (!categoryId) return toast('Escolha uma categoria.');
+    try {
+      await call('PUT', { entity: 'offer', id: id, status: 'APPROVED', categoryId: categoryId });
+      closeModal();
+      show('offers');
+      toast('Classificação manual salva e oferta aprovada.');
+    } catch (error) { toast(error.message || 'Não foi possível revisar a oferta.'); }
+  });
+}
 async function removeItem(entity, id) {
   if (!confirm("Deseja realmente excluir?")) return;
   try {
@@ -4172,6 +4232,7 @@ function toast(message){
   var error=document.getElementById('formError');if(error&&document.getElementById('modal').classList.contains('on')){error.textContent=message;}
   clearTimeout(window.toastTimeout);window.toastTimeout=setTimeout(function(){element.classList.remove('on');},4500);
 }
+// The modal is outside .app; only the background application shell is inert.
 function openModal(title,hint,body,submit){
   modalReturnFocus=document.activeElement;
   document.getElementById('modalTitle').textContent=title;document.getElementById('modalHint').textContent=hint;
@@ -4281,10 +4342,10 @@ async function deleteApiCredential(provider){
  }catch(error){toast(error.message);}
 }
 function marketplaceCredentialsPanel(){
- return '<div class="card csp-margin-bottom-16px"><h3>Credenciais das lojas</h3><p class="muted">Cadastre apenas chaves, tokens e IDs emitidos pelo portal oficial. Salvar credenciais não significa que a API foi validada; nenhuma oferta é publicada por esta tela.</p><div id="marketplaceCredentialStatus" class="grid two"><div class="empty">Carregando estado das lojas...</div></div><div id="lomadeeDataPanel" class="csp-margin-top-16px"></div><div class="actions csp-margin-top-12px"><a class="btn secondary" href="/affiliate-intelligence.html">Abrir explorador e inteligência de afiliados</a></div></div><div class="card csp-margin-bottom-16px"><h3>Extensão Capturador Multiplataforma</h3><p class="muted">Crie uma chave exclusiva para a extensão Chrome. A chave é exibida uma única vez, armazenada no Chrome e pode ser revogada a qualquer momento. Ela só permite enviar ofertas como rascunhos para sua conta.</p><div id="extensionTokenStatus" class="callout">Verificando conexão da extensão...</div><div class="actions"><button class="btn" type="button" data-action="createExtensionToken()">Gerar / renovar token da extensão</button><button class="btn secondary" type="button" data-action="revokeExtensionToken()">Revogar token</button></div><div id="extensionTokenNew" class="csp-margin-top-12px" hidden></div><p class="muted">Endpoint HTTPS: <code>https://radar-promo-brasil.hatchable.site/api/extension-offers</code></p></div>';
+ return '<div class="card csp-margin-bottom-16px"><h3>Credenciais das lojas</h3><p class="muted">Cadastre apenas chaves, tokens e IDs emitidos pelo portal oficial. Salvar credenciais não significa que a API foi validada; nenhuma oferta é publicada por esta tela.</p><div id="marketplaceCredentialStatus" class="grid two"><div class="empty">Carregando estado das lojas...</div></div><div id="lomadeeDataPanel" class="csp-margin-top-16px"></div><div class="actions csp-margin-top-12px"><a class="btn secondary" href="/affiliate-intelligence.html">Abrir explorador e inteligência de afiliados</a></div></div><div class="card csp-margin-bottom-16px"><h3>Extensão Capturador Multiplataforma</h3><p class="muted">Crie uma chave exclusiva para a extensão Chrome. A chave é exibida uma única vez, armazenada no Chrome e pode ser revogada a qualquer momento. Ela só permite enviar ofertas como rascunhos para sua conta.</p><div id="extensionTokenStatus" class="callout">Verificando conexão da extensão...</div><div class="actions"><button class="btn" type="button" data-action="createExtensionToken()">Gerar / renovar token da extensão</button><button class="btn secondary" type="button" data-action="revokeExtensionToken()">Revogar token</button></div><div id="extensionTokenNew" class="csp-margin-top-12px" hidden></div><p class="muted">Endpoint HTTPS: <code>https://radar-promo-brasil.hatchable.site/api/extension-offers</code></p></div><div class="card csp-margin-bottom-16px"><h3>Compartilhamento Android</h3><p class="muted">Token separado do Capturador Chrome. Use este token somente no atalho do menu Compartilhar do Android. Gerar ou revogar este token não altera a extensão Chrome.</p><div id="androidShareTokenStatus" class="callout">Verificando token do Android...</div><div class="actions"><button class="btn" type="button" data-action="createAndroidShareToken()">Gerar token Android</button><button class="btn secondary" type="button" data-action="revokeAndroidShareToken()">Revogar token Android</button></div><div id="androidShareTokenNew" class="csp-margin-top-12px" hidden></div><p class="muted">Depois, abra <a href="/share-import.html">a tela de importação Android</a> e cole o token gerado.</p></div>';
 }
 async function loadMarketplaceStatus(){
- var root=document.getElementById('marketplaceCredentialStatus');if(!root)return;loadExtensionTokenStatus();
+ var root=document.getElementById('marketplaceCredentialStatus');if(!root)return;loadExtensionTokenStatus();loadAndroidShareTokenStatus();
  try{
   var data=await operationRequest('/api/integrations/marketplaces');
   root.innerHTML=(data.items||[]).map(function(item){
@@ -4333,6 +4394,10 @@ async function loadExtensionTokenStatus(){var root=document.getElementById('exte
 async function createExtensionToken(){var root=document.getElementById('extensionTokenNew');if(!root)return;if(!confirm('Gerar um novo token? O token anterior será revogado e a extensão precisará receber o novo valor.'))return;try{var response=await fetch('/api/extension-token',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}),data=await response.json();if(!response.ok)throw Error(data.error||'Não foi possível gerar o token.');root.hidden=false;root.innerHTML='<div class="callout"><b>Copie o token agora. Ele não será exibido novamente.</b><p><code style="word-break:break-all">'+esc(data.token)+'</code></p><button class="btn secondary" type="button" data-action="copyExtensionToken()">Copiar token</button></div>';window.extensionTokenOneTime=data.token;toast('Token gerado. Cole-o na extensão Chrome.');await loadExtensionTokenStatus();}catch(error){toast(error.message||'Falha ao gerar token.');}}
 async function copyExtensionToken(){if(!window.extensionTokenOneTime)return toast('Gere um novo token para copiá-lo.');try{await navigator.clipboard.writeText(window.extensionTokenOneTime);toast('Token copiado. Guarde-o na extensão.');}catch(_){toast('Não foi possível copiar; selecione o token exibido.');}}
 async function revokeExtensionToken(){if(!confirm('Revogar o token da extensão? Os envios automáticos serão interrompidos até gerar outro.'))return;try{var response=await fetch('/api/extension-token',{method:'DELETE'}),data=await response.json();if(!response.ok)throw Error(data.error||'Falha ao revogar token.');window.extensionTokenOneTime='';var fresh=document.getElementById('extensionTokenNew');if(fresh){fresh.hidden=true;fresh.innerHTML='';}await loadExtensionTokenStatus();toast('Token da extensão revogado.');}catch(error){toast(error.message||'Não foi possível revogar o token.');}}
+async function loadAndroidShareTokenStatus(){var root=document.getElementById('androidShareTokenStatus');if(!root)return;try{var response=await fetch('/api/extension-token?label='+encodeURIComponent('Compartilhamento Android')),data=await response.json();if(!response.ok)throw Error(data.error||'Falha ao consultar token Android.');root.textContent=data.configured?'Token Android ativo · final '+data.token.last4+(data.token.lastUsedAt?' · último uso '+new Date(data.token.lastUsedAt).toLocaleString('pt-BR'):' · ainda não utilizado'):'Nenhum token Android ativo. Gere um token para o compartilhamento.';}catch(error){root.textContent=error.message||'Não foi possível consultar o token Android.';}}
+async function createAndroidShareToken(){var root=document.getElementById('androidShareTokenNew');if(!root)return;if(!confirm('Gerar um token exclusivo para o Compartilhamento Android? O token Chrome não será alterado.'))return;try{var response=await fetch('/api/extension-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({label:'Compartilhamento Android'})}),data=await response.json();if(!response.ok)throw Error(data.error||'Não foi possível gerar o token Android.');root.hidden=false;root.innerHTML='<div class="callout"><b>Copie o token agora. Ele não será exibido novamente.</b><p><code style="word-break:break-all">'+esc(data.token)+'</code></p><button class="btn secondary" type="button" data-action="copyAndroidShareToken()">Copiar token Android</button></div>';window.androidShareTokenOneTime=data.token;toast('Token Android gerado. Cole-o na tela de compartilhamento.');await loadAndroidShareTokenStatus();}catch(error){toast(error.message||'Falha ao gerar token Android.');}}
+async function copyAndroidShareToken(){if(!window.androidShareTokenOneTime)return toast('Gere um novo token Android para copiá-lo.');try{await navigator.clipboard.writeText(window.androidShareTokenOneTime);toast('Token Android copiado.');}catch(_){toast('Não foi possível copiar; selecione o token exibido.');}}
+async function revokeAndroidShareToken(){if(!confirm('Revogar somente o token do Compartilhamento Android? O token Chrome continuará funcionando.'))return;try{var response=await fetch('/api/extension-token?label='+encodeURIComponent('Compartilhamento Android'),{method:'DELETE'}),data=await response.json();if(!response.ok)throw Error(data.error||'Falha ao revogar token Android.');window.androidShareTokenOneTime='';var fresh=document.getElementById('androidShareTokenNew');if(fresh){fresh.hidden=true;fresh.innerHTML='';}await loadAndroidShareTokenStatus();toast('Token Android revogado. O token Chrome não foi alterado.');}catch(error){toast(error.message||'Não foi possível revogar o token Android.');}}
 var apiHealthSnapshot = null;
 function apiHealthPanel(snapshot) {
   var data = snapshot === undefined ? apiHealthSnapshot : snapshot;
