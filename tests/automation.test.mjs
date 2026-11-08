@@ -101,11 +101,13 @@ test('monta mensagem completa sem inventar preço, desconto ou cupom',()=>{
   assert.match(ready.message,/https:\/\/s\.shopee\.com\.br\/oferta/);
 });
 
-test('modelo automático reconhece importados e omite fatos ausentes',()=>{
-  const ready=formatPromo({title:'Organizador',source:'AliExpress',currentPrice:5990,affiliateUrl:'https://pt.aliexpress.com/item/1',template:'AUTO'});
-  assert.equal(resolveTemplate('AUTO','Produtos importados','AliExpress'),'IMPORTED');
-  assert.equal(ready.template,'IMPORTED');
-  assert.doesNotMatch(ready.message,/De:|OFF|cupom/i);
+test('modelo automático exige evidência de origem internacional e omite fatos ausentes',()=>{
+  const marketplaceOnly=formatPromo({title:'Organizador',source:'AliExpress',currentPrice:5990,affiliateUrl:'https://pt.aliexpress.com/item/1',template:'AUTO'});
+  assert.equal(resolveTemplate('AUTO','Produtos importados','AliExpress'),'COMPLETE');
+  assert.equal(marketplaceOnly.template,'COMPLETE');
+  const knownOrigin=formatPromo({title:'Organizador',source:'AliExpress',category:'Origem internacional',currentPrice:5990,affiliateUrl:'https://pt.aliexpress.com/item/1',template:'AUTO'});
+  assert.equal(knownOrigin.template,'IMPORTED');
+  assert.doesNotMatch(knownOrigin.message,/De:|OFF|cupom/i);
 });
 
 test('bloqueia link inseguro na mensagem',()=>{
