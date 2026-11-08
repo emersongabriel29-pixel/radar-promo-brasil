@@ -372,9 +372,9 @@ A etapa documental identificou os gates legados e não alterou código ou banco.
 ### 17.1 O que mudou no código
 
 - Criado `lib/offer-flow-policy.js`: elegibilidade comum exige apenas título, preço atual positivo em centavos, link afiliado HTTPS sem credenciais e ausência de rejeição explícita por integridade.
-- `lib/autopilot.js`: processa APPROVED, PENDING, READY e NEEDS_REVIEW; não exige aprovação prévia, classificação diferente de REVIEW, desconto, comissão, avaliação, imagem ou histórico de preço. Lotes padrão de 100 e máximo de 200. Itens já presentes na fila de publicações não são inseridos novamente.
+- `lib/autopilot.js`: processa APPROVED, PENDING, READY e NEEDS_REVIEW; não exige aprovação prévia, classificação diferente de REVIEW, desconto, comissão, avaliação, imagem ou histórico de preço. Lotes padrão de 25 por conta a cada 15 minutos e máximo de 200 por chamada explícita. Itens já presentes na fila de publicações não são inseridos novamente.
 - `api/jobs/autopilot.js`: acorda contas com ofertas elegíveis sem exigir imagem/histórico oficial recente; extensão segue o mesmo princípio.
-- `lib/delivery.js`: adicionada política versionada. Novas publicações `master_v1` validam título, preço atual e link afiliado, sem gates comerciais/classificação/imagem/histórico. Telegram e Canal do WhatsApp aceitam texto com link quando a imagem não existe ou falha ao baixar/armazenar; imagem é enriquecimento opcional. Publicações antigas continuam `legacy` e mantêm as regras antigas até reconciliação explícita, evitando liberar 2.329 READY/37 RETRY antigos em massa.
+- `lib/delivery.js`: adicionada política versionada. Novas publicações `master_v1` validam título, preço atual e link afiliado, sem gates comerciais/classificação/imagem/histórico. Telegram e Canal do WhatsApp aceitam texto com link quando a imagem não existe ou falha ao baixar/armazenar; imagem é enriquecimento opcional. A tentativa de cache de imagem tem timeout de 2,5s para proteger o tempo de execução. Publicações antigas continuam `legacy` e mantêm as regras antigas até reconciliação explícita, evitando liberar 2.329 READY/37 RETRY antigos em massa.
 - Novas publicações gravam `eligibility_policy_version='master_v1'`; quando inseridas, a oferta passa a status READY. A confirmação final de envio continua dependendo do receipt do canal.
 - AliExpress review e extensão deixam de rejeitar por medicamento, imagem, desconto, comissão, avaliação ou REVIEW; faltas técnicas são contabilizadas como adiamento, não rejeição comercial.
 - Shopee: filtros internos de medicamento e exigências de imagem/comissão removidos da descoberta e importação; registros antigos BLOCKED/INCOMPLETE com dados técnicos suficientes são retomados. A publicação nos canais não exige imagem.
@@ -426,3 +426,17 @@ A fila de 4.036 será processada pelo scheduler em lotes. O número de ofertas e
 ### 17.5 Fallback de mídia
 
 O dispatcher Telegram agora usa `sendPhoto` quando existe imagem válida e `sendMessage` com link afiliado quando a imagem falta ou falha. O Canal do WhatsApp também permite mensagem textual sem mídia e usa cache de imagem apenas quando possível. Erro de mídia não vira falha definitiva quando o canal aceita texto. A métrica `published` do autopilot foi corrigida: enfileiramento nunca é contado como publicação. Erros reais de transporte, autorização e rate limit continuam com retry/diagnóstico.
+
+
+## 18. Cadência e orçamento de execução — v661
+
+- `/api/jobs/autopilot`: cron a cada 15 minutos; lote padrão de 25 por conta (aproximadamente 100/hora/conta).
+- `/api/jobs/extension-autopublish`: cron próprio a cada 15 minutos; não depende de `scheduler.now()`.
+- `/api/jobs/telegram`: cron a cada 5 minutos; lote de 10 por turno; intervalo de 5 minutos; 3,1 segundos entre envios para respeitar aproximadamente 20 mensagens/minuto por grupo.
+- Cache de imagem tem timeout de 2,5 segundos. Se mídia estiver ausente ou lenta, o worker usa mensagem textual com link afiliado.
+- `publication_scheduler_settings` da conta ativa foi ajustado para `interval_minutes=5` e `batch_size=10`.
+- O fluxo automático de ofertas não cria mais one-shot com `scheduler.at()` nem `scheduler.now()` por conta/lote. O cron recorrente drena as filas. One-shots restantes pertencem a fluxos distintos de recorrência e geração de mídia, não à elegibilidade de produtos.
+- WhatsApp não foi ativado: a auditoria encontrou zero `whatsapp_connections`, todos os grupos WhatsApp pausados e sem `external_id`. O worker aceita texto sem imagem, mas só pode publicar depois de existir conexão válida e destino autorizado. Isso não bloqueia a oferta nem o Telegram.
+- A fila Lomadee de geração de links continua com cron próprio horário e lote 10, preservando a taxa de chamadas externa até validar os limites oficiais do provedor.
+
+**Objetivo de throughput:** cerca de 100 ofertas novas enfileiradas/hora por conta e até 120 publicações Telegram/hora no lote configurado, sem exceder o limite de mensagens por grupo. Os valores são limites de execução/serviço, não critérios de produto.
