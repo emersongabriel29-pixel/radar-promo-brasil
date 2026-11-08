@@ -38,7 +38,7 @@ async function request(creds, query, variables, attempt = 0) {
   if (!appId || !secret) throw new Error('credentials_missing');
   const timestamp = String(Math.floor(Date.now()/1000)), body = JSON.stringify(payload);
   const signature = hex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(appId+timestamp+body+secret)));
-  const response = await fetchWithRetry(API_URL,{method:'POST',headers:{'content-type':'application/json',accept:'application/json',authorization:'SHA256 Credential='+appId+', Timestamp='+timestamp+', Signature='+signature},body,signal:AbortSignal.timeout(12000)});
+  const response = await fetchWithRetry(API_URL,{method:'POST',headers:{'content-type':'application/json',accept:'application/json',authorization:'SHA256 Credential='+appId+', Timestamp='+timestamp+', Signature='+signature},body,signal:AbortSignal.timeout(8000)},{attempts:2,timeoutMs:8000});
   const raw = await response.text(); let data;
   try { data = raw ? JSON.parse(raw) : {}; } catch { throw new Error('invalid_api_response'); }
   if (!response.ok || data.errors?.length) {
@@ -51,7 +51,7 @@ async function request(creds, query, variables, attempt = 0) {
   }
   return data;
 }
-async function requestProductPages(creds, query, variables, maxPages = 3) {
+async function requestProductPages(creds, query, variables, maxPages = 1) {
   const nodes = [];
   let page = Math.max(1, Number(variables?.page) || 1);
   let hasNextPage = false;
@@ -195,6 +195,9 @@ export default async function handler(req,res) {
       const requestedDryRunKeywords = dryRun && Array.isArray(req.body?.dryRunKeywords) ? req.body.dryRunKeywords.map(value=>clean(value,80)).filter(Boolean).slice(0,6) : null;
       const selectedKeywords = requestedDryRunKeywords?.length ? requestedDryRunKeywords : officialOnly ? [] : selectShopeeKeywords(slot,6);
       const productQuery = 'query($keyword: String, $shopId: Int64, $listType: Int, $sortType: Int, $page: Int, $limit: Int, $isAMSOffer: Boolean, $isKeySeller: Boolean) { productOfferV2(keyword: $keyword, shopId: $shopId, listType: $listType, sortType: $sortType, page: $page, limit: $limit, isAMSOffer: $isAMSOffer, isKeySeller: $isKeySeller) { nodes { itemId shopId shopName shopType productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate commissionRate sellerCommissionRate shopeeCommissionRate commission sales ratingStar } pageInfo { page limit hasNextPage } } }';
+      const runStartedAt = Date.now();
+      const canStartApiCall = () => Date.now() - runStartedAt < 30000;
+      const cursorUpdates = [];
       const seen = new Map();
       const products = [];
       const shopMetadata = new Map();
@@ -223,13 +226,14 @@ export default async function handler(req,res) {
       };
       // Search each selected phrase by sales and commission. Page rotation broadens catalog coverage over time.
       for (const keyword of selectedKeywords) {
-        for (const sortType of [2,5]) {
+        for (const sortType of [Math.floor(Date.now()/3600000)%2===0?2:5]) {
+          if (!canStartApiCall()) { totals.budgetYielded = true; break; }
           const listType = sortType === 2 ? 2 : 1;
           const discoveryKey = 'keyword:'+keyword;
           const page = await getShopeeDiscoveryPage(row.account_id,discoveryKey,sortType);
-          const result = await requestProductPages(creds,productQuery,{keyword,listType,sortType,page,limit:50},3);
+          const result = await requestProductPages(creds,productQuery,{keyword,listType,sortType,page,limit:50},1);
           addProducts(result.nodes,keyword,'keyword');
-          if (!dryRun) await saveShopeeDiscoveryPage(row.account_id,discoveryKey,sortType,result);
+          cursorUpdates.push({discoveryKey,sortType,result});
           totals.productSearchCalls = (totals.productSearchCalls||0)+result.pagesFetched;
           totals.productPagesFetched = (totals.productPagesFetched||0)+result.pagesFetched;
           if (result.hasNextPage) {
@@ -242,13 +246,14 @@ export default async function handler(req,res) {
 
       // Rotate two AMS/CommissionsXtra-filtered searches per cycle. These are product offers
       // with seller-funded commission fields, the live-schema route for brand-commission items.
-      const amsKeywords = selectedKeywords.filter((_,index)=>(index+slot)%3===0).slice(0,2);
+      const amsKeywords = selectedKeywords.filter((_,index)=>(index+slot)%3===0).slice(0,1);
       for (const keyword of amsKeywords) {
+        if (!canStartApiCall()) { totals.budgetYielded = true; break; }
         const discoveryKey = 'ams:'+keyword;
         const page = await getShopeeDiscoveryPage(row.account_id,discoveryKey,5);
-        const result = await requestProductPages(creds,productQuery,{keyword,listType:1,sortType:5,page,limit:50,isAMSOffer:true},3);
+        const result = await requestProductPages(creds,productQuery,{keyword,listType:1,sortType:5,page,limit:50,isAMSOffer:true},1);
         addProducts(result.nodes,keyword,'ams_keyword');
-        if (!dryRun) await saveShopeeDiscoveryPage(row.account_id,discoveryKey,5,result);
+        cursorUpdates.push({discoveryKey,sortType:5,result});
         totals.amsProductSearchCalls = (totals.amsProductSearchCalls||0)+result.pagesFetched;
         totals.productPagesFetched = (totals.productPagesFetched||0)+result.pagesFetched;
         if (result.hasNextPage) {
@@ -262,6 +267,7 @@ export default async function handler(req,res) {
       // Optional discovery failures must not block the core product search.
       const shopQuery = 'query($sortType: Int, $page: Int, $limit: Int) { shopOfferV2(sortType: $sortType, page: $page, limit: $limit) { nodes { shopId shopName commissionRate ratingStar shopType imageUrl offerLink remainingBudget sellerCommCoveRatio periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
       try {
+        if (!canStartApiCall()) { totals.budgetYielded = true; throw new Error('RUN_BUDGET_YIELDED'); }
         const shopData = await request(creds,shopQuery,{sortType:2,page:1,limit:30});
         const shops = list(shopData.data?.shopOfferV2?.nodes);
         for (const shop of shops) {
@@ -269,15 +275,16 @@ export default async function handler(req,res) {
           if (shopId) shopMetadata.set(shopId,{shopType:clean(shop.shopType,80),shopName:clean(shop.shopName,160)});
         }
         totals.shopsDiscovered = (totals.shopsDiscovered||0)+shops.length;
-        for (const shop of shops.slice(0,2)) {
+        for (const shop of shops.slice(0,1)) {
           const shopId = clean(shop.shopId,80);
           if (!isShopeeShopId(shopId)) continue;
           try {
             const discoveryKey = 'shop:'+shopId;
             const page = await getShopeeDiscoveryPage(row.account_id,discoveryKey,2);
-            const shopProducts = await requestProductPages(creds,productQuery,{shopId,listType:2,sortType:2,page,limit:50},3);
+            if (!canStartApiCall()) { totals.budgetYielded = true; break; }
+            const shopProducts = await requestProductPages(creds,productQuery,{shopId,listType:2,sortType:2,page,limit:50},1);
             addProducts(shopProducts.nodes,'loja:'+clean(shop.shopName,80),'partner_shop');
-            if (!dryRun) await saveShopeeDiscoveryPage(row.account_id,discoveryKey,2,shopProducts);
+            cursorUpdates.push({discoveryKey,sortType:2,result:shopProducts});
             totals.shopProductCalls = (totals.shopProductCalls||0)+shopProducts.pagesFetched;
             totals.productPagesFetched = (totals.productPagesFetched||0)+shopProducts.pagesFetched;
             if (shopProducts.hasNextPage) {
@@ -297,6 +304,7 @@ export default async function handler(req,res) {
       // Star (2) and Star+ (4) are reputable preferred shops, not official brand stores.
       const officialShopQuery = 'query($page: Int, $limit: Int) { shopOfferV2(shopType: [1], sortType: 3, page: $page, limit: $limit) { nodes { shopId shopName commissionRate ratingStar shopType imageUrl offerLink } pageInfo { page limit hasNextPage } } }';
       try {
+        if (!canStartApiCall()) { totals.budgetYielded = true; throw new Error('RUN_BUDGET_YIELDED'); }
         const officialShopData = await request(creds,officialShopQuery,{page:1,limit:30});
         const officialShops = list(officialShopData.data?.shopOfferV2?.nodes);
         totals.officialShopsDiscovered = (totals.officialShopsDiscovered||0)+officialShops.length;
@@ -304,15 +312,16 @@ export default async function handler(req,res) {
           const shopId = clean(shop.shopId,80);
           if (shopId) shopMetadata.set(shopId,{shopType:'1',shopName:clean(shop.shopName,160)});
         }
-        for (const shop of officialShops.slice(0,2)) {
+        for (const shop of officialShops.slice(0,1)) {
           const shopId = clean(shop.shopId,80);
           if (!isShopeeShopId(shopId)) continue;
           try {
             const discoveryKey = 'official-shop:'+shopId;
             const page = await getShopeeDiscoveryPage(row.account_id,discoveryKey,2);
-            const shopProducts = await requestProductPages(creds,productQuery,{shopId,listType:2,sortType:2,page,limit:50},3);
+            if (!canStartApiCall()) { totals.budgetYielded = true; break; }
+            const shopProducts = await requestProductPages(creds,productQuery,{shopId,listType:2,sortType:2,page,limit:50},1);
             addProducts(shopProducts.nodes,'loja oficial:'+clean(shop.shopName,80),'official_shop');
-            if (!dryRun) await saveShopeeDiscoveryPage(row.account_id,discoveryKey,2,shopProducts);
+            cursorUpdates.push({discoveryKey,sortType:2,result:shopProducts});
             totals.officialShopProductCalls = (totals.officialShopProductCalls||0)+shopProducts.pagesFetched;
             totals.productPagesFetched = (totals.productPagesFetched||0)+shopProducts.pagesFetched;
             if (shopProducts.hasNextPage) {
@@ -331,6 +340,7 @@ export default async function handler(req,res) {
       // Campaigns are discovery intelligence, not product offers: never publish a campaign as if it were a priced item.
       const campaignQuery = 'query($sortType: Int, $page: Int, $limit: Int) { shopeeOfferV2(sortType: $sortType, page: $page, limit: $limit) { nodes { commissionRate imageUrl offerLink originalLink offerName offerType categoryId collectionId periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }';
       try {
+        if (!canStartApiCall()) { totals.budgetYielded = true; throw new Error('RUN_BUDGET_YIELDED'); }
         const campaignData = await request(creds,campaignQuery,{sortType:1,page:1,limit:30});
         const campaigns = list(campaignData.data?.shopeeOfferV2?.nodes);
         const nowSeconds = Math.floor(Date.now()/1000);
@@ -369,6 +379,7 @@ export default async function handler(req,res) {
         totals.skipped += discoveryStats.incomplete+discoveryStats.blocked;
         totals.incompletePreview.push(...discoveryStats.incompletePreview);
         totals.safetyBlockedPreview.push(...discoveryStats.safetyBlockedPreview);
+        for (const cursor of cursorUpdates) await saveShopeeDiscoveryPage(row.account_id,cursor.discoveryKey,cursor.sortType,cursor.result);
       }
       // Safe catalog-only mode: persist discovery metadata without creating offers or triggering autopilot/publication.
       if (officialOnly) {
@@ -382,7 +393,7 @@ export default async function handler(req,res) {
            AND processing_status IN ('DISCOVERED','FAILED')
          ORDER BY sales_count DESC NULLS LAST, rating DESC NULLS LAST,
            CASE WHEN raw_data->>'isOfficialShop'='true' OR raw_data->>'shopType' ~ '(^|,)1(,|$)' THEN 1 ELSE 0 END DESC,
-           commission_rate DESC NULLS LAST, first_seen_at,external_id LIMIT 30`,
+           commission_rate DESC NULLS LAST, first_seen_at,external_id LIMIT 10`,
         [row.account_id]
       )).rows;
       const processingProducts = dryRun ? products : processingRows.map(item=>({...item.raw_data,__inventoryExternalId:item.external_id}));
@@ -474,6 +485,7 @@ export default async function handler(req,res) {
         continue;
       }
       for (const candidate of selectedCandidates) {
+        if (!canStartApiCall()) { totals.budgetYielded = true; break; }
         await pause(250);
         const {p,title,productUrl,affiliateUrl,imageUrl,currentPrice,score,fp,classified,category,reasons,discoveryExternalId} = candidate;
         // Sex shop products follow the same automatic quality and validation flow as other categories.
@@ -560,10 +572,11 @@ export default async function handler(req,res) {
             AND h.price=o.current_price AND h.original_price IS NOT DISTINCT FROM o.original_price
             AND h.verified_at=(SELECT max(h2.verified_at) FROM offer_price_history h2
               WHERE h2.account_id=h.account_id AND h2.offer_id=h.offer_id AND h2.source_type='OFFICIAL_API'))
-        ORDER BY o.updated_at,o.id LIMIT 3
+        ORDER BY o.updated_at,o.id LIMIT 1
       `,[row.account_id])).rows;
       const reconcileQuery = 'query($keyword: String, $sortType: Int, $page: Int, $limit: Int) { productOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) { nodes { itemId productName productLink offerLink imageUrl priceMin } } }';
       for (const stale of staleOffers) {
+        if (!canStartApiCall()) { totals.budgetYielded = true; break; }
         try {
           const parts = new URL(stale.product_url).pathname.split('/').filter(Boolean);
           const itemId = parts[parts.length-1];
