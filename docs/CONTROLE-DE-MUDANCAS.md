@@ -89,3 +89,6 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 
 
 | 2026-11-08 | Fallback de publicação textual sem imagem | Dispatchers Telegram e Canal do WhatsApp, entrega Master | Dry-run de deploy sem erros/avisos; nenhum dispatcher acionado manualmente | commits 9016ef3, 64dbf37, ba838c5 | draft para v659 | Código preparado; homologação real de canal pendente |
+
+
+| 2026-11-08 | Fallback de texto após falha de mídia e correção de métrica do autopilot | Telegram, Canal do WhatsApp e métricas da fila | Dry-run sem erros/avisos; nenhum envio manual acionado | commits 53b871b, 3d31757, 84b5109, 2278ab3 | draft para v660 | Código preparado; validação real do canal aguarda operação programada |
