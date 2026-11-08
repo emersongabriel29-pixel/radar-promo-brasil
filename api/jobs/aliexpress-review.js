@@ -1,7 +1,6 @@
 import { db } from 'hatchable';
 import { offerScore } from 'lib/automation.js';
 import { enqueueMatches } from 'lib/autopilot.js';
-import { isMedicationProduct } from 'lib/product-safety.js';
 // No internal product-category exclusion.
 
 export const access = 'scheduler';
@@ -19,7 +18,7 @@ const isHttps = value => {
 
 /**
  * Automated quality gate for AliExpress drafts.
- * Auto-approves only offers that pass hard requirements; only their AliExpress offers enter the automatic publication queue.
+ * Auto-approves offers with factual product identity, current price and a valid affiliate destination.
  */
 export default async function handler(req, res) {
   const rows = (await db.query(
@@ -33,31 +32,19 @@ export default async function handler(req, res) {
       const discount = original > current && original > 0 ? Math.round((original - current) * 100 / original) : 0;
       let reason = '';
       if (!String(offer.title || '').trim()) reason = 'Título ausente';
-      else if (!isHttps(offer.affiliate_url) || !isAliExpressUrl(offer.product_url) || !isHttps(offer.image_url)) reason = 'Link de afiliado, produto AliExpress ou imagem HTTPS ausente/inválido';
-      else if (!Number.isFinite(current) || !Number.isFinite(original) || current <= 0 || original <= current) reason = 'Preço atual/original inválido ou desconto não verificável';
-      else if (isMedicationProduct({ title: offer.title, product_url: offer.product_url })) reason = 'Produto bloqueado pela política de segurança';
-      else if (discount < 10) reason = 'Desconto abaixo do mínimo de 10%';
+      else if (!isHttps(offer.affiliate_url) || !isAliExpressUrl(offer.product_url)) reason = 'Link de afiliado ou produto AliExpress ausente/inválido';
+      else if (!Number.isSafeInteger(current) || current <= 0) reason = 'Preço atual ausente ou inválido';
       if (reason) {
-        const blocked = reason === 'Produto bloqueado pela política de segurança';
         await db.query(
-          "UPDATE offers SET validation_status=$1,discount_percent=$2,classification_status='REVIEW',classification_reason=$3,updated_at=now() WHERE id=$4 AND account_id=$5 AND status='PENDING'",
-          [blocked ? 'REJECTED' : 'NEEDS_REVIEW', discount, reason, offer.id, offer.account_id]
-        );
-        if (blocked) result.rejected++; else result.needsReview++;
-        continue;
-      }
-      const qualityReason = String(offer.classification_reason || '');
-      if (qualityReason.includes('LOW_COMMISSION') || qualityReason.includes('LOW_RATING') || qualityReason.includes('VARIANT_PRICE_RANGE')) {
-        await db.query(
-          "UPDATE offers SET validation_status='NEEDS_REVIEW',discount_percent=$1,classification_status='REVIEW',classification_reason=$2,updated_at=now() WHERE id=$3 AND account_id=$4 AND status='PENDING'",
-          [discount, 'Comissão ou avaliação abaixo do limite; exige aprovação humana.', offer.id, offer.account_id]
+          "UPDATE offers SET validation_status='NEEDS_REVIEW',discount_percent=$1,classification_reason=$2,updated_at=now() WHERE id=$3 AND account_id=$4 AND status='PENDING'",
+          [discount, reason, offer.id, offer.account_id]
         );
         result.needsReview++;
         continue;
       }
       const score = offerScore({ title: offer.title, currentPrice: Math.round(current), originalPrice: Math.round(original) });
       await db.query(
-        "UPDATE offers SET status='APPROVED',validation_status='VALIDATED',discount_percent=$1,score=COALESCE(radar_score,$2),radar_score=COALESCE(radar_score,$2),classification_status='AUTO',classification_reason=$3,updated_at=now() WHERE id=$4 AND account_id=$5 AND status='PENDING'",
+        "UPDATE offers SET status='APPROVED',validation_status='VALIDATED',discount_percent=$1,score=COALESCE(radar_score,$2),radar_score=COALESCE(radar_score,$2),classification_reason=COALESCE(classification_reason,$3),updated_at=now() WHERE id=$4 AND account_id=$5 AND status='PENDING'",
         [discount, score, 'Requisitos automáticos aprovados; elegível para publicação automática AliExpress.', offer.id, offer.account_id]
       );
       result.validated++;
