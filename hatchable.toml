@@ -219,3 +219,7 @@ schedule = "20 */6 * * *"
 [[cron]]
 path = "/api/jobs/lomadee-link-queue"
 schedule = "40 * * * *"
+
+[[cron]]
+path = "/api/jobs/extension-offers-resolve-queue"
+schedule = "50 * * * *"

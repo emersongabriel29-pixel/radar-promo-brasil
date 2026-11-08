@@ -44,7 +44,7 @@ async function credentialsFor(accountId) {
   return {credentials:JSON.parse(new TextDecoder().decode(plain)),status:row.status};
 }
 function signParams(params, secret) { return signTopParams(params, secret); }
-const fields='product_id,product_title,product_main_image_url,product_detail_url,promotion_link,target_sale_price,target_original_price,sale_price,discount,commission_rate,evaluate_rate,lastest_volume,first_level_category_id,second_level_category_id,shop_id,shop_url';
+const fields='product_id,product_title,product_main_image_url,product_detail_url,promotion_link,target_sale_price,target_original_price,sale_price,discount,commission_rate,evaluate_rate,lastest_volume,first_level_category_id,second_level_category_id,shop_id,shop_url,promo_code_info,platform_product_type,hot_product_commission_rate,relevant_market_commission_rate';
 async function topRequest(credentials, method, business={}) {
   const appKey=clean(credentials.appId,200),secret=clean(credentials.apiSecret,4096),tracking=clean(credentials.trackingId,200);
   if(!appKey||!secret||!tracking)throw Object.assign(new Error('Informe App Key, App Secret e Tracking ID emitidos no portal de afiliados.'),{status:412});
@@ -79,7 +79,7 @@ function unwrap(data, method) {
 function listOf(result, depth=0) {
   if(Array.isArray(result))return result;
   if(!result||typeof result!=='object'||depth>4)return [];
-  const preferred=['products','product','categories','category','promotion_links','promotion_link','promos','promo','orders','order','hot_products','hot_product','promotions','promotion','items','data'];
+  const preferred=['products','product','categories','category','promotion_links','promotion_link','promos','promo','orders','order','hot_products','hot_product','promotions','promotion','sku_info_list','skuInfoList','sku_list','skuList','skus','sku_details','skuDetails','items','data'];
   for(const key of preferred){const v=result[key];if(Array.isArray(v))return v;if(v&&typeof v==='object'){const nested=listOf(v,depth+1);if(nested.length)return nested;if(['product','category','promotion_link','order','hot_product','promotion','promo'].includes(key))return [v];}}
   for(const v of Object.values(result)){if(v&&typeof v==='object'){const nested=listOf(v,depth+1);if(nested.length)return nested;}}
   return [];
@@ -97,12 +97,21 @@ function normalize(items) {
     rating:x.evaluate_rate??x.evaluateRate??null,
     salesVolume:x.lastest_volume??x.lastestVolume??null,
     discount: x.discount??null,
+    promoCodeInfo: x.promo_code_info || x.promoCodeInfo || null,
+    hotCommissionRate: x.hot_product_commission_rate ?? null,
+    relevantMarketCommissionRate: x.relevant_market_commission_rate ?? null,
+    platformProductType: x.platform_product_type ?? null,
     status:clean(x.order_status||x.status,80),
     createdAt:clean(x.created_time||x.createdTime,80),
     grossValue:x.product_price??x.productPrice??null,
     commissionValue:x.commission??null,
     quantity:x.product_count??x.productCount??1,
     subId:clean(x.sub_id||x.subId,120),
+    skuId:clean(x.sku_id||x.skuId,120),
+    skuPrice:x.sku_price??x.sale_price??x.price??null,
+    skuOriginalPrice:x.sku_original_price??x.original_price??null,
+    skuImageUrl:clean(x.sku_image||x.sku_image_url||x.image_url,1500),
+    skuAttributes:x.sku_attributes_list||x.sku_attr||x.properties||x.attributes||null,
     rawType:clean(x.type||x.category_name,100)
   }));
 }
@@ -138,6 +147,13 @@ function build(method,body,c) {
     if(!ids.length)throw Object.assign(new Error('Informe de 1 a 20 IDs numéricos de produtos AliExpress.'),{status:400});
     return {api:'aliexpress.affiliate.productdetail.get',params:{fields,product_ids:ids.join(','),...common}};
   }
+  if(method==='skuDetails'){
+    const productId=clean(body.productId,30);
+    if(!/^\d{1,30}$/.test(productId))throw Object.assign(new Error('Informe um ID numérico de produto AliExpress para consultar suas variações.'),{status:400});
+    const params={product_id:productId,ship_to_country:country,target_currency:'BRL',target_language:'PT',need_deliver_info:'No'};
+    const skuIds=clean(body.skuIds,700);if(skuIds)params.sku_ids=skuIds;
+    return {api:'aliexpress.affiliate.product.sku.detail.get',params};
+  }
   if(method==='categories')return {api:'aliexpress.affiliate.category.get',params:{fields:'category_id,parent_category_id,category_name'}};
   if(method==='campaigns')return {api:'aliexpress.affiliate.featuredpromo.get',params:{fields:'promo_name,promo_desc,product_num,commission_rate,sale_price'}};
   if(method==='campaignProducts'){
@@ -165,22 +181,24 @@ function build(method,body,c) {
 }
 export default async function handler(req,res){
   if(!req.member)return res.status(401).json({error:'Entre para acessar a integração AliExpress.'});
+  let accountId='',requestedAction='';
   try{
     const account=await accountFor(req.member);
     if(!account)return res.status(412).json({error:'Abra o painel uma vez para criar sua conta.'});
+    accountId=account.id;
     const saved=await credentialsFor(account.id);
     if(req.method==='GET')return res.json({
       provider:'ALIEXPRESS',
       status:saved?.status||'NOT_CONFIGURED',
       mode:'aliexpress_open_platform_sync_sha256',
-      capabilities:['product_search','smart_match_recommendations','hot_products','hot_product_download','product_details','categories','featured_campaigns','campaign_products','affiliate_link_generation','batch_affiliate_link_generation','read_only_capability_audit','order_list','order_details','cursor_order_reports'],
+      capabilities:['product_search','smart_match_recommendations','hot_products','hot_product_download','product_details','product_sku_details','categories','featured_campaigns','campaign_products','affiliate_link_generation','batch_affiliate_link_generation','read_only_capability_audit','order_list','order_details','cursor_order_reports'],
       apiDocumentationStatus:saved?.status==='VALIDATED'?'OPEN_PLATFORM_SYNC_SHA256_READ_TEST_CONFIRMED':'NOT_VERIFIED',
       publicationEnabled:false,
       note:saved?.status==='VALIDATED'?'Uma consulta de leitura foi validada anteriormente; isso não confirma todas as permissões avançadas.':'Credenciais ainda não validadas por uma consulta real. A lista de capacidades representa métodos implementados, não permissões garantidas.'
     });
     if(req.method!=='POST')return res.status(405).json({error:'Método não permitido.'});
     if(!saved) return res.status(412).json({error:'Cadastre App Key, App Secret e Tracking ID no painel antes de usar a API.'});
-    const c=saved.credentials||{},action=clean(req.body?.action,40);
+    const c=saved.credentials||{},action=clean(req.body?.action,40);requestedAction=action;
     if(action==='generateLinkAfilimax'){
       if(c.legacyApiAcknowledged!=='true')return res.status(412).json({error:'Confirme no cadastro que entende que a Affiliate API do AliExpress é legada antes de testar este provider.'});
       const affiliateUrl=await createAliExpressAffiliateUrl({appKey:c.appId,appSecret:c.apiSecret,trackingId:clean(req.body?.trackingId||c.trackingId,200),productUrl:req.body?.productUrl});
@@ -192,14 +210,14 @@ export default async function handler(req,res){
 
     if(action==='audit'){
       // Explicit, bounded, read-only capability audit. Never return raw order/product data.
-      const requested=Array.isArray(req.body?.actions)?req.body.actions.map(x=>clean(x,40)).filter(Boolean):['products','smartMatch','hotProducts','hotProductsDownload','categories','campaigns','campaignProducts','productDetail','orders','orderDetail','ordersByCursor'];
-      const allowed=new Set(['products','smartMatch','hotProducts','hotProductsDownload','categories','campaigns','productDetail','campaignProducts','orders','orderDetail','ordersByCursor']);
+      const requested=Array.isArray(req.body?.actions)?req.body.actions.map(x=>clean(x,40)).filter(Boolean):['products','smartMatch','hotProducts','hotProductsDownload','categories','campaigns','campaignProducts','productDetail','skuDetails','orders','orderDetail','ordersByCursor'];
+      const allowed=new Set(['products','smartMatch','hotProducts','hotProductsDownload','categories','campaigns','productDetail','skuDetails','campaignProducts','orders','orderDetail','ordersByCursor']);
       const selected=[...new Set(requested)].filter(x=>allowed.has(x)).slice(0,10);
       const now=Date.now();
       const dateText=ms=>new Date(ms).toISOString().slice(0,19).replace('T',' ');
       const report=[];
       let discoveredProductId='',discoveredCampaign='',discoveredOrderId='',discoveredCategoryId='';
-      const auditOrder=['categories','products','productDetail','smartMatch','hotProducts','hotProductsDownload','campaigns','campaignProducts','orders','orderDetail','ordersByCursor'];
+      const auditOrder=['categories','products','productDetail','skuDetails','smartMatch','hotProducts','hotProductsDownload','campaigns','campaignProducts','orders','orderDetail','ordersByCursor'];
       selected.sort((a,b)=>auditOrder.indexOf(a)-auditOrder.indexOf(b));
       for(const auditAction of selected){
         try{
@@ -212,6 +230,10 @@ export default async function handler(req,res){
           if(auditAction==='productDetail'){
             if(!discoveredProductId){report.push({action:auditAction,status:'SKIPPED',reason:'Nenhum ID de produto descoberto nesta auditoria.'});continue;}
             body.productIds=discoveredProductId;
+          }
+          if(auditAction==='skuDetails'){
+            if(!discoveredProductId){report.push({action:auditAction,status:'SKIPPED',reason:'Nenhum ID de produto descoberto nesta auditoria.'});continue;}
+            body.productId=discoveredProductId;
           }
           if(auditAction==='campaignProducts'){
             if(!discoveredCampaign){report.push({action:auditAction,status:'SKIPPED',reason:'Nenhuma campanha descoberta nesta auditoria.'});continue;}
@@ -270,7 +292,7 @@ export default async function handler(req,res){
         throw error;
       }
     }
-    const map={products:'products',importOffers:'products',smartMatch:'smartMatch',hotProducts:'hotProducts',hotProductsDownload:'hotProductsDownload',productDetail:'productDetail',categories:'categories',campaigns:'campaigns',campaignProducts:'campaignProducts',generateLink:'generateLink',orders:'orders',syncOrders:'orders',orderDetail:'orderDetail',ordersByCursor:'ordersByCursor'};
+    const map={products:'products',importOffers:'products',smartMatch:'smartMatch',skuDetails:'skuDetails',hotProducts:'hotProducts',hotProductsDownload:'hotProductsDownload',productDetail:'productDetail',categories:'categories',campaigns:'campaigns',campaignProducts:'campaignProducts',generateLink:'generateLink',orders:'orders',syncOrders:'orders',orderDetail:'orderDetail',ordersByCursor:'ordersByCursor'};
     const actionName=map[action];if(!actionName)return res.status(400).json({error:'Operação não suportada.'});
     const orderBody={...(req.body||{})};
     if(action==='syncOrders'){
@@ -302,6 +324,10 @@ export default async function handler(req,res){
       data=await topRequest(c,spec.api,spec.params);
       result=unwrap(data,spec.api);
       items=normalize(listOf(result));
+      if(action==='skuDetails'){
+        await db.query("INSERT INTO account_integration_health(account_id,name,status,details,last_checked_at) VALUES($1,'ALIEXPRESS_SKU_DETAIL','ACTIVE',$2,now()) ON CONFLICT(name,account_id) DO UPDATE SET status='ACTIVE',details=EXCLUDED.details,last_checked_at=now()",[account.id,'Consulta manual SKU Detail autorizada; opções retornadas: '+items.length]);
+        return res.json({ok:true,action,productId:clean(orderBody.productId,30),total:items.length,items,permissionStatus:'ACTIVE',readOnly:true,publicationEnabled:false,note:'Variações consultadas. Nenhuma oferta foi publicada.'});
+      }
     } catch (apiError) {
       const permissionDenied=/InsufficientPermission|insufficient permission|permission/i.test(String(apiError?.message||''));
       const canFallback=['hotProducts','hotProductsDownload','smartMatch','campaignProducts'].includes(action);
@@ -368,7 +394,7 @@ export default async function handler(req,res){
         let reason='';
         if(isMedicationProduct({title,productUrl}))reason='Medicamentos e produtos farmacêuticos são bloqueados pela política do Radar.';
         else if(isAdultProduct({title,productUrl}))reason='Produto adulto retido: os termos de publicidade de afiliados do AliExpress restringem a promoção de produtos adultos, exceto contraceptivos.';
-         else if(!title)reason='Título ausente';
+        else if(!title)reason='Título ausente';
         // No internal category exclusion.
         else if(!/^https:\/\//i.test(productUrl)||!/^https:\/\//i.test(affiliateUrl)||!/^https:\/\//i.test(imageUrl))reason='Produto sem link original, link de afiliado ou imagem HTTPS válida';
         else if(!Number.isSafeInteger(currentPrice)||currentPrice<=0||!Number.isSafeInteger(originalPrice)||originalPrice<=currentPrice)reason='Preço atual/original inválido ou sem desconto verificável';
@@ -378,7 +404,7 @@ export default async function handler(req,res){
         if(reason){skipped.push({id:item.id,title,reason});continue;}
         const classification=classifyProduct({title,sourceCategory:item.rawType||''});
         const category=cats.find(c=>c.name.toLowerCase()===String(classification.category||'').toLowerCase())||cats.find(c=>c.name.toLowerCase().includes('gerais'))||null;
-        const fp=await fingerprint({source:'ALIEXPRESS',externalId:item.id,productUrl,title});
+        const fp=await fingerprint({source:'ALIEXPRESS',externalId:item.id,productUrl,title,sellerId:item.shopId||item.sellerId||item.storeId||'',sellerName:item.shopName||item.sellerName||'',currentPrice,originalPrice,variant:item.sku||item.variant||''});
         const promo=formatPromo({title,source:'ALIEXPRESS',category:classification.category,currentPrice,originalPrice,affiliateUrl,imageUrl,productUrl});
         const score=offerScore({title,currentPrice,originalPrice});
         const saved=await db.query(
@@ -402,6 +428,9 @@ export default async function handler(req,res){
     return res.json({ok:true,action,apiMethod:fallback?.actualApi||spec.api,fallback:fallback||{used:false},items,total:items.length,readOnly:true,publicationEnabled:false,apiDocumentationStatus:'OPEN_PLATFORM_SYNC_SHA256'});
   }catch(error){
     const status=Number(error?.status)||502;
+    if(requestedAction==='skuDetails'&&accountId&&/InsufficientPermission|insufficient permission|permission/i.test(String(error?.message||''))){
+      try{await db.query("INSERT INTO account_integration_health(account_id,name,status,details,last_checked_at) VALUES($1,'ALIEXPRESS_SKU_DETAIL','PERMISSION_REQUIRED',$2,now()) ON CONFLICT(name,account_id) DO UPDATE SET status='PERMISSION_REQUIRED',details=EXCLUDED.details,last_checked_at=now()",[accountId,clean(error?.message||'InsufficientPermission',300)]);}catch{}
+    }
     console.error('integrations/aliexpress',JSON.stringify({name:String(error?.name||'Error').slice(0,60),status}));
     return res.status(status>=400&&status<600?status:502).json({error:error?.message||'Não foi possível consultar a API AliExpress.'});
   }

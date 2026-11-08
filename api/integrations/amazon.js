@@ -194,7 +194,8 @@ export default async function handler(req, res) {
         if (reason) { skipped.push({asin,title,reason}); continue; }
         const classification = classifyProduct({title});
         const category = categories.find(x=>x.name.toLowerCase()===String(classification.category||'').toLowerCase()) || categories.find(x=>x.name.toLowerCase().includes('gerais')) || null;
-        const fp = await fingerprint({source:'AMAZON',externalId:asin,productUrl,title});
+        const merchant=listing?.merchantInfo||listing?.MerchantInfo||item?.merchantInfo||item?.MerchantInfo||{};
+        const fp = await fingerprint({source:'AMAZON',externalId:asin,productUrl,title,sellerId:merchant?.id||merchant?.Id||merchant?.merchantId||'',sellerName:merchant?.name||merchant?.Name||'',currentPrice,originalPrice,variant:listing?.variant||listing?.Variant||''});
         const discount = Math.round((originalPrice-currentPrice)*100/originalPrice);
         const score = offerScore({title,currentPrice,originalPrice});
         const promo = formatPromo({title,source:'AMAZON',category:classification.category,currentPrice,originalPrice,affiliateUrl:productUrl,imageUrl,productUrl});
