@@ -53,7 +53,6 @@ export default async function(req, res) {
         message += String.fromCharCode(10, 10) + '🎟️ Cupom: ' + String(item.couponCode).trim() + String.fromCharCode(10) + 'Resgate: ' + couponUrl;
       }
       const imageUrl = item.contentType === 'MESSAGE' ? '' : String(await offerImage({ imageUrl: item.imageUrl || item.offerImageUrl, imageStorageKey: item.imageStorageKey }) || '').trim();
-      if (item.contentType !== 'MESSAGE' && !imageUrl) throw Object.assign(new Error('A oferta não possui imagem real do produto. A publicação foi retida para evitar envio somente em texto.'), { code: 'IMAGE_REQUIRED' });
       const result = await sendWhatsAppChannelText({ channel: item.groupExternalId, message, publicationId: item.id, imageUrl });
       if (result.status === 'WAITING_CONFIRMATION') {
         await db.query("UPDATE publications SET status='WAITING_CONFIRMATION',error_message=$3 WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$4",
