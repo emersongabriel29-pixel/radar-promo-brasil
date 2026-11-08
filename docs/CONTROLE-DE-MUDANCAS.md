@@ -80,3 +80,6 @@ A única limitação interna de processamento é a capacidade/quota real da hosp
 Toda alteração em regras de elegibilidade, classificação, descoberta, links, publicação, retries, cron ou dados deve atualizar a Regra Master e o documento do domínio na mesma tarefa. Não zerar backlog por atualização SQL em massa sem reconciliação, idempotência, checkpoint e rollback.
 
 | 2026-11-08 | Regra Master e mapa dos fluxos ponta a ponta; identificação dos gates legados | Governança, descoberta, classificação, IA, links, autopilot, filas e entrega | Consulta read-only: 8.020 ofertas e filas por provedor; dry-run documental sem erros/avisos; nenhum teste funcional nesta etapa | 626a850a8a49b4a1f29c2646199bef4932b1c3c1 | v657 (publicação documental desta tarefa) | Documentado; implementação funcional e homologação pendentes |
+
+
+| 2026-11-08 | Implementação inicial da Regra Master v1 | Elegibilidade, autopilot, entrega versionada, Shopee, Lomadee, AliExpress, Amazon, extensão e migração 066 | Dry-run Hatchable ok, 0 erros/avisos; testes unitários adicionados mas não executados; nenhuma mensagem manual enviada | commits sequenciais da implementação v1; consultar histórico GitHub main | draft para v659 | Código e documentação preparados; homologação real e reconciliação do backlog pendentes |
