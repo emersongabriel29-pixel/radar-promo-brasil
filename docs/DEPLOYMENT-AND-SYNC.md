@@ -18,3 +18,11 @@ A comparação de conteúdo confirmou que `hatchable.toml`, `api/jobs/hourly.js`
 
 ## Versões finais após correção
 GitHub main recebeu os merges #181, #182 e #183. Hatchable está live na v647. A lógica `lib/recurrences.js` foi comparada byte a byte entre main e Hatchable após o deploy. A documentação mestre completa está no GitHub; não foi copiada para `public/` do Hatchable para não expor detalhes operacionais/segurança.
+
+
+## Estado final da sincronização
+- GitHub main e Hatchable v649: arquivos de código alterados nesta rodada comparados byte a byte e iguais (`lib/recurrences.js`, `api/jobs/shopee.js`, `lib/shopee-api-errors.js`).
+- PRs #181, #182, #183 e #185 mesclados. Commit mais recente da correção Shopee: `37b06b845961a8178edbc2a83cea28f2d035c402`.
+- package.json continua diferente por propósito: scripts de desenvolvimento no GitHub e manifesto mínimo do runtime no Hatchable. Não substituir sem contrato/teste de deploy.
+- Hatchable não aceita `docs/**` como caminho de projeto; documentos operacionais ficam no GitHub e não foram expostos em `public/`.
+- Deploy v649 confirmado; isso não significa que todos os dados de fila ou integrações externas estejam concluídos.
