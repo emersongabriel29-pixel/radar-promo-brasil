@@ -1,4 +1,5 @@
 import { ai,db } from 'hatchable';
+import { generateGeminiText } from 'lib/gemini.js';
 import { isSetupRequired } from 'lib/media.js';
 
 export const access='member';
@@ -34,7 +35,7 @@ export default async function(req,res){
   ].join('\n');
   try{
     let result,model='gemini';
-    try{result=await ai.generateText({purpose:'video-studio-script',model,userId:String(req.member.id),maxTokens:2200,system:'Você é roteirista de performance para vídeos curtos de comércio eletrônico. Escreva de forma natural, clara, persuasiva e honesta. Nunca invente fatos.',prompt,signal:AbortSignal.timeout(45000)});}
+    try{result=await generateGeminiText({purpose:'video-studio-script',model,userId:String(req.member.id),maxTokens:2200,system:'Você é roteirista de performance para vídeos curtos de comércio eletrônico. Escreva de forma natural, clara, persuasiva e honesta. Nunca invente fatos.',prompt,signal:AbortSignal.timeout(45000)});}
     catch(first){
       if(!isSetupRequired(first))throw first;
       model='gpt-mini';
