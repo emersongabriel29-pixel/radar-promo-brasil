@@ -21,14 +21,15 @@ export default async function(req,res){
       db.query("SELECT model,purpose,status,input_tokens,output_tokens,total_tokens,cached_tokens,duration_ms,created_at FROM radar_gemini_usage WHERE created_at >= CASE $1::text WHEN '24h' THEN now()-interval '24 hours' WHEN '7d' THEN now()-interval '7 days' WHEN '30d' THEN now()-interval '30 days' ELSE date_trunc('month',now()) END ORDER BY created_at ASC LIMIT 5000",[window])
     ]);
     const rows=events.rows||[];
-    const totals={calls:rows.length,successful_calls:0,error_calls:0,throttled_calls:0,input_tokens:0,output_tokens:0,total_tokens:0,cached_tokens:0,duration_ms:0};
+    const totals={calls:0,events:rows.length,successful_calls:0,error_calls:0,throttled_calls:0,input_tokens:0,output_tokens:0,total_tokens:0,cached_tokens:0,duration_ms:0};
     const models=new Map(),purposes=new Map(),buckets=new Map();
     const bucketType=window==='24h'?'hour':'day';
     for(const row of rows){
       const status=String(row.status||'');
+      if(status==='THROTTLED'){totals.throttled_calls++;continue;}
+      totals.calls++;
       if(status==='SUCCESS')totals.successful_calls++;
       else if(status==='ERROR')totals.error_calls++;
-      else if(status==='THROTTLED')totals.throttled_calls++;
       for(const field of ['input_tokens','output_tokens','total_tokens','cached_tokens','duration_ms'])totals[field]+=Number(row[field])||0;
       const model=String(row.model||'unknown'),purpose=String(row.purpose||'unspecified');
       for(const [map,key] of [[models,model],[purposes,purpose]]){
