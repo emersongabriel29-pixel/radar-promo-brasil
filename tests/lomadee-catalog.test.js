@@ -61,9 +61,9 @@ test('bloqueia medicamentos antes da seleção de ofertas', () => {
 test('seleciona catálogo diversificado, limita concentração por anunciante/categoria e remove duplicatas', () => {
   const candidates = [
     { product: { id: 'a1', organizationId: 'org-a' }, classification: { category: 'Casa & Lar' } },
-    { product: { id: 'a2', organizationId: 'org-a' }, classification: { category: 'Casa e cozinha' } },
-    { product: { id: 'a3', organizationId: 'org-a' }, classification: { category: 'Casa e cozinha' } },
-    { product: { id: 'b1', organizationId: 'org-b' }, classification: { category: 'Casa e cozinha' } },
+    { product: { id: 'a2', organizationId: 'org-a' }, classification: { category: 'Casa & Lar' } },
+    { product: { id: 'a3', organizationId: 'org-a' }, classification: { category: 'Casa & Lar' } },
+    { product: { id: 'b1', organizationId: 'org-b' }, classification: { category: 'Casa & Lar' } },
     { product: { id: 'b2', organizationId: 'org-b' }, classification: { category: 'Moda e beleza' } },
     { product: { id: 'c1', organizationId: 'org-c' }, classification: { category: 'Moda e beleza' } },
     { product: { id: 'd1', organizationId: 'org-d' }, classification: { category: 'Bebês e crianças' } },
@@ -72,7 +72,7 @@ test('seleciona catálogo diversificado, limita concentração por anunciante/ca
   const selected = selectDiverseLomadeeProducts(candidates, { maxItems: 12, maxPerOrganization: 2, maxPerCategory: 3 });
   assert.equal(selected.length, 6);
   assert.equal(selected.filter(x => x.product.organizationId === 'org-a').length, 2);
-  assert.equal(selected.filter(x => x.classification.category === 'Casa e cozinha').length, 3);
+  assert.equal(selected.filter(x => x.classification.category === 'Casa & Lar').length, 3);
   assert.equal(new Set(selected.map(x => x.product.id)).size, selected.length);
 });
 
