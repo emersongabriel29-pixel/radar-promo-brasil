@@ -195,7 +195,11 @@ schedule = "25 * * * *"
 path = "/api/jobs/aliexpress-review"
 schedule = "45 * * * *"
 
-# Telegram publication is driven by the named one-shot central scheduler, not a competing cron.
+[[cron]]
+path = "/api/jobs/telegram"
+schedule = "0 * * * *"
+
+# Telegram dispatch runs on a bounded hourly cron; it does not create one-shot runs.
 
 # WhatsApp channel publishing remains disabled pending explicit authorization.
 

@@ -1,4 +1,4 @@
-import { db, scheduler } from 'hatchable';
+import { db } from 'hatchable';
 import { getOrCreateAccount } from 'lib/accounts.js';
 
 export const access = 'member';
@@ -89,13 +89,7 @@ export default async function handler(req, res) {
           updated_at=now()
       WHERE account_id=$1
     `, [account.id, enabled, intervalMinutes, batchSize, JSON.stringify(finalOrder), JSON.stringify(sourceConfig)]);
-    if(enabled){
-      try {
-        const next=(await db.query("SELECT MIN(next_turn_at) AS next_at FROM publication_scheduler_settings WHERE enabled=true")).rows[0]?.next_at;
-        if(next)await scheduler.at(new Date(Math.max(Date.now()+1000,new Date(next).getTime())),'/api/jobs/telegram',{name:'publication-scheduler-master'});
-      } catch (error) { console.error('publication scheduler wake failed', String(error?.code || error?.name || 'ERROR').slice(0, 60)); }
-    }
-    return res.json({ ok: true, settings: { enabled, intervalMinutes, batchSize, sourceOrder: finalOrder }, sources: sourceConfig });
+    return res.json({ ok: true, settings: { enabled, intervalMinutes, batchSize, sourceOrder: finalOrder }, sources: sourceConfig, scheduleMode: 'hourly-cron' });
   } catch (error) {
     console.error('publication scheduler settings', String(error?.code || error?.name || 'ERROR').slice(0, 80));
     return res.status(500).json({ error: 'Não foi possível salvar as configurações do escalonador.' });
