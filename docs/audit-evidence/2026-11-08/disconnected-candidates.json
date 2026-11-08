@@ -1,0 +1,41 @@
+{
+  "method": "imports estáticos e referência literal de rota; candidatos exigem considerar chamadas dinâmicas/externas",
+  "lib_without_static_import": [
+    "lib/radar-ai.js",
+    "lib/security.js"
+  ],
+  "jobs_without_literal_route_reference": [
+    "api/jobs/lomadee-reconcile.js",
+    "api/jobs/marketplace-ingestion.js",
+    "api/jobs/mercadolivre-notifications.js",
+    "api/jobs/whatsapp-channel.js"
+  ],
+  "resolved_candidates": [
+    {
+      "path": "lib/security.js",
+      "resolution": "INTEGRADO no adapter standalone: import explícito em server.js:8; não presumir que esses headers são aplicados pelo runtime Hatchable"
+    },
+    {
+      "path": "api/jobs/lomadee-reconcile.js",
+      "resolution": "INTEGRADO no scheduler Hatchable: cron observado; ausência no manifesto GitHub é divergência de configuração"
+    },
+    {
+      "path": "api/jobs/mercadolivre-notifications.js",
+      "resolution": "INTEGRADO no scheduler Hatchable: cron observado; ausência no manifesto GitHub é divergência de configuração"
+    },
+    {
+      "path": "api/jobs/whatsapp-channel.js",
+      "resolution": "ATIVAÇÃO CONTROLADA: cron ausente, conforme comentário do manifesto; não ativar sem conexão/destino"
+    }
+  ],
+  "remaining_candidates": [
+    {
+      "path": "lib/radar-ai.js",
+      "state": "IMPLEMENTADO, MAS DESCONECTADO — candidato por ausência de import estático; confirmar chamada dinâmica antes de integrar"
+    },
+    {
+      "path": "api/jobs/marketplace-ingestion.js",
+      "state": "SEM EVIDÊNCIA SUFICIENTE de consumidor/cron no inventário consultado"
+    }
+  ]
+}

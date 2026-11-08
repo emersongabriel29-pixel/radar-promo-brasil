@@ -1,0 +1,387 @@
+[
+  {
+    "path": "api/ai/card/[id].js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "api/ai/image.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "api/ai/media.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "api/ai/media/file/[id].js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "api/email/test.js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "api/extension-token.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "api/integrations/lomadee-explorer.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "api/integrations/magalu-status.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "api/jobs/media.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "api/jobs/social.js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "api/links/convert.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "api/messages/templates.js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "api/n8n/api-status.js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "api/n8n/bridge.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "api/n8n/pairing.js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "api/n8n/ping-test.js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "api/n8n/telegram-tick.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "api/public/storefront.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "api/r/[id].js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "api/radar/autopilot.js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "api/radar/opportunities.js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "api/radar/price.js",
+    "equivalent": true,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "api/readiness.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "api/reports.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "api/suite.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "api/upload.js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "lib/affiliate-discovery.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "lib/category-routing.js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "lib/creative.js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "lib/credential-bindings.js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "lib/lomadee-shortener.js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "lib/media.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "lib/message-templates.js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "lib/messaging-compliance.js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "lib/monitoring.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "lib/security.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "lib/telegram-core.js",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/001_categories.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/002_groups.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/003_offers.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/004_publications.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/005_automation_suite.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/006_internal_automation.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/007_platform_suite.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/008_tenant_isolation.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/009_reporting.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/010_telegram.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/011_growth_ai_security.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/012_media_generation.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/013_fix_radar_id_types.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/014_social_media_agent.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/015_social_autopilot.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/016_messaging_compliance.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/018_production_audit.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/019_unlimited_radar_publications.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/030_whatsapp_destination_types.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/033_collshp_storefront.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/035_official_price_verification.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/035_telegram_offer_message_fallback.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/042_reporting_tenant_integrity.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/043_message_templates.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/048_marketplace_rotation_state.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/051_affiliate_sales.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "migrations/062_category_routing_keywords.sql",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "package.json",
+    "equivalent": false,
+    "method": "JSON_SORTED"
+  },
+  {
+    "path": "pages/inicio.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "pages/privacidade.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "pages/termos.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "pages/vitrine.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "public/affiliate-intelligence.css",
+    "equivalent": false,
+    "method": "PRETTIER_CSS"
+  },
+  {
+    "path": "public/affiliate-intelligence.html",
+    "equivalent": false,
+    "method": "trim"
+  },
+  {
+    "path": "public/affiliate-intelligence.js",
+    "equivalent": false,
+    "method": "AST_WITHOUT_COMMENTS_LOC_EXTRA"
+  },
+  {
+    "path": "public/radar-theme-v3.css",
+    "equivalent": false,
+    "method": "PRETTIER_CSS"
+  },
+  {
+    "path": "public/radar-theme-v4.css",
+    "equivalent": true,
+    "method": "trim"
+  },
+  {
+    "path": "public/radar-theme-v5.css",
+    "equivalent": false,
+    "method": "PRETTIER_CSS"
+  },
+  {
+    "path": "public/radar.css",
+    "equivalent": false,
+    "method": "PRETTIER_CSS"
+  },
+  {
+    "path": "README.md",
+    "equivalent": false,
+    "method": "trim"
+  }
+]

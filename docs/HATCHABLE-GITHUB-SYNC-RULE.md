@@ -31,3 +31,8 @@ Só marcar como sincronizado depois de comparar o conjunto de arquivos relevante
 ## Melhoria de plataforma solicitada
 
 É desejável uma integração oficial Hatchable ↔ GitHub bidirecional com estado visível, commits/versões associados, detecção de conflitos, aviso de alterações pendentes e confirmação do commit/versão que será implantado. Até que isso exista e seja validado, o procedimento manual acima é obrigatório.
+
+
+## Regra adicional do titular — 08/11/2026
+
+Toda atualização deve ser refletida no GitHub **e** no Hatchable. Comparar os arquivos relevantes, preservar divergências válidas e registrar commit GitHub, versão Hatchable, testes e resultado. Uma atualização somente no GitHub, inclusive esta proposta em branch, permanece PARCIAL e NÃO SINCRONIZADA até a aplicação e validação no Hatchable. Não substituir a hospedagem por outra plataforma. Sem acesso ao Hatchable, manter proposta em rascunho e registrar o bloqueio, sem declarar atualização concluída nem fazer merge/deploy por inferência. Documentos internos devem usar destino privado compatível; nunca copiar para public/ como atalho.

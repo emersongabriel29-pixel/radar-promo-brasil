@@ -30,3 +30,18 @@
 ## Regra de leitura
 
 Quando houver conflito entre documentação e execução, não presumir que a documentação está certa: abrir achado, inspecionar código/schema/logs, corrigir a fonte correspondente e registrar a reconciliação. Status de integração só pode ser declarado após prova do fluxo real permitido. Nenhum documento transforma recurso planejado em funcionalidade implementada.
+
+
+## Continuidade — auditoria independente de 08/11/2026
+
+- [Diagnóstico e proposta incremental de exclusão de medicamentos](./AUDITORIA-CONTINUIDADE-2026-11-08.md): evidências locais, divergências públicas, falhas da suíte, recuperação de PRs e limites de acesso.
+- A versão Hatchable desta nova verificação é **não verificada**. Os números de versões mencionados acima são históricos; esta proposta em branch não foi implantada.
+
+
+## Parecer consolidado das 35 seções — 08/11/2026
+
+- [Relatório atual e matrizes A–E](./AUDITORIA-CONTINUIDADE-2026-11-08.md): consultar o último adendo **Parecer consolidado das 35 seções do prompt mestre**.
+- [Rastreabilidade dos 35 itens](./audit-evidence/2026-11-08/coverage-35.json).
+- [Comparação dos 77 arquivos](./audit-evidence/2026-11-08/comparison-77.json), [caminhos exclusivos](./audit-evidence/2026-11-08/path-differences.json) e [recuperação dos 44 PRs](./audit-evidence/2026-11-08/recovery-44.json).
+- [Testes de runtime/integrações](./audit-evidence/2026-11-08/runtime-checks.json), [OAuth](./audit-evidence/2026-11-08/oauth-checks.json), [qualidade/headers/licenças](./audit-evidence/2026-11-08/quality-checks.json) e [documentação oficial consultada](./audit-evidence/2026-11-08/official-documentation.json).
+- Parecer de liberação: **REPROVADO**. Cobertura documental não certifica operação. Espelho privado no WIP Hatchable; produção permanece v664 sem novo deploy.

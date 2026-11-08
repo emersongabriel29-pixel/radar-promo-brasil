@@ -67,3 +67,14 @@ test('publicações novas usam política Master versionada sem gates de classifi
   assert.match(eligiblePublication, /verified_offer\.affiliate_url/);
   assert.match(eligiblePublication, /eligibility_policy_version='master_v1' OR p\.offer_id IS NULL/);
 });
+
+
+test('medicamentos ficam preservados fora da elegibilidade de publicação', () => {
+  for (const title of ['Paracetamol 750 mg', 'Loratadina antialérgico', 'Amoxicilina 500mg']) {
+    const offer = { ...base, title };
+    const before = structuredClone(offer);
+    assert.deepEqual(canEnterOfferFlow(offer), { eligible: false, reason: 'MEDICATION_PUBLICATION_EXCLUDED' });
+    assert.deepEqual(offer, before);
+  }
+  assert.equal(canEnterOfferFlow({ ...base, title: 'Porta comprimidos organizador semanal' }).eligible, true);
+});
