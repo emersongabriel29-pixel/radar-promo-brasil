@@ -374,10 +374,10 @@ A etapa documental identificou os gates legados e não alterou código ou banco.
 - Criado `lib/offer-flow-policy.js`: elegibilidade comum exige apenas título, preço atual positivo em centavos, link afiliado HTTPS sem credenciais e ausência de rejeição explícita por integridade.
 - `lib/autopilot.js`: processa APPROVED, PENDING, READY e NEEDS_REVIEW; não exige aprovação prévia, classificação diferente de REVIEW, desconto, comissão, avaliação, imagem ou histórico de preço. Lotes padrão de 100 e máximo de 200. Itens já presentes na fila de publicações não são inseridos novamente.
 - `api/jobs/autopilot.js`: acorda contas com ofertas elegíveis sem exigir imagem/histórico oficial recente; extensão segue o mesmo princípio.
-- `lib/delivery.js`: adicionada política versionada. Novas publicações `master_v1` validam título, preço atual e link afiliado, sem gates comerciais/classificação/imagem/histórico. Publicações antigas continuam `legacy` e mantêm as regras antigas até reconciliação explícita, evitando liberar 2.329 READY/37 RETRY antigos em massa.
+- `lib/delivery.js`: adicionada política versionada. Novas publicações `master_v1` validam título, preço atual e link afiliado, sem gates comerciais/classificação/imagem/histórico. Telegram e Canal do WhatsApp aceitam texto com link quando a imagem não existe; imagem é enriquecimento opcional. Publicações antigas continuam `legacy` e mantêm as regras antigas até reconciliação explícita, evitando liberar 2.329 READY/37 RETRY antigos em massa.
 - Novas publicações gravam `eligibility_policy_version='master_v1'`; quando inseridas, a oferta passa a status READY. A confirmação final de envio continua dependendo do receipt do canal.
 - AliExpress review e extensão deixam de rejeitar por medicamento, imagem, desconto, comissão, avaliação ou REVIEW; faltas técnicas são contabilizadas como adiamento, não rejeição comercial.
-- Shopee: filtros internos de medicamento e exigências de imagem/comissão removidos da descoberta e importação; registros antigos BLOCKED/INCOMPLETE com dados técnicos suficientes são retomados.
+- Shopee: filtros internos de medicamento e exigências de imagem/comissão removidos da descoberta e importação; registros antigos BLOCKED/INCOMPLETE com dados técnicos suficientes são retomados. A publicação nos canais não exige imagem.
 - Lomadee: removedor o gate interno de medicamento, imagem não é pré-requisito e registros BLOCKED_SAFETY/NEEDS_DATA com dados essenciais são recolocados em READY_FOR_LINK. Reconciliação não rebaixa oferta para PENDING só porque não há desconto.
 - AliExpress: medicamento não é mais filtro interno e imagem é opcional. A restrição oficial do programa para publicidade de determinados produtos adultos permanece como restrição do provedor, identificada como `PROVIDER_RESTRICTED`; não pode ser contornada.
 - Amazon: medicamento, imagem e desconto deixaram de ser gates internos; Partner Tag/URL HTTPS e preço atual continuam obrigatórios.
@@ -421,3 +421,8 @@ Outros registros preservados:
 - Lomadee com BLOCKED_PROVIDER_APPROVAL/CHANNEL (27/17) depende de autorização externa; não há contorno permitido.
 
 A fila de 4.036 será processada pelo scheduler em lotes. O número de ofertas elegíveis não equivale a mensagens enviadas; a publicação depende de grupos ativos, receipt e intervalo/rate limit dos canais.
+
+
+### 17.5 Fallback de mídia
+
+O dispatcher Telegram agora usa `sendPhoto` quando existe imagem válida e `sendMessage` com link afiliado quando não existe imagem. O Canal do WhatsApp também permite mensagem textual sem mídia. Erro de imagem deixa de ser motivo para manter oferta na fila quando o canal aceita texto. Erros reais de transporte, autorização e rate limit continuam com retry/diagnóstico.
