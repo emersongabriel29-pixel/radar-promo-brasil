@@ -1,7 +1,6 @@
 import { db } from 'hatchable';
 import { message as promoMessage, offerScore } from 'lib/automation.js';
 import { getLomadeeActiveLinks, listLomadeeRows, lomadeeGet, lomadeeProductPrices, normalizeLomadeeProductUrl } from 'lib/lomadee-api.js';
-import { isMedicationProduct } from 'lib/product-safety.js';
 
 export const access = 'scheduler';
 export const schedule = '0 * * * *';
@@ -44,11 +43,7 @@ export default async function handler(req, res) {
         );
       }
 
-      const safeCandidates = offers.filter(offer => !isMedicationProduct({
-        title: offer.title, sourceCategory: offer.sourceCategory, subcategory: offer.subcategory,
-        classification_tags: offer.classificationTags, product_url: offer.productUrl
-      }));
-      totals.blockedMedication += offers.length - safeCandidates.length;
+      const safeCandidates = offers;
       const requestedOffset = Number(req.body?.offset);
       const groups = Math.max(1, Math.ceil(safeCandidates.length / 10));
       const offset = Number.isInteger(requestedOffset) && requestedOffset >= 0 && requestedOffset < safeCandidates.length
@@ -73,7 +68,7 @@ export default async function handler(req, res) {
           }
           const price = lomadeeProductPrices(match);
           if (!price.available || !Number.isSafeInteger(price.currentPrice) || !Number.isSafeInteger(price.originalPrice) || price.currentPrice <= 0 || price.originalPrice <= 0) {
-            await db.query("UPDATE offers SET status=CASE WHEN status='APPROVED' THEN 'PENDING' ELSE status END,validation_status='NEEDS_REVIEW',updated_at=now() WHERE id=$1 AND account_id=$2", [offer.id, accountId]);
+            await db.query("UPDATE offers SET validation_status='NEEDS_REVIEW',updated_at=now() WHERE id=$1 AND account_id=$2", [offer.id, accountId]);
             totals.offersNeedsReview = (totals.offersNeedsReview || 0) + 1;
             continue;
           }
@@ -87,12 +82,9 @@ export default async function handler(req, res) {
               const message = promoMessage({ title: offer.title, source: 'LOMADEE', currentPrice: price.currentPrice, originalPrice: price.originalPrice, affiliateUrl: offer.affiliateUrl, imageUrl: offer.imageUrl, productUrl: offer.productUrl, couponUrl: offer.couponUrl, couponCode: offer.couponCode });
               await db.query("UPDATE offers SET current_price=$1,original_price=$2,discount_percent=$3,score=$4,message=$5,validation_status='VALIDATED',updated_at=now() WHERE id=$6 AND account_id=$7 AND status IN ('APPROVED','PUBLISHED')", [price.currentPrice, price.originalPrice, discount, score, message, offer.id, accountId]);
             } else {
-              await db.query("UPDATE offers SET current_price=$1,original_price=$2,discount_percent=0,status=CASE WHEN status='APPROVED' THEN 'PENDING' ELSE status END,validation_status='NEEDS_REVIEW',updated_at=now() WHERE id=$3 AND account_id=$4 AND status IN ('APPROVED','PUBLISHED')", [price.currentPrice, price.originalPrice, offer.id, accountId]);
-              totals.offersNeedsReview = (totals.offersNeedsReview || 0) + 1;
+              const message = promoMessage({ title: offer.title, source: 'LOMADEE', currentPrice: price.currentPrice, originalPrice: price.originalPrice, affiliateUrl: offer.affiliateUrl, imageUrl: offer.imageUrl, productUrl: offer.productUrl, couponUrl: offer.couponUrl, couponCode: offer.couponCode });
+              await db.query("UPDATE offers SET current_price=$1,original_price=$2,discount_percent=0,message=$3,validation_status='VALIDATED',updated_at=now() WHERE id=$4 AND account_id=$5 AND status IN ('APPROVED','PUBLISHED','READY')", [price.currentPrice, price.originalPrice, message, offer.id, accountId]);
             }
-          } else if (!hasDiscount) {
-            await db.query("UPDATE offers SET status=CASE WHEN status='APPROVED' THEN 'PENDING' ELSE status END,validation_status='NEEDS_REVIEW',updated_at=now() WHERE id=$1 AND account_id=$2", [offer.id, accountId]);
-            totals.offersNeedsReview = (totals.offersNeedsReview || 0) + 1;
           }
           const history = await db.query(
             "INSERT INTO offer_price_history(id,account_id,offer_id,price,original_price,source_type,source_reference,verified_at) SELECT $1,$2,$3,$4,$5,'OFFICIAL_API',$6,now() WHERE NOT EXISTS(SELECT 1 FROM offer_price_history WHERE account_id=$2 AND offer_id=$3 AND source_type='OFFICIAL_API' AND verified_at>now()-interval '24 hours') RETURNING id",
