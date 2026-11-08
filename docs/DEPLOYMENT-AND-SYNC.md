@@ -11,3 +11,6 @@ Comparar novamente; executar testes; dry-run Hatchable quando aplicável; revisa
 Não copiar arquivos em massa cegamente. Não substituir package.json, migrations, cron ou funções sem comparar. Não declarar sincronizado se houver divergência.
 
 Estado de 08/11/2026: package.json divergente, diferenças em arquivos de cron/integração examinados e docs ausente do inventário Hatchable. Ver KNOWN-STATE-2026-11-08.md.
+
+## Divergência intencional de package.json e localização da documentação
+A comparação de conteúdo confirmou que `hatchable.toml`, `api/jobs/hourly.js`, `api/jobs/shopee.js` e `api/jobs/lomadee-link-queue.js` coincidem exatamente entre Hatchable v645 e GitHub main. `package.json` diverge: GitHub contém scripts de build/test/e2e/audit para desenvolvimento; Hatchable contém apenas `node --test` e metadados de atualização. Não sobrescrever o manifesto do runtime com o package de desenvolvimento sem validar o contrato de deploy. O Hatchable aceita gravação apenas em `public/**`, `api/**`, `migrations/**` e arquivos raiz permitidos; não aceita `docs/**` como caminho de projeto. Não publicar documentos operacionais privados em `public/` para simular sincronização. A documentação mestre permanece versionada no GitHub.
