@@ -372,9 +372,9 @@ A etapa documental identificou os gates legados e não alterou código ou banco.
 ### 17.1 O que mudou no código
 
 - Criado `lib/offer-flow-policy.js`: elegibilidade comum exige apenas título, preço atual positivo em centavos, link afiliado HTTPS sem credenciais e ausência de rejeição explícita por integridade.
-- `lib/autopilot.js`: processa APPROVED, PENDING, READY e NEEDS_REVIEW; não exige aprovação prévia, classificação diferente de REVIEW, desconto, comissão, avaliação, imagem ou histórico de preço. Lotes padrão de 25 por conta a cada 15 minutos e máximo de 200 por chamada explícita. Itens já presentes na fila de publicações não são inseridos novamente.
+- `lib/autopilot.js`: processa APPROVED, PENDING, READY e NEEDS_REVIEW; não exige aprovação prévia, classificação diferente de REVIEW, desconto, comissão, avaliação, imagem ou histórico de preço. Lotes padrão de até 200 por conta/ciclo (máximo técnico por execução). Itens já presentes na fila de publicações não são inseridos novamente.
 - `api/jobs/autopilot.js`: acorda contas com ofertas elegíveis sem exigir imagem/histórico oficial recente; extensão segue o mesmo princípio.
-- `lib/delivery.js`: adicionada política versionada. Novas publicações `master_v1` validam título, preço atual e link afiliado, sem gates comerciais/classificação/imagem/histórico. Telegram e Canal do WhatsApp aceitam texto com link quando a imagem não existe ou falha ao baixar/armazenar; imagem é enriquecimento opcional. A tentativa de cache de imagem tem timeout de 2,5s para proteger o tempo de execução. Publicações antigas continuam `legacy` e mantêm as regras antigas até reconciliação explícita, evitando liberar 2.329 READY/37 RETRY antigos em massa.
+- `lib/delivery.js`: adicionada política versionada. Novas publicações `master_v1` validam título, preço atual e link afiliado, sem gates comerciais/classificação/imagem/histórico. Telegram e Canal do WhatsApp aceitam texto com link quando a imagem não existe ou falha ao baixar/armazenar; imagem é enriquecimento opcional. A tentativa de cache de imagem tem timeout de 1s para proteger o tempo de execução. Publicações antigas continuam `legacy` e mantêm as regras antigas até reconciliação explícita, evitando liberar 2.329 READY/37 RETRY antigos em massa.
 - Novas publicações gravam `eligibility_policy_version='master_v1'`; quando inseridas, a oferta passa a status READY. A confirmação final de envio continua dependendo do receipt do canal.
 - AliExpress review e extensão deixam de rejeitar por medicamento, imagem, desconto, comissão, avaliação ou REVIEW; faltas técnicas são contabilizadas como adiamento, não rejeição comercial.
 - Shopee: filtros internos de medicamento e exigências de imagem/comissão removidos da descoberta e importação; registros antigos BLOCKED/INCOMPLETE com dados técnicos suficientes são retomados. A publicação nos canais não exige imagem.
@@ -436,15 +436,15 @@ O plano Free do Hatchable impõe frequência mínima de uma hora para crons decl
 
 - `/api/jobs/autopilot`: cron horário no minuto 5; lote padrão de 100 ofertas por conta, máximo 200 por chamada.
 - `/api/jobs/extension-autopublish`: cron horário no minuto 50.
-- `/api/jobs/telegram`: cron horário como rede de segurança; lote de 12 por turno.
+- `/api/jobs/telegram`: cron horário como rede de segurança; lote de 14 por turno.
 - Quando o autopilot cria novas publicações Telegram, arma **um único wake-up central por conta/lote** para o horário `next_turn_at`. Nunca agenda um one-shot por produto ou por publicação.
-- Configuração da conta ativa: `interval_minutes=5`, `batch_size=12`. Isso permite o cron horário de segurança e um despacho adicional após a ingestão do lote.
-- Telegram espera 3,1s entre mensagens para respeitar aproximadamente 20 mensagens/minuto por grupo. Cache de imagem tem timeout de 1,5s; se mídia falta ou falha, o envio textual com link afiliado continua.
+- Configuração da conta ativa: `interval_minutes=5`, `batch_size=14`. Isso permite o cron horário de segurança e um despacho adicional após a ingestão do lote.
+- Telegram espera 3,1s entre mensagens para respeitar aproximadamente 20 mensagens/minuto por grupo. Cache de imagem tem timeout de 1s; se mídia falta ou falha, o envio textual com link afiliado continua.
 - O fluxo automático de ofertas não usa mais `scheduler.now()` por importação/extensão. One-shots restantes são no máximo um wake-up central por lote; tarefas de recorrência e mídia são workflows distintos.
 - WhatsApp não foi ativado: há zero `whatsapp_connections`, grupos pausados e sem `external_id`. O worker aceita texto sem imagem, mas precisa de conexão válida e destino autorizado. Isso não bloqueia o catálogo nem Telegram.
 - Descoberta e conversão de links continuam em crons próprios, respeitando quotas oficiais das APIs. Lomadee link queue permanece horária e em lote 10 até homologação de rate limits.
 
-**Capacidade estimada:** autopilot pode colocar até 100 ofertas/hora por conta na fila. O dispatcher Telegram processa até 12 por turno, com até dois turnos por hora quando há wake-up e cron. Essa é a cadência segura disponível no plano atual, não um filtro comercial. Para aumentar frequência declarada além de uma hora, seria necessário um plano Hatchable que permita crons mais frequentes; não foi contratado nem alterado plano.
+**Capacidade estimada:** autopilot pode colocar até 200 ofertas/hora por conta na fila. O dispatcher Telegram processa até 14 por turno, com até dois turnos por hora quando há wake-up e cron. Essa é a cadência segura disponível no plano atual, não um filtro comercial. Para aumentar frequência declarada além de uma hora, seria necessário um plano Hatchable que permita crons mais frequentes; não foi contratado nem alterado plano.
 
 
 ## 19. Reconciliação de duplicatas e retomada da fila legada — v663
@@ -467,7 +467,7 @@ O worker Telegram agora promove no máximo o tamanho de um lote por turno (12) d
 
 ### 19.3 Estado após primeira execução e reconciliação
 
-- Primeiro autopilot real: 100 ofertas avaliadas, 110 publicações enfileiradas, 0 falhas, 0 bloqueios comerciais.
+- Primeiro autopilot real: 100 ofertas avaliadas, 110 publicações enfileiradas, 0 falhas, 0 bloqueios comerciais. A execução horária subsequente também enfileirou outro lote; o dry-run mais recente avaliou 100 e identificou 104 destinos possíveis.
 - Ofertas consolidadas: 17 aliases; variantes restauradas: 9; rejeições por duplicidade restantes: 0.
 - Ofertas ainda aguardando lotes de capacidade: aproximadamente 3.935 PENDING na fotografia após a primeira execução; o cron horário processa até 100 por conta por ciclo.
 - Novas publicações Master: 110 READY, aguardando dispatcher/receipt.
@@ -475,3 +475,8 @@ O worker Telegram agora promove no máximo o tamanho de um lote por turno (12) d
 - Nenhuma execução manual de dispatcher foi feita para teste; o envio automático é acionado pelo scheduler já configurado.
 
 A fila continua com trabalho futuro por causa do plano Free (cron mínimo de uma hora), do limite de lote por execução e do rate limit do Telegram. Isso é capacidade de execução, não filtro de elegibilidade de produto.
+
+
+### 19.4 Ajuste de throughput
+
+Após validar o tempo de execução, o lote padrão do autopilot foi elevado ao máximo técnico de 200 ofertas por conta/ciclo. O dispatcher usa 14 por turno, timeout de mídia de 1s e fallback textual. A configuração do canal ativo foi atualizada para `batch_size=14`, `interval_minutes=5`. A cadência declarada continua horária por exigência do plano Free; o wake-up central após cada lote permite um segundo turno sem agendar tarefas por produto.
