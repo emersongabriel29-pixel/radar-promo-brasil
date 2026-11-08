@@ -74,3 +74,14 @@ Após o deploy v646, dois registros `schedules` estavam ativos e apontavam para 
 
 ## Shopee — estado após ajuste do worker
 Logs de 24h até 08/11 mostravam cinco execuções 504 no limite de 65s e cinco respostas 429, além de execuções 200 que registraram `shopee_api_10000`. O teste de autenticação/leitura simples foi bem-sucedido. O worker foi alterado para lotes de uma página, orçamento de 30s para iniciar trabalho, timeout HTTP de 8s/duas tentativas, uma repetição de erro GraphQL, 6 keywords com alternância de ordenação por hora, lote de 10 itens e cursor salvo somente depois da persistência dos itens. A validação final depende do próximo cron automático; não foi executado manualmente para não consumir chamadas nem alterar ofertas.
+
+
+## Fechamento de implantação — v649
+- PR #185 mesclado no GitHub main; commit de merge squash: `37b06b845961a8178edbc2a83cea28f2d035c402`.
+- Hatchable live v649, 273 arquivos publicados e 130 funções, sem warnings.
+- `api/jobs/shopee.js` e `lib/shopee-api-errors.js` comparados byte a byte entre Hatchable v649 e GitHub main.
+- Dry-run: 0 erros, 0 warnings. Não executados npm build/test/e2e/audit.
+- GET `/api/integrations/shopee`: HTTP 200, credencial VALIDATED. Teste somente leitura anterior retornou 1 item em 3,3s; não criou oferta, link ou publicação.
+- Cron `/api/jobs/hourly`: HTTP 200 em 12:00 UTC. Cron Telegram e Shopee ativos, próximo ciclo 13:00 UTC.
+- Recorrências: novos one-shots 853688 e 853689 estão ACTIVE para 09/11/2026 12:00 UTC; IDs antigos 636970/636971 permanecem como COMPLETED para histórico. Nenhum agendamento apagado.
+- O worker Shopee v649 ainda precisa de confirmação no próximo ciclo automático; não foi invocado manualmente para evitar consumo de chamadas e alteração de ofertas.
