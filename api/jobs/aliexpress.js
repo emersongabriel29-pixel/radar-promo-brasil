@@ -3,7 +3,7 @@ import { fetchWithRetry } from 'lib/http-retry.js';
 import { signAliExpressParams } from 'lib/afilimax-aliexpress-provider.js';
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
-import { isMedicationProduct, isAdultProduct } from 'lib/product-safety.js';
+import { isAdultProduct } from 'lib/product-safety.js';
 import { selectDiverseCandidates } from 'lib/catalog-diversity.js';
 import { formatPromo } from 'lib/promo-message.js';
 import { directImageUrl, httpsUrl } from 'lib/validation.js';
@@ -577,8 +577,8 @@ export default async function handler(req, res) {
         const discoveryRows = products.map(raw => {
           const p = normalize(raw);
           raw._radar_coupon = validPromoCode(p.promoCodeInfo);
-          const blocked = isMedicationProduct({ title: p.title, productUrl: p.productUrl, sourceCategory: '' });
-          const needsEnrichment = !p.id || !p.title || !p.productUrl || !p.currentPrice || !p.imageUrl || !p.affiliateUrl;
+          const providerRestricted = isAdultProduct({ title: p.title, productUrl: p.productUrl });
+          const needsEnrichment = !p.id || !p.title || !p.productUrl || !p.currentPrice || !p.affiliateUrl;
           const choices = p.choices;
           const choiceList = Array.isArray(choices) ? choices : (choices?.sku_info || choices?.sku_info_list || choices?.sku_list || choices?.skus || []);
           const choiceCount = Array.isArray(choiceList) ? choiceList.length : (choices && typeof choices === 'object' ? Object.keys(choices).length : 0);
@@ -590,7 +590,7 @@ export default async function handler(req, res) {
             price_cents: p.currentPrice || 0, commission_rate: p.commission, rating: p.rating,
             sales_count: p.sales, available: true, category_slug: p.categoryId,
             source_keyword: clean(raw._radar_source_keyword || '', 120),
-            processing_status: blocked ? 'BLOCKED_SAFETY' : (needsEnrichment ? 'NEEDS_ENRICHMENT' : 'CAPTURED'),
+            processing_status: providerRestricted ? 'PROVIDER_RESTRICTED' : (needsEnrichment ? 'NEEDS_ENRICHMENT' : 'CAPTURED'),
             raw_data: { ...raw, _radar_normalized_choices: choices || null, _radar_choice_count: choiceCount }
           };
         }).filter(x => x.external_id);
@@ -623,15 +623,9 @@ export default async function handler(req, res) {
       const safeProducts = products.filter(raw => {
         const normalized = normalize(raw);
         normalized.sourceCategory = categoryNames.get(normalized.categoryId) || categoryNames.get(normalized.firstLevelCategoryId) || '';
-        if (isMedicationProduct({ title: normalized.title, productUrl: normalized.productUrl, sourceCategory: normalized.sourceCategory })) {
-          totals.rejectedBy.safetyFilter++;
-          totals.safetyBlocked++;
-          totals.skipped++;
-          return false;
-        }
         if (isAdultProduct({ title: normalized.title, productUrl: normalized.productUrl, sourceCategory: normalized.sourceCategory })) {
           totals.rejectedBy.adultPolicy++;
-          totals.safetyBlocked++;
+          totals.providerRestricted = (totals.providerRestricted || 0) + 1;
           totals.skipped++;
           return false;
         }
@@ -678,7 +672,6 @@ export default async function handler(req, res) {
         else if (!p.productUrl || !isAliExpressUrl(p.productUrl)) reason = 'invalidProductUrl';
         else if (!p.currentPrice || p.currentPrice <= 0) reason = 'invalidPrice';
         else if (!p.affiliateUrl) reason = 'missingAffiliateLink';
-        else if (!p.imageUrl) reason = 'missingImage';
         // Products without a verified discount remain discoverable; they are ranked below discounted offers.
         // No internal category exclusion.
         if (reason) { totals.skipped++; totals.rejectedBy[reason]++; continue; }
