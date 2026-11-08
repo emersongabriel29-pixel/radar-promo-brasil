@@ -12,3 +12,18 @@ Estas fichas são contratos de auditoria, não certificações de integração f
 | Rakuten | api/integrations/rakuten | Implementação presente; fluxo ponta a ponta não validado |
 
 Para cada fornecedor preencher endpoint oficial, autenticação, escopos, limites, paginação, erros, dados, geração de link, SubID, política de conteúdo e evidência de teste. Não preencher lacunas por suposição.
+
+| Fornecedor | Estado observado em 08/11/2026 |
+|---|---|
+| Shopee | Credencial VALIDATED, mas last_checked 01/11 e last_error `shopee_api_10000`; operação precisa de diagnóstico |
+| Lomadee | Credencial VALIDATED, verificada 08/11; fila de link com backlog |
+| AliExpress | Credencial VALIDATED, verificada 08/11 |
+| Rakuten | Credencial VALIDATED, última checagem 31/10 |
+| Magalu | PENDING_VALIDATION; fluxo de afiliado no código é manual, não confundir com API seller OAuth |
+| Mercado Livre | Credenciais de app em configuração de projeto; estado de autorização OAuth da conta precisa de verificação separada |
+| Amazon | Sem registro de credencial no inventário consultado |
+| Admitad | Sem registro de credencial no inventário consultado |
+| Awin | Sem registro de credencial no inventário consultado |
+| Temu | Fluxo manual de link oficial; sem API de afiliados validada |
+| SHEIN | Fluxo manual de link oficial; sem API de afiliados validada |
+| Collshp | Importação de vitrine pública; tracking não validado |
