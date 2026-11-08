@@ -18,7 +18,7 @@ export default async function(req, res) {
       o.image_url AS "offerImageUrl", o.title AS "offerTitle", o.source,
       o.current_price AS "currentPrice", o.original_price AS "originalPrice",
       o.affiliate_url AS "affiliateUrl", o.coupon_code AS "couponCode", o.coupon_url AS "couponUrl",
-      c.name AS "category", g.external_id AS "groupExternalId"
+      c.name AS "category", d.raw_data AS "promoMetadata", g.external_id AS "groupExternalId"
     FROM publications p
     LEFT JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id
     ${discoveryPriorityJoin('o','d')}
@@ -43,7 +43,7 @@ export default async function(req, res) {
       let message = item.contentType === 'MESSAGE' ? String(item.message || '').trim() : formatPromo({
         title: item.offerTitle, source: item.source, category: item.category,
         currentPrice: Number(item.currentPrice) || 0, originalPrice: Number(item.originalPrice) || 0,
-        affiliateUrl: originalLink, couponCode: item.couponCode, couponUrl: item.couponUrl
+        affiliateUrl: originalLink, couponCode: item.couponCode, couponUrl: item.couponUrl, promoMetadata: item.promoMetadata
       }).message;
       if (item.contentType === 'MESSAGE' && originalLink) {
         message = message.replace(/https?:\/\/[^\s]+\/api\/r\/[0-9a-f-]+/gi, originalLink);
