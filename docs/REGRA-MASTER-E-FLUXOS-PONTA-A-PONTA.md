@@ -445,3 +445,33 @@ O plano Free do Hatchable impõe frequência mínima de uma hora para crons decl
 - Descoberta e conversão de links continuam em crons próprios, respeitando quotas oficiais das APIs. Lomadee link queue permanece horária e em lote 10 até homologação de rate limits.
 
 **Capacidade estimada:** autopilot pode colocar até 100 ofertas/hora por conta na fila. O dispatcher Telegram processa até 12 por turno, com até dois turnos por hora quando há wake-up e cron. Essa é a cadência segura disponível no plano atual, não um filtro comercial. Para aumentar frequência declarada além de uma hora, seria necessário um plano Hatchable que permita crons mais frequentes; não foi contratado nem alterado plano.
+
+
+## 19. Reconciliação de duplicatas e retomada da fila legada — v663
+
+### 19.1 Duplicatas Lomadee corrigidas sem perda
+
+A consulta read-only encontrou 26 registros com `validation_status=REJECTED`, todos com motivo legado de duplicidade por URL:
+
+- **17** tinham URL de variante exatamente igual a outra oferta canônica, mesmo preço e mesmo link afiliado; nenhuma das linhas duplicadas tinha publicação. Foram consolidadas com `canonical_offer_id`, status `DUPLICATE_MERGED` e validação `MERGED`. Os registros originais, links e histórico permanecem no banco.
+- **9** tinham parâmetros `variant=` únicos, sem oferta canônica com a mesma URL, preço positivo e link afiliado Lomadee HTTPS. Foram restauradas para `VALIDATED`; continuam ofertas independentes.
+- Resultado após reconciliação: **0 ofertas com validation_status REJECTED** entre esses registros. Não houve DELETE nem exclusão de histórico.
+
+A migração `067_offer_canonical_merge.sql` adiciona `offers.canonical_offer_id`. A deduplicação preserva os parâmetros de variante/modelo/SKU; apenas parâmetros de rastreamento são removidos na comparação.
+
+### 19.2 Migração gradual das publicações antigas
+
+Consulta read-only identificou **2.329** publicações antigas em `READY` sob política `legacy`. Todas as 2.329 têm título, preço atual positivo, link afiliado HTTPS e oferta sem rejeição de integridade.
+
+O worker Telegram agora promove no máximo o tamanho de um lote por turno (12) de `legacy` para `master_v1`, somente quando existe grupo Telegram ativo e bot conectado. A promoção e a mudança de oferta para `READY` ocorrem antes do claim transacional; o worker envia dentro do mesmo limite por grupo. Não existe liberação em massa. Estados `RETRY`, `WAITING_CONFIRMATION` e `FAILED` não são reabertos cegamente.
+
+### 19.3 Estado após primeira execução e reconciliação
+
+- Primeiro autopilot real: 100 ofertas avaliadas, 110 publicações enfileiradas, 0 falhas, 0 bloqueios comerciais.
+- Ofertas consolidadas: 17 aliases; variantes restauradas: 9; rejeições por duplicidade restantes: 0.
+- Ofertas ainda aguardando lotes de capacidade: aproximadamente 3.935 PENDING na fotografia após a primeira execução; o cron horário processa até 100 por conta por ciclo.
+- Novas publicações Master: 110 READY, aguardando dispatcher/receipt.
+- Publicações antigas READY: 2.329, serão promovidas em lotes de 12 por turno e enviadas gradualmente.
+- Nenhuma execução manual de dispatcher foi feita para teste; o envio automático é acionado pelo scheduler já configurado.
+
+A fila continua com trabalho futuro por causa do plano Free (cron mínimo de uma hora), do limite de lote por execução e do rate limit do Telegram. Isso é capacidade de execução, não filtro de elegibilidade de produto.
