@@ -52,6 +52,10 @@ test('rejeição explícita de integridade/duplicidade aguarda reconciliação s
   assert.equal(canEnterOfferFlow({ ...base, validation_status: 'REJECTED' }).reason, 'DUPLICATE_OR_DATA_INTEGRITY_RECONCILIATION_REQUIRED');
 });
 
+test('duplicatas consolidadas preservam o vínculo canônico e não voltam à fila', () => {
+  assert.equal(canEnterOfferFlow({ ...base, status: 'DUPLICATE_MERGED' }).reason, 'MERGED_INTO_CANONICAL_OFFER');
+});
+
 test('restrição oficial de um provedor é isolada e não vira filtro global por +18', () => {
   assert.equal(canEnterOfferFlow({ ...base, title: 'Produto adulto +18', source: 'SHOPEE' }).eligible, true);
   assert.equal(canEnterOfferFlow({ ...base, status: 'PROVIDER_RESTRICTED' }).reason, 'EXTERNAL_PROVIDER_POLICY_RESTRICTION');
