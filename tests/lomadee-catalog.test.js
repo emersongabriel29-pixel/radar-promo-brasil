@@ -10,7 +10,7 @@ test('classifica armários pela informação do título mesmo se a descrição c
     categories: [],
     options: [{ name: 'Armário de Cozinha Completa com Balcão', available: true, categories: [] }]
   });
-  assert.equal(result.category, 'Casa e cozinha');
+  assert.equal(result.category, 'Casa & Lar');
   assert.equal(result.blocked, false);
 });
 
@@ -22,6 +22,8 @@ test('usa o slug da URL apenas como apoio para nomes curtos de variação', () =
   });
   assert.equal(result.category, 'Esporte e lazer');
   assert.equal(result.confidence, 0.72);
+  assert.equal(result.needsReview, true);
+  assert.equal(result.rule, 'shared-product-url-slug');
 });
 
 test('reconhece sabores de whey pelo slug do produto, não como alimento comum', () => {
@@ -31,7 +33,9 @@ test('reconhece sabores de whey pelo slug do produto, não como alimento comum',
     options: [{ name: 'Chocolate', available: true }]
   });
   assert.equal(result.category, 'Esporte e lazer');
-  assert.equal(result.rule, 'short-title-url-slug');
+  assert.equal(result.confidence, 0.72);
+  assert.equal(result.needsReview, true);
+  assert.equal(result.rule, 'shared-product-url-slug');
 });
 
 test('não força classificação quando o título é curto e a URL não explica o produto', () => {
@@ -56,7 +60,7 @@ test('bloqueia medicamentos antes da seleção de ofertas', () => {
 
 test('seleciona catálogo diversificado, limita concentração por anunciante/categoria e remove duplicatas', () => {
   const candidates = [
-    { product: { id: 'a1', organizationId: 'org-a' }, classification: { category: 'Casa e cozinha' } },
+    { product: { id: 'a1', organizationId: 'org-a' }, classification: { category: 'Casa & Lar' } },
     { product: { id: 'a2', organizationId: 'org-a' }, classification: { category: 'Casa e cozinha' } },
     { product: { id: 'a3', organizationId: 'org-a' }, classification: { category: 'Casa e cozinha' } },
     { product: { id: 'b1', organizationId: 'org-b' }, classification: { category: 'Casa e cozinha' } },
