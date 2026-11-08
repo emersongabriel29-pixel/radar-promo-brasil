@@ -1,6 +1,6 @@
 # Documentação oficial — Radar Promo Brasil
 
-> Estado observado em 08/11/2026. Fonte de verdade técnica: código efetivamente verificado, schema e manifesto implantado no Hatchable v653; GitHub `main` com baseline do código em `a6215ee2264cb70741fa27075f4584c526d93e2f`; os commits seguintes desta sessão registram a documentação. Este índice é a porta de entrada; documentos históricos não substituem a auditoria atual.
+> Estado observado em 08/11/2026. Fonte de verdade técnica: código efetivamente verificado, schema e manifesto implantado no Hatchable v655; GitHub `main` com baseline do código em `a6215ee2264cb70741fa27075f4584c526d93e2f`; os commits seguintes desta sessão registram a documentação. Este índice é a porta de entrada; documentos históricos não substituem a auditoria atual.
 
 ## Regra obrigatória
 
@@ -8,7 +8,7 @@
 
 ## Documentos vigentes
 
-- [Controle de mudanças e documentação obrigatória](./CONTROLE-DE-MUDANCAS.md)
+- [Regra Master e fluxos ponta a ponta](./REGRA-MASTER-E-FLUXOS-PONTA-A-PONTA.md)\n- [Controle de mudanças e documentação obrigatória](./CONTROLE-DE-MUDANCAS.md)
 - [Auditoria do estado real — 08/11/2026](./AUDITORIA-ESTADO-2026-11-08.md)
 - [Arquitetura e limites de execução](./ARQUITETURA-ESTADO-2026-11-08.md)
 - [Inventário de rotas e funções implantadas](./INVENTARIO-ROTAS-2026-11-08.md)
