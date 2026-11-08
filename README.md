@@ -1,5 +1,7 @@
 # Radar Promo Brasil
 
+> Documentação oficial e política de mudanças: [docs/INDICE.md](docs/INDICE.md). Toda alteração deve atualizar a documentação na mesma tarefa; ver [CONTROLE-DE-MUDANCAS](docs/CONTROLE-DE-MUDANCAS.md).
+
 Painel privado para organizar ofertas afiliadas, gerar conteúdo com fatos verificados, preparar filas e integrar entregas via Telegram, n8n e Meta. O projeto usa JavaScript sem compilação no Hatchable e oferece um adaptador Express/PGlite para desenvolvimento e operação privada standalone.
 
 ## Interface e recursos
@@ -53,3 +55,8 @@ O repositório atual é público no GitHub; o painel operacional continua privad
 - Controles de privacidade registram solicitações e preferências; execução de retenção, exportação e exclusão precisa de um processo operacional definido.
 
 O diagnóstico `/api/readiness` verifica a configuração da conta e a confirmação recente de entrega. Seus percentuais não certificam segurança, conformidade ou prontidão integral de produção. Consulte `docs/AUDITORIA-2026-09-30.md` e `docs/RELEASE.md` para evidências e etapas pendentes.
+
+
+## Documentação oficial
+
+Consulte [`docs/INDICE.md`](docs/INDICE.md) para arquitetura, inventário de rotas, banco de dados, integrações, IA Gemini, operação, auditoria e matriz de testes. A auditoria datada deve ser preferida a documentos históricos. Toda mudança exige atualização documental na mesma tarefa.
