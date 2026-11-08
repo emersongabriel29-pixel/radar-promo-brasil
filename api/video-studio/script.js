@@ -1,4 +1,4 @@
-import { ai,db } from 'hatchable';
+import { db } from 'hatchable';
 import { generateGeminiText } from 'lib/gemini.js';
 import { isSetupRequired } from 'lib/media.js';
 import { checkGeminiCooldown, registerGeminiQuotaError } from 'lib/radar-ai-guard.js';
@@ -37,12 +37,7 @@ export default async function(req,res){
   try{
     let result,model='gemini';
     if(await checkGeminiCooldown())return res.status(429).json({error:'Gemini em pausa temporária para respeitar a cota gratuita.'});
-    try{result=await generateGeminiText({purpose:'video-studio-script',model,userId:String(req.member.id),maxTokens:2200,system:'Você é roteirista de performance para vídeos curtos de comércio eletrônico. Escreva de forma natural, clara, persuasiva e honesta. Nunca invente fatos.',prompt,signal:AbortSignal.timeout(45000)});}
-    catch(first){
-      if(!isSetupRequired(first))throw first;
-      model='gpt-mini';
-      result=await ai.generateText({purpose:'video-studio-script',model,userId:String(req.member.id),maxTokens:2200,system:'Você é roteirista de performance para vídeos curtos de comércio eletrônico. Escreva de forma natural, clara, persuasiva e honesta. Nunca invente fatos.',prompt,signal:AbortSignal.timeout(45000)});
-    }
+    result=await generateGeminiText({purpose:'video-studio-script',model,userId:String(req.member.id),maxTokens:2200,system:'Você é roteirista de performance para vídeos curtos de comércio eletrônico. Escreva de forma natural, clara, persuasiva e honesta. Nunca invente fatos.',prompt,signal:AbortSignal.timeout(45000)});
     if(!clean(result.text,12000)||result.finishReason==='length')return res.status(502).json({error:'A IA não concluiu o roteiro. Tente novamente.'});
     return res.json({ok:true,script:clean(result.text,12000),model:clean(result.model||model,100),facts,usage:result.usage,notice:'Revise o roteiro antes de publicar. O preço só foi incluído porque havia verificação oficial recente.'});
   }catch(error){
