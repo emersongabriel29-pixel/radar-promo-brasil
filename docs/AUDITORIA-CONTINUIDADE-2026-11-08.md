@@ -117,3 +117,98 @@ Conector GitHub verificado com escrita. Não há ferramenta Hatchable disponíve
 ## Regra adicional do titular — 08/11/2026
 
 Toda atualização deve ser refletida no GitHub **e** no Hatchable. Comparar os arquivos relevantes, preservar divergências válidas e registrar commit GitHub, versão Hatchable, testes e resultado. Uma atualização somente no GitHub, inclusive esta proposta em branch, permanece PARCIAL e NÃO SINCRONIZADA até a aplicação e validação no Hatchable. Não substituir a hospedagem por outra plataforma. Sem acesso ao Hatchable, manter proposta em rascunho e registrar o bloqueio, sem declarar atualização concluída nem fazer merge/deploy por inferência. Documentos internos devem usar destino privado compatível; nunca copiar para public/ como atalho.
+
+
+## Adendo — acesso Hatchable confirmado e diagnóstico de produção
+
+Esta seção substitui o bloqueio de acesso descrito historicamente acima: o conector Hatchable agora está disponível e o projeto foi confirmado como Radar Promo Brasil, proj_1Xj94QxQmCam, acesso owner, v664 LIVE (08/11/2026 15:19:42 UTC). Não confundir o rascunho com o deployment publicado.
+
+- Manifesto publicado: 292 arquivos e 131 funções. Inventário atual: 293 entradas incluindo AGENTS virtual; a entrada virtual explica a contagem adicional e NÃO é evidência de WIP por si só.
+- Schema publicado: 67 tabelas. 16 tarefas recorrentes e três one-shots pendentes no inventário consultado; mais 20 one-shots concluídos listados, com 134 concluídos no total.
+- GitHub main permanece cf20a088e4fe2ac32f43fbe777b7f49fa7423cbb. PR de correção #193 em rascunho.
+- Comparação de 267 caminhos comuns por SHA-256: 190 iguais e 77 diferentes. Diferença de hash não comprova diferença semântica; migrations imutáveis e adapters não devem ser sobrescritos em lote. O mapa de divergências permanece pendente de revisão individual.
+- O código de offer-flow-policy e product-safety envolvido na proposta foi lido no Hatchable. O gate ainda aceita medicamentos na baseline. Documentos privados já existentes de controle, índice, testes e regra Master coincidem com a baseline GitHub; adendos podem ser espelhados sem descartar alterações. Ledger, log, regra de sync e relatório de continuidade não existiam no diretório privado consultado.
+
+### Banco, filas, canais e rastreamento — consultas somente leitura
+
+- Ofertas: 8134. Publicações: 9634. São snapshots durante operação concorrente, não uma transação única.
+
+| status | eligibility_policy_version | total | without_retry |
+| --- | --- | --- | --- |
+| FAILED | legacy | 144 | 144 |
+| PUBLISHED | master_v1 | 12 | 0 |
+| PUBLISHED | legacy | 2760 | 0 |
+| READY | legacy | 2045 | 0 |
+| READY | master_v1 | 4632 | 0 |
+| RETRY | legacy | 37 | 0 |
+| WAITING_CONFIRMATION | legacy | 4 | 0 |
+
+| marketplace | processing_status | total |
+| --- | --- | --- |
+| ALIEXPRESS | BLOCKED_SAFETY | 17 |
+| ALIEXPRESS | CAPTURED | 9955 |
+| ALIEXPRESS | DISCOVERED | 162 |
+| ALIEXPRESS | LINKED | 839 |
+| ALIEXPRESS | NEEDS_ENRICHMENT | 20 |
+| LOMADEE | BLOCKED_PROVIDER_APPROVAL | 27 |
+| LOMADEE | BLOCKED_PROVIDER_CHANNEL | 17 |
+| LOMADEE | DISCOVERED | 321 |
+| LOMADEE | DUPLICATE | 670 |
+| LOMADEE | LINKED | 354 |
+| LOMADEE | NEEDS_DATA | 5 |
+| LOMADEE | READY_FOR_LINK | 2045 |
+| SHOPEE | DISCOVERED | 67207 |
+| SHOPEE | DUPLICATE | 75 |
+| SHOPEE | IMPORTED | 2052 |
+| SHOPEE | INCOMPLETE | 15 |
+
+| marketplace | status | total | last_checked_at |
+| --- | --- | --- | --- |
+| RAKUTEN | VALIDATED | 1 | 2026-10-31T16:09:57.888134+00:00 |
+| MAGALU | PENDING_VALIDATION | 1 | None |
+| SHOPEE | VALIDATED | 1 | 2026-11-08T17:40:46.965004+00:00 |
+| ALIEXPRESS | VALIDATED | 1 | 2026-11-08T18:26:22.628529+00:00 |
+| LOMADEE | VALIDATED | 1 | 2026-11-08T17:47:14.93104+00:00 |
+
+| platform | status | total |
+| --- | --- | --- |
+| TELEGRAM | ACTIVE | 1 |
+
+| platform | status | total |
+| --- | --- | --- |
+| TELEGRAM | ACTIVE | 8 |
+| WHATSAPP | PAUSED | 12 |
+
+- As 2.772 publicações PUBLISHED possuem external_message_id; quatro WAITING_CONFIRMATION não possuem receipt. Identificador persistido é evidência de registro, não reconferência independente no destino. Nenhum reenvio acionado.
+- 144 publicações FAILED sem próxima tentativa exigem diagnóstico de causa e política de recuperação; não redefinidas em massa.
+- Zero referências órfãs observadas nos dois checks: categoria de oferta e oferta de publicação, incluindo account_id. Isso não prova ausência de todos os órfãos.
+- affiliate_sales está vazia: não existe prova de conversões/comissões importadas. Cliques não podem ser apresentados como venda.
+- Dois backups registrados, último em 09/10/2026 16:06:56 UTC. Não representa cobertura de mudanças posteriores; backup externo da hospedagem e restauração permanecem não verificados.
+- AliExpress registra API_CALL_LIMIT em PRODUCT_DETAIL e PERMISSION_REQUIRED em SKU_DETAIL. MAGALU ainda PENDING_VALIDATION. VALIDATED nas demais credenciais é estado armazenado, não homologação executada nesta auditoria.
+- Há oito destinos Telegram ativos, 12 WhatsApp pausados, um bot Telegram ativo e zero conexões WhatsApp. Não foi conferido getChat/getMe nem enviado teste.
+
+### Jobs e observabilidade
+
+- Contagens de sete dias por rota (não somar repetidas em cada one-shot): hourly 150 execuções/40 erros; Lomadee link queue 129/16; Shopee 122/6; Lomadee 152/1; Telegram 498/1.
+- Os dois erros recentes encontrados no filtro 5xx de hourly são de 07/11 e indicam quota de one-shot esgotada: 244/250 agendamentos contra limite diário 200. A versão atual já separa jobs recorrentes; não declarar que a causa antiga continua ativa.
+- Três 500 Lomadee link queue em 08/11, durações de 3,2–4,2 s, sem log_output nem error. O handler retorna 500 em falhas individuais; causa específica não recuperada pelo log. Investigar processing_error sem acionar worker.
+- O gateway bloqueia acesso a pg_class/pg_policy/pg_constraint. A consulta alternativa information_schema confirmou FKs e checks de offers/publications. RLS efetivo permanece NÃO VERIFICADO; não contornar o bloqueio.
+- O servidor MCP apresentou 429 com Retry-After 2–3 s durante a inspeção. Leitura retomada de forma sequencial; não confundir limite do conector com falha da aplicação.
+
+### Atualização da matriz A–E e próximos passos
+
+A02: divergência integral confirmada; A03: configuração real inspecionada, homologação externa pendente; A04: 144 FAILED e quatro entregas incertas identificadas; A07: ausência de conexão WhatsApp confirmada; A09: schema/duas consultas de integridade e constraints verificadas parcialmente; A10: introspecção RLS bloqueada; A11: crons e logs obtidos; A13/A16: ausência de vendas importadas confirmada. As demais frentes mantêm o estado e limitações anteriores. Nenhuma frente recebeu aprovação integral por associação.
+
+Grupo B: PRs e branches inventariados anteriormente; compatibilidade individual ainda pendente. Grupo C: backup desatualizado, falhas sem log e testes de contrato reprovados confirmados. Grupo D: nenhum registro, destino, token, fila ou migration alterado nesta etapa. Grupo E: diagnóstico de produção avançou; fases de homologação e implantação continuam parciais/não iniciadas.
+
+Proposta incremental: refletir o gate de medicamentos do PR #193 no WIP Hatchable, junto dos documentos privados correspondentes, comparar conteúdo e executar dry-run. Isso NÃO equivale a deployment, merge ou bloqueio integral de todos os caminhos de publicação. Não liberar publicação da proposta enquanto persistirem as sete falhas da suíte, a cobertura pendente dos dispatchers e as divergências relevantes.
+
+
+### Resultado do espelhamento no WIP Hatchable
+
+- Gate lib/offer-flow-policy.js e oito documentos privados foram salvos no WIP, preservando os arquivos divergentes fora do escopo. Documentação em docs/ no GitHub corresponde a lib/documentation/ no Hatchable. Testes Node permanecem no repositório, pois não são arquivos executáveis no isolate.
+- dry_run_deploy: ok=true, errors=[], warnings=[]; próxima versão calculada 665, 122 funções API, nove páginas e 73 migrations detectadas. Nenhum deploy executado.
+- run_code somente computacional: fontes locais do detector/gate enviadas como funções puras ao isolate, sem importação de módulo nem chamada ao dispatcher: Paracetamol 750 mg -> eligible:false/MEDICATION_PUBLICATION_EXCLUDED; porta-comprimidos -> true; produto +18 -> true. HTTP 200, 23 ms. Não é teste de endpoint implantado.
+- O código do gate e os documentos foram comparados por SHA-256 com o inventário WIP. Não existe alegação de sincronização integral das plataformas: persistem 77 divergências de hash na baseline, incluindo adapters e migrations, e a produção continua v664.
+- A suíte local continua com 236 aprovações e sete falhas preexistentes. O patch não resolve filas preexistentes/dispatchers. Portanto, PR #193 permanece em rascunho, sem merge e sem deploy.
+- Próximas ações: revisar diferenças funcionais em arquivos de entrega; validar todos os caminhos de publicação de medicamentos; tratar testes legados e causas de falhas; homologar APIs oficiais e receitas; backup/restauração; só então concluir reconciliação e liberação.

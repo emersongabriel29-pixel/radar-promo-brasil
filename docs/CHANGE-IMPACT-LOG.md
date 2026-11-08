@@ -278,3 +278,24 @@ Nenhum adendo registrado até o momento.
 - Regra registrada no documento de sincronização, controle de mudanças e relatório de continuidade.
 - Esta branch é uma proposta parcial, não sincronizada. Hatchable indisponível nesta sessão. Sem merge ou deploy.
 - Próxima ação depende de acesso seguro ao projeto Hatchable para comparar backend, aplicar a alteração compatível e validar os dois ambientes.
+
+
+### Adendo de 08/11/2026 — conexão Hatchable e reconciliação da proposta
+
+- Acesso autenticado owner confirmado no projeto Radar Promo Brasil, versão 664 LIVE. O bloqueio anterior de conexão foi resolvido; outros bloqueios continuam individualmente registrados.
+- Comparados 267 caminhos comuns GitHub/Hatchable: 190 hashes iguais, 77 diferentes, sem conclusão automática de diferença funcional.
+- Conferidos schema com 67 tabelas, crons, logs e contagens agregadas de ofertas/publicações/descoberta, conexões, backups, receipts e vendas.
+- Nenhum dado operacional modificado. Não executar worker como teste.
+- Proposta de médio risco: espelhar o gate e a documentação do PR #193 no WIP, sem deploy. Fonte de verdade para o gate: PR testado sobre baseline equivalente; demais divergências preservadas.
+- Documentação privada em lib/documentation corresponde aos documentos GitHub em docs; não expor em public/.
+- Detalhes e limites: AUDITORIA-CONTINUIDADE-2026-11-08.md. Versão publicada continua 664 até prova de novo deployment.
+
+
+### Resultado do espelhamento no WIP Hatchable
+
+- Gate lib/offer-flow-policy.js e oito documentos privados foram salvos no WIP, preservando os arquivos divergentes fora do escopo. Documentação em docs/ no GitHub corresponde a lib/documentation/ no Hatchable. Testes Node permanecem no repositório, pois não são arquivos executáveis no isolate.
+- dry_run_deploy: ok=true, errors=[], warnings=[]; próxima versão calculada 665, 122 funções API, nove páginas e 73 migrations detectadas. Nenhum deploy executado.
+- run_code somente computacional: fontes locais do detector/gate enviadas como funções puras ao isolate, sem importação de módulo nem chamada ao dispatcher: Paracetamol 750 mg -> eligible:false/MEDICATION_PUBLICATION_EXCLUDED; porta-comprimidos -> true; produto +18 -> true. HTTP 200, 23 ms. Não é teste de endpoint implantado.
+- O código do gate e os documentos foram comparados por SHA-256 com o inventário WIP. Não existe alegação de sincronização integral das plataformas: persistem 77 divergências de hash na baseline, incluindo adapters e migrations, e a produção continua v664.
+- A suíte local continua com 236 aprovações e sete falhas preexistentes. O patch não resolve filas preexistentes/dispatchers. Portanto, PR #193 permanece em rascunho, sem merge e sem deploy.
+- Próximas ações: revisar diferenças funcionais em arquivos de entrega; validar todos os caminhos de publicação de medicamentos; tratar testes legados e causas de falhas; homologar APIs oficiais e receitas; backup/restauração; só então concluir reconciliação e liberação.
