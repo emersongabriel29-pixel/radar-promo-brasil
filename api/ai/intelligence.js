@@ -1,4 +1,5 @@
-import { ai, db } from 'hatchable';
+import { db } from 'hatchable';
+import { generateGeminiText } from 'lib/gemini.js';
 import { calculateRadarScore } from 'lib/radar.js';
 import { checkGeminiCooldown, registerGeminiQuotaError } from 'lib/radar-ai-guard.js';
 
@@ -19,7 +20,7 @@ async function getAccount(member){
 }
 async function generate(account,member,kind,prompt,system,maxTokens=1800){
   const cooldown=await checkGeminiCooldown();if(cooldown)throw Object.assign(new Error('Gemini em pausa para respeitar a cota gratuita.'),{code:'GEMINI_COOLDOWN'});
-  const result=await ai.generateText({purpose:'radar-intelligence-'+kind,model:'gemini',userId:String(member.id),maxTokens:Math.max(4096,maxTokens),system,prompt,signal:AbortSignal.timeout(50000)});
+  const result=await generateGeminiText({purpose:'radar-intelligence-'+kind,model:'gemini',userId:String(member.id),maxTokens:Math.max(4096,maxTokens),system,prompt,signal:AbortSignal.timeout(50000)});
   if(['length','max_tokens'].includes(result.finishReason))throw Object.assign(new Error('Resposta incompleta da IA.'),{code:'AI_TRUNCATED'});
   const data=parseJson(result.text);
   const id=uid();
