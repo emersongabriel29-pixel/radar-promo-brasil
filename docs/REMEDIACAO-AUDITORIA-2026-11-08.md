@@ -30,7 +30,7 @@ Pendências externas: AWS/SSM, Ollama, WhatsApp, credenciais/escopos e backup re
 
 Build: 209 arquivos verificados; três testes E2E aprovados; npm audit sem vulnerabilidades. Suíte comportamental final: 258/258 aprovados, zero falhas, incluindo restauração v1/v2 e liberação por token. Equivalência dos arquivos registrada em audit-evidence/2026-11-08/remediation-validation.json. Testes usam banco isolado e conectores simulados; não executam envios reais.
 
-Branch de remediação baseada no PR #193: codex/audit-remediation-20261108. Código e documentos serão espelhados no WIP Hatchable por commit imutável. Produção observada permanece v664 até implantação explícita e verificação dos pré-requisitos; WIP/dry-run não demonstram correção em produção.
+Branch de remediação baseada no PR #193: codex/audit-remediation-20261108. Código e documentos espelhados no WIP Hatchable a partir do commit 58dd247dc6190e6709756a1147859cf5162436d8; 41/41 hashes SHA-256 conferidos. CI 42517572938 aprovada, dry-run sem erros/avisos (próxima versão 665). Recibo: audit-evidence/2026-11-08/remediation-sync-receipt.json. Atualização final deste relato e recibo é documental. Produção observada permanece v664 até implantação explícita e verificação dos pré-requisitos; WIP/dry-run não demonstram correção em produção.
 
 Rollback: reverter o commit da remediação e desativar o cron de ingestão se implantado. Preservar a tabela ingestion_batches e seus lotes; não executar DROP. A migração não altera registros existentes. Antes de implantação, preservar a versão anterior e reconciliar diferenças reais hosted/GitHub; antes de recuperação de fila, definir quantidade, filtros, backup e conferência dos incertos.
 

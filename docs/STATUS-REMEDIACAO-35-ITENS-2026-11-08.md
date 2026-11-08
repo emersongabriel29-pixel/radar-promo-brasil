@@ -28,8 +28,8 @@ O parecer original é histórico. Esta matriz registra o que mudou no pacote de 
 | 22 | Controles transversais | APROVADA COM RESSALVAS | Backup dinâmico e testes de segurança ampliados; controles externos permanecem abertos. |
 | 23 | Documentação do projeto | APROVADA COM RESSALVAS | Documentação de impacto, operação, banco, integrações e matriz atualizada junto do código. |
 | 24 | Controle de status das auditorias | APROVADA | Parecer histórico mantido; esta matriz registra efeito das correções sem promoção automática de status. |
-| 25 | Regra GitHub e Hatchable | REPROVADA | Escopo da remediação preparado para espelho byte-exato; divergências anteriores e implantação continuam pendentes. |
-| 26 | Testes obrigatórios | REPROVADA | 258 testes isolados, 209 arquivos no build, três E2E, zero vulnerabilidades npm; aceite hosted/CI ainda necessário. |
+| 25 | Regra GitHub e Hatchable | REPROVADA | Escopo da remediação espelhado e verificado 41/41, dry-run limpo; divergências anteriores e implantação continuam pendentes. |
+| 26 | Testes obrigatórios | REPROVADA | 258 testes isolados, 209 arquivos no build, três E2E, zero vulnerabilidades npm; CI 42517572938 aprovada; aceite operacional hosted ainda necessário. |
 | 27 | Autorização e autonomia | APROVADA COM RESSALVAS | Autorização ampla respeitada; sem executar ações de envio rejeitadas ou alterar segredos. |
 | 28 | Continuidade | APROVADA | Trabalho isolado, registros históricos e lotes preservados. |
 | 29 | Relatório obrigatório | APROVADA COM RESSALVAS | Relatório de remediação, evidência e esta matriz 35/35 produzidos. |
