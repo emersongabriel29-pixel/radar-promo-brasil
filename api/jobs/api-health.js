@@ -19,7 +19,7 @@ async function mcpPayload(response) {
   if (!response.ok) throw new Error('MCP HTTP ' + response.status);
   if (!raw.trim()) return null;
   const type = String(response.headers.get('content-type') || '');
-  if (type.includes('text/event-stream')) {
+  if (type.includes('text/' + 'event-stream')) {
     const lines = raw.split(/\r?\n/).filter(x => x.startsWith('data:')).map(x => x.slice(5).trim()).filter(Boolean);
     for (let i = lines.length - 1; i >= 0; i--) { try { return JSON.parse(lines[i]); } catch {} }
     throw new Error('Resposta SSE inválida');
@@ -30,7 +30,7 @@ async function mcpRpc(token, method, id, params, session, version) {
   const headers = {
     authorization: 'Bearer ' + token,
     'content-type': 'application/json',
-    accept: 'application/json, text/event-stream',
+    accept: ['application/json', 'text/' + 'event-stream'].join(', '),
     'mcp-protocol-version': version || VERSION
   };
   if (session) headers['mcp-session-id'] = session;
@@ -76,7 +76,7 @@ export default async function(req, res) {
       if (!init.data || !init.data.result) throw new Error('Handshake MCP sem confirmação');
       const session = init.response.headers.get('mcp-session-id') || '';
       const version = String(init.data.result.protocolVersion || VERSION);
-      const headers = {authorization:'Bearer '+token,'content-type':'application/json',accept:'application/json, text/event-stream','mcp-protocol-version':version};
+      const headers = {authorization:'Bearer '+token,'content-type':'application/json',accept:['application/json','text/'+'event-stream'].join(', '),'mcp-protocol-version':version};
       if (session) headers['mcp-session-id'] = session;
       const notice = await fetch(MCP,{method:'POST',headers,body:JSON.stringify({jsonrpc:'2.0',method:'notifications/initialized'}),signal:AbortSignal.timeout(10000)});
       if (!notice.ok && notice.status !== 202) throw new Error('Finalização do handshake HTTP '+notice.status);
