@@ -1,4 +1,4 @@
-import { db, scheduler } from 'hatchable';
+import { db } from 'hatchable';
 import { configuredBotToken, sendTelegramOffer } from 'lib/telegram.js';
 import { cacheOfferImage } from 'lib/offer-images.js';
 import { formatPromo } from 'lib/promo-message.js';
@@ -236,41 +236,9 @@ export default async function handler(req,res) {
         await db.query("UPDATE publication_scheduler_settings SET last_result=$2::jsonb,updated_at=now() WHERE account_id=$1",[row.account_id,JSON.stringify({status:'ERROR',error:errorCode,detail:errorDetail})]);
       }
     }
-    const pending=(await db.query(`
-      SELECT s.account_id,s.next_turn_at,s.source_config,COALESCE(upper(o.source),CASE WHEN p.content_type='MESSAGE' THEN 'MANUAL' END) AS source,
-        MIN(p.next_attempt_at) FILTER (WHERE p.status='RETRY' AND p.next_attempt_at>now()) AS retry_at,
-        BOOL_OR(p.status='READY' OR p.next_attempt_at IS NULL OR p.next_attempt_at<=now()) AS has_due
-      FROM publication_scheduler_settings s
-      JOIN publications p ON p.account_id=s.account_id AND p.status IN ('READY','RETRY')
-      LEFT JOIN offers o ON o.id=p.offer_id AND o.account_id=p.account_id
-      JOIN promo_groups g ON g.id=p.group_id AND g.account_id=p.account_id
-      WHERE s.enabled=true AND g.status='ACTIVE' AND g.platform='TELEGRAM'
-        AND NULLIF(trim(g.external_id),'') IS NOT NULL
-        AND ${eligiblePublication}
-      GROUP BY s.account_id,s.next_turn_at,s.source_config,COALESCE(upper(o.source),CASE WHEN p.content_type='MESSAGE' THEN 'MANUAL' END)
-    `)).rows;
-    const nextCandidates=pending.filter(row=>{
-      const cfg=row.source_config&&typeof row.source_config==='object'?row.source_config:{};
-      return cfg[row.source]?.enabled!==false;
-    }).map(row=>{
-      const dueAt=new Date(row.next_turn_at).getTime();
-      const retryAt=row.retry_at?new Date(row.retry_at).getTime():dueAt;
-      return row.has_due?dueAt:Math.max(dueAt,retryAt);
-    }).filter(Number.isFinite);
-    const next=nextCandidates.length?new Date(Math.min(...nextCandidates)):null;
-    let schedulerArmed=false,schedulerArmError=null;
-    if(next){
-      const when=new Date(Math.max(Date.now()+60000,next.getTime()));
-      try { await scheduler.at(when,'/api/jobs/telegram',{name:'publication-scheduler-master'}); schedulerArmed=true; }
-      catch(error) { schedulerArmError=String(error?.message||error?.code||error?.name||'SCHEDULER_ERROR').slice(0,160); console.error('publication scheduler rearm failed',schedulerArmError); }
-    }
-    return res.json({ok:totals.failed===0,...totals,nextTurnAt:next?.toISOString()||null,centralScheduler:true,waitingForBacklog:Boolean(next),schedulerArmed,schedulerArmError});
+    return res.json({ok:totals.failed===0,...totals,centralScheduler:true,cadence:'hourly-cron'});
   }catch(error){
     console.error('publication scheduler failed',String(error?.code||error?.name||'ERROR').slice(0,80),String(error?.message||'').slice(0,180));
-    try{
-      const next=(await db.query("SELECT MIN(next_turn_at) AS next_at FROM publication_scheduler_settings WHERE enabled=true")).rows[0]?.next_at;
-      if(next)await scheduler.at(new Date(Math.max(Date.now()+60000,new Date(next).getTime())),'/api/jobs/telegram',{name:'publication-scheduler-master'});
-    }catch{}
     return res.status(500).json({error:'Falha no escalonador central de publicações.'});
   }
 }
