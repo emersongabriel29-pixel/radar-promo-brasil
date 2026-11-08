@@ -335,3 +335,29 @@ Status permitidos: **NÃO IMPLEMENTADO**, **IMPLEMENTADO NÃO CONFIGURADO**, **C
 Toda alteração — código, banco, configuração, integração, prompt, categoria, fila, worker, cron, segurança, interface, teste, deploy ou rollback — deve atualizar este documento ou o documento de domínio correspondente na mesma tarefa. Registrar motivo, arquivos/rotas/tabelas, comportamento anterior/novo, riscos, testes, resultados, commit, versão Hatchable, sincronização e rollback. Sem documentação e evidência, a alteração não está concluída.
 
 **Regra final:** nenhuma oferta se perde; nenhuma categoria é excluída por decisão interna; nenhuma falha transitória vira descarte; a hospedagem controla o ritmo, e o Radar retoma automaticamente o trabalho.
+
+
+## 16. Evidências de gates legados encontrados no código
+
+Levantamento estático/read-only em 08/11/2026. Os arquivos abaixo precisam ser harmonizados com a Regra Master em uma etapa de implementação com testes:
+
+| Arquivo | Regra atual observada | Ajuste exigido |
+|---|---|---|
+| `lib/delivery.js` | Exige oferta APPROVED/PUBLISHED, validation VALIDATED/APPROVED, classificação diferente de REVIEW, preço positivo, link HTTPS, imagem e histórico oficial de preço nas últimas 24h | Remover classificação/score/histórico/imagem como gates; permitir texto sem preço/imagem; encaminhar link ausente para geração; manter integridade do link antes do envio |
+| `lib/autopilot.js` | Considera somente APPROVED e exclui classificação REVIEW; AliExpress exige VALIDATED | Fazer processamento universal sem gates comerciais/classificação; não criar publicação duplicada |
+| `api/jobs/ai-enrichment.js` | Lê apenas PENDING + REVIEW, limita a cinco por execução e deixa status PENDING; erros não-quota recebem marca ai_failed que impede nova tentativa | IA opcional, fallback determinístico e retry persistente; limite por execução deve ser capacidade adaptativa, nunca deixar oferta sem próxima tentativa |
+| `api/jobs/aliexpress-review.js` | Exige desconto >=10%, bloqueia medicamentos e segura LOW_COMMISSION/LOW_RATING/VARIANT_PRICE_RANGE | Retirar gates comerciais e de categoria; métricas ficam informativas; preservar os dados de preço reais |
+| `api/jobs/aliexpress.js` | Registra BLOCKED_SAFETY para medicamento e rejeita produto adulto conforme termos do programa | Remover bloqueio interno por categoria; respeitar as regras oficiais do programa AliExpress para distribuição. Quando o provedor proibir promoção de determinado produto, preservar o item e marcar dependência externa específica, sem apagá-lo |
+| `api/integrations/aliexpress.js` | O relatório identifica produtos adultos; a auditoria de campanhas aplica restrições publicitárias informadas pelo provedor | Distinguir diagnóstico de elegibilidade do provedor; não usar categoria como bloqueio geral do Radar |
+| `api/integrations/shopee.js` e `api/jobs/shopee.js` | Chamam filtro de medicamentos na integração/descoberta; a função de produto adulto também aparece na análise de candidatos | Remover exclusões internas por categoria; manter autenticação, integridade, limites e regras oficiais da Shopee |
+| `api/jobs/extension-autopublish.js` | Bloqueia medicamento, classificação REVIEW e LOW_COMMISSION/LOW_RATING | Remover gates comerciais/classificação e preservar o item em recuperação quando faltarem dados/link |
+| `api/jobs/lomadee-discovery-queue.js`, `api/jobs/lomadee-link-queue.js`, `lib/lomadee-catalog.js` | Classificação de medicamento produz BLOCKED_SAFETY | Não descartar por categoria; preservar item, tentar conversão de link e separar exigência externa real da política interna |
+| `api/jobs/lomadee-reconcile.js` | Filtra ofertas por medicamento antes de reconciliar links | Reconciliar todos os itens e manter rastreabilidade; restrição externa deve ser identificada pelo provedor |
+| `api/radar/autopilot.js` | Defaults de min_score 85 e min_discount 15; persiste max_publications_per_day e cooldown | Esses campos não podem funcionar como bloqueio comercial; converter métricas em prioridade informativa |
+| `api/social/autopilot.js` | Persiste min_score, max_posts_per_day, intervalo e janela horária | Limites de execução do canal/hospedagem podem cadenciar, mas não descartar itens; manter regras oficiais do canal |
+
+**Exceção externa importante:** o código atual identifica uma restrição do programa de afiliados AliExpress para publicidade de produtos adultos (com exceções descritas pelo próprio programa). A Regra Master remove a proibição interna genérica do Radar, mas não autoriza violar termos oficiais de um provedor. O item deve permanecer salvo e rastreável, e o relatório deve dizer que o destino/provedor não permite aquela distribuição. Não marcar como oferta perdida.
+
+### O que não foi feito nesta etapa
+
+Nenhum arquivo funcional foi alterado e nenhum status foi atualizado no banco. Não foram aprovadas as 4.035 ofertas pendentes, não foram disparados workers de publicação, não foram enviadas mensagens e não houve reprocessamento em massa. Esta etapa entregou a especificação e identificou os gates reais; a harmonização de código e a recuperação do backlog exigem implementação por lotes, testes e confirmação de não duplicidade antes de qualquer envio real.
