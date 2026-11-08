@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     FROM offers o
     LEFT JOIN extension_autopublish_settings s ON s.account_id=o.account_id
     JOIN accounts a ON a.id=o.account_id AND a.status='ACTIVE'
-    WHERE COALESCE(s.enabled,true)=true AND o.imported_by='CHROME_EXTENSION' AND o.status='PENDING'
+    WHERE COALESCE(s.enabled,false)=true AND o.imported_by='CHROME_EXTENSION' AND o.status='PENDING'
       AND o.created_at>now()-interval '7 days'
       AND EXISTS (
         SELECT 1 FROM offer_price_history ph

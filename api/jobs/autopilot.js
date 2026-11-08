@@ -55,7 +55,7 @@ export default async function(req, res) {
         SELECT 1 FROM offers o
         JOIN accounts a ON a.id=o.account_id AND a.status='ACTIVE'
         LEFT JOIN extension_autopublish_settings s ON s.account_id=o.account_id
-        WHERE COALESCE(s.enabled,true)=true
+        WHERE COALESCE(s.enabled,false)=true
           AND o.imported_by='CHROME_EXTENSION' AND o.status='PENDING'
           AND o.created_at>now()-interval '7 days'
           AND EXISTS (

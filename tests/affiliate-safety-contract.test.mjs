@@ -20,3 +20,12 @@ test('delivery requires validated offers, official price evidence, and usable as
   assert.match(delivery, /affiliate_url/);
   assert.match(delivery, /image_url/);
 });
+
+test('extension auto-approval is opt-in and disabled by default', async () => {
+  const autopilot = readFileSync(new URL('../api/jobs/autopilot.js', import.meta.url), 'utf8');
+  const extension = readFileSync(new URL('../api/jobs/extension-autopublish.js', import.meta.url), 'utf8');
+  const migration = readFileSync(new URL('../migrations/058_extension_autopublish.sql', import.meta.url), 'utf8');
+  assert.match(autopilot, /COALESCE\(s\.enabled,false\)=true/);
+  assert.match(extension, /COALESCE\(s\.enabled,false\)=true/);
+  assert.match(migration, /enabled boolean NOT NULL DEFAULT false/);
+});
