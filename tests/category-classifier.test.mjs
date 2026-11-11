@@ -42,3 +42,19 @@ test('exposes stable tags and a reason for traceability', () => {
   assert.ok(result.tags.includes('sex-shop'));
   assert.equal(result.reason, 'keyword_match');
 });
+
+test('classifies singular calopsita cages and species-specific pet beds', () => {
+  for (const title of ['Gaiola para Calopsita', 'Gaiola para Calopsitas']) {
+    const result = classifyProduct({ title });
+    assert.equal(result.category, 'Pet');
+    assert.equal(result.subcategory, 'Aves e pássaros');
+    assert.equal(result.needsReview, false);
+  }
+
+  for (const title of ['Caminha para Cachorro', 'Caminha para Gato']) {
+    const result = classifyProduct({ title });
+    assert.equal(result.category, 'Pet');
+    assert.equal(result.subcategory, 'Camas, abrigos e conforto');
+    assert.equal(result.needsReview, false);
+  }
+});
