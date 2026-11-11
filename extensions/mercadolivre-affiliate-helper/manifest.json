@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Radar Promo Brasil — Assistente de Links ML",
+  "version": "1.0.0",
+  "description": "Auxilia a transferir URLs para o gerador oficial de links do Mercado Livre.",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.mercadolivre.com.br/*",
+    "https://mercadolivre.com.br/*"
+  ],
+  "action": {
+    "default_title": "Assistente de links ML",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.mercadolivre.com.br/*",
+        "https://mercadolivre.com.br/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
