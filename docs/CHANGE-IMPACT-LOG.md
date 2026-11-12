@@ -244,3 +244,11 @@ Nenhum adendo registrado até o momento.
 - Lomadee passa a priorizar `product.name` sobre `option.name` e aplicar o filtro de medicamentos/antiácidos antes de liberar itens para READY_FOR_LINK ou gerar link.
 - Nenhum dado operacional foi alterado. Nenhuma fila foi reprocessada e nenhuma mensagem/publicação foi enviada.
 - WIP Hatchable validado por `dry_run_deploy` sem erros/avisos. Teste de runtime bloqueado pelo limite mensal do banco (HTTP 429). Branch GitHub: `codex/fix-queue-classification-20261112`; não mesclada.
+
+
+## Resultado da implantação — 12/11/2026
+
+- Hatchable v667 LIVE; hashes do manifesto coincidem com os arquivos WIP alterados. Dry-run sem erros/avisos e sem nova migration.
+- Testes de runtime bloqueados por HTTP 429 usage_limit; não declarar homologação funcional completa.
+- PR #197 permanece aberto em rascunho, sem merge. Nenhum dado operacional ou fila foi alterado; nenhum worker, API externa, publicação ou mensagem foi executado.
+- Correção aplicada aos novos itens Lomadee; registros antigos desviados permanecem sem backfill até autorização e plano específico.
