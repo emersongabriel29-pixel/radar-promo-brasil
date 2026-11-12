@@ -143,11 +143,13 @@ export default async function handler(req, res) {
     catch { summary.skippedNoCredential++; continue; }
 
     const claimed = await db.query(`
+      -- last_seen_at is refreshed on claim/defer, so oldest-first rotation avoids a global random sort.
       WITH batch AS (
         SELECT id FROM affiliate_discovery_items
         WHERE account_id=$1 AND marketplace='LOMADEE' AND kind='PRODUCT'
           AND processing_status='READY_FOR_LINK'
-        ORDER BY last_seen_at ASC,random() LIMIT $2 FOR UPDATE SKIP LOCKED
+        ORDER BY last_seen_at ASC
+        LIMIT $2 FOR UPDATE SKIP LOCKED
       )
       UPDATE affiliate_discovery_items i
       SET processing_status='PROCESSING',processing_error='',last_seen_at=now()
