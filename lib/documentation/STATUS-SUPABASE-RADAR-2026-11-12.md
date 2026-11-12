@@ -18,7 +18,7 @@ Atualizado em 12/11/2026.
 ## Segurança — alerta obrigatório
 O Security Advisor acusa RLS desabilitado nas 68 tabelas públicas (`rls_disabled_in_public`, ERROR). O destino ainda não contém os dados reais, mas o Advisor classifica as tabelas como expostas pela Data API. Não usar a chave anon/publishable para acessar essas tabelas.
 
-RLS não foi ativado automaticamente: habilitar sem políticas interromperia o acesso de clientes PostgREST e não cria isolamento multi-tenant correto. Antes de expor a Data API, definir e testar políticas por `account_id`, papéis e operações. A aplicação deve acessar o banco somente no servidor. A decisão e a validação das políticas continuam pendentes.
+RLS não foi ativado automaticamente: habilitar sem políticas interromperia o acesso de clientes PostgREST e não cria isolamento multi-tenant correto. Antes de expor a Data API, definir e testar políticas por `account_id`, papéis e operações. A aplicação deve acessar o banco somente no servidor. A decisão e a validação das políticas continuam pendentes. A proposta de habilitação deny-by-default, **não executada**, está em `lib/documentation/PROPOSTA-RLS-DEFAULT-DENY-2026-11-12.sql`; requer decisão e políticas antes de qualquer acesso pela Data API.
 
 Performance Advisor: 36 FKs sem índice, 89 índices não utilizados e 3 possíveis índices duplicados. Como ainda não há carga real, não remover índices por alerta de uso; revisar FKs e duplicidades após testes representativos.
 
@@ -59,3 +59,12 @@ Produção continua no Hatchable, projeto `proj_1Xj94QxQmCam`, versão v668. O l
 6. Fazer leitura sombra, backup, delta final, corte controlado e rollback testado.
 
 **Estado operacional:** o Radar continua usando PostgreSQL do Hatchable (v668). Supabase já tem schema e ponte implantada, mas não recebe tráfego nem dados reais. Não declarar migração concluída antes de validar segredos, conexão, RLS, rotas, dados e rollback.
+
+
+## Validação GitHub e publicação Hatchable
+- PR #198 está aberto no branch `codex/supabase-migration-20261112`; não foi mesclado.
+- `npm run build` passou (207 arquivos JavaScript).
+- `npm test`: 234 passaram e 7 falharam. Os 7 casos falhos pertencem a contratos/testes de segurança AliExpress, autoaprovação, classificação de medicamentos Lomadee, ingestão e limite diário do autopilot. Os arquivos de teste são idênticos aos de main e os arquivos testados não fazem parte das alterações deste PR; são divergências preexistentes fora do escopo da migração. Por isso não declarei CI verde nem mesclei o PR.
+- `npm audit` e E2E foram pulados pelo workflow após a falha dos testes.
+- Hatchable dry-run: zero erros e zero avisos; versão candidata v669. Não foi publicado, pois o PR ainda não foi mesclado e a validação completa do CI está pendente.
+- Produção permanece v668 e continua usando o PostgreSQL do Hatchable.
