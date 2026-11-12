@@ -106,7 +106,7 @@ function safeRows(resource, body) {
     const classification = classifyLomadeeProduct(x);
     return {
       id: clean(x.id, 120), organizationId: clean(x.organizationId, 120),
-      title: clean(option.name || x.name, 300), available: Boolean(x.available && (option.available !== false)),
+      title: clean(x.name || option.name, 300), available: Boolean(x.available && (option.available !== false)),
       url: typeof x.url === 'string' && /^https:\/\//i.test(x.url) ? x.url.slice(0, 2000) : '',
       imageUrl: typeof image === 'string' && /^https:\/\//i.test(image) ? image.slice(0, 2000) : '',
       originalPrice: priceCents(pricing.listPrice),
@@ -295,7 +295,7 @@ export default async function handler(req, res) {
         for (const product of products) {
           const option = (Array.isArray(product.options) ? product.options : []).find(o => o.available) || product.options?.[0] || {};
           const pricing = Array.isArray(option.pricing) ? option.pricing[0] : {};
-          const title = clean(option.name || product.name, 220);
+          const title = clean(product.name || option.name, 220);
           const classification = classifyLomadeeProduct(product);
           if (classification.blocked) { skipped.push({ id: clean(product.id, 120), reason: 'Medicamento excluído pelas regras de segurança do Radar.' }); continue; }
           const imageUrl = product.images?.[0]?.url || option.images?.[0]?.url || '';
