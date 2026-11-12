@@ -90,3 +90,15 @@ Nenhum adendo registrado até o momento.
 - Resultado: criação documental confirmada no GitHub. A pendência de confirmação dos arquivos foi encerrada.
 - Hatchable permanece na versão 638; os documentos não foram copiados para lá porque o destino `docs/` não apareceu no inventário e a interface de escrita disponível não aceita esse caminho. Nenhum deploy foi realizado.
 - Testes npm não foram executados porque não houve alteração de código executável. Nenhuma afirmação de validação funcional do aplicativo é feita.
+
+
+### AUD-2026-11-12-QUEUE-CLASSIFICATION — correção da fila e classificação Lomadee
+
+- **Data:** 12/11/2026.
+- **Status:** alterações propostas em branch; não mescladas.
+- **Baseline de produção:** Hatchable v664; GitHub `main` consultado antes da criação da branch. A versão GitHub `main` não continha as consultas `affiliate_discovery_items`/`affiliate_discovery_runs` no endpoint `api/reports.js`, embora o painel tivesse a função de fila. A versão atual do Hatchable foi usada como base para sincronizar esse endpoint, preservando os recursos de relatórios e vendas já presentes no Hatchable.
+- **Causa:** painel e alerta usavam DISCOVERED + FAILED + PROCESSING em vez de DISCOVERED + PROCESSING + READY_FOR_LINK; o nome da variação Lomadee podia prevalecer sobre o nome do produto; a regra de medicamentos não era aplicada nos dois caminhos da fila Lomadee.
+- **Arquivos atualizados nesta branch:** `api/reports.js`, `public/radar.js`, `lib/lomadee-catalog.js`, `lib/product-safety.js`, `api/jobs/lomadee-discovery-queue.js`, `api/jobs/lomadee-link-queue.js`, `api/integrations/lomadee.js`.
+- **Mudanças:** fórmula correta de pendentes no backend e frontend; contagem por marketplace; separação de READY_FOR_LINK de LINKED/IMPORTED; último erro ordenado por timestamp; classificação Lomadee baseada primeiro no nome real do produto; exclusão de medicamentos/antiácidos da fila READY_FOR_LINK e do worker de links.
+- **Dados:** nenhum dado operacional alterado; nenhuma fila reprocessada; nenhum worker ou API externa executado; nenhuma publicação/mensagem enviada.
+- **Validação:** dry-run Hatchable sem erros/avisos. Teste de runtime via Hatchable `run_function` foi bloqueado por HTTP 429 `usage_limit`; portanto, a classificação não foi validada em runtime nesta sessão. A branch aguarda revisão e não foi mesclada.
