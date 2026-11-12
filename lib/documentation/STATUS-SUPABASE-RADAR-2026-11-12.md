@@ -52,9 +52,9 @@ Não colocar senha, connection string, service-role key ou HMAC no GitHub, naveg
 - Tipos gerados em `lib/supabase/database.types.ts`.
 - 11 migrations ausentes no GitHub main sincronizadas no branch: 019_social_ai_artwork, 022_meli_notifications, 023_marketplace_social_profile, 024_meli_notification_processing, 025_meli_notification_dispatch, 037, 039, 041, 045, 052_affiliate_discovery_metadata e 068.
 - 4 arquivos runtime ausentes no GitHub foram adicionados: `api/ingestion/status.js`, `api/jobs/ingestion.js`, `lib/aliexpress-response.js` e `lib/delivery-retry.js`.
-- 10 arquivos runtime com conteúdo divergente foram atualizados para corresponder ao Hatchable ativo: `api/jobs/telegram.js`, `api/jobs/aliexpress.js`, `api/integrations/aliexpress.js`, `lib/delivery.js`, `lib/ingestion.js`, `api/jobs/autopilot.js`, `lib/autopilot.js`, `api/jobs/aliexpress-review.js`, `lib/lomadee-catalog.js` e `lib/product-safety.js`.
+- 10 arquivos runtime com conteúdo divergente foram atualizados para corresponder ao Hatchable ativo: `api/jobs/telegram.js`, `api/jobs/aliexpress.js`, `api/integrations/aliexpress.js`, `lib/delivery.js`, `lib/ingestion.js`, `api/jobs/autopilot.js`, `lib/autopilot.js`, `api/jobs/aliexpress-review.js`, `lib/lomadee-catalog.js` e `lib/product-safety.js` e `api/integrations/lomadee.js`.
 - `api/ingestion/status.js` foi preservado, mas não foi encontrada referência interna a ele; não foi conectado a uma tela/fluxo sem auditoria funcional.
-- Conflito semântico ainda aberto em `api/integrations/lomadee.js`: Hatchable usa `x.name || option.name`, GitHub usava `option.name || x.name`. Não escolher uma versão sem validar o contrato real da API.
+- O mapeamento de nome de produto Lomadee foi alinhado ao Hatchable: `x.name` é prioritário e `option.name` é fallback, preservando o nome de produto em vez de substituir pelo nome da variante.
 
 ## Auditoria de paridade Hatchable ↔ GitHub
 - Inventário: 341 arquivos no Hatchable e 509 blobs no GitHub branch.
