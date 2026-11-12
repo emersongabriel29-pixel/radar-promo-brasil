@@ -40,13 +40,13 @@ O conector disponível não permite gravar segredos nos painéis. Configurar man
 2. Hatchable → Settings/Secrets:
    - `SUPABASE_DB_BRIDGE_SECRET`: exatamente o mesmo segredo HMAC.
 3. Hatchable → Config:
-   - `SUPABASE_DB_BRIDGE_URL`: `https://runnmpzkomcdawwzuift.supabase.co/functions/v1/radar-db-bridge`.
+   - `supabase_db_bridge_url`: `https://runnmpzkomcdawwzuift.supabase.co/functions/v1/radar-db-bridge`.
 
 Não colocar senha, connection string, service-role key ou HMAC no GitHub, navegador ou documentação. Após configurar, testar `GET /api/admin/supabase-health`; somente `ok:true` libera a adaptação das rotas.
 
 ## Código preparado, sem tráfego de produção
 - `lib/supabase-db.js`: adaptador server-side compatível com `db.query(sql, params)` e `db.transaction(operations)`.
-- `lib/radar-db.js`: adaptador dual-mode; `SUPABASE_DB_ENABLED=false` mantém o Hatchable ativo e só habilita Supabase após importação, testes e autorização explícita.
+- `lib/radar-db.js`: adaptador dual-mode; `supabase_db_enabled=false` mantém o Hatchable ativo e só habilita Supabase após importação, testes e autorização explícita.
 - `api/admin/supabase-health.js`: teste read-only direto no Supabase; `api/admin/db-provider-health.js`: confirma qual banco está atendendo o app sem alterar dados.
 - `api/admin/supabase-health.js`: teste administrativo read-only.
 - `hatchable.toml`: sincronizado com a versão Hatchable, incluindo o cron `/api/jobs/ingestion` e configurações opcionais da ponte.
