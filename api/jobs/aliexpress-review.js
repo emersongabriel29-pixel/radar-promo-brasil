@@ -1,7 +1,7 @@
 import { db } from 'hatchable';
 import { offerScore } from 'lib/automation.js';
 import { enqueueMatches } from 'lib/autopilot.js';
-import { isAdultProduct } from 'lib/product-safety.js';
+import { isAdultProduct, isMedicationProduct } from 'lib/product-safety.js';
 // No internal product-category exclusion.
 
 export const access = 'scheduler';
@@ -23,12 +23,17 @@ const isHttps = value => {
  */
 export default async function handler(req, res) {
   const rows = (await db.query(
-    "SELECT id,account_id,title,original_price,current_price,discount_percent,affiliate_url,image_url,product_url,status,classification_reason FROM offers WHERE source='ALIEXPRESS' AND status='PENDING' AND COALESCE(validation_status,'') IN ('PENDING','PENDING_REVIEW','VALIDATED','NEEDS_REVIEW','') ORDER BY COALESCE(radar_score,score,0) DESC, score DESC, created_at ASC LIMIT 30"
+    "SELECT id,account_id,title,original_price,current_price,discount_percent,affiliate_url,image_url,product_url,status,classification_reason FROM offers WHERE source='ALIEXPRESS' AND status='PENDING' AND COALESCE(classification_reason,'')<>'MEDICATION_PUBLICATION_EXCLUDED' AND COALESCE(validation_status,'') IN ('PENDING','PENDING_REVIEW','VALIDATED','NEEDS_REVIEW','') ORDER BY COALESCE(radar_score,score,0) DESC, score DESC, created_at ASC LIMIT 30"
   )).rows;
-  const result = { ok: true, scanned: rows.length, validated: 0, approved: 0, needsReview: 0, providerRestricted: 0, rejected: 0, unchanged: 0, failed: 0, publicationTriggered: false, queued: 0, telegramQueued: 0, whatsappQueued: 0, messagesSent: 0 };
+  const result = { ok: true, scanned: rows.length, validated: 0, approved: 0, needsReview: 0, medicationExcluded: 0, providerRestricted: 0, rejected: 0, unchanged: 0, failed: 0, publicationTriggered: false, queued: 0, telegramQueued: 0, whatsappQueued: 0, messagesSent: 0 };
   const approvedAccounts = new Set();
   for (const offer of rows) {
     try {
+      if (isMedicationProduct({title:offer.title,productUrl:offer.product_url})) {
+        await db.query("UPDATE offers SET validation_status='NEEDS_REVIEW',classification_reason='MEDICATION_PUBLICATION_EXCLUDED',updated_at=now() WHERE id=$1 AND account_id=$2 AND status='PENDING'",[offer.id,offer.account_id]);
+        result.medicationExcluded++;
+        continue;
+      }
       const original = Number(offer.original_price), current = Number(offer.current_price);
       const discount = original > current && original > 0 ? Math.round((original - current) * 100 / original) : 0;
       let reason = '';
