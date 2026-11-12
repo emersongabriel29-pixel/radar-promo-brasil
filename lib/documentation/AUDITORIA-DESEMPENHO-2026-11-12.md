@@ -100,6 +100,7 @@ Arquivo: `api/jobs/lomadee-link-queue.js`.
 - O status do commit no GitHub não retornou verificações/statuses configurados; isso não equivale a CI aprovado.
 - Produção anterior v664: `superseded`.
 - Nenhum dado, fila, credencial, migration, índice ou cron foi alterado pelo rollout.
+- Na conferência final de sincronização foi encontrada uma linha de proteção preexistente no Hatchable (`classification.blocked` → `BLOCKED_SAFETY`) ausente no GitHub `main`; ela foi preservada e integrada ao `main` no commit `659afc4e874480450f182baa43b99242be500d8e`. O código do Hatchable/produção não precisou ser alterado por essa correção; foi sincronizado o repositório para manter a mesma proteção.
 - A cota mensal de banco ainda impede testes de runtime, EXPLAIN/ANALYZE e mensuração pós-deploy até a restauração das funções.
 
 ## Pendências técnicas bloqueadas pela cota
