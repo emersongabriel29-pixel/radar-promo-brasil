@@ -45,7 +45,9 @@ O conector disponível não permite gravar segredos nos painéis. Configurar man
 Não colocar senha, connection string, service-role key ou HMAC no GitHub, navegador ou documentação. Após configurar, testar `GET /api/admin/supabase-health`; somente `ok:true` libera a adaptação das rotas.
 
 ## Código preparado, sem tráfego de produção
-- `lib/supabase-db.js`: adaptador compatível com `db.query(sql, params)` e `db.transaction(operations)`; atualiza a leitura de config quando segredos ainda não estão configurados.
+- `lib/supabase-db.js`: adaptador server-side compatível com `db.query(sql, params)` e `db.transaction(operations)`.
+- `lib/radar-db.js`: adaptador dual-mode; `SUPABASE_DB_ENABLED=false` mantém o Hatchable ativo e só habilita Supabase após importação, testes e autorização explícita.
+- `api/admin/supabase-health.js`: teste read-only direto no Supabase; `api/admin/db-provider-health.js`: confirma qual banco está atendendo o app sem alterar dados.
 - `api/admin/supabase-health.js`: teste administrativo read-only.
 - `hatchable.toml`: sincronizado com a versão Hatchable, incluindo o cron `/api/jobs/ingestion` e configurações opcionais da ponte.
 - Fonte da Edge Function e Deno config versionadas em `supabase/functions/radar-db-bridge/`.
@@ -65,7 +67,7 @@ Não colocar senha, connection string, service-role key ou HMAC no GitHub, naveg
 
 ## Validação, PR e produção
 - PR #198 aberto no branch `codex/supabase-migration-20261112`; não mesclado.
-- Primeira execução GitHub Actions: build passou, 234/241 testes passaram e 7 falharam em contratos de safety/autoaprovação AliExpress, classificação de medicamentos Lomadee, ingestion e autopilot. A investigação identificou versões runtime mais novas no Hatchable; os 10 arquivos acima foram sincronizados. A nova execução de CI está pendente; não declarar CI verde até concluir.
+- Primeira execução GitHub Actions: build passou, 234/241 testes passaram e 7 falharam em contratos de safety/autoaprovação AliExpress, classificação de medicamentos Lomadee, ingestion e autopilot. A investigação identificou versões runtime mais novas no Hatchable; 11 arquivos foram sincronizados. A segunda execução teve 235/241 testes passando e 6 falhas; foram então corrigidos o bloqueio de medicamentos/antialérgicos, desconto mínimo de 10%, isolamento de origem AliExpress, regra de segurança Lomadee e dois fixtures/assertions de testes. Uma terceira execução está na fila; não declarar CI verde até concluir.
 - `npm audit` e E2E foram pulados após a falha inicial dos testes.
 - Hatchable dry-run: zero erros e zero avisos; versão candidata v669. Não publicada enquanto PR/CI e paridade permanecem pendentes.
 - Produção permanece v668, usando PostgreSQL do Hatchable.
@@ -76,7 +78,7 @@ Não colocar senha, connection string, service-role key ou HMAC no GitHub, naveg
 2. Testar assinatura inválida, replay, SQL proibido, SELECT e transação controlada com rollback.
 3. Definir RLS/políticas tenant-aware e resolver alertas críticos antes de expor a Data API.
 4. Completar o diff de conteúdo das diferenças de paridade e resolver o conflito Lomadee.
-5. Adaptar as 99 rotas em lotes revisáveis, preservando 486 chamadas `db.query`, 4 fluxos `db.transaction`, locks, `SKIP LOCKED`, resultados e isolamento por `account_id`.
+5. Redirecionar os 128 imports de banco em lotes revisáveis para `lib/radar-db.js`, mantendo a flag false até validar fallback Hatchable; preservar 723 chamadas `db.query`, 24 pontos `db.transaction`, locks, `SKIP LOCKED`, resultados e isolamento por `account_id`.
 6. Testar filas concorrentes, idempotência, webhooks, OAuth e publicação simulada sem mensagens reais.
 7. Exportar/importar dados reais, preservar IDs/sequences e comparar contagens, relações e amostras.
 8. Fazer leitura sombra, backup, delta final, corte controlado e rollback testado.
