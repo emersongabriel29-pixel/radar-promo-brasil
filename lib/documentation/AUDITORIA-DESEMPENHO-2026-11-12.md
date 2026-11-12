@@ -88,6 +88,16 @@ Arquivo: `api/jobs/lomadee-link-queue.js`.
 6. Implantar em janela controlada, sem disparar publicações de teste; confirmar versão e hashes.
 7. Medir o consumo do banco e as durações por rota antes/depois. Se a cota continuar insuficiente, decidir sobre upgrade com base em métricas, não em suposição.
 
+## Sincronização desta rodada
+
+- Branch GitHub: `codex/db-performance-optimization-20261112`.
+- PR em draft: [#195 — Otimização conservadora das consultas e filas Lomadee](https://github.com/emersongabriel29-pixel/radar-promo-brasil/pull/195).
+- Commit do branch registrado na abertura do PR: `2b9dbf86a4a3cc2c7195cf6e17888a91e4bd18c5`.
+- Os três arquivos alterados foram comparados e estão idênticos entre Hatchable WIP e o branch GitHub.
+- Hatchable dry-run após as alterações: `ok=true`, zero erros e zero avisos; próxima versão candidata 665.
+- GitHub Actions associado ao commit consultado: nenhum workflow PR retornado até o momento.
+- PR permanece em draft; nenhum merge ou deploy foi realizado. Produção continua na v664.
+
 ## Rollback
 
 As alterações são isoladas em dois arquivos de worker. Se a validação falhar, reverter esses dois arquivos ao conteúdo anterior, mantendo todos os dados e migrations intactos. Não executar DROP, limpeza ou rollback destrutivo.
