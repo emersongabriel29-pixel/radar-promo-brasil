@@ -26,7 +26,7 @@ function normalizeProduct(row) {
   const options = Array.isArray(raw.options) ? raw.options : [];
   const option = options.find(item => item?.available !== false) || options[0] || {};
   const pricing = Array.isArray(option.pricing) ? option.pricing[0] || {} : {};
-  const title = clean(option.name || raw.name || row.title, 300);
+  const title = clean(raw.name || row.title || option.name, 300);
   const imageCandidates = [option.images?.[0]?.url, raw.images?.[0]?.url, option.imageUrl, raw.imageUrl, row.image_url];
   const image = imageCandidates.find(candidate => directImageUrl(candidate)) || '';
   const productUrl = clean(raw.url || row.product_url, 2000);
@@ -34,7 +34,10 @@ function normalizeProduct(row) {
   const classification = classifyLomadeeProduct(raw);
   let status = 'READY_FOR_LINK';
   let reason = '';
-  if (raw.available === false || option.available === false || row.available === false) {
+  if (classification.blocked) {
+    status = 'BLOCKED_SAFETY';
+    reason = 'MEDICATION_PRODUCT_EXCLUDED';
+  } else if (raw.available === false || option.available === false || row.available === false) {
     status = 'UNAVAILABLE';
     reason = 'Produto indisponível na origem.';
   } else if (!title || !currentPrice || !/^https:\/\//i.test(productUrl)) {
