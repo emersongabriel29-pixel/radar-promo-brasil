@@ -67,6 +67,7 @@ Não colocar senha, connection string, service-role key ou HMAC no GitHub, naveg
 
 ## Validação, PR e produção
 - PR #198 mesclado em `main` no commit `951c64c4fae7b61933c949c42f3404f94d1a8fd5`.
+- PR #199 mesclado em `main` no commit `cf421851eedd84411a94c4b113b63f5f405d027f`; corrigidos os nomes de configuração para lowercase exigido pelo Hatchable.
 - GitHub Actions final: build passou; 241/241 testes passaram; `npm audit` encontrou 0 vulnerabilidades; Playwright E2E passou com 3 testes. As falhas intermediárias revelaram drift de código e fixtures, corrigidos antes do merge.
 - `npm audit` e E2E foram pulados após a falha inicial dos testes.
 - Hatchable dry-run: zero erros e zero avisos; versão candidata v669. A publicação v669 ainda precisa ser concluída; não implica corte para Supabase.
