@@ -254,3 +254,13 @@ schedule = "40 * * * *"
 [[cron]]
 path = "/api/jobs/extension-offers-resolve-queue"
 schedule = "50 * * * *"
+[[config]]
+name = "SUPABASE_DB_BRIDGE_URL"
+required = false
+default = "https://runnmpzkomcdawwzuift.supabase.co/functions/v1/radar-db-bridge"
+description = "URL HTTPS da ponte privada do banco Supabase; usada somente no servidor."
+
+[[secret]]
+name = "SUPABASE_DB_BRIDGE_SECRET"
+required = false
+description = "Segredo HMAC compartilhado entre Hatchable e Supabase Edge Function. Gere com 32 bytes aleatórios; nunca enviar pelo chat ou gravar no GitHub."
