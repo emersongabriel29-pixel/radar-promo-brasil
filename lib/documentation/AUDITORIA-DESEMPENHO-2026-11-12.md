@@ -9,7 +9,7 @@ Produção observada antes desta rodada: Hatchable v664.
 Banco: PostgreSQL gerenciado pelo Hatchable.
 Estado operacional informado pelo titular: chamadas de função pausadas até a reinicialização mensal de 02/12/2026.
 
-A inspeção desta rodada foi somente leitura até as duas otimizações de código descritas abaixo. Não foram executados envios, publicação, importação, reprocessamento de filas, alterações de dados, alterações de credenciais, migrations, índices ou mudanças de cron. As otimizações foram salvas apenas como rascunho no Hatchable e em branch isolada no GitHub; não foram implantadas.
+A inspeção desta rodada foi somente leitura até as duas otimizações de código descritas abaixo. Não foram executados envios, publicação, importação, reprocessamento de filas, alterações de dados, alterações de credenciais, migrations, índices ou mudanças de cron. As otimizações foram inicialmente preparadas em WIP/branch isolada. Posteriormente, após autorização expressa do titular e registro da limitação operacional, o PR #195 foi integrado ao main e publicado no Hatchable v665.
 
 ## Evidências observadas
 
@@ -67,16 +67,17 @@ Arquivo: `api/jobs/lomadee-link-queue.js`.
 - Nenhuma integração Shopee, Telegram, WhatsApp, Gemini, Ollama ou marketplace foi desativada.
 - Nenhuma fila foi limpa, zerada, descartada ou reprocessada.
 - Nenhum dado foi migrado para Supabase.
-- Nenhum deploy foi executado.
+- Nenhum deploy adicional, migration ou alteração de dados foi executado durante a auditoria inicial. O deploy controlado posterior da versão v665 publicou apenas os arquivos de código e documentação.
 
 ## Validação e estado de rollout
 
 - Os dois arquivos de código foram comparados antes da edição: conteúdo idêntico entre Hatchable WIP e GitHub `main`.
-- As alterações foram aplicadas no Hatchable como rascunho e no branch GitHub `codex/db-performance-optimization-20261112`.
-- A produção continua na versão 664 até um deploy autorizado e validado.
-- Dry-run de deploy deve ser executado após a documentação ser sincronizada; dry-run não substitui teste de runtime.
-- A validação de runtime, planos de execução e comparação real de consumo ficam bloqueadas enquanto as funções permanecerem pausadas.
-- Não declarar a otimização concluída em produção até o deploy e a medição pós-deploy.
+- As alterações foram aplicadas no Hatchable e no branch GitHub `codex/db-performance-optimization-20261112`; os três arquivos foram comparados antes do merge.
+- PR #195 foi convertido de draft e integrado por squash em 12/11/2026; commit resultante no `main`: `d51c7f0b34f7e34bdc24b5b7aa92cb7aafdbac3a`.
+- Dry-run imediatamente antes do deploy: `ok=true`, zero erros e zero avisos.
+- Deploy Hatchable v665 concluído em 12/11/2026 às 10:16:50 UTC, status `live`, 333 arquivos e 133 funções registradas, sem avisos.
+- A produção foi confirmada na v665; a v664 consta como `superseded`.
+- A validação de runtime, planos de execução e comparação real de consumo continuam bloqueadas enquanto a cota mensal mantiver as funções pausadas.
 
 ## Próximos passos após a restauração das funções
 
@@ -85,18 +86,32 @@ Arquivo: `api/jobs/lomadee-link-queue.js`.
 3. Avaliar separadamente as consultas do Telegram, Lomadee e Shopee; não atribuir consumo por inferência de duração da função.
 4. Só então decidir se índices adicionais são necessários; avaliar lock, tamanho, custo de escrita e implantação.
 5. Rodar dry-run, comparar os arquivos Hatchable/GitHub e validar os contratos de resposta.
-6. Implantar em janela controlada, sem disparar publicações de teste; confirmar versão e hashes.
+6. O deploy controlado já foi realizado na v665, sem disparar publicações de teste; após a restauração, confirmar novamente versão, hashes e comportamento.
 7. Medir o consumo do banco e as durações por rota antes/depois. Se a cota continuar insuficiente, decidir sobre upgrade com base em métricas, não em suposição.
 
-## Sincronização desta rodada
+## Sincronização e estado final do rollout
 
-- Branch GitHub: `codex/db-performance-optimization-20261112`.
-- PR em draft: [#195 — Otimização conservadora das consultas e filas Lomadee](https://github.com/emersongabriel29-pixel/radar-promo-brasil/pull/195).
-- Commit do branch registrado na abertura do PR: `2b9dbf86a4a3cc2c7195cf6e17888a91e4bd18c5`.
-- Os três arquivos alterados foram comparados e estão idênticos entre Hatchable WIP e o branch GitHub.
-- Hatchable dry-run após as alterações: `ok=true`, zero erros e zero avisos; próxima versão candidata 665.
-- GitHub Actions associado ao commit consultado: nenhum workflow PR retornado até o momento.
-- PR permanece em draft; nenhum merge ou deploy foi realizado. Produção continua na v664.
+- Branch de trabalho: `codex/db-performance-optimization-20261112`.
+- PR #195 — [Otimização conservadora das consultas e filas Lomadee](https://github.com/emersongabriel29-pixel/radar-promo-brasil/pull/195) — merged em 12/11/2026.
+- Commit de merge no GitHub `main`: `d51c7f0b34f7e34bdc24b5b7aa92cb7aafdbac3a`.
+- Hatchable: versão `v665`, status `live`, publicada em 12/11/2026 às 10:16:50 UTC.
+- Resumo do deploy: 333 arquivos, 133 funções registradas, zero avisos.
+- Dry-run pré-deploy: `ok=true`, zero erros, zero avisos.
+- O status do commit no GitHub não retornou verificações/statuses configurados; isso não equivale a CI aprovado.
+- Produção anterior v664: `superseded`.
+- Nenhum dado, fila, credencial, migration, índice ou cron foi alterado pelo rollout.
+- A cota mensal de banco ainda impede testes de runtime, EXPLAIN/ANALYZE e mensuração pós-deploy até a restauração das funções.
+
+## Pendências técnicas bloqueadas pela cota
+
+Estas etapas não podem ser declaradas concluídas agora:
+1. Testes de contrato isolados dos workers Lomadee.
+2. Verificação de distribuição/justiça da fila com registros reais.
+3. Planos de execução representativos e medição de buffers/tempo SQL.
+4. Medição comparativa de consumo do banco e acompanhamento de erros após a v665.
+5. Avaliação de índices ou otimizações adicionais com evidência.
+
+Não executar disparos de publicação, importação ou reprocessamento apenas para testar. Após a restauração, validar com chamadas controladas e sem efeitos externos.
 
 ## Rollback
 
