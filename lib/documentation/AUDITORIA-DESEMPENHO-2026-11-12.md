@@ -50,14 +50,14 @@ Arquivo: `api/jobs/lomadee-reconcile.js`.
 - A rotação horária, o offset manual, o limite de dez, a validação de links e a regra de atualização de credenciais foram preservados.
 - Nenhuma oferta, preço ou histórico foi alterado durante a preparação.
 
-### B. Fila Lomadee — aleatoriedade limitada
+### B. Fila Lomadee — seleção oldest-first
 
 Arquivo: `api/jobs/lomadee-link-queue.js`.
 
-- A fila primeiro seleciona uma janela limitada aos registros mais antigos, de até quatro vezes o tamanho do lote.
-- A aleatoriedade é aplicada somente dentro dessa janela, mantendo a mistura de candidatos e a lógica existente de diversidade por organização.
-- O claim continua usando `FOR UPDATE SKIP LOCKED`; os estados, limite do lote e fluxo de criação/verificação de links não foram alterados.
-- Para o limite padrão de dez itens, a ordenação aleatória fica limitada a no máximo quarenta candidatos, em vez de todo o conjunto elegível.
+- A seleção agora usa `ORDER BY last_seen_at ASC` e o índice de status/última atualização existente, em vez de aplicar `random()` sobre todo o conjunto elegível.
+- `last_seen_at` continua sendo atualizado no claim e nos caminhos de deferimento; isso faz os itens processados/deferidos voltarem para o fim da rotação.
+- O claim continua usando `FOR UPDATE SKIP LOCKED`; a regra de diversidade por organização, os estados, o limite do lote e o fluxo de criação/verificação de links foram preservados.
+- A escolha entre registros com o mesmo `last_seen_at` deixa de ser aleatória. Essa pequena mudança de ordenação deve ser observada na validação de distribuição da fila.
 
 ## O que deliberadamente não foi alterado
 
