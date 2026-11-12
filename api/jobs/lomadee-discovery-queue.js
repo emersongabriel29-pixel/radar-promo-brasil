@@ -63,7 +63,7 @@ export default async function handler(req, res) {
     WHERE marketplace='LOMADEE' AND kind='PRODUCT'
       AND processing_status='PROCESSING' AND last_seen_at<now()-interval '10 minutes'
   `);
-  await db.query(`UPDATE affiliate_discovery_items SET processing_status='DISCOVERED',processing_error='MASTER_RULE_REPROCESS',last_seen_at=now() WHERE marketplace='LOMADEE' AND kind='PRODUCT' AND (processing_status='BLOCKED_SAFETY' OR (processing_status='NEEDS_DATA' AND NULLIF(trim(title),'') IS NOT NULL AND price_cents>0 AND product_url LIKE 'https://%'))`);
+  await db.query(`UPDATE affiliate_discovery_items SET processing_status='DISCOVERED',processing_error='MASTER_RULE_REPROCESS',last_seen_at=now() WHERE marketplace='LOMADEE' AND kind='PRODUCT' AND processing_status='NEEDS_DATA' AND NULLIF(trim(title),'') IS NOT NULL AND price_cents>0 AND product_url LIKE 'https://%'`);
   const claimed = await db.query(`
     WITH batch AS (
       SELECT id FROM affiliate_discovery_items
