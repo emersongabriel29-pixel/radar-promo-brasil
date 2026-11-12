@@ -90,3 +90,27 @@ Nenhum adendo registrado até o momento.
 - Resultado: criação documental confirmada no GitHub. A pendência de confirmação dos arquivos foi encerrada.
 - Hatchable permanece na versão 638; os documentos não foram copiados para lá porque o destino `docs/` não apareceu no inventário e a interface de escrita disponível não aceita esse caminho. Nenhum deploy foi realizado.
 - Testes npm não foram executados porque não houve alteração de código executável. Nenhuma afirmação de validação funcional do aplicativo é feita.
+
+
+### AUD-2026-11-12-QUEUE-CLASSIFICATION — correção da fila e classificação Lomadee
+
+- **Data:** 12/11/2026.
+- **Status:** alterações propostas em branch; não mescladas.
+- **Baseline de produção:** Hatchable v664; GitHub `main` consultado antes da criação da branch. A versão GitHub `main` não continha as consultas `affiliate_discovery_items`/`affiliate_discovery_runs` no endpoint `api/reports.js`, embora o painel tivesse a função de fila. A versão atual do Hatchable foi usada como base para sincronizar esse endpoint, preservando os recursos de relatórios e vendas já presentes no Hatchable.
+- **Causa:** painel e alerta usavam DISCOVERED + FAILED + PROCESSING em vez de DISCOVERED + PROCESSING + READY_FOR_LINK; o nome da variação Lomadee podia prevalecer sobre o nome do produto; a regra de medicamentos não era aplicada nos dois caminhos da fila Lomadee.
+- **Arquivos atualizados nesta branch:** `api/reports.js`, `public/radar.js`, `lib/lomadee-catalog.js`, `lib/product-safety.js`, `api/jobs/lomadee-discovery-queue.js`, `api/jobs/lomadee-link-queue.js`, `api/integrations/lomadee.js`.
+- **Mudanças:** fórmula correta de pendentes no backend e frontend; contagem por marketplace; separação de READY_FOR_LINK de LINKED/IMPORTED; último erro ordenado por timestamp; classificação Lomadee baseada primeiro no nome real do produto; exclusão de medicamentos/antiácidos da fila READY_FOR_LINK e do worker de links.
+- **Dados:** nenhum dado operacional alterado; nenhuma fila reprocessada; nenhum worker ou API externa executado; nenhuma publicação/mensagem enviada.
+- **Validação:** dry-run Hatchable sem erros/avisos. Teste de runtime via Hatchable `run_function` foi bloqueado por HTTP 429 `usage_limit`; portanto, a classificação não foi validada em runtime nesta sessão. A branch aguarda revisão e não foi mesclada.
+
+
+### Adendo 2026-11-12 — implantação observada e conferência de manifesto
+
+- **Status:** DEPLOYMENT HATCHABLE CONFIRMADO — v667 LIVE.
+- **Evidência:** get_deployment retornou v667 LIVE, implantado em 12/11/2026 às 10:20:03 UTC. Os hashes do manifesto live coincidem com os hashes WIP dos sete arquivos de código alterados e do lib/documentation/AUDIT-LEDGER.md.
+- **Dry-run:** ok=true, errors=[], warnings=[]; manifesto esperado com 124 funções API, 15 arquivos públicos, 9 páginas e 74 migrations (sem nova migration).
+- **Runtime:** run_function e run_code retornaram HTTP 429 usage_limit antes da execução. Não foi possível executar os testes funcionais nem reconsultar o endpoint de relatórios; portanto, a validação de runtime permanece BLOQUEADA, apesar da implantação confirmada.
+- **GitHub:** branch codex/fix-queue-classification-20261112-v2; PR #197 aberto em rascunho: https://github.com/emersongabriel29-pixel/radar-promo-brasil/pull/197. PR #196, branch anterior divergente, fechado. Nenhum PR foi mesclado.
+- **Dados/efeitos:** nenhuma linha operacional alterada, nenhuma fila reprocessada, nenhum worker ou API externa executado, nenhuma mensagem ou publicação enviada. O deploy não incluiu mudança de schema nem migration nova.
+- **Limite funcional:** a correção protege os novos itens que passarem pelo fluxo Lomadee após v667. Registros antigos de medicamentos e armários de cozinha desviados não foram corrigidos em lote; continuam exigindo plano de revisão/backfill autorizado.
+- **Próxima etapa:** após a quota do banco ser restabelecida, executar testes funcionais sem disparar workers, confirmar o endpoint /api/reports e validar os novos itens em amostra controlada. Revisar PR #197 e reconciliar main sem sobrescrever diferenças.

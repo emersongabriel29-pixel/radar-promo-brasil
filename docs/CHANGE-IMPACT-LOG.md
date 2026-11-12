@@ -234,3 +234,21 @@ Nenhum adendo registrado até o momento.
 - Hatchable continua sem cópia destes documentos; a interface disponível não aceita `docs/` e não foi usado diretório público como substituto.
 - Nenhum teste npm foi executado; não aplicável à criação exclusiva de Markdown.
 - Resultado: CONCLUÍDA no escopo documental do GitHub; sincronização GitHub ↔ Hatchable não realizada nem alegada.
+
+
+## 2026-11-12 — Correção de fila de descoberta e classificação Lomadee
+
+- Corrigida a fórmula de pendentes para `DISCOVERED + PROCESSING + READY_FOR_LINK`, excluindo FAILED, LINKED e IMPORTED.
+- Painel passa a exibir pendentes por marketplace e separar READY_FOR_LINK de LINKED/IMPORTED.
+- Último erro passa a ser selecionado pela data de criação, não por ordenação lexical.
+- Lomadee passa a priorizar `product.name` sobre `option.name` e aplicar o filtro de medicamentos/antiácidos antes de liberar itens para READY_FOR_LINK ou gerar link.
+- Nenhum dado operacional foi alterado. Nenhuma fila foi reprocessada e nenhuma mensagem/publicação foi enviada.
+- WIP Hatchable validado por `dry_run_deploy` sem erros/avisos. Teste de runtime bloqueado pelo limite mensal do banco (HTTP 429). Branch GitHub: `codex/fix-queue-classification-20261112`; não mesclada.
+
+
+## Resultado da implantação — 12/11/2026
+
+- Hatchable v667 LIVE; hashes do manifesto coincidem com os arquivos WIP alterados. Dry-run sem erros/avisos e sem nova migration.
+- Testes de runtime bloqueados por HTTP 429 usage_limit; não declarar homologação funcional completa.
+- PR #197 permanece aberto em rascunho, sem merge. Nenhum dado operacional ou fila foi alterado; nenhum worker, API externa, publicação ou mensagem foi executado.
+- Correção aplicada aos novos itens Lomadee; registros antigos desviados permanecem sem backfill até autorização e plano específico.
