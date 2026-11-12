@@ -18,7 +18,8 @@ export default async function(req, res) {
     SELECT DISTINCT o.account_id
     FROM offers o
     JOIN accounts a ON a.id=o.account_id AND a.status='ACTIVE'
-    WHERE o.status IN ('PENDING','NEEDS_REVIEW','READY','APPROVED')
+    LEFT JOIN extension_autopublish_settings s ON s.account_id=o.account_id
+    WHERE (COALESCE(o.imported_by,'')<>'CHROME_EXTENSION' OR o.status IN ('APPROVED','READY') OR COALESCE(s.enabled,false)=true) AND o.status IN ('PENDING','NEEDS_REVIEW','READY','APPROVED')
       AND NULLIF(trim(o.title),'') IS NOT NULL
       AND o.current_price>0
       AND COALESCE(o.validation_status,'') <> 'REJECTED'
