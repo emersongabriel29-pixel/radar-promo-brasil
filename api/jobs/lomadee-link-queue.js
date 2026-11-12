@@ -80,6 +80,7 @@ function normalize(row) {
   const originalPrice = listedPrice && currentPrice ? Math.max(listedPrice, currentPrice) : currentPrice;
   const organizationId = clean(raw.organizationId, 80);
   const classification = classifyLomadeeProduct(raw);
+  if (classification.blocked) return { error: 'BLOCKED_SAFETY' };
   if (raw.available === false || option.available === false || row.available === false) return { error: 'UNAVAILABLE' };
   if (!title || !currentPrice || currentPrice <= 0 || !/^https:\/\//i.test(productUrl) || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(organizationId)) return { error: 'NEEDS_DATA' };
   return { raw, title, productUrl, imageUrl, currentPrice, originalPrice, organizationId, classification, option };
