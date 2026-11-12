@@ -260,13 +260,13 @@ path = "/api/jobs/ingestion"
 schedule = "35 * * * *"
 
 [[config]]
-name = "SUPABASE_DB_ENABLED"
+name = "supabase_db_enabled"
 required = false
 default = false
 description = "false mantém o Hatchable ativo; true habilita Supabase somente após importação, validação e autorização do corte."
 
 [[config]]
-name = "SUPABASE_DB_BRIDGE_URL"
+name = "supabase_db_bridge_url"
 required = false
 default = "https://runnmpzkomcdawwzuift.supabase.co/functions/v1/radar-db-bridge"
 description = "URL HTTPS da ponte privada do banco Supabase; usada somente no servidor."
