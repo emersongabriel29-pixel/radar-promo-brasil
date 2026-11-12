@@ -9,6 +9,7 @@ Atualizado em 12/11/2026.
 ## Schema reconstruído e conferido
 - 68/68 tabelas presentes; comparação dos nomes das colunas sem diferenças.
 - 176 relacionamentos de chave estrangeira identificados.
+- Correção pós-replay aplicada: removidos os índices globais legados `uq_offers_fingerprint` e `uq_publications_idempotency`, que a migration 008 substitui por unicidade por conta. O índice duplicado `extension_api_tokens_token_hash_key` da origem não foi recriado porque `idx_extension_api_tokens_hash` já garante a mesma unicidade no destino.
 - 74 migrations SQL distintas do Hatchable aplicadas.
 - O histórico registra 81 entradas: 74 migrations distintas mais 7 reaplicações idempotentes das migrations 001–007 durante a recuperação da primeira tentativa. Não editar/apagar manualmente o histórico.
 - Criado schema privado `private` com tabela de nonces anti-replay e tabela de auditoria.
