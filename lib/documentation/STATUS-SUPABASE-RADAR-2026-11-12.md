@@ -66,10 +66,10 @@ Não colocar senha, connection string, service-role key ou HMAC no GitHub, naveg
 - Os arquivos críticos listados acima foram comparados/sincronizados; a paridade integral ainda não está certificada.
 
 ## Validação, PR e produção
-- PR #198 aberto no branch `codex/supabase-migration-20261112`; não mesclado.
-- Primeira execução GitHub Actions: build passou, 234/241 testes passaram e 7 falharam em contratos de safety/autoaprovação AliExpress, classificação de medicamentos Lomadee, ingestion e autopilot. A investigação identificou versões runtime mais novas no Hatchable; 11 arquivos foram sincronizados. A segunda execução teve 235/241 testes passando e 6 falhas; foram então corrigidos o bloqueio de medicamentos/antialérgicos, desconto mínimo de 10%, isolamento de origem AliExpress, regra de segurança Lomadee e dois fixtures/assertions de testes. Uma terceira execução está na fila; não declarar CI verde até concluir.
+- PR #198 mesclado em `main` no commit `951c64c4fae7b61933c949c42f3404f94d1a8fd5`.
+- GitHub Actions final: build passou; 241/241 testes passaram; `npm audit` encontrou 0 vulnerabilidades; Playwright E2E passou com 3 testes. As falhas intermediárias revelaram drift de código e fixtures, corrigidos antes do merge.
 - `npm audit` e E2E foram pulados após a falha inicial dos testes.
-- Hatchable dry-run: zero erros e zero avisos; versão candidata v669. Não publicada enquanto PR/CI e paridade permanecem pendentes.
+- Hatchable dry-run: zero erros e zero avisos; versão candidata v669. A publicação v669 ainda precisa ser concluída; não implica corte para Supabase.
 - Produção permanece v668, usando PostgreSQL do Hatchable.
 - O limite mensal/timeout do banco Hatchable impediu exportar dados reais; a data de restauração anteriormente informada foi 02/12/2026. Nenhuma credencial cifrada foi copiada.
 
