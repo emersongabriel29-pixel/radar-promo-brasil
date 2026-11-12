@@ -14,7 +14,7 @@ Atualizado em 12/11/2026.
 - 2 tabelas privadas criadas no schema `private` para nonces anti-replay e auditoria.
 - Correção pós-replay: removidos os índices globais legados `uq_offers_fingerprint` e `uq_publications_idempotency`, substituídos pela unicidade por conta da migration 008.
 - Destino: 192 índices públicos; origem: 193. Não recriado o índice redundante `extension_api_tokens_token_hash_key`, pois `idx_extension_api_tokens_hash` já garante a mesma unicidade.
-- Migrations podem criar registros globais de bootstrap; nenhum dado real de usuário, oferta, fila, publicação, integração ou credencial foi importado.
+- Migrations podem criar registros globais de bootstrap; nenhum dado real de usuário, oferta, fila, publicação, integração ou credencial foi importado. Contagens verificadas: accounts=0, offers=0, publications=0, ingestion_batches=0, marketplace_api_credentials=0 e meli_notification_events=0; as tabelas de nonce/auditoria da ponte também estão vazias.
 
 ## Segurança
 O Security Advisor acusa RLS desabilitado nas 68 tabelas públicas (`rls_disabled_in_public`, ERROR). O destino ainda não contém dados reais, mas o Advisor classifica as tabelas como expostas pela Data API. Não usar a chave anon/publishable para acessar essas tabelas.
