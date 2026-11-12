@@ -23,14 +23,16 @@ export default async function handler(req, res) {
     try {
       const linkData = await getLomadeeActiveLinks(accountId);
       totals.activeLinksListed += linkData.links.size;
-      const offers = (await db.query(
-        "SELECT o.id,o.account_id,o.title,o.current_price AS \"currentPrice\",o.original_price AS \"originalPrice\",o.product_url AS \"productUrl\",o.affiliate_url AS \"affiliateUrl\",o.image_url AS \"imageUrl\",o.coupon_url AS \"couponUrl\",o.coupon_code AS \"couponCode\",o.source_category AS \"sourceCategory\",o.subcategory,o.classification_tags AS \"classificationTags\",o.status,o.created_at AS \"createdAt\",EXISTS(SELECT 1 FROM offer_price_history ph WHERE ph.account_id=o.account_id AND ph.offer_id=o.id AND ph.source_type='OFFICIAL_API' AND ph.verified_at>now()-interval '24 hours') AS \"recentlyVerified\" FROM offers o WHERE o.account_id=$1 AND o.source='LOMADEE' AND o.status IN ('APPROVED','PUBLISHED') ORDER BY o.created_at,o.id",
+      // Keep the all-offer link audit narrow; run the price-history EXISTS only for the 10-row work batch.
+      const offerLinks = (await db.query(
+        "SELECT affiliate_url FROM offers WHERE account_id=$1 AND source='LOMADEE' AND status IN ('APPROVED','PUBLISHED')",
         [accountId]
       )).rows;
-      totals.existingOffers += offers.length;
-      const verifiedLinks = offers.filter(offer => linkData.links.has(String(offer.affiliateUrl || ''))).length;
+      const totalOffers = offerLinks.length;
+      const verifiedLinks = offerLinks.filter(offer => linkData.links.has(String(offer.affiliate_url || ''))).length;
+      totals.existingOffers += totalOffers;
       totals.linksVerified += verifiedLinks;
-      const allLinksVerified = offers.length > 0 && verifiedLinks === offers.length;
+      const allLinksVerified = totalOffers > 0 && verifiedLinks === totalOffers;
       if (allLinksVerified && credential.status !== 'VALIDATED') {
         await db.query(
           "UPDATE marketplace_api_credentials SET status='LINKS_READ_VALIDATED',last_checked_at=now(),last_error=$2,updated_at=now() WHERE account_id=$1 AND marketplace='LOMADEE' AND status<>'VALIDATED'",
@@ -43,13 +45,15 @@ export default async function handler(req, res) {
         );
       }
 
-      const safeCandidates = offers;
       const requestedOffset = Number(req.body?.offset);
-      const groups = Math.max(1, Math.ceil(safeCandidates.length / 10));
-      const offset = Number.isInteger(requestedOffset) && requestedOffset >= 0 && requestedOffset < safeCandidates.length
+      const groups = Math.max(1, Math.ceil(totalOffers / 10));
+      const offset = Number.isInteger(requestedOffset) && requestedOffset >= 0 && requestedOffset < totalOffers
         ? requestedOffset
         : (Math.floor(Date.now() / 3600000) % groups) * 10;
-      const batch = safeCandidates.slice(offset, offset + 10);
+      const batch = totalOffers ? (await db.query(
+        "SELECT o.id,o.account_id,o.title,o.current_price AS \"currentPrice\",o.original_price AS \"originalPrice\",o.product_url AS \"productUrl\",o.affiliate_url AS \"affiliateUrl\",o.image_url AS \"imageUrl\",o.coupon_url AS \"couponUrl\",o.coupon_code AS \"couponCode\",o.source_category AS \"sourceCategory\",o.subcategory,o.classification_tags AS \"classificationTags\",o.status,o.created_at AS \"createdAt\",EXISTS(SELECT 1 FROM offer_price_history ph WHERE ph.account_id=o.account_id AND ph.offer_id=o.id AND ph.source_type='OFFICIAL_API' AND ph.verified_at>now()-interval '24 hours') AS \"recentlyVerified\" FROM offers o WHERE o.account_id=$1 AND o.source='LOMADEE' AND o.status IN ('APPROVED','PUBLISHED') ORDER BY o.created_at,o.id LIMIT 10 OFFSET $2",
+        [accountId, offset]
+      )).rows : [];
 
       for (const offer of batch) {
         if (!linkData.links.has(String(offer.affiliateUrl || ''))) continue;
