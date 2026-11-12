@@ -2,7 +2,7 @@ import { db } from 'hatchable';
 import { offerScore } from 'lib/automation.js';
 import { enqueueMatches } from 'lib/autopilot.js';
 import { isAdultProduct, isMedicationProduct } from 'lib/product-safety.js';
-// No internal product-category exclusion.
+// Medication and anti-allergy products are rejected before scoring or publication.
 
 export const access = 'scheduler';
 export const methods = ['POST'];
@@ -30,8 +30,10 @@ export default async function handler(req, res) {
   for (const offer of rows) {
     try {
       if (isMedicationProduct({title:offer.title,productUrl:offer.product_url})) {
-        await db.query("UPDATE offers SET validation_status='NEEDS_REVIEW',classification_reason='MEDICATION_PUBLICATION_EXCLUDED',updated_at=now() WHERE id=$1 AND account_id=$2 AND status='PENDING'",[offer.id,offer.account_id]);
+        const safetyMessage = 'Produto bloqueado pela política de segurança: medicamento ou antialérgico.';
+        await db.query("UPDATE offers SET status='REJECTED',validation_status='REJECTED',classification_reason='MEDICATION_PUBLICATION_EXCLUDED',message=$1,updated_at=now() WHERE id=$2 AND account_id=$3 AND status='PENDING'",[safetyMessage,offer.id,offer.account_id]);
         result.medicationExcluded++;
+        result.rejected++;
         continue;
       }
       const original = Number(offer.original_price), current = Number(offer.current_price);
@@ -41,6 +43,7 @@ export default async function handler(req, res) {
       else if (isAdultProduct({title:offer.title,productUrl:offer.product_url})) reason = 'RESTRICAO_EXTERNA_ALIEXPRESS_ADULT_ADVERTISING';
       else if (!isHttps(offer.affiliate_url) || !isAliExpressUrl(offer.product_url)) reason = 'Link de afiliado ou produto AliExpress ausente/inválido';
       else if (!Number.isSafeInteger(current) || current <= 0) reason = 'Preço atual ausente ou inválido';
+      else if (discount < 10) reason = 'Desconto inferior a 10%; requer revisão humana';
       if (reason) {
         await db.query(
           reason === 'RESTRICAO_EXTERNA_ALIEXPRESS_ADULT_ADVERTISING'
