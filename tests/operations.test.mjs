@@ -167,7 +167,7 @@ test('captura autorizada importa dados reais do feed, deduplica e mantém isolam
  assert.equal((await runMonitors({accountId:a.id,monitorId:'feed-test',manual:true,fetchFeed})).checked,0);
  await db.query("UPDATE monitors SET last_run_at=now()-interval '2 minutes' WHERE id='feed-test'");
  assert.equal((await runMonitors({accountId:a.id,monitorId:'feed-test',manual:true,fetchFeed})).captured,0);
- const offer=(await db.query("SELECT current_price,source_monitor_id,status FROM offers WHERE title='Produto do feed'")).rows[0];assert.equal(offer.current_price,4990);assert.equal(offer.source_monitor_id,'feed-test');assert.equal(offer.status,'PENDING');
+ const offer=(await db.query("SELECT current_price,source_monitor_id,status FROM offers WHERE title='Produto do feed'")).rows[0];assert.equal(offer.current_price,4990);assert.equal(offer.source_monitor_id,'feed-test');assert.equal(offer.status,'READY');
  assert.equal((await db.query("SELECT captured_count FROM monitors WHERE id='feed-test'")).rows[0].captured_count,1);
 });
 test('LGPD exige identidade, anonimiza apenas o titular e impede nova captura após revogação',async()=>{

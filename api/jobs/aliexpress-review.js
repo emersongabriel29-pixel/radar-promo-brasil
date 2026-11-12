@@ -1,8 +1,8 @@
 import { db } from 'hatchable';
 import { offerScore } from 'lib/automation.js';
 import { enqueueMatches } from 'lib/autopilot.js';
-import { isAdultProduct } from 'lib/product-safety.js';
-// No internal product-category exclusion.
+import { isAdultProduct, isMedicationProduct } from 'lib/product-safety.js';
+// Medication and anti-allergy products are rejected before scoring or publication.
 
 export const access = 'scheduler';
 export const methods = ['POST'];
@@ -23,12 +23,19 @@ const isHttps = value => {
  */
 export default async function handler(req, res) {
   const rows = (await db.query(
-    "SELECT id,account_id,title,original_price,current_price,discount_percent,affiliate_url,image_url,product_url,status,classification_reason FROM offers WHERE source='ALIEXPRESS' AND status='PENDING' AND COALESCE(validation_status,'') IN ('PENDING','PENDING_REVIEW','VALIDATED','NEEDS_REVIEW','') ORDER BY COALESCE(radar_score,score,0) DESC, score DESC, created_at ASC LIMIT 30"
+    "SELECT id,account_id,title,original_price,current_price,discount_percent,affiliate_url,image_url,product_url,status,classification_reason FROM offers WHERE source='ALIEXPRESS' AND status='PENDING' AND COALESCE(classification_reason,'')<>'MEDICATION_PUBLICATION_EXCLUDED' AND COALESCE(validation_status,'') IN ('PENDING','PENDING_REVIEW','VALIDATED','NEEDS_REVIEW','') ORDER BY COALESCE(radar_score,score,0) DESC, score DESC, created_at ASC LIMIT 30"
   )).rows;
-  const result = { ok: true, scanned: rows.length, validated: 0, approved: 0, needsReview: 0, providerRestricted: 0, rejected: 0, unchanged: 0, failed: 0, publicationTriggered: false, queued: 0, telegramQueued: 0, whatsappQueued: 0, messagesSent: 0 };
+  const result = { ok: true, scanned: rows.length, validated: 0, approved: 0, needsReview: 0, medicationExcluded: 0, providerRestricted: 0, rejected: 0, unchanged: 0, failed: 0, publicationTriggered: false, queued: 0, telegramQueued: 0, whatsappQueued: 0, messagesSent: 0 };
   const approvedAccounts = new Set();
   for (const offer of rows) {
     try {
+      if (isMedicationProduct({title:offer.title,productUrl:offer.product_url})) {
+        const safetyMessage = 'Produto bloqueado pela política de segurança: medicamento ou antialérgico.';
+        await db.query("UPDATE offers SET status='REJECTED',validation_status='REJECTED',classification_reason='MEDICATION_PUBLICATION_EXCLUDED',message=$1,updated_at=now() WHERE id=$2 AND account_id=$3 AND status='PENDING'",[safetyMessage,offer.id,offer.account_id]);
+        result.medicationExcluded++;
+        result.rejected++;
+        continue;
+      }
       const original = Number(offer.original_price), current = Number(offer.current_price);
       const discount = original > current && original > 0 ? Math.round((original - current) * 100 / original) : 0;
       let reason = '';
@@ -36,6 +43,7 @@ export default async function handler(req, res) {
       else if (isAdultProduct({title:offer.title,productUrl:offer.product_url})) reason = 'RESTRICAO_EXTERNA_ALIEXPRESS_ADULT_ADVERTISING';
       else if (!isHttps(offer.affiliate_url) || !isAliExpressUrl(offer.product_url)) reason = 'Link de afiliado ou produto AliExpress ausente/inválido';
       else if (!Number.isSafeInteger(current) || current <= 0) reason = 'Preço atual ausente ou inválido';
+      else if (discount < 10) reason = 'Desconto inferior a 10%; requer revisão humana';
       if (reason) {
         await db.query(
           reason === 'RESTRICAO_EXTERNA_ALIEXPRESS_ADULT_ADVERTISING'

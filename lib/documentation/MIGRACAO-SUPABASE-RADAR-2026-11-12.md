@@ -1,6 +1,8 @@
 # Migração do banco do Radar Promo Brasil para Supabase
 Data da auditoria: 12/11/2026
 
+> Registro histórico da auditoria inicial de criação do projeto. O estado operacional atualizado, incluindo schema reconstruído, ponte, segurança e pendências, está em [STATUS-SUPABASE-RADAR-2026-11-12.md](STATUS-SUPABASE-RADAR-2026-11-12.md).
+
 ## Objetivo e regra de segurança
 
 O titular solicitou que o Supabase passe a ser o banco de dados do Radar Promo Brasil. A migração deve preservar o comportamento atual, os dados, filas, credenciais, integrações, rotinas e histórico. Não desligar nem esvaziar o PostgreSQL atual do Hatchable antes da validação e do corte controlado.

@@ -1,8 +1,9 @@
+import { deliveryBackoffSeconds } from 'lib/delivery-retry.js';
 import { db } from 'hatchable';
 import { configuredBotToken, sendTelegramOffer } from 'lib/telegram.js';
 import { cacheOfferImage } from 'lib/offer-images.js';
 import { formatPromo } from 'lib/promo-message.js';
-import { eligiblePublication } from 'lib/delivery.js';
+import { eligiblePublication, deferUnsentPublications } from 'lib/delivery.js';
 import { publicationPrioritySql } from 'lib/publication-priority.js';
 
 export const access = 'scheduler';
@@ -43,8 +44,8 @@ async function claimBatch(accountId, ids) {
   }
 }
 
-async function processAccount(accountId, settings) {
-  const result = { accountId, claimedTurn: true, source: null, processed: 0, published: 0, failed: 0, unconfirmed: 0, skipped: 0, legacyPromoted: 0 };
+async function processAccount(accountId, settings, {deadline=Date.now()+50000}={}) {
+  const result = { accountId, claimedTurn: true, source: null, processed: 0, published: 0, failed: 0, unconfirmed: 0, skipped: 0, deferred: 0, legacyPromoted: 0 };
   const runQuery = async (stage, sql, params) => {
     try { return await db.query(sql, params); }
     catch (error) { if (error && typeof error === 'object') error.schedulerStage = stage; throw error; }
@@ -177,10 +178,12 @@ async function processAccount(accountId, settings) {
   const ids = rows.map(row=>row.id);
   const claimed = await claimBatch(accountId,ids);
   rows = rows.filter(item=>claimed.has(item.id)).map(item=>({...item,dispatchToken:claimed.get(item.id)}));
-  result.processed = rows.length;
+  result.processed = 0;
 
-  for (const item of rows) {
-    let sent=false,lastError='Nenhum bot ativo conectado.';
+  for (const [itemIndex,item] of rows.entries()) {
+    if(Date.now()+20000>=deadline){result.deferred+=await deferUnsentPublications(db,accountId,rows.slice(itemIndex));break;}
+    result.processed++;
+    let sent=false,lastError='Nenhum bot ativo conectado.',lastFailure=null;
     for (const connection of connections) {
       const token=tokens.get(connection.id);
       if (!token) continue;
@@ -214,13 +217,14 @@ async function processAccount(accountId, settings) {
         await runQuery('markConnectionHealthy', "UPDATE telegram_connections SET failure_count=0,last_seen_at=now(),status='ACTIVE',updated_at=now() WHERE id=$1 AND account_id=$2",[connection.id,accountId]);
         result.published++;sent=true;break;
       } catch(error) {
+        lastFailure=error;
         lastError=String(error?.message||error).slice(0,500);
         if(providerAccepted||error?.code==='DELIVERY_UNCONFIRMED'||/timeout|timed out|ECONNRESET|socket hang up/i.test(lastError)){
           await runQuery('markWaitingConfirmation', "UPDATE publications SET status='WAITING_CONFIRMATION',error_message='Entrega incerta. Confira o destino antes de reenviar.',dispatch_token=NULL WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$3",[item.id,accountId,item.dispatchToken]);
           result.unconfirmed++;sent=true;break;
         }
         if(['MEDIA_IMAGE_NOT_FOUND','MEDIA_URL_INVALID','MEDIA_TYPE_UNSUPPORTED','MEDIA_SIZE_INVALID'].includes(error?.code)){
-          await runQuery('markMediaFailed', "UPDATE publications SET status='FAILED',error_message=$3,next_attempt_at=NULL,telegram_connection_id=NULL,dispatch_token=NULL WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$4",[item.id,accountId,lastError,item.dispatchToken]);
+          await runQuery('markMediaFailed', "UPDATE publications SET status='RETRY',error_message=$3,next_attempt_at=now()+interval '6 hours',telegram_connection_id=NULL,dispatch_token=NULL WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$4",[item.id,accountId,lastError,item.dispatchToken]);
           result.failed++;sent=true;break;
         }
         if(String(error?.code||'').startsWith('MEDIA_')) break;
@@ -228,12 +232,12 @@ async function processAccount(accountId, settings) {
       }
     }
     if(!sent){
-      const retryMinutes=Math.min(360,5*Math.pow(2,Math.min(6,Number(item.attempts)||0)))+Math.floor(Math.random()*3);
-      await runQuery('markRetryOrFailed', "UPDATE publications SET status=CASE WHEN attempts<5 THEN 'RETRY' ELSE 'FAILED' END,error_message=$3,next_attempt_at=CASE WHEN attempts<5 THEN now()+($4::text||' minutes')::interval ELSE NULL END,telegram_connection_id=NULL,dispatch_token=NULL WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$5",[item.id,accountId,lastError,retryMinutes,item.dispatchToken]);
+      const retrySeconds=deliveryBackoffSeconds(item.attempts,lastFailure?.retryAfterSeconds);
+      await runQuery('markRetryOrFailed', "UPDATE publications SET status='RETRY',error_message=$3,next_attempt_at=now()+($4::text||' seconds')::interval,telegram_connection_id=NULL,dispatch_token=NULL WHERE id=$1 AND account_id=$2 AND status='DISPATCHING' AND dispatch_token=$5",[item.id,accountId,lastError,retrySeconds,item.dispatchToken]);
       result.failed++;
     }
     // Telegram groups are rate-limited to roughly 20 messages/minute; keep a 3.1s gap per message.
-    if (result.processed>1) await wait(3100);
+    if (itemIndex<rows.length-1&&Date.now()+23100<deadline) await wait(3100);
   }
 
   const interval = selectedConfig?.intervalMinutes == null ? Number(settings.interval_minutes)||10 : Math.max(1,Math.min(1440,Number(selectedConfig.intervalMinutes)||Number(settings.interval_minutes)||10));
@@ -248,7 +252,8 @@ async function processAccount(accountId, settings) {
 }
 
 export default async function handler(req,res) {
-  const totals={accounts:0,turns:0,processed:0,published:0,failed:0,unconfirmed:0,skipped:0,legacyPromoted:0,results:[]};
+  const totals={accounts:0,turns:0,processed:0,published:0,failed:0,unconfirmed:0,skipped:0,legacyPromoted:0,deferred:0,results:[]};
+  const deadline=Date.now()+50000;
   try {
     await db.query(`
       INSERT INTO publication_scheduler_settings(account_id)
@@ -260,6 +265,7 @@ export default async function handler(req,res) {
     await db.query("UPDATE publications SET status='WAITING_CONFIRMATION',error_message='Envio interrompido. Confira o destino antes de reenviar.',dispatch_token=NULL WHERE status='DISPATCHING' AND last_attempt_at<now()-interval '20 minutes' AND group_id IN (SELECT id FROM promo_groups WHERE platform='TELEGRAM')");
     const due=(await db.query("SELECT account_id FROM publication_scheduler_settings WHERE enabled=true AND next_turn_at<=now() ORDER BY next_turn_at LIMIT 25")).rows;
     for(const row of due){
+      if(Date.now()+20000>=deadline)break;
       const claimed=(await db.query(`
         UPDATE publication_scheduler_settings
         SET next_turn_at=now()+(interval_minutes::text||' minutes')::interval,last_run_at=now(),updated_at=now()
@@ -269,8 +275,8 @@ export default async function handler(req,res) {
       if(!claimed)continue;
       totals.turns++;
       try{
-        const result=await processAccount(row.account_id,claimed);
-        totals.accounts++;totals.processed+=result.processed;totals.published+=result.published;totals.failed+=result.failed;totals.unconfirmed+=result.unconfirmed;totals.skipped+=result.skipped;totals.legacyPromoted+=result.legacyPromoted;
+        const result=await processAccount(row.account_id,claimed,{deadline});
+        totals.accounts++;totals.processed+=result.processed;totals.published+=result.published;totals.failed+=result.failed;totals.unconfirmed+=result.unconfirmed;totals.skipped+=result.skipped;totals.legacyPromoted+=result.legacyPromoted;totals.deferred+=result.deferred||0;
         totals.results.push(result);
       }catch(error){
         totals.failed++;
