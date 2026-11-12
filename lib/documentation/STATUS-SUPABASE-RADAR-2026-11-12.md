@@ -8,8 +8,8 @@ Atualizado em 12/11/2026.
 
 ## Schema reconstruído e conferido
 - 68/68 tabelas presentes; comparação dos nomes das colunas sem diferenças.
-- 176 relacionamentos de chave estrangeira identificados.
-- Correção pós-replay aplicada: removidos os índices globais legados `uq_offers_fingerprint` e `uq_publications_idempotency`, que a migration 008 substitui por unicidade por conta. O índice duplicado `extension_api_tokens_token_hash_key` da origem não foi recriado porque `idx_extension_api_tokens_hash` já garante a mesma unicidade no destino.
+- 88 constraints de chave estrangeira no catálogo PostgreSQL. A primeira contagem de 176 duplicava relações de entrada/saída retornadas pela API de introspecção; a contagem direta de pg_constraint é a referência correta.
+- Correção pós-replay aplicada: removidos os índices globais legados `uq_offers_fingerprint` e `uq_publications_idempotency`, que a migration 008 substitui por unicidade por conta. O destino ficou com 192 índices públicos contra 193 no schema de origem: o índice redundante `extension_api_tokens_token_hash_key` não foi recriado porque `idx_extension_api_tokens_hash` já garante a mesma unicidade.
 - 74 migrations SQL distintas do Hatchable aplicadas.
 - O histórico registra 81 entradas: 74 migrations distintas mais 7 reaplicações idempotentes das migrations 001–007 durante a recuperação da primeira tentativa. Não editar/apagar manualmente o histórico.
 - Criado schema privado `private` com tabela de nonces anti-replay e tabela de auditoria.
