@@ -5,6 +5,7 @@ import { cacheOfferImage } from 'lib/offer-images.js';
 import { formatPromo } from 'lib/promo-message.js';
 import { eligiblePublication, deferUnsentPublications } from 'lib/delivery.js';
 import { publicationPrioritySql } from 'lib/publication-priority.js';
+import { medicationProductSql } from 'lib/product-safety.js';
 
 export const access = 'scheduler';
 export const methods = ['POST'];
@@ -66,6 +67,8 @@ async function processAccount(accountId, settings, {deadline=Date.now()+50000}={
         AND NULLIF(trim(o.title),'') IS NOT NULL
         AND o.current_price>0
         AND NULLIF(trim(o.affiliate_url),'') LIKE 'https://%'
+        AND NOT ${medicationProductSql('o')}
+        AND (g.category_id IS NULL OR g.category_id='cat-gerais' OR o.category_id=g.category_id)
         AND EXISTS(SELECT 1 FROM telegram_connections tc WHERE tc.account_id=p.account_id AND tc.status='ACTIVE')
       ORDER BY p.priority DESC,p.created_at ASC
       LIMIT $2
