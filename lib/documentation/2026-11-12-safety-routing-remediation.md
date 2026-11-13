@@ -3,7 +3,7 @@
 ## Evidências confirmadas na produção
 
 - O grupo Casa & Lar permaneceu ACTIVE e com category_id correto.
-- Havia 36 publicações READY e 1 RETRY ligadas a ofertas medicamentosas; os títulos incluíam Allegra, Allestra, Adipept e Dipirona.
+- A consulta global encontrou 75 ofertas medicamentosas vinculadas a 96 publicações: 84 READY e 2 RETRY (86 ainda não enviadas), além de 10 publicações PUBLISHED. As 86 pendentes estavam distribuídas em quatro grupos; 11 READY estavam no Casa & Lar, 5 no Baby & Kids, 5 no Tech & Eletrônicos e 65 no grupo geral Ofertas.
 - Foram confirmadas publicações históricas incompatíveis no Casa & Lar: kit de unhas de gel, escova desembaçadora automotiva e aromatizador para carro. As mensagens externas já publicadas não são apagadas nem reescritas por esta correção.
 - A amostra de 40 publicações pendentes continha ofertas legítimas de Casa & Lar e exigia correção pontual, não reclassificação em massa.
 
@@ -22,7 +22,7 @@
 - Nenhuma mensagem é enviada ou removida do Telegram/WhatsApp.
 - Nenhum worker, API de marketplace ou encurtador é acionado por esta correção.
 - Publicações já efetivamente enviadas permanecem como PUBLISHED para preservar o histórico real; a correção de categoria não desfaz mensagens externas.
-- Registros pendentes comprovadamente incompatíveis devem ser colocados em estados explícitos BLOCKED_SAFETY/BLOCKED_ROUTING, com motivo, sem excluir dados.
+- As 86 publicações medicamentosas não enviadas devem ser colocadas em BLOCKED_SAFETY; os registros de roteamento incompatível identificados devem ser colocados em BLOCKED_ROUTING, com motivo, sem excluir dados.
 
 ## Validação necessária após sincronização
 
