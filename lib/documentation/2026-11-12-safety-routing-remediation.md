@@ -4,7 +4,8 @@
 
 - O grupo Casa & Lar permaneceu ACTIVE e com category_id correto.
 - A consulta global encontrou 75 ofertas medicamentosas vinculadas a 96 publicações: 84 READY e 2 RETRY (86 ainda não enviadas), além de 10 publicações PUBLISHED. As 86 pendentes estavam distribuídas em quatro grupos; 11 READY estavam no Casa & Lar, 5 no Baby & Kids, 5 no Tech & Eletrônicos e 65 no grupo geral Ofertas.
-- Foram confirmadas publicações históricas incompatíveis no Casa & Lar: kit de unhas de gel, escova desembaçadora automotiva e aromatizador para carro. As mensagens externas já publicadas não são apagadas nem reescritas por esta correção.
+- Foram confirmadas três publicações históricas incompatíveis no Casa & Lar: kit de unhas de gel, escova desembaçadora automotiva e aromatizador para carro. As mensagens externas já publicadas não são apagadas nem reescritas por esta correção.
+- A reconciliação identificou 38 publicações pendentes com categoria da oferta diferente da categoria do grupo, distribuídas entre Auto, Casa & Lar, Moda & Beleza e Tech & Eletrônicos; todas foram colocadas em BLOCKED_ROUTING, sem apagar os registros.
 - A amostra de 40 publicações pendentes continha ofertas legítimas de Casa & Lar e exigia correção pontual, não reclassificação em massa.
 
 ## Causas corrigidas no código
@@ -22,7 +23,7 @@
 - Nenhuma mensagem é enviada ou removida do Telegram/WhatsApp.
 - Nenhum worker, API de marketplace ou encurtador é acionado por esta correção.
 - Publicações já efetivamente enviadas permanecem como PUBLISHED para preservar o histórico real; a correção de categoria não desfaz mensagens externas.
-- As 86 publicações medicamentosas não enviadas devem ser colocadas em BLOCKED_SAFETY; os registros de roteamento incompatível identificados devem ser colocados em BLOCKED_ROUTING, com motivo, sem excluir dados.
+- As 86 publicações medicamentosas não enviadas foram colocadas em BLOCKED_SAFETY; as 38 publicações pendentes com divergência de categoria foram colocadas em BLOCKED_ROUTING, com motivo, sem excluir dados.
 
 ## Validação necessária após sincronização
 
