@@ -32,3 +32,10 @@
 - Confirmar que Allegra, Allestra, Adipept e Dipirona são bloqueados pela política de medicamentos.
 - Confirmar que a elegibilidade bloqueia medicamento e divergência entre categoria do produto e categoria do grupo, mantendo o grupo geral e mensagens manuais elegíveis.
 - Consultar novamente os registros pendentes e os estados de quarentena sem executar publicação.
+
+## Validação pós-deploy — 12/11/2026
+
+- Hatchable v670 foi publicado como LIVE; 343 arquivos e 135 funções foram implantados, sem avisos no resultado do deploy.
+- CI do GitHub: build, npm test, npm audit e Playwright E2E concluídos com sucesso no commit de código do PR #200.
+- O smoke test read-only de /api/automation/simulate retornou HTTP 429 usage_limit: limite mensal de 2,0 horas de banco atingido. Portanto, a classificação funcional pós-deploy não foi confirmada por endpoint em produção; não presumir normalidade até a quota voltar ou a migração de banco ser concluída.
+- Nenhum worker ou mensagem externa foi acionado durante o teste.
