@@ -115,6 +115,8 @@ var LABEL = {
   PUBLISHING: "Publicando",
   PUBLISHED: "Publicada",
   BLOCKED: "Aguardando conexão",
+  BLOCKED_SAFETY: "Bloqueada por segurança",
+  BLOCKED_ROUTING: "Bloqueada por roteamento",
   RETRY: "Nova tentativa",
   FAILED: "Falhou",
   ACTIVE: "Ativo",
