@@ -6,6 +6,11 @@
 
 **Toda alteração deve ser registrada na documentação na mesma tarefa e antes de ser considerada concluída.** Consulte [CONTROLE-DE-MUDANCAS.md](./CONTROLE-DE-MUDANCAS.md). A regra vale para código, API, UI, configuração, integrações, banco/migrações, automações, testes, segurança, documentação e implantação.
 
+## Auditoria Android — 16/11/2026
+
+- [Relatório das 23 áreas](./AUDITORIA-ANDROID-2026-11-16.md): 16 parciais, 6 bloqueadas e entrega adiada; aplicativo não homologado.
+- [Evidências agregadas](./evidence/android-audit-2026-11-16.json): inventários, verificações, testes e achados, sem dados pessoais ou segredos.
+
 ## Android em preparação
 
 - [Desenvolvimento Android — Radar Promo Ofertas](./ANDROID-BUILD.md): análise e testes preparados; fonte pendente de importação; geração de APK removida até prontidão.

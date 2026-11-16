@@ -110,3 +110,6 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 
 
 | 2026-11-16 | Adequação à decisão do usuário: desenvolver e validar antes de gerar APK | Workflow Android passa a análise e testes; removidos build, pacote e upload; índice e documento do domínio atualizados | Inventário da branch confirma fonte ausente; execução local indisponível; nenhum teste Flutter executado | Consultar commit desta retomada na branch android/github-actions-build | Sem deploy; sistema original preservado | Configuração revisada; fonte e validação funcional pendentes; sem sincronização Hatchable |
+
+
+| 2026-11-16 | Auditoria Android das 23 áreas, com relatório e evidências agregadas | Docs de Android, índice e evidências; inspeção read-only GitHub/Hatchable/Supabase | CI web do commit 9b893e5 aprovado; 2 testes isolados concluídos; 23 áreas registradas (16 parciais, 6 bloqueadas, entrega adiada); API 429 e fonte Flutter indisponível; nenhuma aprovação integral | Consultar commit documental desta auditoria na PR 202 | v671/v1 preservadas, sem deploy | Relatório parcial com bloqueios explícitos; nenhum APK; documentação não espelhada no Hatchable |
