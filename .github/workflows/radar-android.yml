@@ -1,0 +1,78 @@
+name: Radar Promo Ofertas Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'android/**']
+    paths:
+      - 'mobile/radar_promo_ofertas/**'
+  pull_request:
+    paths:
+      - 'mobile/radar_promo_ofertas/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: mobile/radar_promo_ofertas
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check existing Flutter source
+        working-directory: .
+        run: |
+          if [ ! -f mobile/radar_promo_ofertas/pubspec.yaml ] || [ ! -d mobile/radar_promo_ofertas/android ]; then
+            echo "::error::Import the existing Flutter project into mobile/radar_promo_ofertas before building."
+            exit 1
+          fi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Record SDK version
+        run: flutter --version
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Analyze source
+        run: flutter analyze
+      - name: Run existing tests
+        run: |
+          if [ -d test ] && find test -name '*_test.dart' -print -quit | grep -q .; then
+            flutter test
+          else
+            echo "::warning::No Flutter unit or widget tests are present. Build success does not prove functional validation."
+          fi
+      - name: Build installable test APK
+        run: flutter build apk --debug
+      - name: Package APK and source
+        working-directory: .
+        run: |
+          mkdir -p android-delivery
+          cp mobile/radar_promo_ofertas/build/app/outputs/flutter-apk/app-debug.apk android-delivery/Radar_Promo_Ofertas-debug.apk
+          git archive --format=zip -o android-delivery/Radar_Promo_Ofertas-source.zip HEAD mobile/radar_promo_ofertas .github/workflows/radar-android.yml docs/ANDROID-BUILD.md
+          cd android-delivery
+          sha256sum Radar_Promo_Ofertas-debug.apk Radar_Promo_Ofertas-source.zip > SHA256SUMS.txt
+      - name: Upload APK and source
+        uses: actions/upload-artifact@v4
+        with:
+          name: Radar-Promo-Ofertas-Android-${{ github.run_number }}
+          path: android-delivery/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Explain delivery
+        run: |
+          echo "APK de teste e fonte disponíveis nos artefatos desta execução." >> "$GITHUB_STEP_SUMMARY"
+          echo "Assinatura debug temporária; não é release para Play Store. Integrações e teste em aparelho precisam de validação separada." >> "$GITHUB_STEP_SUMMARY"

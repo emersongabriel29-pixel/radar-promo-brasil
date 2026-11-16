@@ -6,6 +6,10 @@
 
 **Toda alteração deve ser registrada na documentação na mesma tarefa e antes de ser considerada concluída.** Consulte [CONTROLE-DE-MUDANCAS.md](./CONTROLE-DE-MUDANCAS.md). A regra vale para código, API, UI, configuração, integrações, banco/migrações, automações, testes, segurança, documentação e implantação.
 
+## Android em preparação
+
+- [Compilação Android — Radar Promo Ofertas](./ANDROID-BUILD.md): configuração isolada; fonte pendente de importação e nenhum APK novo compilado.
+
 ## Documentos vigentes
 
 - [Regra Master e fluxos ponta a ponta](./REGRA-MASTER-E-FLUXOS-PONTA-A-PONTA.md)

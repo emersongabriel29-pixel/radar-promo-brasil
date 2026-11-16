@@ -104,3 +104,6 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 
 
 | 2026-11-08 | Aumento do lote técnico do autopilot para 200 e dispatcher Telegram para 14 | lib/autopilot, cache de imagem, worker WhatsApp, settings de publicação | Dry-run anterior sem erros/avisos; configuração DB batch=14/interval=5 confirmada; sem alteração de filtro de elegibilidade | commits 04dae24a, fc1a1059, 7551724f | draft para v664 | Próximo deploy; homologação de WhatsApp bloqueada por ausência de conexão |
+
+
+| 2026-11-16 | Preparação de GitHub Actions para APK Flutter independente | Novo workflow radar-android.yml e documentação ANDROID-BUILD; fonte prevista em mobile/radar_promo_ofertas | Revisão do inventário e documentação; nenhum teste Flutter/build executado porque fonte ainda não importado e runtime local indisponível | Consultar commit desta branch android/github-actions-build | v671 preservada; sem deploy | Configurado em branch; não homologado e sem APK novo; documentação não espelhada no Hatchable |
