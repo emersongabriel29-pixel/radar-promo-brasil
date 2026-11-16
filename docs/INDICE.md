@@ -30,3 +30,8 @@
 ## Regra de leitura
 
 Quando houver conflito entre documentação e execução, não presumir que a documentação está certa: abrir achado, inspecionar código/schema/logs, corrigir a fonte correspondente e registrar a reconciliação. Status de integração só pode ser declarado após prova do fluxo real permitido. Nenhum documento transforma recurso planejado em funcionalidade implementada.
+
+
+## Contrato da ponte Supabase
+
+- [Contrato e testes do adaptador Supabase](./SUPABASE-BRIDGE-CONTRACT.md).
