@@ -8,7 +8,7 @@
 
 ## Android em preparação
 
-- [Compilação Android — Radar Promo Ofertas](./ANDROID-BUILD.md): configuração isolada; fonte pendente de importação e nenhum APK novo compilado.
+- [Desenvolvimento Android — Radar Promo Ofertas](./ANDROID-BUILD.md): análise e testes preparados; fonte pendente de importação; geração de APK removida até prontidão.
 
 ## Documentos vigentes
 

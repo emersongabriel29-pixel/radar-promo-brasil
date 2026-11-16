@@ -1,36 +1,34 @@
-# Compilação Android — Radar Promo Ofertas
+# Desenvolvimento Android — Radar Promo Ofertas
 
-Estado em 16/11/2026: workflow preparado; fonte Flutter ainda não importado; nenhum APK novo compilado.
+Estado em 16/11/2026: validação Flutter configurada em branch; fonte pendente de importação; nenhum teste Flutter executado e nenhum APK novo gerado.
 
 ## Escopo e fonte de verdade
 
-Repositório: emersongabriel29-pixel/radar-promo-brasil. Alteração isolada na branch android/github-actions-build, a partir de a6ec44374fcf0915cb37940679af79c9cef6bfd8. O aplicativo Android ficará em mobile/radar_promo_ofertas. A fonte a recuperar é o projeto existente radar-promo-ofertas-android-flutter-18.zip; esta alteração não recria nem substitui esse projeto.
+Branch android/github-actions-build do repositório emersongabriel29-pixel/radar-promo-brasil. Base original a6ec44374fcf0915cb37940679af79c9cef6bfd8. O projeto existente radar-promo-ofertas-android-flutter-18.zip deve ser recuperado e revisado antes da importação em mobile/radar_promo_ofertas.
 
-O Radar Promo Brasil v671 e o backend independente Radar Promo Ofertas v1 foram identificados nesta sessão. Não há deploy, alteração de API, banco, credenciais, filas ou scheduler nesta tarefa. GitHub e Hatchable não são declarados sincronizados: este workflow é exclusivo do GitHub e a documentação desta branch ainda não foi espelhada no Hatchable.
+O fluxo foi ajustado à decisão do usuário: desenvolver e validar primeiro; gerar APK somente quando o aplicativo estiver pronto. Foram removidas as etapas de compilação de APK, empacotamento e upload de artefatos. Nenhum push ou execução manual deste workflow gera APK.
 
-## Uso
+## Validação no GitHub Actions
 
-1. Recuperar e revisar o ZIP Flutter existente, sem incluir código ou identidade proprietária do Pelando.
-2. Importar a raiz Flutter com pubspec.yaml e android/ em mobile/radar_promo_ofertas. Revisar segredos, credenciais, configurações e arquivos pessoais antes de qualquer commit: o repositório é público.
-3. Confirmar a versão Flutter compatível e fixá-la no workflow após ler o pubspec e eventual configuração FVM. Até essa confirmação, o workflow usa o canal stable e registra a versão efetiva; builds ainda não são reprodutíveis por versão de SDK.
-4. Um push com mudanças no diretório mobile inicia o workflow nas branches main ou android/**. Pull requests que alteram esse diretório também o executam. A execução manual fica disponível após o workflow existir na branch padrão.
-5. Abrir Actions, selecionar a execução e baixar o artefato Radar-Promo-Ofertas-Android. Ele contém APK debug instalável, ZIP do fonte versionado e SHA256SUMS.txt. Retenção: sete dias.
+1. Importar o fonte Flutter existente em mobile/radar_promo_ofertas, incluindo pubspec.yaml, android/ e testes.
+2. Antes de publicar arquivos, revisar credenciais, dados pessoais e material proprietário: o repositório é público.
+3. Confirmar e fixar a versão Flutter compatível com o projeto. O workflow ainda usa stable, com registro da versão efetiva; a escolha não está homologada.
+4. Pushes nas branches main e android/** e pull requests com alterações no diretório mobile executam o workflow. Execução manual fica disponível quando o workflow existir na branch padrão.
+5. O workflow verifica a presença do projeto, instala Java 17 e Flutter, resolve dependências, executa flutter analyze e flutter test. Falta de fonte ou de testes encerra a validação com erro.
+6. Ler os resultados em Actions. Sucesso da análise e dos testes não comprova integração nem funcionamento em aparelho.
 
-O workflow falha explicitamente se a fonte Flutter ou o projeto Android estiverem ausentes. Ele não gera aplicativo vazio para passar a compilação. Análise estática bloqueia o build em caso de erro; os testes existentes são executados. Ausência de testes gera aviso e não equivale a homologação.
+## Próximas etapas do produto
 
-## Assinatura e validação
+Revisar no fonte existente feed automático, busca, categorias, favoritos, detalhes, cupons, votos, comentários e notificações. Desenvolver com identidade própria e sem ofertas fictícias. A referência Pelando serve aos fluxos funcionais; seu código e identidade não devem ser incorporados.
 
-Esta primeira configuração produz um APK de teste com assinatura debug. A chave pode mudar entre execuções; atualizações sobre instalações anteriores podem exigir reinstalação e perda de dados locais. Uma versão de distribuição exige chave persistente protegida e fluxo de assinatura próprio. Nenhum segredo de assinatura foi criado.
+Conectar posteriormente ao backend independente Radar Promo Ofertas, preservando o Radar Promo Brasil. Só restaurar um fluxo de geração do APK após prontidão funcional confirmada, com definição de assinatura e teste em aparelho.
 
-A compilação não chama as APIs do Radar, não cria ofertas fictícias, não valida login, feed, favoritos, comentários, votos, cupons ou notificações e não publica na Play Store. Essas funções precisam ser verificadas no código existente e testadas separadamente.
+## Evidências, limites e preservação
 
-## Evidências e pendências
+O inventário atualizado da branch nesta tarefa não contém projeto mobile nem pubspec.yaml. A extração do ZIP está bloqueada por indisponibilidade do ambiente local, confirmada novamente nesta retomada. GitHub Actions executa arquivos do repositório; não acessa diretamente anexos privados desta conversa.
 
-- Inventário recursivo de main: sem pubspec.yaml, projeto Android ou ZIP Flutter.
-- Fonte ZIP identificada, porém transferência e extração bloqueadas: ambiente de execução local indisponível.
-- Execução de funções Hatchable retornou 429 usage_limit nesta sessão; integração não homologada.
-- Revisão do workflow baseada nas documentações oficiais de subosito/flutter-action e actions/upload-artifact.
-- Workflow não executado com fonte; flutter analyze, flutter test e build não executados.
-- O CI web existente não foi modificado. Nenhuma equivalência GitHub/Hatchable foi presumida.
+A tarefa alterou apenas o workflow Android e documentação. O CI web e o sistema Radar original foram preservados. Radar Promo Brasil v671 e backend independente v1 são as versões identificadas anteriormente nesta sessão; não houve deploy nesta tarefa. A integração real continua não homologada; tentativas anteriores retornaram 429 usage_limit no Hatchable.
 
-Rollback: remover o workflow e esta documentação da branch ou reverter o commit. Não há migração nem modificação de dados.
+Fonte de verdade desta mudança: branch GitHub. Não há declaração de sincronização com Hatchable, e a documentação desta branch não foi espelhada lá. Nenhum teste ou compilação Flutter foi executado nesta tarefa. A verificação disponível é a revisão dos arquivos e do diff no GitHub.
+
+Rollback: reverter o commit desta alteração. Não há alteração de banco, segredo ou deploy.

@@ -107,3 +107,6 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 
 
 | 2026-11-16 | Preparação de GitHub Actions para APK Flutter independente | Novo workflow radar-android.yml e documentação ANDROID-BUILD; fonte prevista em mobile/radar_promo_ofertas | Revisão do inventário e documentação; nenhum teste Flutter/build executado porque fonte ainda não importado e runtime local indisponível | Consultar commit desta branch android/github-actions-build | v671 preservada; sem deploy | Configurado em branch; não homologado e sem APK novo; documentação não espelhada no Hatchable |
+
+
+| 2026-11-16 | Adequação à decisão do usuário: desenvolver e validar antes de gerar APK | Workflow Android passa a análise e testes; removidos build, pacote e upload; índice e documento do domínio atualizados | Inventário da branch confirma fonte ausente; execução local indisponível; nenhum teste Flutter executado | Consultar commit desta retomada na branch android/github-actions-build | Sem deploy; sistema original preservado | Configuração revisada; fonte e validação funcional pendentes; sem sincronização Hatchable |

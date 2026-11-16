@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: android-apk-${{ github.ref }}
+  group: android-validation-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -53,26 +53,10 @@ jobs:
           if [ -d test ] && find test -name '*_test.dart' -print -quit | grep -q .; then
             flutter test
           else
-            echo "::warning::No Flutter unit or widget tests are present. Build success does not prove functional validation."
+            echo "::error::No Flutter tests are present. Add meaningful tests before accepting validation."
+            exit 1
           fi
-      - name: Build installable test APK
-        run: flutter build apk --debug
-      - name: Package APK and source
-        working-directory: .
+      - name: Record validation scope
         run: |
-          mkdir -p android-delivery
-          cp mobile/radar_promo_ofertas/build/app/outputs/flutter-apk/app-debug.apk android-delivery/Radar_Promo_Ofertas-debug.apk
-          git archive --format=zip -o android-delivery/Radar_Promo_Ofertas-source.zip HEAD mobile/radar_promo_ofertas .github/workflows/radar-android.yml docs/ANDROID-BUILD.md
-          cd android-delivery
-          sha256sum Radar_Promo_Ofertas-debug.apk Radar_Promo_Ofertas-source.zip > SHA256SUMS.txt
-      - name: Upload APK and source
-        uses: actions/upload-artifact@v4
-        with:
-          name: Radar-Promo-Ofertas-Android-${{ github.run_number }}
-          path: android-delivery/
-          if-no-files-found: error
-          retention-days: 7
-      - name: Explain delivery
-        run: |
-          echo "APK de teste e fonte disponíveis nos artefatos desta execução." >> "$GITHUB_STEP_SUMMARY"
-          echo "Assinatura debug temporária; não é release para Play Store. Integrações e teste em aparelho precisam de validação separada." >> "$GITHUB_STEP_SUMMARY"
+          echo "Análise estática e testes existentes concluídos. Nenhum APK foi gerado." >> "$GITHUB_STEP_SUMMARY"
+          echo "Integrações e funcionamento em aparelho ainda exigem validação própria." >> "$GITHUB_STEP_SUMMARY"
