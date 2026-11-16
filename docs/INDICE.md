@@ -39,3 +39,8 @@
 ## Regra de leitura
 
 Quando houver conflito entre documentação e execução, não presumir que a documentação está certa: abrir achado, inspecionar código/schema/logs, corrigir a fonte correspondente e registrar a reconciliação. Status de integração só pode ser declarado após prova do fluxo real permitido. Nenhum documento transforma recurso planejado em funcionalidade implementada.
+
+
+## Remediação Android — 16/11/2026
+
+- [Correções do backend independente, imagens e estado da migração](./REMEDIACAO-ANDROID-2026-11-16.md). Este documento atualiza os achados da auditoria sem transformar pendências em itens aprovados.

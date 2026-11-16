@@ -1,0 +1,1 @@
+:root{--sans:system-ui,sans-serif;--bg:#eef3fa;--surface:#fff;--text:#12263f;--text-dim:#4a607a;--border:#ccd8e7;--brand:#155dcc;--on-brand:#fff;--danger:#a52a2a;--radius:12px}body{font-family:var(--sans);color:var(--text);background:var(--bg)}main{padding:24px}button,a{touch-action:manipulation}

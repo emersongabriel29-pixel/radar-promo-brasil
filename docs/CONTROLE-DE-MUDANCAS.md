@@ -113,3 +113,6 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 
 
 | 2026-11-16 | Auditoria Android das 23 áreas, com relatório e evidências agregadas | Docs de Android, índice e evidências; inspeção read-only GitHub/Hatchable/Supabase | CI web do commit 9b893e5 aprovado; 2 testes isolados concluídos; 23 áreas registradas (16 parciais, 6 bloqueadas, entrega adiada); API 429 e fonte Flutter indisponível; nenhuma aprovação integral | Consultar commit documental desta auditoria na PR 202 | v671/v1 preservadas, sem deploy | Relatório parcial com bloqueios explícitos; nenhum APK; documentação não espelhada no Hatchable |
+
+
+| 2026-11-16 | Backend independente de comunidade, URLs assinadas de imagem e reconciliação dos helpers Supabase | independent/radar-promo-ofertas, feed original, helpers, testes e documento de remediação | Dry-run independente passou após correção; CI e execução real pendentes; origem contém 10.360 ofertas; cópia de dados não confirmada | Commit desta rodada na PR 202 | Publicação a registrar no adendo final | Sem APK; quota, visibilidade, fonte Flutter e migração continuam explicitamente pendentes |
