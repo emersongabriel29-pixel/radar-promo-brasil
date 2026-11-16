@@ -8,12 +8,21 @@ export default async function handler(req, res) {
     const result = await db.query(
       "SELECT current_database() AS database, current_setting('server_version') AS server_version, now() AS checked_at"
     );
+    const row = result.rows?.[0];
+    if (result.rowCount !== 1 || result.rows?.length !== 1 ||
+        typeof row?.database !== 'string' || !row.database.trim() ||
+        typeof row?.server_version !== 'string' || !row.server_version.trim() ||
+        typeof row?.checked_at !== 'string' || !Number.isFinite(Date.parse(row.checked_at))) {
+      throw Object.assign(new Error('A consulta de saúde não retornou os dados esperados.'), {
+        code: 'SUPABASE_HEALTH_INVALID_RESULT', status: 502
+      });
+    }
     return res.json({
       ok: true,
       provider: 'SUPABASE',
-      database: result.rows?.[0]?.database || null,
-      serverVersion: result.rows?.[0]?.server_version || null,
-      checkedAt: result.rows?.[0]?.checked_at || null
+      database: row.database,
+      serverVersion: row.server_version,
+      checkedAt: row.checked_at
     });
   } catch (error) {
     return res.status(error?.status || 503).json({
