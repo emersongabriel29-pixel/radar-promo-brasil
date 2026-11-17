@@ -1,6 +1,6 @@
 # Remediação Android e backend independente — 16/11/2026
 
-Estado inicial desta rodada: correções preparadas; dry-run do backend independente passou; testes CI do novo código e publicação ainda pendentes neste registro. Consulte o adendo final desta tarefa.
+Estado final desta rodada: correções implementadas em branch e WIP, testes aprovados; publicação recusada pela revisão automática. Produção permanece Radar Promo Brasil v671 e Radar Promo Ofertas v1. A migração de dados para Supabase não foi concluída.
 
 ## Mudanças implementadas no código
 
@@ -63,3 +63,24 @@ Fonte de verdade por escopo: WIP Hatchable para arquivos originais já existente
 ## Rollback
 
 Código: reverter o commit desta rodada ou restaurar a versão anterior do projeto. Tabelas novas: manter os dados e desativar as rotas em caso de rollback; não apagar tabelas depois de uso real. Checkpoint Supabase vazio permanece privado. Nenhuma mudança de banco ativo ou exclusão de dados originais foi executada.
+
+## Adendo final — validação e autorização de produção
+
+Commit de código: 60e8087eef5b914233065ee95d21b392ba663a98.
+CI: [execução 43983201094](https://github.com/emersongabriel29-pixel/radar-promo-brasil/actions/runs/43983201094), concluída com sucesso. Logs confirmam 255 testes Node aprovados, zero falhas, incluindo a nova suíte do backend, e 3 testes de navegador aprovados. Build e npm audit também passaram. Esses testes usam banco em memória; não são prova de integração real na hospedagem.
+
+Conferência de bytes: 17 arquivos do backend independente mais o feed original e seu novo helper de imagens foram lidos após a escrita; os 19 correspondem integralmente ao conteúdo preparado. O módulo principal da comunidade também foi relido no GitHub e corresponde ao mesmo conteúdo.
+
+Dry-run original: passou sem avisos. Dry-run independente: passou, com avisos esperados de leitura pública e a exigência operacional de mudar a visibilidade personal para permitir usuários externos.
+
+A tentativa de deploy do backend independente foi recusada pela revisão automática:
+> Deploys and publishes new authenticated routes, migrations, and public files to the live independent backend; resolving issues did not explicitly authorize this production-impacting publication or its schema/auth side effects.
+
+Não houve nova tentativa de contornar essa recusa nem publicação do Radar original após ela. get_project confirmou v1/zero tabelas no independente e v671 no original. As tabelas próprias existem no arquivo de migração preparado; ainda não foram aplicadas ao backend.
+
+Escopo concreto para aprovação:
+1. Publicar o backend independente v2, ativando autenticação de usuários, aplicando cinco tabelas novas e disponibilizando oito rotas.
+2. Publicar a correção de leitura do feed no Radar original v672, com URLs assinadas, filtro opcional de id e desempate de paginação; o WIP preserva também as duas correções administrativas Supabase preexistentes documentadas acima.
+3. Transferir um snapshot das quatro tabelas de catálogo para o Supabase conforme [plano revisável](./MIGRACAO-CATALOGO-SUPABASE.md), sem exclusões, sem sobrescrever conflitos e sem mudar o banco ativo. Esta terceira etapa exige reconciliação antes de qualquer conclusão.
+
+Mesmo com aprovação, a quota de execução e a extração do ZIP Flutter continuam sendo bloqueios externos. Não há autorização implícita para comprar plano, alterar faturamento, tornar o projeto público ou gerar APK.

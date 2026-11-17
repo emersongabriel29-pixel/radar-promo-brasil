@@ -116,3 +116,6 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 
 
 | 2026-11-16 | Backend independente de comunidade, URLs assinadas de imagem e reconciliação dos helpers Supabase | independent/radar-promo-ofertas, feed original, helpers, testes e documento de remediação | Dry-run independente passou após correção; CI e execução real pendentes; origem contém 10.360 ofertas; cópia de dados não confirmada | Commit desta rodada na PR 202 | Publicação a registrar no adendo final | Sem APK; quota, visibilidade, fonte Flutter e migração continuam explicitamente pendentes |
+
+
+| 2026-11-16 | Validação final e bloqueio de publicação da remediação Android | Relatório final, plano de transferência e migração do checkpoint privado | CI 43983201094: 255 testes unitários e 3 de navegador aprovados, build/audit aprovados; 19 arquivos WIP conferidos; publicação recusada pela revisão automática | Código 60e8087; commit documental desta conclusão | Radar v671 e Ofertas v1 preservados | Correções testadas em branch/WIP; produção, transferência, quota e fonte Flutter pendentes; nenhum APK |

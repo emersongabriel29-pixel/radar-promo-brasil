@@ -44,3 +44,5 @@ Quando houver conflito entre documentação e execução, não presumir que a do
 ## Remediação Android — 16/11/2026
 
 - [Correções do backend independente, imagens e estado da migração](./REMEDIACAO-ANDROID-2026-11-16.md). Este documento atualiza os achados da auditoria sem transformar pendências em itens aprovados.
+
+- [Plano revisável de transferência do catálogo](./MIGRACAO-CATALOGO-SUPABASE.md): sem exclusão, sem sobrescrita de conflitos e sem cutover automático.
