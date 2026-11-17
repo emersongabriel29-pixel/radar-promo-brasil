@@ -51,3 +51,10 @@ Quando houver conflito entre documentação e execução, não presumir que a do
 ## Fonte Flutter recuperado
 
 - [Recuperação do projeto Android existente](../mobile/radar_promo_ofertas/docs/RECUPERACAO-2026-11-16.md): código recuperado, workflow de análise/testes e limites atuais. Geração de APK desativada.
+
+
+## Resultado autorizado — publicações e catálogo
+
+- [Estado atual da remediação](./REMEDIACAO-ANDROID-2026-11-16.md): versões v672/v2 publicadas, dados copiados e reconciliados, fonte Flutter recuperado e testes aprovados.
+- [Evidências agregadas](./evidence/approved-deployments-and-catalog-2026-11-16.json).
+- [Desenvolvimento Android](./ANDROID-BUILD.md): validação atual aprovada; geração de APK desativada.

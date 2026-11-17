@@ -122,3 +122,6 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 
 
 | 2026-11-16 | Publicação autorizada e recuperação do fonte Flutter | Radar v672, Ofertas v2; mobile/radar_promo_ofertas e workflow de validação | Cinco tabelas próprias confirmadas; wrapper Gradle conferido por hash; testes Flutter atuais ainda pendentes; API 429 persiste; cópia de catálogo em andamento | Commit desta recuperação na PR 202 | v672/v2 publicadas após autorização explícita | Sem APK, sem cutover; integração nativa e reconciliação da cópia ainda pendentes |
+
+
+| 2026-11-16 | Conclusão das publicações autorizadas, cópia de catálogo e recuperação Flutter | Radar v672, Ofertas v2; Supabase e mobile/radar_promo_ofertas | Contagens/assinaturas iguais: 2 contas, 22 categorias, 1 cupom, 10.360 ofertas; 55 lotes sem conflitos; CI Flutter 43994639891 e web 43994639761 aprovados | Recuperação f58a4ce; commit documental desta conclusão na PR 202 | v672/v2 live | Origem preservada, sem cutover e sem APK; quota, visibilidade, integração nativa da comunidade e push ainda pendentes |
