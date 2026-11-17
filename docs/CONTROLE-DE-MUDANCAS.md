@@ -119,3 +119,6 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 
 
 | 2026-11-16 | Validação final e bloqueio de publicação da remediação Android | Relatório final, plano de transferência e migração do checkpoint privado | CI 43983201094: 255 testes unitários e 3 de navegador aprovados, build/audit aprovados; 19 arquivos WIP conferidos; publicação recusada pela revisão automática | Código 60e8087; commit documental desta conclusão | Radar v671 e Ofertas v1 preservados | Correções testadas em branch/WIP; produção, transferência, quota e fonte Flutter pendentes; nenhum APK |
+
+
+| 2026-11-16 | Publicação autorizada e recuperação do fonte Flutter | Radar v672, Ofertas v2; mobile/radar_promo_ofertas e workflow de validação | Cinco tabelas próprias confirmadas; wrapper Gradle conferido por hash; testes Flutter atuais ainda pendentes; API 429 persiste; cópia de catálogo em andamento | Commit desta recuperação na PR 202 | v672/v2 publicadas após autorização explícita | Sem APK, sem cutover; integração nativa e reconciliação da cópia ainda pendentes |

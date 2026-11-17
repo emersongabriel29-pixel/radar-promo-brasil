@@ -46,3 +46,8 @@ Quando houver conflito entre documentação e execução, não presumir que a do
 - [Correções do backend independente, imagens e estado da migração](./REMEDIACAO-ANDROID-2026-11-16.md). Este documento atualiza os achados da auditoria sem transformar pendências em itens aprovados.
 
 - [Plano revisável de transferência do catálogo](./MIGRACAO-CATALOGO-SUPABASE.md): sem exclusão, sem sobrescrita de conflitos e sem cutover automático.
+
+
+## Fonte Flutter recuperado
+
+- [Recuperação do projeto Android existente](../mobile/radar_promo_ofertas/docs/RECUPERACAO-2026-11-16.md): código recuperado, workflow de análise/testes e limites atuais. Geração de APK desativada.
