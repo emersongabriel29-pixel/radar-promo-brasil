@@ -1,5 +1,9 @@
 # Remediação Android — resultado atualizado
 
+## Incremento de comunidade — 17/11/2026
+
+Conta, votos, comentários e avisos de respostas implementados para abertura em aba segura a partir do Flutter. Código b4991b7: 10 testes Flutter, 258 unitários e 6 de navegador aprovados; build web e auditoria de dependências aprovados, zero vulnerabilidades reportadas. Novo deploy foi recusado pela revisão automática por exigir autorização específica. Ofertas segue live na v2 e Radar na v672; WIP independente preparado. API 429, visibilidade personal, push e homologação no aparelho continuam pendentes. Veja [resultado detalhado](./COMUNIDADE-ANDROID-2026-11-17.md). Nenhum APK novo.
+
 ## Resultado após autorização — 16/11/2026
 
 Publicações autorizadas concluídas: Radar Promo Brasil **v672** e Radar Promo Ofertas **v2**, ambas live. As cinco tabelas próprias do backend independente foram confirmadas no schema após a publicação.

@@ -8,7 +8,7 @@ O projeto existente foi recuperado do ZIP radar-promo-ofertas-android-flutter-18
 
 A recuperação está no commit f58a4ceec436a07a1564044f07d18246f9b42d09 da branch android/github-actions-build. Wrapper Gradle conferido por hash. Código próprio do Radar preservado; nenhum código do Pelando foi incorporado.
 
-## Validação atual
+## Validação da recuperação
 
 Workflow ativo: .github/workflows/radar-android.yml. Flutter 3.50.0, Dart 3.14.0, Java 21 e flutter pub get --enforce-lockfile. Executa análise e testes em pushes/pull requests que alterem o diretório mobile.
 
@@ -18,7 +18,7 @@ Workflow ativo: .github/workflows/radar-android.yml. Flutter 3.50.0, Dart 3.14.0
 
 ## Integração e estado do produto
 
-O cliente consulta o backend independente. O código recuperado possui feed, busca, categorias/filtros, detalhes, cupons e favoritos locais. Recursos de conta/comunidade ainda precisam ser conectados no cliente às rotas novas; não se presume sincronização automática.
+O cliente consulta o backend independente. O código recuperado possui feed, busca, categorias/filtros, detalhes, cupons e favoritos locais. Conta, votos, comentários e caixa de entrada foram conectados por páginas próprias abertas em Android Custom Tabs, sem transferir sessão para Dart. Não são telas inteiramente nativas. Código b4991b7 aprovado em análise e 10 testes Flutter; backend aprovado em 258 testes unitários e 6 de navegador. O novo deploy foi recusado pela revisão automática de aprovação; permanece preparado no WIP, aguardando autorização específica. Push e homologação real continuam pendentes. Consulte COMUNIDADE-ANDROID-2026-11-17.md.
 
 Radar original v672 e backend independente v2 foram publicados com autorização. As quatro tabelas do catálogo no Supabase foram copiadas e reconciliadas por contagem e assinaturas, sem alteração da origem e sem cutover. O backend independente possui cinco tabelas próprias.
 
