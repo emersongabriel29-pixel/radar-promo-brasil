@@ -130,7 +130,7 @@
     form.hidden = true;
     if (googleBtn) { googleBtn.hidden = true; }
     titleEl.textContent = "Você entrou";
-    sub.textContent = 'Adicionar chave de acesso and next time you can sign in with your fingerprint, face, or screen lock. No code to wait for.';
+    sub.textContent = 'Adicione uma chave de acesso para entrar com sua digital, reconhecimento facial ou bloqueio de tela, sem esperar por um código.';
     say('');
     passkeyRow.hidden = false;
     passkeyAdd.focus();
@@ -201,7 +201,7 @@
       }).catch(function (err) {
         say(err && err.status === 429
           ? 'Muitas tentativas. Aguarde um momento.'
-          : ((err && err.message) || 'Could not send the code. Check the address and try again.'), 'err');
+          : ((err && err.message) || 'Não foi possível enviar o código. Confira o e-mail e tente novamente.'), 'err');
       }).then(function () { submit.disabled = false; });
       return;
     }

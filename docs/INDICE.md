@@ -13,7 +13,7 @@
 
 ## Android em preparação
 
-- [Desenvolvimento Android — Radar Promo Ofertas](./ANDROID-BUILD.md): análise e testes preparados; fonte pendente de importação; geração de APK removida até prontidão.
+- [Desenvolvimento Android — Radar Promo Ofertas](./ANDROID-BUILD.md): fonte recuperado, análise e testes aprovados na recuperação; geração de APK removida até prontidão.
 
 ## Documentos vigentes
 
@@ -58,3 +58,7 @@ Quando houver conflito entre documentação e execução, não presumir que a do
 - [Estado atual da remediação](./REMEDIACAO-ANDROID-2026-11-16.md): versões v672/v2 publicadas, dados copiados e reconciliados, fonte Flutter recuperado e testes aprovados.
 - [Evidências agregadas](./evidence/approved-deployments-and-catalog-2026-11-16.json).
 - [Desenvolvimento Android](./ANDROID-BUILD.md): validação atual aprovada; geração de APK desativada.
+
+## Comunidade Android — 17/11/2026
+
+- [Conta, votos, comentários e avisos no Flutter](./COMUNIDADE-ANDROID-2026-11-17.md): implementação, limites da sessão, testes e estado da implantação.

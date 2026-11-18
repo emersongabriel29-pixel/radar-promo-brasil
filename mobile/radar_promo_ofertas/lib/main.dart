@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'services/api.dart';
+import 'services/community.dart';
 import 'models/offer.dart';
 
 void main() {
@@ -20,8 +21,9 @@ void main() {
 }
 
 class RadarPromoApp extends StatelessWidget {
-  const RadarPromoApp({super.key, this.api});
+  const RadarPromoApp({super.key, this.api, this.community = const CommunityLinks()});
   final OffersApi? api;
+  final CommunityLinks community;
 
   @override
   Widget build(BuildContext context) {
@@ -54,14 +56,15 @@ class RadarPromoApp extends StatelessWidget {
           ),
         ),
       ),
-      home: HomeScreen(api: api),
+      home: HomeScreen(api: api, community: community),
     );
   }
 }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.api});
+  const HomeScreen({super.key, this.api, this.community = const CommunityLinks()});
   final OffersApi? api;
+  final CommunityLinks community;
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -210,6 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute(
         builder: (_) => OfferDetailScreen(
           offer: offer,
+          community: widget.community,
           isFavorite: favorites.contains(offer.id),
           onFavorite: () => _toggleFavorite(offer),
         ),
@@ -269,6 +273,15 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
+          PopupMenuButton<String>(
+            tooltip: 'Minha conta',
+            icon: const Icon(Icons.account_circle_outlined),
+            onSelected: (section) => openCommunity(context, widget.community, section),
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'account', child: Text('Entrar / minha conta')),
+              PopupMenuItem(value: 'inbox', child: Text('Notificações da conta')),
+            ],
+          ),
           IconButton(
             onPressed: _load,
             icon: const Icon(Icons.refresh_rounded),
@@ -867,10 +880,12 @@ class OfferDetailScreen extends StatefulWidget {
     required this.offer,
     required this.isFavorite,
     required this.onFavorite,
+    this.community = const CommunityLinks(),
   });
   final Offer offer;
   final bool isFavorite;
   final VoidCallback onFavorite;
+  final CommunityLinks community;
 
   @override
   State<OfferDetailScreen> createState() => _OfferDetailScreenState();
@@ -981,6 +996,16 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
               if (mounted) _message('Link copiado para compartilhar.');
             },
           ),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.forum_outlined),
+            label: const Text('Votos e comentários'),
+            onPressed: () => openCommunity(
+              context, widget.community, 'offer', offerId: offer.id,
+            ),
+          ),
+          const Text(
+            'Sua conta abre em uma aba segura. Os favoritos deste aparelho continuam disponíveis em Salvos.',
+          ),
           _detailLine(
             'Oferta recebida em',
             DateFormat('dd/MM/yyyy HH:mm').format(offer.createdAt.toLocal()),
@@ -1044,4 +1069,20 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
       ],
     ),
   );
+}
+
+Future<void> openCommunity(
+  BuildContext context, CommunityLinks links, String section, {String? offerId}
+) async {
+  try {
+    final opened = await links.open(section, offerId: offerId);
+    if (opened || !context.mounted) return;
+  } catch (_) {
+    if (!context.mounted) return;
+  }
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Não foi possível abrir sua conta. Verifique o navegador e tente novamente.'),
+    ));
+  }
 }

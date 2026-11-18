@@ -62,3 +62,22 @@ test('anonymous writes and cross-origin browser writes are rejected',async()=>fi
  const r=req('alice','POST',{offerId:'fixture'});r.headers.origin='https://untrusted.example.test';
  await assert.rejects(()=>favorites(db,r),e=>e.status===403);
 }));
+test('comment ownership is private and a reply alerts only its consenting author',async()=>fixture(async db=>{
+ const original=await comments(db,req('alice','POST',{offerId:'fixture',body:'Pergunta'}));
+ assert.equal((await comments(db,req('bob','GET',{}, {offerId:'fixture'}))).comments.length,0);
+ assert.equal((await comments(db,req('alice','GET',{}, {offerId:'fixture'}))).comments.length,1);
+ await comments(db,req('bob','POST',{offerId:'fixture',body:'Sem consentimento',replyToId:original.id}));
+ assert.equal((await notifications(db,req('alice','GET'))).notifications.length,0);
+ await notifications(db,req('alice','PUT',{enabled:true}));
+ await comments(db,req('alice','POST',{offerId:'fixture',body:'Minha resposta',replyToId:original.id}));
+ await comments(db,req('bob','POST',{offerId:'other',body:'Outra oferta',replyToId:original.id}));
+ assert.equal((await notifications(db,req('alice','GET'))).notifications.length,0);
+ await comments(db,req('bob','POST',{offerId:'fixture',body:'Resposta válida',replyToId:original.id}));
+ const inbox=await notifications(db,req('alice','GET'));
+ assert.equal(inbox.notifications.length,1);assert.equal(inbox.notifications[0].body,'Resposta válida');
+ assert.equal((await notifications(db,req('bob','GET'))).notifications.length,0);
+ await notifications(db,req('bob','POST',{id:inbox.notifications[0].id}));
+ assert.equal((await notifications(db,req('alice','GET'))).notifications[0].readAt,null);
+ await notifications(db,req('alice','POST',{id:inbox.notifications[0].id}));
+ assert.ok((await notifications(db,req('alice','GET'))).notifications[0].readAt);
+}));

@@ -25,13 +25,34 @@ export async function favorites(db,req) {
   throw apiError(405,'METHOD_NOT_ALLOWED');
 }
 export async function comments(db,req) {
-  const user=requireIdentity(req);ensureSameOrigin(req);
+  const user=requireIdentity(req);
+  if(req.method==='GET') {
+    // Same public page, restricted to the authenticated author; never expose author IDs.
+    const result=await publicComments(db,req);
+    const ids=result.comments.map(c=>c.id);
+    const own=await db.query('SELECT id::text FROM rpo_comments WHERE user_id=$1 AND id::text=ANY($2::text[])',[user,ids]);
+    const owned=new Set(own.rows.map(r=>r.id));
+    return {comments:result.comments.filter(c=>owned.has(c.id))};
+  }
+  ensureSameOrigin(req);
   if(req.method==='POST') {
     const offer=identifier(req.body?.offerId),body=bodyText(req.body?.body);
+    const reply=req.body?.replyToId==null?null:identifier(req.body.replyToId);
     // Atomic bounded posting window; locks only the same app user.
     const results=await db.transaction([
       {sql:'SELECT pg_advisory_xact_lock(hashtext($1))',params:[user]},
-      {sql:"INSERT INTO rpo_comments(user_id,offer_id,display_name,body) SELECT $1,$2,$3,$4 WHERE (SELECT count(*) FROM rpo_comments WHERE user_id=$1 AND created_at>now()-interval '1 minute')<5 RETURNING id",params:[user,offer,String(req.user.name||'Participante').slice(0,60),body]}
+      {sql:`WITH added AS (
+        INSERT INTO rpo_comments(user_id,offer_id,display_name,body)
+        SELECT $1,$2,$3,$4 WHERE (SELECT count(*) FROM rpo_comments WHERE user_id=$1 AND created_at>now()-interval '1 minute')<5
+        RETURNING id,user_id,offer_id
+      ), alerted AS (
+        INSERT INTO rpo_notifications(user_id,offer_id,title,body,dedupe_key)
+        SELECT original.user_id,added.offer_id,'Responderam ao seu comentário',left($4,180),'reply:'||added.id::text
+        FROM added JOIN rpo_comments original ON original.id::text=$5 AND original.offer_id=added.offer_id
+        JOIN rpo_notification_preferences pref ON pref.user_id=original.user_id AND pref.enabled=true
+        WHERE original.user_id<>added.user_id AND original.status='visible'
+        ON CONFLICT(user_id,dedupe_key) DO NOTHING RETURNING id
+      ) SELECT id FROM added`,params:[user,offer,String(req.user.name||'Participante').slice(0,60),body,reply]}
     ]);
     const r=Array.isArray(results)?results[1]:results.results?.[1];
     if(!r?.rows?.length) throw apiError(429,'COMMENT_RATE_LIMIT');
