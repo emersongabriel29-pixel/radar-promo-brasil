@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:radar_promo_ofertas/services/community.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   test('account and inbox routes remain on the hosted domain', () {
@@ -36,4 +37,20 @@ void main() {
     }
     expect(() => CommunityLinks.destination('offer'), throwsArgumentError);
   });
+  test('hosted authentication opens in an in-app browser without tokens in URLs', () async {
+    Uri? requested;
+    LaunchMode? mode;
+    final links = CommunityLinks(opener: (uri, selectedMode) async {
+      requested = uri;
+      mode = selectedMode;
+      return true;
+    });
+    expect(await links.open('account'), isTrue);
+    expect(mode, LaunchMode.inAppBrowserView);
+    expect(requested!.scheme, 'https');
+    expect(requested!.host, 'radar-promo-ofertas.hatchable.site');
+    expect(requested!.queryParameters.keys, isNot(contains('token')));
+    expect(requested!.queryParameters.keys, isNot(contains('password')));
+  });
+
 }
