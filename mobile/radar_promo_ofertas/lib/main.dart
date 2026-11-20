@@ -15,10 +15,12 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'services/api.dart';
 import 'services/community.dart';
+import 'services/theme_preference.dart';
 import 'models/offer.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  AppThemePreference.load().then((_) {});
   runApp(const RadarPromoApp());
 }
 
@@ -31,8 +33,19 @@ class RadarPromoApp extends StatelessWidget {
   Widget build(BuildContext context) {
     const ink = Color(0xFF102A2A);
     const green = Color(0xFFB8F34A);
-    return MaterialApp(
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: AppThemePreference.mode,
+      builder: (context, themeMode, _) => MaterialApp(
       debugShowCheckedModeBanner: false,
+      themeMode: themeMode,
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: green,
+          brightness: Brightness.dark,
+        ),
+      ),
       title: 'Radar Promo Ofertas',
       theme: ThemeData(
         useMaterial3: true,
@@ -59,6 +72,7 @@ class RadarPromoApp extends StatelessWidget {
         ),
       ),
       home: HomeScreen(api: api, community: community),
+      ),
     );
   }
 }
