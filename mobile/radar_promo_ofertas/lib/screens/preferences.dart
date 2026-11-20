@@ -3,6 +3,7 @@ import 'dart:convert';
 // ignore: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/theme_preference.dart';
 
 class SavedSearchesScreen extends StatefulWidget {
   const SavedSearchesScreen({super.key, required this.onSearch});
@@ -282,6 +283,26 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
           leading: Icon(Icons.notifications_none),
           title: Text('Notificações'),
           subtitle: Text('Alertas push ainda não estão disponíveis.'),
+        ),
+        const SizedBox(height: 12),
+        ValueListenableBuilder<ThemeMode>(
+          valueListenable: AppThemePreference.mode,
+          builder: (context, selected, _) => ListTile(
+            leading: const Icon(Icons.palette_outlined),
+            title: const Text('Aparência'),
+            subtitle: const Text('Tema do aparelho, claro ou escuro'),
+            trailing: DropdownButton<ThemeMode>(
+              value: selected,
+              items: const [
+                DropdownMenuItem(value: ThemeMode.system, child: Text('Sistema')),
+                DropdownMenuItem(value: ThemeMode.light, child: Text('Claro')),
+                DropdownMenuItem(value: ThemeMode.dark, child: Text('Escuro')),
+              ],
+              onChanged: (value) {
+                if (value != null) AppThemePreference.setMode(value);
+              },
+            ),
+          ),
         ),
         const SizedBox(height: 20),
         OutlinedButton.icon(
