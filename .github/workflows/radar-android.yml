@@ -3,7 +3,7 @@ name: Radar Promo Ofertas Android
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'android/**']
+    branches: [main]
     paths:
       - 'mobile/radar_promo_ofertas/**'
   pull_request:

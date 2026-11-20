@@ -465,10 +465,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   if (error != null && offers.isNotEmpty && tab != 2)
                     Text(error!, style: const TextStyle(color: Colors.red)),
-                  Row(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
+                      Text(
                           tab != 2 && error != null && offers.isEmpty
                               ? 'Ofertas indisponíveis'
                               : '${tab == 2 ? list.length : total} ofertas encontradas',
@@ -476,24 +476,24 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: Color(0xFF6B7C72),
                             fontSize: 12,
                           ),
-                        ),
                       ),
                       if (tab != 2)
                         DropdownButton<String>(
+                          isExpanded: true,
                           value: sort,
                           underline: const SizedBox(),
                           items: const [
                             DropdownMenuItem(
                               value: 'recent',
-                              child: Text('Mais recentes'),
+                              child: Text('Mais recentes', maxLines: 1, overflow: TextOverflow.ellipsis),
                             ),
                             DropdownMenuItem(
                               value: 'discount',
-                              child: Text('Maior desconto'),
+                              child: Text('Maior desconto', maxLines: 1, overflow: TextOverflow.ellipsis),
                             ),
                             DropdownMenuItem(
                               value: 'score',
-                              child: Text('Destaques Radar'),
+                              child: Text('Destaques Radar', maxLines: 1, overflow: TextOverflow.ellipsis),
                             ),
                           ],
                           onChanged: (v) {
