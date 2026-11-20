@@ -457,7 +457,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 10),
                   if (tab == 0) ...[
-                    SegmentedButton<String>(
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SegmentedButton<String>(
                       segments: const [
                         ButtonSegment(value: 'score', label: Text('Destaques')),
                         ButtonSegment(value: 'recent', label: Text('Recentes')),
@@ -469,6 +471,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         setState(() => sort = selection.first);
                         _load();
                       },
+                      ),
                     ),
                     const SizedBox(height: 8),
                     const Text('Destaques seguem a pontuação do Radar; não representam votos da comunidade.',
@@ -552,12 +555,26 @@ class _HomeScreenState extends State<HomeScreen> {
             SliverFillRemaining(hasScrollBody: false, child: _errorState())
           else if (list.isEmpty)
             SliverFillRemaining(
-              child: _emptyState(
-                tab == 2
-                    ? 'Você ainda não salvou ofertas.'
-                    : storeFilter.isNotEmpty
-                        ? 'Nenhuma oferta desta loja nas páginas carregadas. Limpe o filtro ou carregue mais ofertas.'
-                        : 'Nenhuma oferta encontrada agora.',
+              hasScrollBody: false,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _emptyState(tab == 2
+                      ? 'Você ainda não salvou ofertas.'
+                      : storeFilter.isNotEmpty
+                          ? 'Nenhuma oferta desta loja nas páginas carregadas.'
+                          : 'Nenhuma oferta encontrada agora.'),
+                  if (tab != 2 && hasMore)
+                    TextButton(
+                      onPressed: loadingMore ? null : () => _load(reset: false),
+                      child: Text(loadingMore ? 'Carregando...' : 'Buscar nas próximas páginas'),
+                    ),
+                  if (tab != 2 && storeFilter.isNotEmpty)
+                    TextButton(
+                      onPressed: () => setState(() => storeFilter = ''),
+                      child: const Text('Limpar filtro de loja'),
+                    ),
+                ],
               ),
             )
           else
