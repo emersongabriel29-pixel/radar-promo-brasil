@@ -1,5 +1,5 @@
 name: Build Radar Promo Ofertas APK
-# Build Flutter feature branch through commit 49781873965386ba80a943ec0b9c271dc7669656 (2026-11-20).
+# Validate Android notification permission fix 6775e16 (2026-11-20).
 on:
   push:
     branches: [main]
