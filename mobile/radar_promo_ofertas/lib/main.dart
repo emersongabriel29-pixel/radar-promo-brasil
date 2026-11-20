@@ -76,6 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int tab = 0;
   String sort = 'recent';
   String category = '';
+  String storeFilter = '';
   List<Offer> offers = [];
   Set<String> favorites = {};
   Map<String, Offer> savedOffers = {};
@@ -200,7 +201,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<Offer> get visibleOffers {
-    if (tab != 2) return offers;
+    if (tab != 2) {
+      if (storeFilter.isEmpty) return offers;
+      return offers.where((offer) => offer.source.trim().toLowerCase() == storeFilter.toLowerCase()).toList();
+    }
     final query = search.text.trim().toLowerCase();
     return savedOffers.values
         .where(
@@ -452,6 +456,39 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
+                  if (tab == 0) ...[
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'score', label: Text('Destaques')),
+                        ButtonSegment(value: 'recent', label: Text('Recentes')),
+                        ButtonSegment(value: 'discount', label: Text('Descontos')),
+                      ],
+                      selected: {sort},
+                      onSelectionChanged: (selection) {
+                        if (selection.first == sort) return;
+                        setState(() => sort = selection.first);
+                        _load();
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Destaques seguem a pontuação do Radar; não representam votos da comunidade.',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF6B7C72))),
+                    const SizedBox(height: 10),
+                  ],
+                  if (tab == 0 && offers.isNotEmpty) ...[
+                    DropdownButtonFormField<String>(
+                      value: storeFilter.isEmpty || offers.any((offer) => offer.source.trim().toLowerCase() == storeFilter.toLowerCase()) ? storeFilter : '',
+                      isExpanded: true,
+                      decoration: const InputDecoration(labelText: 'Loja (ofertas carregadas)', border: OutlineInputBorder()),
+                      items: [
+                        const DropdownMenuItem(value: '', child: Text('Todas as lojas')),
+                        ...((offers.map((o) => o.source.trim()).where((v) => v.isNotEmpty).toSet().toList())..sort())
+                            .map((name) => DropdownMenuItem(value: name, child: Text(name, overflow: TextOverflow.ellipsis))),
+                      ],
+                      onChanged: (value) => setState(() => storeFilter = value ?? ''),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
                   if (category.isNotEmpty && tab != 2)
                     Align(
                       alignment: Alignment.centerLeft,
@@ -477,7 +514,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             fontSize: 12,
                           ),
                       ),
-                      if (tab != 2)
+                      if (tab != 2 && tab != 0)
                         DropdownButton<String>(
                           isExpanded: true,
                           value: sort,
@@ -518,7 +555,9 @@ class _HomeScreenState extends State<HomeScreen> {
               child: _emptyState(
                 tab == 2
                     ? 'Você ainda não salvou ofertas.'
-                    : 'Nenhuma oferta encontrada agora.',
+                    : storeFilter.isNotEmpty
+                        ? 'Nenhuma oferta desta loja nas páginas carregadas. Limpe o filtro ou carregue mais ofertas.'
+                        : 'Nenhuma oferta encontrada agora.',
               ),
             )
           else
