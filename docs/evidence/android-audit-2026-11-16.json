@@ -1,0 +1,419 @@
+{
+  "date": "2026-11-16",
+  "audited_commit": "9b893e577593d104fa253187f6e005226e3ccd0b",
+  "scope": "Radar Promo Ofertas Android; leitura da origem Radar Promo Brasil e Supabase relacionado",
+  "github": {
+    "repository": "emersongabriel29-pixel/radar-promo-brasil",
+    "branch": "android/github-actions-build",
+    "audited_commit": "9b893e577593d104fa253187f6e005226e3ccd0b",
+    "main_commit": "a6ec44374fcf0915cb37940679af79c9cef6bfd8",
+    "flutter_source_found": false
+  },
+  "hatchable": {
+    "original_version": 671,
+    "independent_version": 1,
+    "independent_routes": [
+      "GET /api/offers"
+    ],
+    "independent_tables": 0,
+    "independent_cron_jobs": 0
+  },
+  "supabase": {
+    "public_tables": 68,
+    "private_tables": 2,
+    "rls_enabled_tables": 70,
+    "anon_authenticated_table_select_grants": 0,
+    "anon_authenticated_table_write_grants": 0,
+    "security_definer_routines_in_public_private": 0,
+    "counts": {
+      "accounts": 0,
+      "offers": 0,
+      "categories": 0,
+      "coupons": 0
+    },
+    "edge_function": {
+      "name": "radar-db-bridge",
+      "version": 2,
+      "verify_jwt": false,
+      "github_source_matches_deployed": true
+    },
+    "advisors": [
+      {
+        "type": "security",
+        "lints": [
+          {
+            "name": "rls_enabled_no_policy",
+            "level": "INFO",
+            "count": 70,
+            "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+          }
+        ]
+      },
+      {
+        "type": "performance",
+        "lints": [
+          {
+            "name": "unindexed_foreign_keys",
+            "level": "INFO",
+            "count": 36,
+            "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys"
+          },
+          {
+            "name": "unused_index",
+            "level": "INFO",
+            "count": 91,
+            "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index"
+          },
+          {
+            "name": "duplicate_index",
+            "level": "WARN",
+            "count": 3,
+            "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0009_duplicate_index"
+          }
+        ]
+      },
+      {
+        "type": "health",
+        "lints": []
+      }
+    ],
+    "applied_migrations": 85,
+    "database_switch": {
+      "feed_uses_native_hatchable_db": true,
+      "adapter_present": true,
+      "active_switch_value": "not verified"
+    }
+  },
+  "tests": [
+    {
+      "id": "T01",
+      "type": "existing_web_ci",
+      "run_id": 43977738954,
+      "commit": "9b893e577593d104fa253187f6e005226e3ccd0b",
+      "result": "passed",
+      "steps": [
+        "npm ci",
+        "npm run build",
+        "npm test",
+        "npm audit --audit-level=moderate",
+        "npm run test:e2e"
+      ],
+      "scope": "web standalone; not Flutter and not live integration"
+    },
+    {
+      "id": "T02",
+      "type": "hatchable_public_proxy_execution",
+      "result": "blocked",
+      "status": 429,
+      "code": "usage_limit"
+    },
+    {
+      "id": "T03",
+      "type": "hatchable_unauthenticated_feed_execution",
+      "result": "blocked",
+      "status": 429,
+      "code": "usage_limit",
+      "note": "does not establish actual auth response"
+    },
+    {
+      "id": "T04",
+      "type": "isolated_proxy_missing_configuration",
+      "result": "passed",
+      "status": 503,
+      "code": "RADAR_CONNECTION_NOT_CONFIGURED",
+      "note": "configuration stub, no network or product data"
+    },
+    {
+      "id": "T05",
+      "type": "isolated_image_helper",
+      "result": "finding",
+      "returned_path": "/api/media/offer/audit-fixture",
+      "note": "test-only fixture; matching media routes absent from live manifest and file inventory"
+    },
+    {
+      "id": "T06",
+      "type": "flutter_analysis_widget_integration_device",
+      "result": "not_run",
+      "reason": "source inaccessible; local execution unavailable"
+    },
+    {
+      "id": "T07",
+      "type": "supabase_read_only_inspection",
+      "result": "completed",
+      "scope": "metadata, aggregate counts, advisors and Edge Function source"
+    }
+  ],
+  "coverage": {
+    "partial": 16,
+    "blocked": 6,
+    "deferred": 1,
+    "approved": 0
+  },
+  "apk_generated": false,
+  "production_changes": false,
+  "limitations": [
+    "ZIP contents not inspected",
+    "no live API success response",
+    "no Android device test",
+    "no Flutter dependency audit",
+    "no backup restoration test",
+    "no full GitHub/Hatchable equivalence"
+  ],
+  "divergences": {
+    "live_feed_missing_from_github": true,
+    "github_media_absent_from_live": [
+      "api/media/offer/[id].js",
+      "api/public/media/[id].js"
+    ],
+    "supabase_helper_differs": true
+  },
+  "areas": [
+    {
+      "number": 1,
+      "area": "Código-fonte e versões",
+      "status": "Parcial",
+      "evidence": "Inventário recursivo da branch: nenhum pubspec.yaml, android/ ou diretório mobile. O ZIP Flutter e o APK anterior foram identificados, mas não extraídos nesta auditoria.",
+      "next_action": "Recuperar e revisar o ZIP existente; importar sem substituir o projeto por um scaffold vazio."
+    },
+    {
+      "number": 2,
+      "area": "Arquitetura e isolamento",
+      "status": "Parcial",
+      "evidence": "Projetos separados confirmados: Radar Promo Brasil v671 e Radar Promo Ofertas v1. O segundo contém somente o proxy GET de ofertas e não contém tabelas.",
+      "next_action": "Definir persistência e identidade dos usuários no backend independente; manter o Radar original somente como origem autorizada de leitura."
+    },
+    {
+      "number": 3,
+      "area": "Referência funcional Pelando",
+      "status": "Bloqueada",
+      "evidence": "ZIP recebido, porém seu conteúdo não pôde ser aberto pelo runtime indisponível. Nenhuma tela ou código interno foi analisado.",
+      "next_action": "Mapear fluxos após extração, usando implementação e identidade próprias."
+    },
+    {
+      "number": 4,
+      "area": "Feed automático",
+      "status": "Parcial",
+      "evidence": "Proxy de leitura existe; nenhum cron no backend independente. O teste da API foi bloqueado por 429 usage_limit. Ausência de cron não prova falta de atualização por polling no Flutter, pois o fonte não foi lido.",
+      "next_action": "Validar atualização no aplicativo, paginação, retomada e esgotamento do feed com dados reais."
+    },
+    {
+      "number": 5,
+      "area": "Busca",
+      "status": "Parcial",
+      "evidence": "Proxy encaminha q; origem aplica ILIKE em título ou fonte. Não há evidência de busca em descrição, cupom ou comentários.",
+      "next_action": "Validar contrato e UX de busca, acentos, consulta vazia e paginação."
+    },
+    {
+      "number": 6,
+      "area": "Categorias",
+      "status": "Parcial",
+      "evidence": "Proxy encaminha category; origem filtra por igualdade de nome. Não há endpoint próprio de listagem de categorias no backend independente.",
+      "next_action": "Definir origem da lista e identidade estável; testar nomes e filtros combinados."
+    },
+    {
+      "number": 7,
+      "area": "Detalhes e links",
+      "status": "Parcial",
+      "evidence": "Feed entrega campos resumidos e affiliateUrl, sem rota própria de detalhes no backend independente. Problema de imagem identificado em A04.",
+      "next_action": "Conferir tela de detalhes, URLs completas, parâmetros afiliados e ofertas removidas."
+    },
+    {
+      "number": 8,
+      "area": "Cupons",
+      "status": "Parcial",
+      "evidence": "Feed inclui couponCode, mas não fornece contrato completo de regras e validade do cupom. Nenhuma API própria de cupons no backend independente.",
+      "next_action": "Implementar contrato real e testar restrições, cópia e expiração; não presumir que código preenchido significa cupom válido."
+    },
+    {
+      "number": 9,
+      "area": "Favoritos",
+      "status": "Parcial",
+      "evidence": "Nenhuma rota ou tabela de favoritos no backend independente. Persistência local no Flutter desconhecida.",
+      "next_action": "Inspecionar fonte e definir armazenamento, isolamento por usuário, remoção e sincronização."
+    },
+    {
+      "number": 10,
+      "area": "Votos",
+      "status": "Parcial",
+      "evidence": "Nenhuma rota ou tabela de votos no backend independente. score e radarScore são métricas da origem e não comprovam votos da comunidade.",
+      "next_action": "Definir voto único por usuário, mudança de voto, consistência e proteção contra abuso."
+    },
+    {
+      "number": 11,
+      "area": "Comentários e moderação",
+      "status": "Parcial",
+      "evidence": "Nenhuma rota ou tabela de comentários, denúncias ou moderação no backend independente.",
+      "next_action": "Definir autorização, paginação, edição, exclusão, denúncias e limites operacionais."
+    },
+    {
+      "number": 12,
+      "area": "Cadastro, login e conta",
+      "status": "Parcial",
+      "evidence": "Configuração independente possui apenas radar_api_url e segredo de integração; nenhuma configuração [auth] ou rota própria de conta foi encontrada.",
+      "next_action": "Inspecionar eventual autenticação externa do Flutter e definir conta, sessão, recuperação e exclusão."
+    },
+    {
+      "number": 13,
+      "area": "Notificações",
+      "status": "Parcial",
+      "evidence": "Nenhuma rota, tabela, cron ou configuração de entrega de notificações foi identificada no backend independente. SDKs e notificações locais do Flutter não foram inspecionados.",
+      "next_action": "Verificar consentimento, tokens, preferências, entrega e navegação a partir do alerta."
+    },
+    {
+      "number": 14,
+      "area": "Contratos de API",
+      "status": "Parcial",
+      "evidence": "Contrato do feed lido no código; proxy repassa JSON sem validar seu formato. Respostas reais com dados não puderam ser obtidas por limite de execução.",
+      "next_action": "Formalizar tipos, valores nulos, erros, detalhes, datas, paginação e caminhos absolutos de imagens."
+    },
+    {
+      "number": 15,
+      "area": "Banco e Supabase",
+      "status": "Parcial",
+      "evidence": "Consultas read-only e advisors executados. 68 tabelas public e 2 private com RLS; sem SELECT ou escrita para anon/authenticated nas tabelas verificadas. Contagens de accounts, offers, categories e coupons iguais a zero no Supabase.",
+      "next_action": "Reconciliar a migração com a origem antes de qualquer cutover; validar backup/restauração e isolamento do futuro backend de usuários."
+    },
+    {
+      "number": 16,
+      "area": "Segurança",
+      "status": "Parcial",
+      "evidence": "Token da origem permanece no servidor pelo código do proxy; origem HTTPS restrita por hostname. Ponte Supabase implantada corresponde ao fonte GitHub consultado e implementa assinatura e replay protection. Sem inspeção de segredos no ZIP nem pentest.",
+      "next_action": "Revisar fonte Android e fluxos de autorização; testar rejeições reais quando execução estiver disponível."
+    },
+    {
+      "number": 17,
+      "area": "Privacidade",
+      "status": "Bloqueada",
+      "evidence": "Sem AndroidManifest, inventário de SDKs e fluxos de conta acessíveis; não é possível avaliar coleta e permissões do aplicativo.",
+      "next_action": "Mapear dados, serviços de terceiros, retenção e exclusão após leitura do fonte."
+    },
+    {
+      "number": 18,
+      "area": "Rede, cache e offline",
+      "status": "Bloqueada",
+      "evidence": "Políticas HTTP dos servidores foram lidas, mas o comportamento do aplicativo não pôde ser exercitado. A origem usa private/no-store e o proxy muda para cache público de curta duração.",
+      "next_action": "Decidir política coerente e testar internet lenta, indisponibilidade, cache vencido e retomada no aplicativo."
+    },
+    {
+      "number": 19,
+      "area": "Desempenho e acessibilidade",
+      "status": "Bloqueada",
+      "evidence": "Nenhum app executado ou widget Flutter disponível para inspeção. Advisors Supabase geraram pontos de atenção de índices, sem benchmark do aplicativo.",
+      "next_action": "Medir rolagem, imagens, memória e acessibilidade em cenários reais."
+    },
+    {
+      "number": 20,
+      "area": "Compatibilidade Android",
+      "status": "Bloqueada",
+      "evidence": "Sem manifesto, Gradle, minSdk/targetSdk ou execução em aparelho acessíveis.",
+      "next_action": "Validar versões Android, permissões, telas, lifecycle e serviços em segundo plano."
+    },
+    {
+      "number": 21,
+      "area": "GitHub Actions e dependências",
+      "status": "Parcial",
+      "evidence": "CI web passou no commit 9b893e5: build, testes, npm audit e Playwright. Workflow Android não executou. Está sem comando de geração de APK; usa Flutter stable ainda não fixado e actions referenciadas por tags.",
+      "next_action": "Importar fonte, fixar SDK compatível, revisar lockfile e executar flutter analyze/flutter test. CI web verde não homologa Flutter."
+    },
+    {
+      "number": 22,
+      "area": "Testes completos e prontidão",
+      "status": "Bloqueada",
+      "evidence": "Dois testes isolados foram executados com código disponível; integração real bloqueada por quota. Não há prova de fluxos Android ponta a ponta.",
+      "next_action": "Concluir os contratos e o produto, testar jornadas reais e registrar falhas e evidências por versão."
+    },
+    {
+      "number": 23,
+      "area": "Entrega Android",
+      "status": "Adiada por decisão do usuário",
+      "evidence": "Nenhum APK novo foi gerado. Workflow revisado não contém flutter build apk.",
+      "next_action": "Somente após prontidão funcional confirmada: assinatura, instalação, atualização e pacote final."
+    }
+  ],
+  "findings": [
+    {
+      "id": "A01",
+      "priority": "Bloqueante",
+      "title": "Fonte Flutter indisponível para auditoria",
+      "evidence": "A branch não contém o projeto mobile. O ZIP não pôde ser extraído nesta sessão. Não se pode aprovar telas, dependências, permissões ou comportamento Android.",
+      "next_action": "Recuperar e revisar o projeto existente antes de qualquer nova implementação."
+    },
+    {
+      "id": "A02",
+      "priority": "Bloqueante",
+      "title": "Backend independente incompleto para a comunidade",
+      "evidence": "Apenas /api/offers está presente; não há tabelas próprias ou APIs de favoritos, votos, comentários, conta e notificações. Isso não prova ausência de funções locais no Flutter.",
+      "next_action": "Definir e implementar os contratos e persistência no backend independente."
+    },
+    {
+      "id": "A03",
+      "priority": "Alta",
+      "title": "GitHub e Hatchable divergem",
+      "evidence": "O feed implantado existe no Hatchable e não no inventário da branch; os arquivos de mídia existem no GitHub e não no inventário implantado; o helper Supabase difere entre plataformas.",
+      "next_action": "Reconciliar por arquivo e versão, sem sobrescrever a origem de produção. Não declarar sincronização."
+    },
+    {
+      "id": "A04",
+      "priority": "Alta",
+      "title": "Imagens armazenadas não têm caminho utilizável comprovado",
+      "evidence": "O feed chama hydrateImages sem opção pública. Teste isolado confirmou retorno de caminho relativo /api/media/offer/...; a rota correspondente não aparece no projeto implantado. O proxy não converte esse caminho para uma URL absoluta.",
+      "next_action": "Definir rota de leitura autorizada para o feed e URL utilizável pelo app; testar com imagem real sem abrir acesso indiscriminado."
+    },
+    {
+      "id": "A05",
+      "priority": "Bloqueante operacional",
+      "title": "Execução de APIs bloqueada por quota",
+      "evidence": "Testes GET no proxy e na origem retornaram 429 usage_limit. Não houve resposta de sucesso nem confirmação da rejeição de token inválido.",
+      "next_action": "Restabelecer a capacidade de execução e repetir testes de leitura e autenticação. Não contornar quotas."
+    },
+    {
+      "id": "A06",
+      "priority": "Alta",
+      "title": "Supabase ainda não constitui cópia operacional comprovada",
+      "evidence": "Contagens diretas no Supabase: accounts=0, offers=0, categories=0 e coupons=0. Há schema e migrações, mas esses dados não estão presentes nesse banco.",
+      "next_action": "Reconciliar dados com a origem e validar migração e restauração antes de ativar mudança de banco. Não inferir que o Radar original perdeu dados."
+    },
+    {
+      "id": "A07",
+      "priority": "Média",
+      "title": "Tratamento incompleto de configuração e resposta no proxy",
+      "evidence": "A construção inicial da URL fica fora do try/catch; o JSON da origem é repassado sem validação do contrato. São achados estáticos, sem exploração ou carga em produção.",
+      "next_action": "Tratar URL inválida, formalizar o formato aceito e retornar erro controlado para resposta incompatível."
+    },
+    {
+      "id": "A08",
+      "priority": "Média",
+      "title": "Contrato funcional insuficiente para detalhes e cupons",
+      "evidence": "O feed contém dados resumidos e couponCode, mas não descreve regras completas de cupom, validade, detalhes ou entidades da comunidade.",
+      "next_action": "Definir contrato do backend independente e refletir os tipos no Flutter."
+    },
+    {
+      "id": "A09",
+      "priority": "Média",
+      "title": "Políticas de cache divergentes",
+      "evidence": "Origem marca private/no-store; proxy responde com cache público de curta duração. Isso é divergência de política, não vazamento de dados comprovado.",
+      "next_action": "Definir política explícita de atualização e privacidade; testar ofertas retiradas e dados vencidos."
+    },
+    {
+      "id": "A10",
+      "priority": "Média",
+      "title": "Feed não participa automaticamente da troca de banco",
+      "evidence": "A origem importa db diretamente do SDK Hatchable. Um adaptador selecionável está presente em lib/radar-db.js, mas esse feed não o utiliza.",
+      "next_action": "Documentar o banco de cada rota e revisar a migração antes de qualquer cutover; valor ativo da configuração não foi verificado."
+    },
+    {
+      "id": "A11",
+      "priority": "Média",
+      "title": "Validação Android ainda não executável e não reprodutível por SDK",
+      "evidence": "Fonte e lockfile Flutter ausentes; SDK definido como stable, actions por tags. Os únicos runs encontrados são do CI web.",
+      "next_action": "Importar fonte, fixar SDK compatível e dependências; executar testes Flutter. Revisar pinagem das actions."
+    },
+    {
+      "id": "A12",
+      "priority": "Baixa/Média",
+      "title": "Pontos de atenção de desempenho no Supabase",
+      "evidence": "Advisors: 36 chaves estrangeiras sem índice de cobertura, 91 índices sem uso observado e 3 grupos de índices duplicados. Ausência de uso não prova inutilidade, especialmente com tabelas vazias.",
+      "next_action": "Medir consultas reais; verificar dependências antes de qualquer alteração de índice. Nenhum índice foi removido."
+    }
+  ]
+}

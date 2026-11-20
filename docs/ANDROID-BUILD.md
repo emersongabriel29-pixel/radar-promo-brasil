@@ -1,0 +1,73 @@
+# Desenvolvimento Android — Radar Promo Ofertas
+
+## Auditoria completa — 20/11/2026
+
+[Relatório de 30 áreas](./AUDITORIA-APP-2026-11-20.md): parecer não pronto para produção. Correções validadas na fonte a132abd (15 testes Flutter, 260 unitários e 6 de navegador; compilação Android debug aprovada) estão na PR 202 e WIP do feed, sem deploy ou substituição do APK 0.3.0 já entregue. Verificar quota 429, visibilidade personal, migração incompleta do Supabase, assinatura persistente, privacidade/moderação e push antes de homologar.
+
+## Atualização — 20/11/2026: Ofertas v3 publicado
+
+A publicação específica foi autorizada pelo proprietário e concluída. Radar Promo Ofertas v3 live, manifesto de código equivalente ao GitHub; Radar original v672 preservado. Testes de API pós-deploy retornaram 429; visibilidade personal e push seguem pendentes. Nenhum APK. Consulte [resultado e evidências](./DEPLOY-OFERTAS-V3-2026-11-20.md). Os registros abaixo descrevem as etapas anteriores.
+
+Estado em 16/11/2026: fonte Flutter recuperado e versionado em mobile/radar_promo_ofertas; análise e testes aprovados. Nenhum APK novo foi gerado.
+
+## Fonte e versões
+
+O projeto existente foi recuperado do ZIP radar-promo-ofertas-android-flutter-18.zip, sem substituição por scaffold vazio. O arquivo contém 37 arquivos. O workflow original de geração de APK foi arquivado como texto; ele não é executável pelo GitHub Actions.
+
+A recuperação está no commit f58a4ceec436a07a1564044f07d18246f9b42d09 da branch android/github-actions-build. Wrapper Gradle conferido por hash. Código próprio do Radar preservado; nenhum código do Pelando foi incorporado.
+
+## Validação da recuperação
+
+Workflow ativo: .github/workflows/radar-android.yml. Flutter 3.50.0, Dart 3.14.0, Java 21 e flutter pub get --enforce-lockfile. Executa análise e testes em pushes/pull requests que alterem o diretório mobile.
+
+[Execução Flutter 43994639891](https://github.com/emersongabriel29-pixel/radar-promo-brasil/actions/runs/43994639891): resoluções do lockfile, flutter analyze e flutter test concluídos com sucesso. A análise informou No issues found. Não há etapa de build de APK ou de publicação de aplicativo.
+
+[CI web 43994639761](https://github.com/emersongabriel29-pixel/radar-promo-brasil/actions/runs/43994639761): aprovado. Essa suíte é separada da validação Flutter.
+
+## Integração e estado do produto
+
+O cliente consulta o backend independente. O código recuperado possui feed, busca, categorias/filtros, detalhes, cupons e favoritos locais. Conta, votos, comentários e caixa de entrada foram conectados por páginas próprias abertas em Android Custom Tabs, sem transferir sessão para Dart. Não são telas inteiramente nativas. Código b4991b7 aprovado em análise e 10 testes Flutter; backend aprovado em 258 testes unitários e 6 de navegador. O novo deploy foi recusado pela revisão automática de aprovação; permanece preparado no WIP, aguardando autorização específica. Push e homologação real continuam pendentes. Consulte COMUNIDADE-ANDROID-2026-11-17.md.
+
+Radar original v672 e backend independente v2 foram publicados com autorização. As quatro tabelas do catálogo no Supabase foram copiadas e reconciliadas por contagem e assinaturas, sem alteração da origem e sem cutover. O backend independente possui cinco tabelas próprias.
+
+O acesso real continua bloqueado por quota de execução do Hatchable e por visibilidade personal no backend independente. A mudança de visibilidade é uma ação do titular no console. Não houve contratação de plano. Push e testes em aparelho ainda pendentes.
+
+Consulte [resultado da remediação](./REMEDIACAO-ANDROID-2026-11-16.md) e [fonte recuperado](../mobile/radar_promo_ofertas/docs/RECUPERACAO-2026-11-16.md).
+
+## Entrega e rollback
+
+A geração do APK permanece desativada até prontidão confirmada. A PR 202 continua sem merge automático. Para reverter código, reverter os commits da branch; para hospedagem, usar a versão anterior apropriada, preservando dados das tabelas novas. Não apagar o catálogo original ou truncar o destino.
+
+## APK solicitado — 20/11/2026
+
+O proprietário solicitou expressamente o APK nesta conversa, substituindo o adiamento anterior para esta entrega de teste. Novo workflow radar-apk-requested.yml compila o código existente em modo release para ARM64, versão 0.3.0+3 por flags, com a assinatura de desenvolvimento já prevista no Gradle. Não altera credenciais nem habilita publicação em loja. Dispara somente manualmente ou quando o próprio workflow é alterado na branch Android; o workflow regular continua de análise/testes.
+
+Inclui flutter pub get --enforce-lockfile, análise, testes, compilação, apksigner verify, badging de pacote/versão/atividade inicial/ABI e SHA-256. O artefato será entregue após consulta ao resultado real; estar instalável não significa homologação das integrações. Ofertas v3 e Radar original v672 preservados. Quota 429, visibilidade personal, push e teste físico continuam pendentes. Resultado do build e arquivo serão registrados ao término.
+
+## Resultado do APK solicitado — 20/11/2026
+
+APK de teste gerado e disponibilizado: Radar_Promo_Ofertas_0.3.0_arm64_teste.apk, 18421380 bytes (18,4 MB), versão 0.3.0+3, pacote br.com.radarpromo.radar_promo_ofertas, Android API 24+ e engine Flutter ARM64. Compilação release otimizada, assinatura de desenvolvimento (Android Debug), sem chave de produção configurada.
+
+Fonte: commit 72d07d95d99a47aa199f0c7c44ce9992039479ac. [GitHub Actions 44727253742](https://github.com/emersongabriel29-pixel/radar-promo-brasil/actions/runs/44727253742), job 136257688502: análise sem problemas, 10 testes Flutter aprovados, build APK aprovado, assinatura v2 verificada e atividade inicial conferida. Artefato 14623949657. O pacote informa o nome Radar Promo Ofertas e atividade MainActivity iniciável pelo launcher; não houve instalação em aparelho físico.
+
+SHA-256 do APK: 0796423d3afa05cc26fb6e55565534d2267c36c274b35beda1c5383609a3b3b2. ZIP do artefato e APK extraído tiveram hashes conferidos localmente; AndroidManifest.xml, lib/arm64-v8a/libflutter.so e libapp.so presentes. Arquivo APK preservado para download do proprietário. O código-fonte permanece no GitHub, sem incorporar código proprietário do Pelando.
+
+O build não altera backend, visibilidade, dados ou credenciais. Radar original v672 e Ofertas v3 preservados. Recursos online continuam sujeitos à quota 429 e ao acesso privado, e push não está configurado. Classificação: APK de teste compilado/verificado, não homologado em aparelho nem para publicação em loja. A solicitação expressa de APK substituiu o adiamento anterior somente para esta entrega de teste.
+
+## Geração solicitada do APK 0.3.1 — 20/11/2026
+
+Compilar a fonte auditada com versão 0.3.1+4, validar análise/testes e pacote ARM64. O artefato CI é intermediário: será reassinado no ambiente de entrega com a nova chave persistente do proprietário. Nenhuma chave privada vai para o repositório, logs ou argumentos em texto. Certificado público esperado SHA-256: c5f6176299c7cf0775050e36c84c1ac54e605a22b3d1c687f1ef541729fcd5a4. Backup da chave será preservado em arquivo privado do proprietário.
+
+O certificado difere do APK 0.3.0 de teste. Não se garante atualização in-place; desinstalar a versão anterior removeria dados locais, e nenhuma remoção de aplicativo/dados foi executada. Build baseado na fonte auditada não inclui o rascunho local ainda não validado de push, exclusão e moderação. Backend original v672 e Ofertas v3 preservados. Resultado e hash final serão registrados após compilação e assinatura reais.
+
+## APK 0.3.1 entregue — 20/11/2026
+
+Gerado a pedido do proprietário: Radar_Promo_Ofertas_0.3.1_arm64.apk, versão 0.3.1+4, 18452287 bytes, Android API 24+, pacote br.com.radarpromo.radar_promo_ofertas e atividade inicial registrada no menu. Inclui as correções auditadas de interface, preço/data, categorias, tratamento de falhas e versão instalada. Fonte c050315113f5757348babe51610de6d9da837495, branch android/github-actions-build, PR 202. Nenhum código proprietário do Pelando incorporado.
+
+[Actions 44792133980](https://github.com/emersongabriel29-pixel/radar-promo-brasil/actions/runs/44792133980) aprovado: analyze, 15 testes Flutter e compilação release; artefato 14656783608. CI Android 44792144580 e web 44792144480 aprovadas (build, testes, e2e e npm audit). ZIP de origem conferido pelo SHA-256 do GitHub; apksigner.jar conferido pelo manifesto do CI. APK final assinado localmente com chave persistente RSA 4096; apksigner verificou esquemas v2/v3 e certificado esperado. Payload ZIP fora META-INF permaneceu idêntico. A engine e libapp são ARM64; bibliotecas auxiliares podem listar outras ABIs. Instalação desta versão em aparelho físico não exercitada.
+
+SHA-256 APK final: b32de273f22bdb8f427169e739ac74ba5c4d816f8019ca22181915997fe16511. Certificado público SHA-256: c5f6176299c7cf0775050e36c84c1ac54e605a22b3d1c687f1ef541729fcd5a4. Apenas o fingerprint público está versionado. Chave privada e backup confidencial foram entregues privadamente ao proprietário; não constam no repositório ou APK. A assinatura persistente do arquivo foi concluída; configuração segura da chave no CI ainda pendente. O artefato intermediário do Actions usa certificado de desenvolvimento e não é o APK final entregue.
+
+O certificado difere do APK 0.3.0 de teste: atualização direta pode ser recusada pelo Android. Desinstalar o anterior apaga dados locais, inclusive favoritos. Preservar o backup confidencial para futuras versões.
+
+Push, exclusão de conta e moderação permanecem em implementação e não entram nesta entrega. Quota 429, backend personal e homologação online continuam bloqueios de produção. Radar original v672 e Ofertas v3 preservados; nenhum deploy, migração, mensagem real ou mudança de credencial de produção. Documentação do resultado espelhada no WIP privado das duas plataformas; índices/históricos anteriores preservados, sem alegar sincronização integral. Rollback: manter o APK anterior; o retorno entre certificados também exige considerar a incompatibilidade de assinatura e os dados locais.

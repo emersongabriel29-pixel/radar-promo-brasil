@@ -1,0 +1,31 @@
+{
+  "date": "2026-11-20",
+  "authorization": "User explicitly requested: Me mande o apk.",
+  "sourceCommit": "72d07d95d99a47aa199f0c7c44ce9992039479ac",
+  "workflowRun": 44727253742,
+  "job": 136257688502,
+  "artifact": 14623949657,
+  "fileName": "Radar_Promo_Ofertas_0.3.0_arm64_teste.apk",
+  "sizeBytes": 18421380,
+  "sha256": "0796423d3afa05cc26fb6e55565534d2267c36c274b35beda1c5383609a3b3b2",
+  "versionName": "0.3.0",
+  "versionCode": 3,
+  "package": "br.com.radarpromo.radar_promo_ofertas",
+  "minimumApi": 24,
+  "engineABI": "arm64-v8a",
+  "buildMode": "release",
+  "signing": "development Android Debug, v2 verified",
+  "analysis": "passed",
+  "flutterTests": 10,
+  "launcherActivity": "br.com.radarpromo.radar_promo_ofertas.MainActivity",
+  "appLabel": "Radar Promo Ofertas",
+  "localArchiveHashVerified": true,
+  "localApkHashVerified": true,
+  "physicalDeviceTested": false,
+  "onlineIntegrationHomologated": false,
+  "pushConfigured": false,
+  "backendVersions": {
+    "ofertas": 3,
+    "original": 672
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "date_local": "2026-11-16",
+  "source_version": 672,
+  "independent_version": 2,
+  "independent_business_tables": 5,
+  "catalog_snapshot_utc": "2026-11-17 01:07:00.968172+00",
+  "tables": {
+    "accounts": {
+      "source_count": 2,
+      "target_count": 2,
+      "source_digest": "88c1998c6c2dccce5ec88aae10668ff9",
+      "target_digest": "88c1998c6c2dccce5ec88aae10668ff9",
+      "match": true
+    },
+    "offers": {
+      "source_count": 10360,
+      "target_count": 10360,
+      "source_digest": "04c571b34cb5378a1ac71e6ed5d88a88",
+      "target_digest": "04c571b34cb5378a1ac71e6ed5d88a88",
+      "match": true
+    },
+    "coupons": {
+      "source_count": 1,
+      "target_count": 1,
+      "source_digest": "8a2837165b12b5468e1880fb5148994e",
+      "target_digest": "8a2837165b12b5468e1880fb5148994e",
+      "match": true
+    },
+    "categories": {
+      "source_count": 22,
+      "target_count": 22,
+      "source_digest": "629284a2b23581390ce56f042324a595",
+      "target_digest": "629284a2b23581390ce56f042324a595",
+      "match": true
+    }
+  },
+  "batch_count": 55,
+  "conflicts": 0,
+  "original_rows_modified": 0,
+  "database_cutover": false,
+  "flutter": {
+    "recovered_files": 37,
+    "path": "mobile/radar_promo_ofertas",
+    "original_zip": "radar-promo-ofertas-android-flutter-18.zip",
+    "gradle_wrapper_blob": "13372aef5e24af05341d49695ee84e5f9b594659",
+    "apk_build_enabled": false,
+    "current_validation": {
+      "workflow_run": 43994639891,
+      "commit": "f58a4ceec436a07a1564044f07d18246f9b42d09",
+      "analysis": "passed_no_issues",
+      "tests": "passed",
+      "apk_generated": false
+    }
+  },
+  "api_runtime": {
+    "status": 429,
+    "code": "usage_limit"
+  },
+  "visibility": "personal",
+  "limits": [
+    "Native community features not integrated",
+    "Push delivery not configured",
+    "Original storage objects not copied",
+    "No Android device test"
+  ],
+  "ci": {
+    "web_run": 43994639761,
+    "backend_unit_tests": 255,
+    "browser_tests": 3,
+    "result": "passed"
+  }
+}

@@ -1,0 +1,221 @@
+<!-- public/login.html -->
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Entrar — Radar Promo Ofertas</title>
+<link rel="stylesheet" href="/theme.css">
+<style>
+  /* Minimal structural styles — replace with the app's design language. */
+  body { min-height: 100vh; display: flex; align-items: center; justify-content: center;
+         margin: 0; font-family: var(--sans, system-ui, sans-serif); background: var(--bg, #f6f5f2); }
+  main { width: 100%; max-width: 324px; text-align: center; }
+  h1 { font-size: 24px; margin: 0 0 8px; color: var(--text, #1a1a1a); }
+  .sub { font-size: 14px; color: var(--text-dim, #777); margin: 0 0 28px; }
+  input, button, .google-btn { box-sizing: border-box; width: 100%; height: 46px;
+    border-radius: var(--radius, 10px); font-size: 15px; font-family: inherit; }
+  input { padding: 0 14px; border: 1px solid var(--border, #d8d5cd); background: var(--surface, #fff);
+    color: var(--text, #1a1a1a); display: block; }
+  button { margin-top: 10px; border: 0; cursor: pointer; font-weight: 600;
+    background: var(--brand, #1a1a1a); color: var(--on-brand, #fff); }
+  button:disabled { opacity: .5; }
+  .google-btn { display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin-bottom: 18px; border: 1px solid var(--border, #d8d5cd); background: var(--surface, #fff);
+    color: var(--text, #1a1a1a); text-decoration: none; font-weight: 600; }
+  .alt { background: transparent; color: var(--text-dim, #777); font-weight: 500; }
+  .msg { font-size: 13.5px; margin-top: 14px; min-height: 1em; color: var(--text-dim, #777); }
+  .msg.err { color: var(--danger, #b0492e); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title">Entrar</h1>
+  <p class="sub" id="sub">Enviaremos um código por e-mail. Não é necessário criar senha.</p>
+
+  <!-- Include this button IF AND ONLY IF your toml declares the google
+       provider — you wrote the toml, so you already know. No runtime
+       discovery needed: clicks are safe in every state (owner setup
+       unfinished → friendly "not ready" page; wrong host → redirect to
+       the app's custom domain, where the ceremony runs). Omit the
+       whole block for email-only apps. -->
+  
+
+  <form id="form" novalidate>
+    <div id="email-row">
+      <!-- autocomplete="username webauthn" is REQUIRED for passkey autofill.
+           Browsers surface saved passkeys in this input's suggestions. -->
+      <input id="email" name="email" type="email" placeholder="seu@email.com"
+             autocomplete="username webauthn" autocapitalize="off" autocorrect="off"
+             spellcheck="false" required aria-label="E-mail">
+    </div>
+    <div id="code-row" hidden>
+      <!-- autocomplete="one-time-code" lets iOS/Android autofill the code
+           straight from the email/SMS notification. -->
+      <input id="code" name="code" type="text" inputmode="numeric" placeholder="Código de 6 dígitos"
+             autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" aria-label="Código de 6 dígitos">
+    </div>
+    <button id="submit" type="submit">Continuar</button>
+    <button id="back" class="alt" type="button" hidden>Usar outro e-mail</button>
+  </form>
+
+  <!-- Post-signin passkey offer. registerPasskey is the ONLY thing that
+       ever creates a passkey: sign-in can't conjure one. Drop this block
+       and every account on your app stays on emailed codes for life. -->
+  <div id="passkey" hidden>
+    <button id="passkey-add" type="button">Adicionar chave de acesso</button>
+    <button id="passkey-skip" class="alt" type="button">Agora não</button>
+  </div>
+
+  <p class="msg" id="msg" role="status" aria-live="polite"></p>
+</main>
+<script>
+(function () {
+  var A = window.hatchable && window.hatchable.auth;
+  var form = document.getElementById('form');
+  var emailRow = document.getElementById('email-row');
+  var codeRow = document.getElementById('code-row');
+  var emailEl = document.getElementById('email');
+  var codeEl = document.getElementById('code');
+  var submit = document.getElementById('submit');
+  var back = document.getElementById('back');
+  var msg = document.getElementById('msg');
+  var sub = document.getElementById('sub');
+  var titleEl = document.getElementById('title');
+  var passkeyRow = document.getElementById('passkey');
+  var passkeyAdd = document.getElementById('passkey-add');
+  var passkeySkip = document.getElementById('passkey-skip');
+  var googleBtn = document.getElementById('google-btn');
+  var step = 'email';
+  var hasPasskey = false;
+  var PASSKEY_DECLINED = 'passkey_offer_declined';
+
+  // Only ever navigate to a RELATIVE path. An absolute ?next= would make
+  // this page an open redirect under the just-signed-in trust halo.
+  function safeNext() {
+    var raw = new URLSearchParams(location.search).get('next') || '/';
+    if (typeof raw !== 'string' || raw.charAt(0) !== '/' || raw.charAt(1) === '/') return '/';
+    // Browsers read a backslash as '/' ('/BACKSLASH evil.com' is
+    // '//evil.com') and strip tab/CR/LF before parsing, so refuse both
+    // anywhere, plus every other control character. Char codes, not a
+    // regex, so the check has no backslash for an outer string to eat.
+    for (var i = 0; i < raw.length; i++) {
+      var c = raw.charCodeAt(i);
+      if (c < 32 || c === 92 || c === 127) return '/';
+    }
+    return raw;
+  }
+  function say(text, kind) { msg.textContent = text || ''; msg.className = 'msg ' + (kind || ''); }
+  function done() { location.replace(safeNext()); }
+
+  // Signing in is not the end of the flow. Ask on a real screen with the
+  // reason visible: firing the OS biometric prompt with nothing behind it
+  // reads as a browser malfunction and gets dismissed.
+  function declined() {
+    try { return localStorage.getItem(PASSKEY_DECLINED) === '1'; } catch (e) { return false; }
+  }
+  function decline() {
+    try { localStorage.setItem(PASSKEY_DECLINED, '1'); } catch (e) {}
+  }
+
+  // Signed in. Offer the passkey, or leave if the offer doesn't apply.
+  // Skipped when they already have one: reaching the code path with a
+  // passkey on file means they just declined the sign-in prompt.
+  function finish() {
+    if (hasPasskey || declined() || !A.registerPasskey
+        || !A.supportsPasskeys || !A.supportsPasskeys()) { done(); return; }
+    step = 'passkey';
+    form.hidden = true;
+    if (googleBtn) { googleBtn.hidden = true; }
+    titleEl.textContent = "Você entrou";
+    sub.textContent = 'Adicione uma chave de acesso para entrar com sua digital, reconhecimento facial ou bloqueio de tela, sem esperar por um código.';
+    say('');
+    passkeyRow.hidden = false;
+    passkeyAdd.focus();
+  }
+
+  if (!A) { say('O acesso está indisponível. Atualize a página.', 'err'); submit.disabled = true; return; }
+
+  // Already signed in? Straight through.
+  A.getSession().then(function (s) { if (s && s.user) done(); }).catch(function () {});
+
+  // Carry ?next through the Google ceremony.
+  if (googleBtn) { googleBtn.href = '/api/auth/google/start?next=' + encodeURIComponent(safeNext()); }
+
+  // Saved passkeys appear in the email input's autofill; picking one
+  // signs in without any code.
+  if (A.attachPasskeyAutofill) {
+    try { A.attachPasskeyAutofill(emailEl).then(function (r) { if (r && r.user) done(); }).catch(function () {}); }
+    catch (e) {}
+  }
+
+  passkeyAdd.addEventListener('click', function () {
+    passkeyAdd.disabled = true; passkeySkip.disabled = true;
+    say('');
+    A.registerPasskey().then(function (r) {
+      // null = the OS prompt was dismissed. Take that as a no and stop
+      // asking; an unexplained repeat prompt every sign-in is worse.
+      if (!r) { decline(); }
+      done();
+    }).catch(function (err) {
+      passkeyAdd.disabled = false; passkeySkip.disabled = false;
+      say((err && err.message) || 'Não foi possível salvar a chave. Você pode continuar sem ela.', 'err');
+    });
+  });
+
+  passkeySkip.addEventListener('click', function () { decline(); done(); });
+
+  back.addEventListener('click', function () {
+    step = 'email'; codeRow.hidden = true; emailRow.hidden = false; back.hidden = true;
+    submit.textContent = 'Continuar';
+    sub.textContent = "Enviaremos um código por e-mail. Não é necessário criar senha.";
+    say(''); emailEl.focus();
+  });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (step === 'passkey') { return; }
+    submit.disabled = true;
+    if (step === 'email') {
+      var email = (emailEl.value || '').trim();
+      if (!email) { submit.disabled = false; say('Informe seu e-mail.', 'err'); return; }
+      A.startLogin({ email: email }).then(function (r) {
+        hasPasskey = !!(r && r.has_passkey);
+        // Known passkey for this email? Offer the one-tap path first.
+        if (hasPasskey && A.supportsPasskeys && A.supportsPasskeys()) {
+          return A.signInWithPasskey({ email: email }).then(function (d) {
+            if (d && d.user) { done(); return null; }
+            return 'code';
+          }).catch(function () { return 'code'; });
+        }
+        return 'code';
+      }).then(function (next) {
+        if (next !== 'code') return;
+        step = 'code'; emailRow.hidden = true; codeRow.hidden = false; back.hidden = false;
+        submit.textContent = 'Entrar';
+        sub.textContent = 'Informe o código enviado para ' + emailEl.value.trim() + '.';
+        say('Código enviado. Ele expira em 10 minutos.');
+        codeEl.focus();
+      }).catch(function (err) {
+        say(err && err.status === 429
+          ? 'Muitas tentativas. Aguarde um momento.'
+          : ((err && err.message) || 'Não foi possível enviar o código. Confira o e-mail e tente novamente.'), 'err');
+      }).then(function () { submit.disabled = false; });
+      return;
+    }
+    A.verifyCode({ email: (emailEl.value || '').trim(), code: (codeEl.value || '').trim() })
+      .then(function (d) {
+        if (d && d.user) { finish(); return; }
+        say('Código inválido. Tente novamente.', 'err');
+      })
+      .catch(function (err) { say((err && err.message) || 'Código inválido. Tente novamente.', 'err'); })
+      .then(function () { submit.disabled = false; });
+  });
+
+  emailEl.focus();
+})();
+</script>
+</body>
+</html>
