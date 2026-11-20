@@ -50,6 +50,19 @@ class OffersApi {
       );
     }
     if (response.statusCode != 200) {
+      String? upstreamCode;
+      try {
+        final body = jsonDecode(response.body);
+        if (body is Map<String, dynamic>) {
+          upstreamCode = body['code']?.toString();
+        }
+      } catch (_) {
+        // Some infrastructure failures return HTML rather than JSON.
+      }
+      if (upstreamCode == 'RADAR_CAPACITY_REACHED' ||
+          upstreamCode == 'RADAR_CONNECTION_NOT_CONFIGURED') {
+        throw Exception('O serviço de ofertas está temporariamente indisponível no servidor. As ofertas voltarão quando a integração for restabelecida.');
+      }
       final message = switch (response.statusCode) {
         429 =>
           'O servidor de ofertas atingiu o limite de uso (HTTP 429). Não é uma falha do seu celular. Tente novamente após a liberação do serviço.',
