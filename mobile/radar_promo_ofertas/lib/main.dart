@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import 'screens/preferences.dart';
 import 'screens/app_version.dart';
+import 'screens/stores_coupons.dart';
 
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -703,6 +704,18 @@ class _HomeScreenState extends State<HomeScreen> {
         'Favoritos desta versão ficam armazenados localmente neste aparelho.',
       ),
       const SizedBox(height: 16),
+      ListTile(
+        leading: const Icon(Icons.storefront_outlined),
+        title: const Text('Lojas e cupons das ofertas carregadas'),
+        subtitle: const Text('Catálogo parcial; consulte validade na loja'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => StoresCouponsScreen(
+            offers: offers,
+            onOpen: (offer) => _openOffer(offer),
+          )),
+        ),
+      ),
       ListTile(
         leading: const Icon(Icons.settings_outlined),
         title: const Text('Preferências e dados locais'),
