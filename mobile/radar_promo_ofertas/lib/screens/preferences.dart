@@ -4,10 +4,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/theme_preference.dart';
+import '../models/offer.dart';
+import '../services/local_price_matches.dart';
 
 class SavedSearchesScreen extends StatefulWidget {
-  const SavedSearchesScreen({super.key, required this.onSearch});
+  const SavedSearchesScreen({super.key, required this.onSearch, this.loadedOffers = const []});
   final ValueChanged<String> onSearch;
+  final List<Offer> loadedOffers;
   @override
   State<SavedSearchesScreen> createState() => _SavedSearchesScreenState();
 }
@@ -191,7 +194,8 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
             leading: const Icon(Icons.search),
             title: Text(term),
             subtitle: Text('${mutedSearches.contains(term) ? 'Pausada localmente · ' : ''}'
-                '${targetPrices.containsKey(term) ? 'Preço desejado: R\$ ${targetPrices[term]!.toStringAsFixed(2).replaceAll('.', ',')}' : 'Sem preço máximo'}'),
+                '${targetPrices.containsKey(term) ? 'Preço desejado: R\$ ${targetPrices[term]!.toStringAsFixed(2).replaceAll('.', ',')}' : 'Sem preço máximo'}'
+                '${!mutedSearches.contains(term) && targetPrices.containsKey(term) ? ' · ${LocalPriceMatches.find(widget.loadedOffers, query: term, maximumPrice: targetPrices[term]!).length} correspondência(s) nas ofertas carregadas' : ''}'),
             onTap: () => widget.onSearch(term),
             onLongPress: () => _editTarget(term),
             trailing: Wrap(
