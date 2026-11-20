@@ -1,0 +1,394 @@
+{
+  "dateBrazil": "2026-11-20",
+  "scope": "APK/Flutter app, independent backend, original feed/db bridge and Supabase dependencies; not all original affiliate connectors",
+  "verdict": "NOT_READY_FOR_PRODUCTION",
+  "initialHead": "82ca19dfa1c04a281db361c713d4d9be65824643",
+  "validatedCodeCommit": "a132abde3475a0c4a05f3a28563761de458d6263",
+  "branch": "android/github-actions-build",
+  "main": "a6ec44374fcf0915cb37940679af79c9cef6bfd8",
+  "liveVersions": {
+    "ofertas": 3,
+    "original": 672
+  },
+  "matrix": [
+    [
+      "Identidade e versões",
+      "Conferido",
+      "GitHub main a6ec443; branch 82ca19d; Ofertas v3; Radar v672."
+    ],
+    [
+      "Equivalência backend GitHub/live",
+      "Conferido",
+      "21/21 arquivos de código/configuração/migração independentes com hash igual ao manifesto v3."
+    ],
+    [
+      "Instalação, ícone e navegação",
+      "Conferido no vídeo",
+      "APK abre no Android do proprietário; cinco abas navegáveis. Não comprova todas as funções."
+    ],
+    [
+      "Integridade do APK",
+      "Conferido",
+      "SHA-256 igual ao CI; assinatura v2; launcher; API24+; engine ARM64; 18.421.380 bytes."
+    ],
+    [
+      "Assinatura e atualização",
+      "Pendente",
+      "Certificado Android Debug do runner; sem identidade de assinatura de produção persistente validada entre builds."
+    ],
+    [
+      "Versão em Sobre",
+      "Correção em código",
+      "0.2.0 fixo substituído por metadados do pacote Android; APK entregue ainda contém a tela anterior."
+    ],
+    [
+      "Layout e acessibilidade",
+      "Parcial",
+      "Vídeo confirma uso normal; regressão 360px/1,8x passou após corrigir overflow. TalkBack, paisagem e múltiplos aparelhos pendentes."
+    ],
+    [
+      "Compilação nativa",
+      "Aprovada nesta rodada",
+      "CI 44732326516: análise, 15 testes e compilação debug aprovados. Não comprova chamada nativa em aparelho nem distribui esse APK."
+    ],
+    [
+      "Feed real",
+      "Bloqueado",
+      "GET /api/offers público retorna 429 usage_limit; vídeo mostra falta de acesso."
+    ],
+    [
+      "Atualização automática",
+      "Parcial",
+      "Carga inicial, botão e pull-to-refresh existentes; sem atualização periódica/retomada ou serviço em segundo plano."
+    ],
+    [
+      "Busca, ordenação e paginação",
+      "Implementado, não homologado",
+      "Parâmetros enviados, erros tratados e deduplicação por ID; quota impede fluxo real."
+    ],
+    [
+      "Categorias",
+      "Correção em código",
+      "Removidos nomes fixos divergentes; usa nomes exatos das ofertas carregadas. Catálogo completo independente de paginação ainda não existe."
+    ],
+    [
+      "Favoritos",
+      "Parcial",
+      "Locais persistentes/offline; favoritos da conta separados, limitados a 100 sem paginação; sem sincronização automática."
+    ],
+    [
+      "Preço, desconto e data",
+      "Correção em código",
+      "Valores não finitos saneados, desconto limitado, preço desconhecido e data ausente explícitos; não inventa data atual."
+    ],
+    [
+      "Detalhes, cupons e filtro ID",
+      "Correção crítica em código",
+      "SQL original usava o.id=4 em vez de parâmetro $4. Teste PostgreSQL em memória verifica ID com busca/categoria/conta."
+    ],
+    [
+      "Links de afiliados",
+      "Parcial",
+      "HTTPS e ausência de userInfo exigidos no Flutter; query/SubIDs preservados em testes. Conversão, atribuição e compra real não testadas."
+    ],
+    [
+      "Imagens",
+      "Parcial",
+      "URLs assinadas TTL300 e fallback; chaves internas ocultas; cópia salva pode ter URL expirada e sem cache offline."
+    ],
+    [
+      "Login e sessão",
+      "Configurado, bloqueado",
+      "Conta em Custom Tabs/SDK oficial, sem copiar cookies para Dart; barreira personal e quota impedem homologação código/passkey."
+    ],
+    [
+      "Votos",
+      "Implementado, bloqueado",
+      "Upsert -1/+1 e autoria testados em memória; requireRealOffer afetado pelo erro SQL; operação real não validada."
+    ],
+    [
+      "Comentários e abuso",
+      "Parcial",
+      "Autoria, limites, XSS por textContent e respostas testados em memória; denúncia/moderação e exclusão de conta ainda sem fluxo de produto."
+    ],
+    [
+      "Avisos e push",
+      "Parcial",
+      "Inbox/prefs/respostas implementados no backend; push e alertas de buscas em segundo plano ausentes."
+    ],
+    [
+      "Supabase e continuidade de dados",
+      "Parcial",
+      "2 contas, 22 categorias, 1 cupom, 10.360 ofertas; sem price_history nem rpo_*; feed e comunidade continuam dependentes do SDK DB Hatchable."
+    ],
+    [
+      "Autorização e RLS",
+      "Parcial",
+      "SQL parametrizado filtra autoria; Hatchable sem regras declarativas rpo_*. Supabase RLS ligado, tabelas catálogo sem grants anon/authenticated e sem policies: fechado, não exposição comprovada."
+    ],
+    [
+      "Privacidade e ciclo de dados",
+      "Parcial, texto corrigido",
+      "Aviso antigo negava conta/comentários; atualizado no código. Retenção, exclusão de conta e cópias em avisos exigem desenho/validação."
+    ],
+    [
+      "Segredos e permissões APK",
+      "Conferido no escopo",
+      "INTERNET e permissão interna receiver; cleartext/backup desativados; padrões de JWT/sb_secret/chaves privadas não encontrados no scan delimitado."
+    ],
+    [
+      "Erros, quota e observabilidade",
+      "Parcial",
+      "Erros de acesso/quota traduzidos, timeout e Retry-After existentes; bloqueio de plataforma impede diagnóstico funcional dentro do handler."
+    ],
+    [
+      "Desempenho do banco",
+      "Pendências registradas",
+      "Advisors: 36 FKs sem índice, 90 índices sem uso observado, 3 pares de índices duplicados. Sem remoções automáticas."
+    ],
+    [
+      "Testes e cobertura",
+      "Parcial",
+      "CI atual: 15 Flutter, 260 unitários, 6 de navegador, build/audit e compilação Android aprovados. Fluxo real bloqueado; controle negativo reproduz o defeito antigo."
+    ],
+    [
+      "Identidade visual e propriedade",
+      "Conferido no escopo",
+      "Código próprio recuperado; nenhum código/asset Pelando introduzido nesta auditoria. Não é parecer jurídico/forense sobre terceiros."
+    ],
+    [
+      "Implantação e documentação",
+      "Controlado",
+      "Correções em branch e, após testes, WIP. Sem deploy, troca de banco, segredo, gasto, mensagens ou novo APK de distribuição nesta auditoria."
+    ]
+  ],
+  "ci": {
+    "flutter": {
+      "run": 44732326516,
+      "job": 136274953349,
+      "analysis": "success",
+      "tests": 15,
+      "nativeDebugBuild": "success"
+    },
+    "web": {
+      "run": 44732326723,
+      "job": 136274953785,
+      "unitTests": 260,
+      "browserTests": 6,
+      "build": "success",
+      "auditVulnerabilities": 0
+    }
+  },
+  "runtime": {
+    "offers": 429,
+    "account": 429,
+    "code": "usage_limit",
+    "usedHours": 2.1,
+    "freeBudgetHours": 2
+  },
+  "supabase": {
+    "health": "ACTIVE_HEALTHY",
+    "counts": {
+      "accounts": 2,
+      "categories": 22,
+      "coupons": 1,
+      "offers": 10360,
+      "offer_price_history": 0
+    },
+    "communityTables": 0,
+    "catalogRlsEnabled": true,
+    "directAnonAuthenticatedGrants": 0,
+    "catalogPolicies": 0,
+    "latestOfferCreatedAt": "2026-11-11T07:26:29.22162+00:00",
+    "latestOfferUpdatedAt": "2026-11-13T00:58:09.496188+00:00",
+    "advisors": {
+      "rlsEnabledWithoutPolicy": 72,
+      "unindexedForeignKeys": 36,
+      "unusedIndexes": 90,
+      "duplicateIndexPairs": 3
+    }
+  },
+  "apk": {
+    "apk_sha256": "0796423d3afa05cc26fb6e55565534d2267c36c274b35beda1c5383609a3b3b2",
+    "apk_bytes": 18421380,
+    "private_artifact_names": [],
+    "secret_pattern_match_counts": {
+      "jwt": 0,
+      "supabase_secret": 0,
+      "private_key": 0
+    },
+    "arm64_zip_alignment": [
+      {
+        "library": "lib/arm64-v8a/libapp.so",
+        "stored": true,
+        "aligned_16k": true
+      },
+      {
+        "library": "lib/arm64-v8a/libdartjni.so",
+        "stored": true,
+        "aligned_16k": true
+      },
+      {
+        "library": "lib/arm64-v8a/libdatastore_shared_counter.so",
+        "stored": true,
+        "aligned_16k": true
+      },
+      {
+        "library": "lib/arm64-v8a/libflutter.so",
+        "stored": true,
+        "aligned_16k": true
+      }
+    ],
+    "static_scan_scope": "named patterns and zip offsets only; does not prove absence of all secrets or runtime page compatibility"
+  },
+  "liveIndependentHashes": [
+    {
+      "path": "api/account.js",
+      "matches_live_v3": true
+    },
+    {
+      "path": "api/comments.js",
+      "matches_live_v3": true
+    },
+    {
+      "path": "api/comments/manage.js",
+      "matches_live_v3": true
+    },
+    {
+      "path": "api/favorites.js",
+      "matches_live_v3": true
+    },
+    {
+      "path": "api/notifications.js",
+      "matches_live_v3": true
+    },
+    {
+      "path": "api/offers.js",
+      "matches_live_v3": true
+    },
+    {
+      "path": "api/offers/[id].js",
+      "matches_live_v3": true
+    },
+    {
+      "path": "api/votes.js",
+      "matches_live_v3": true
+    },
+    {
+      "path": "hatchable.toml",
+      "matches_live_v3": true
+    },
+    {
+      "path": "lib/api.js",
+      "matches_live_v3": true
+    },
+    {
+      "path": "lib/community.js",
+      "matches_live_v3": true
+    },
+    {
+      "path": "lib/feed-contract.js",
+      "matches_live_v3": true
+    },
+    {
+      "path": "lib/radar-feed.js",
+      "matches_live_v3": true
+    },
+    {
+      "path": "migrations/0001_community.sql",
+      "matches_live_v3": true
+    },
+    {
+      "path": "public/community-client.js",
+      "matches_live_v3": true
+    },
+    {
+      "path": "public/community-ui.js",
+      "matches_live_v3": true
+    },
+    {
+      "path": "public/community.css",
+      "matches_live_v3": true
+    },
+    {
+      "path": "public/community.html",
+      "matches_live_v3": true
+    },
+    {
+      "path": "public/index.html",
+      "matches_live_v3": true
+    },
+    {
+      "path": "public/login.html",
+      "matches_live_v3": true
+    },
+    {
+      "path": "public/theme.css",
+      "matches_live_v3": true
+    }
+  ],
+  "examinedPaths": [
+    ".github/workflows/radar-android.yml",
+    ".github/workflows/radar-apk-requested.yml",
+    "api/public/offers-feed.js",
+    "independent/radar-promo-ofertas/api/account.js",
+    "independent/radar-promo-ofertas/api/comments/manage.js",
+    "independent/radar-promo-ofertas/api/comments.js",
+    "independent/radar-promo-ofertas/api/favorites.js",
+    "independent/radar-promo-ofertas/api/notifications.js",
+    "independent/radar-promo-ofertas/api/offers/[id].js",
+    "independent/radar-promo-ofertas/api/offers.js",
+    "independent/radar-promo-ofertas/api/votes.js",
+    "independent/radar-promo-ofertas/hatchable.toml",
+    "independent/radar-promo-ofertas/lib/api.js",
+    "independent/radar-promo-ofertas/lib/community.js",
+    "independent/radar-promo-ofertas/lib/feed-contract.js",
+    "independent/radar-promo-ofertas/lib/radar-feed.js",
+    "independent/radar-promo-ofertas/migrations/0001_community.sql",
+    "independent/radar-promo-ofertas/public/community-client.js",
+    "independent/radar-promo-ofertas/public/community-ui.js",
+    "independent/radar-promo-ofertas/public/community.css",
+    "independent/radar-promo-ofertas/public/community.html",
+    "independent/radar-promo-ofertas/public/index.html",
+    "independent/radar-promo-ofertas/public/login.html",
+    "independent/radar-promo-ofertas/public/theme.css",
+    "lib/feed-images.js",
+    "lib/radar-db.js",
+    "lib/supabase-db.js",
+    "mobile/radar_promo_ofertas/android/app/build.gradle.kts",
+    "mobile/radar_promo_ofertas/android/app/src/main/AndroidManifest.xml",
+    "mobile/radar_promo_ofertas/android/app/src/main/kotlin/br/com/radarpromo/radar_promo_ofertas/MainActivity.kt",
+    "mobile/radar_promo_ofertas/android/build.gradle.kts",
+    "mobile/radar_promo_ofertas/android/gradle.properties",
+    "mobile/radar_promo_ofertas/android/settings.gradle.kts",
+    "mobile/radar_promo_ofertas/lib/main.dart",
+    "mobile/radar_promo_ofertas/lib/models/offer.dart",
+    "mobile/radar_promo_ofertas/lib/screens/app_version.dart",
+    "mobile/radar_promo_ofertas/lib/screens/preferences.dart",
+    "mobile/radar_promo_ofertas/lib/services/api.dart",
+    "mobile/radar_promo_ofertas/lib/services/community.dart",
+    "mobile/radar_promo_ofertas/pubspec.lock",
+    "mobile/radar_promo_ofertas/pubspec.yaml",
+    "mobile/radar_promo_ofertas/test/audit_regressions_test.dart",
+    "mobile/radar_promo_ofertas/test/community_test.dart",
+    "mobile/radar_promo_ofertas/test/home_test.dart",
+    "mobile/radar_promo_ofertas/test/offers_api_test.dart",
+    "tests/e2e/rpo-community.spec.js",
+    "tests/public-offers-id.test.mjs",
+    "tests/radar-ofertas-backend.test.mjs",
+    "tests/rpo-community-client.test.mjs"
+  ],
+  "originalFeedWip": {
+    "hash": "5ca0dba386ef2a728fd056f6d83ed75270e6bbf01809ac14759623fa8442d16c",
+    "equal": true
+  },
+  "originalDryRun": {
+    "ok": true,
+    "errors": 0,
+    "warnings": 0
+  },
+  "productionChanges": false,
+  "databaseCutover": false,
+  "realCommunityWritesTested": false,
+  "newApkDistributed": false
+}

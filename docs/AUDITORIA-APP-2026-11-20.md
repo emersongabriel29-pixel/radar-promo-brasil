@@ -30,8 +30,8 @@
 | Integridade do APK | Conferido | SHA-256 igual ao CI; assinatura v2; launcher; API24+; engine ARM64; 18.421.380 bytes. |
 | Assinatura e atualização | Pendente | Certificado Android Debug do runner; sem identidade de assinatura de produção persistente validada entre builds. |
 | Versão em Sobre | Correção em código | 0.2.0 fixo substituído por metadados do pacote Android; APK entregue ainda contém a tela anterior. |
-| Layout e acessibilidade | Parcial | Vídeo confirma uso normal; regressão 360px/1,8x preparada; TalkBack, paisagem e múltiplos aparelhos pendentes. |
-| Compilação nativa | A validar nesta rodada | CI ampliado com compilação debug para verificar ponte nativa de versão; sem distribuição por esse workflow. |
+| Layout e acessibilidade | Parcial | Vídeo confirma uso normal; regressão 360px/1,8x passou após corrigir overflow. TalkBack, paisagem e múltiplos aparelhos pendentes. |
+| Compilação nativa | Aprovada nesta rodada | CI 44732326516: análise, 15 testes e compilação debug aprovados. Não comprova chamada nativa em aparelho nem distribui esse APK. |
 | Feed real | Bloqueado | GET /api/offers público retorna 429 usage_limit; vídeo mostra falta de acesso. |
 | Atualização automática | Parcial | Carga inicial, botão e pull-to-refresh existentes; sem atualização periódica/retomada ou serviço em segundo plano. |
 | Busca, ordenação e paginação | Implementado, não homologado | Parâmetros enviados, erros tratados e deduplicação por ID; quota impede fluxo real. |
@@ -51,7 +51,7 @@
 | Segredos e permissões APK | Conferido no escopo | INTERNET e permissão interna receiver; cleartext/backup desativados; padrões de JWT/sb_secret/chaves privadas não encontrados no scan delimitado. |
 | Erros, quota e observabilidade | Parcial | Erros de acesso/quota traduzidos, timeout e Retry-After existentes; bloqueio de plataforma impede diagnóstico funcional dentro do handler. |
 | Desempenho do banco | Pendências registradas | Advisors: 36 FKs sem índice, 90 índices sem uso observado, 3 pares de índices duplicados. Sem remoções automáticas. |
-| Testes e cobertura | Parcial | Histórico CI verde não detectou SQL ID inválido; regressão positiva/negativa e casos Flutter ampliados nesta rodada. Testes reais continuam bloqueados. |
+| Testes e cobertura | Parcial | CI atual: 15 Flutter, 260 unitários, 6 de navegador, build/audit e compilação Android aprovados. Fluxo real bloqueado; controle negativo reproduz o defeito antigo. |
 | Identidade visual e propriedade | Conferido no escopo | Código próprio recuperado; nenhum código/asset Pelando introduzido nesta auditoria. Não é parecer jurídico/forense sobre terceiros. |
 | Implantação e documentação | Controlado | Correções em branch e, após testes, WIP. Sem deploy, troca de banco, segredo, gasto, mensagens ou novo APK de distribuição nesta auditoria. |
 
@@ -96,3 +96,16 @@ Observação de arquitetura: /api/account não executa consultas SQL no seu hand
 ### Fonte ampliada: falha reproduzida e corrigida
 
 Execução Flutter 44731891201 (595edb0): análise aprovada, 14 testes passaram e o teste novo 360px/1,8x encontrou overflow horizontal de 134px no controle de ordenação. Layout dos controles reorganizado com largura limitada e seleção adaptável; o teste não foi removido nem relaxado. Compilação nativa dessa execução foi pulada por causa da falha. O workflow regular passa a validar Android em PRs e pushes na main, evitando dois builds iguais em cada push da branch com PR aberta; compilação solicitada de distribuição permanece separada.
+
+## Resultado final da execução
+
+Fonte de correções validada: **a132abde3475a0c4a05f3a28563761de458d6263**, branch android/github-actions-build, PR 202 draft.
+
+- [CI Flutter 44732326516](https://github.com/emersongabriel29-pixel/radar-promo-brasil/actions/runs/44732326516), job 136274953349: dependências travadas, análise sem problemas, **15 testes aprovados** e **compilação Android debug aprovada**, incluindo o código Kotlin da versão. Sem distribuição de novo APK nesta auditoria.
+- [CI web/backend 44732326723](https://github.com/emersongabriel29-pixel/radar-promo-brasil/actions/runs/44732326723), job 136274953785: build, **260 testes unitários**, **6 testes de navegador** e audit aprovados, zero vulnerabilidades reportadas nas dependências auditadas.
+- Testes novos mantidos: comportamento da versão instalada, categorias reais, dados numéricos não finitos/datas ausentes, exibição de preço/data indisponíveis e navegação 360px/1,8x. A falha de layout encontrada foi corrigida sem relaxar o teste.
+- APK auditado: os quatro .so ARM64 estão armazenados sem compressão e com offsets ZIP alinhados em 16KiB. Isso é verificação estrutural, não teste de runtime com páginas de 16KiB. Scan delimitado de JWT, sb_secret e chaves privadas: zero ocorrências; não há .jks/.keystore/.env/key.properties/google-services.json no pacote.
+- A correção do filtro ID foi espelhada **somente no WIP** do Radar original. Conteúdo relido e igual ao GitHub; hash 5ca0dba386ef2a728fd056f6d83ed75270e6bbf01809ac14759623fa8442d16c. Dry-run do projeto original: zero erros e zero avisos. Produção continua v672 até publicação; Ofertas segue v3.
+- Nenhum deploy, merge na main, segredo, plano, migração/cutover, exclusão de dados ou mensagem externa foi executado nesta auditoria. Histórico documental divergente no Radar original foi preservado.
+
+**Parecer final permanece REPROVADO para produção**, apesar dos testes do código terem passado. As APIs reais continuam bloqueadas; catálogo Supabase parcial, assinatura persistente, exclusão/moderação, push e homologação de jornada real precisam ser concluídos. Correção em branch/WIP não corrige automaticamente o APK 0.3.0 já instalado nem a versão live do feed.

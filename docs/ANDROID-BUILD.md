@@ -1,5 +1,9 @@
 # Desenvolvimento Android — Radar Promo Ofertas
 
+## Auditoria completa — 20/11/2026
+
+[Relatório de 30 áreas](./AUDITORIA-APP-2026-11-20.md): parecer não pronto para produção. Correções validadas na fonte a132abd (15 testes Flutter, 260 unitários e 6 de navegador; compilação Android debug aprovada) estão na PR 202 e WIP do feed, sem deploy ou substituição do APK 0.3.0 já entregue. Verificar quota 429, visibilidade personal, migração incompleta do Supabase, assinatura persistente, privacidade/moderação e push antes de homologar.
+
 ## Atualização — 20/11/2026: Ofertas v3 publicado
 
 A publicação específica foi autorizada pelo proprietário e concluída. Radar Promo Ofertas v3 live, manifesto de código equivalente ao GitHub; Radar original v672 preservado. Testes de API pós-deploy retornaram 429; visibilidade personal e push seguem pendentes. Nenhum APK. Consulte [resultado e evidências](./DEPLOY-OFERTAS-V3-2026-11-20.md). Os registros abaixo descrevem as etapas anteriores.
