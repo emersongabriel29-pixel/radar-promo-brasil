@@ -325,6 +325,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ? _about()
             : tab == 3
             ? SavedSearchesScreen(
+                loadedOffers: offers,
                 onSearch: (query) {
                   setState(() {
                     search.text = query;
