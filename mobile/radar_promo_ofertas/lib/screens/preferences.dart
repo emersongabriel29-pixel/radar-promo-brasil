@@ -198,7 +198,7 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
                 '${!mutedSearches.contains(term) && targetPrices.containsKey(term) ? ' · ${LocalPriceMatches.find(widget.loadedOffers, query: term, maximumPrice: targetPrices[term]!).length} correspondência(s) nas ofertas carregadas' : ''}'),
             onTap: () => widget.onSearch(term),
             onLongPress: () => _editTarget(term),
-            trailing: Wrap(
+            trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
