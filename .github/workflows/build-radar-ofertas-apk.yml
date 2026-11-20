@@ -1,5 +1,5 @@
 name: Build Radar Promo Ofertas APK
-# Validate price dialog lifecycle regression test 9f3cff4 (2026-11-20).
+# Build Flutter feature branch through commit 49781873965386ba80a943ec0b9c271dc7669656 (2026-11-20).
 on:
   push:
     branches: [main]
