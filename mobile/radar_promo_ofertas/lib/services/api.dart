@@ -52,7 +52,7 @@ class OffersApi {
     if (response.statusCode != 200) {
       final message = switch (response.statusCode) {
         429 =>
-          'O serviço atingiu seu limite temporário. Tente novamente mais tarde.',
+          'O servidor de ofertas atingiu o limite de uso (HTTP 429). Não é uma falha do seu celular. Tente novamente após a liberação do serviço.',
         401 ||
         403 => 'O serviço de ofertas precisa liberar o acesso ao aplicativo.',
         502 || 503 =>
