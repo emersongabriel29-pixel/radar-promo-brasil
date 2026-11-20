@@ -15,6 +15,7 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
   final input = TextEditingController();
   List<String> searches = [];
   Map<String, double> targetPrices = {};
+  Set<String> mutedSearches = {};
   bool ready = false;
 
   @override
@@ -44,6 +45,7 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
       setState(() {
         searches = prefs.getStringList('saved_searches') ?? [];
         targetPrices = prices;
+        mutedSearches = (prefs.getStringList('saved_search_muted') ?? []).toSet();
         ready = true;
       });
     }
@@ -120,13 +122,23 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
     if (mounted) setState(() => targetPrices = next);
   }
 
+  Future<void> _toggleMute(String term) async {
+    final next = Set<String>.from(mutedSearches);
+    if (!next.add(term)) next.remove(term);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('saved_search_muted', next.toList());
+    if (mounted) setState(() => mutedSearches = next);
+  }
+
   Future<void> _remove(String term) async {
     final next = searches.where((s) => s != term).toList();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('saved_searches', next);
     final prices = Map<String, double>.from(targetPrices)..remove(term);
     await prefs.setString('saved_search_target_prices', jsonEncode(prices));
-    if (mounted) setState(() { searches = next; targetPrices = prices; });
+    final muted = Set<String>.from(mutedSearches)..remove(term);
+    await prefs.setStringList('saved_search_muted', muted.toList());
+    if (mounted) setState(() { searches = next; targetPrices = prices; mutedSearches = muted; });
   }
 
   @override
@@ -176,15 +188,24 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
           child: ListTile(
             leading: const Icon(Icons.search),
             title: Text(term),
-            subtitle: Text(targetPrices.containsKey(term)
-                ? 'Preço desejado: R\$ ${targetPrices[term]!.toStringAsFixed(2).replaceAll('.', ',')}'
-                : 'Sem preço máximo'),
+            subtitle: Text('${mutedSearches.contains(term) ? 'Pausada localmente · ' : ''}'
+                '${targetPrices.containsKey(term) ? 'Preço desejado: R\$ ${targetPrices[term]!.toStringAsFixed(2).replaceAll('.', ',')}' : 'Sem preço máximo'}'),
             onTap: () => widget.onSearch(term),
             onLongPress: () => _editTarget(term),
-            trailing: IconButton(
-              tooltip: 'Definir preço desejado',
-              icon: const Icon(Icons.price_change_outlined),
-              onPressed: () => _editTarget(term),
+            trailing: Wrap(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: mutedSearches.contains(term) ? 'Reativar busca' : 'Pausar busca',
+                  icon: Icon(mutedSearches.contains(term) ? Icons.notifications_off_outlined : Icons.notifications_active_outlined),
+                  onPressed: () => _toggleMute(term),
+                ),
+                IconButton(
+                  tooltip: 'Definir preço desejado',
+                  icon: const Icon(Icons.price_change_outlined),
+                  onPressed: () => _editTarget(term),
+                ),
+              ],
             ),
           ),
           ),
@@ -192,7 +213,7 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
       ),
       const SizedBox(height: 16),
       const Text(
-        'Para excluir uma busca, deslize o cartão para o lado. O preço desejado é apenas uma referência local.',
+        'Para excluir uma busca, deslize o cartão para o lado. Pausar e definir preço são preferências locais; não controlam notificações reais.',
       ),
       const SizedBox(height: 8),
       const Text(
@@ -234,7 +255,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     if (confirm != true || !mounted) return;
     setState(() => working = true);
     final prefs = await SharedPreferences.getInstance();
-    for (final key in ['favorites', 'saved_offers', 'saved_searches', 'saved_search_target_prices']) {
+    for (final key in ['favorites', 'saved_offers', 'saved_searches', 'saved_search_target_prices', 'saved_search_muted']) {
       await prefs.remove(key);
     }
     if (!mounted) return;
