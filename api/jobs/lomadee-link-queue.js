@@ -1,4 +1,5 @@
-import { config, db } from 'hatchable';
+import { config } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { fingerprint, message as promoMessage, offerScore } from 'lib/automation.js';
 import { classifyLomadeeProduct, normalizeLomadeeCategory } from 'lib/lomadee-catalog.js';
 import { extractLomadeeShortUrl } from 'lib/lomadee-shortener.js';

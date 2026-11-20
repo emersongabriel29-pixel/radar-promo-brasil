@@ -1,4 +1,5 @@
-import { config, db } from 'hatchable';
+import { config } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { normalizeShopeeSales, upsertAffiliateSales } from 'lib/affiliate-sales.js';
 import { persistDiscoveryPage } from 'lib/affiliate-discovery.js';
 import { normalizeShopeeDatafeedId } from 'lib/shopee-feed.js';

@@ -1,5 +1,6 @@
 import { checkGeminiCooldown, registerGeminiQuotaError } from 'lib/radar-ai-guard.js';
-import { ai, db } from 'hatchable';
+import { ai } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { generateGeminiText } from 'lib/gemini.js';
 import { meliGet } from 'lib/direct-connectors.js';
 import { isSetupRequired } from 'lib/media.js';

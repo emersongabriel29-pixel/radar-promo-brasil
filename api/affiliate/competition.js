@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 export const access='member';
 export const methods=['GET','POST'];
 const clean=(v,max=240)=>String(v??'').trim().slice(0,max);

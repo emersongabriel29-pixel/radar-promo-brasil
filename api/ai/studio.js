@@ -1,4 +1,5 @@
-import { ai,db } from 'hatchable';
+import { ai } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { generateGeminiText } from 'lib/gemini.js';
 import { moneyCents,httpsUrl } from 'lib/validation.js';
 import { safeCreative } from 'lib/creative.js';

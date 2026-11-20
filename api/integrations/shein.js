@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { moneyCents, mediaUrl, httpsUrl } from 'lib/validation.js';
 import { fingerprint as makeFingerprint } from 'lib/automation.js';
 import { formatPromo } from 'lib/promo-message.js';

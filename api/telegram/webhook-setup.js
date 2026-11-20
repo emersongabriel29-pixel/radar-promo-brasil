@@ -1,4 +1,5 @@
-import { config, db } from 'hatchable';
+import { config } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { configuredBotToken } from 'lib/telegram.js';
 export const access='member';
 export const methods=['POST'];

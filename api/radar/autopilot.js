@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { evaluateMatches, enqueueMatches } from 'lib/autopilot.js';
 import { calculateRadarScore, classifyRadarScore } from 'lib/radar.js';
 import { booleanValue, moneyCents } from 'lib/validation.js';

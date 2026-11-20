@@ -57,6 +57,8 @@ Uma alteração só pode ser marcada como concluída quando implementação, doc
 
 ## Integridade documental
 
+| 2026-11-20 | Preparação do roteamento único de banco para Supabase e recuperação do feed | 130 imports existentes, feed/helper, testes e SUPABASE-CUTOVER-2026-11-20.md | Build/testes/audit locais; E2E bloqueado por Chromium; execução real bloqueada por cota. Ver documento para resultados finais | branch codex/supabase-routing-20261120 | v672 preservada; sem deploy | Preparado para revisão; cutover não realizado e dados operacionais ainda ausentes no destino |
+
 - Não inventar endpoints, limites, respostas, estados, status de integração ou testes.
 - Distinguir implementado, configurado, conectado, validado e homologado.
 - Datar toda evidência; não reutilizar uma evidência histórica como prova atual.

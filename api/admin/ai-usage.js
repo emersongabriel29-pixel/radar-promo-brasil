@@ -1,4 +1,5 @@
-import { ai, db } from 'hatchable';
+import { ai } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 
 export const access='member';
 export const methods=['GET'];

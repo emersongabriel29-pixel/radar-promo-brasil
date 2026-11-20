@@ -1,4 +1,4 @@
-import {db} from 'hatchable';
+import { db } from 'lib/radar-db.js';
 export const access='member';
 export const methods=['GET'];
 export default async function(req,res){

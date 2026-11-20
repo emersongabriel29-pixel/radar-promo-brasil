@@ -1,4 +1,5 @@
-import { config, db, scheduler } from 'hatchable';
+import { config, scheduler } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { fingerprint, message as promoMessage, offerScore } from 'lib/automation.js';
 import { directImageUrl } from 'lib/validation.js';
 import { classifyLomadeeProduct, normalizeLomadeeCategory } from 'lib/lomadee-catalog.js';

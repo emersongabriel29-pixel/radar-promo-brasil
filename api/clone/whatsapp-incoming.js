@@ -1,4 +1,5 @@
-import { config, db } from 'hatchable';
+import { config } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { parseOfferMessage } from 'lib/offer-message-parser.js';
 import { formatPromo } from 'lib/promo-message.js';
 import { classifyProduct } from 'lib/category-classifier.js';

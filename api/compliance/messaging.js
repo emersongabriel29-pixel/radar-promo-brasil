@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { evaluateMessagingWindow,recordComplianceEvent,complianceReport } from 'lib/messaging-compliance.js';
 
 export const access='member';

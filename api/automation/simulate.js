@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { validateOffer,offerScore,message } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 

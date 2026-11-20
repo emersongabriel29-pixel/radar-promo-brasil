@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { generateGeminiText } from 'lib/gemini.js';
 import { categoryHint } from 'lib/automation.js';
 import { formatPromo } from 'lib/promo-message.js';

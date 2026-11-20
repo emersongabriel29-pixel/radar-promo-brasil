@@ -1,4 +1,4 @@
-import { db } from "hatchable";
+import { db } from 'lib/radar-db.js';
 import { shouldCountClick } from "lib/click-filter.js";
 export const access = "public";
 export const methods = ["GET"];

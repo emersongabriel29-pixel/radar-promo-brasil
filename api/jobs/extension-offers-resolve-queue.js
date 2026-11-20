@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { resolveExtensionOffer } from 'lib/extension-offer-resolver.js';
 
 export const access = 'scheduler';

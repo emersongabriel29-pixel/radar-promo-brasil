@@ -8,6 +8,7 @@
 
 ## Documentos vigentes
 
+- [Preparação do cutover Supabase — 20/11/2026](./SUPABASE-CUTOVER-2026-11-20.md): roteamento preparado; dados e homologação de produção pendentes.
 - [Regra Master e fluxos ponta a ponta](./REGRA-MASTER-E-FLUXOS-PONTA-A-PONTA.md)
 - [Controle de mudanças e documentação obrigatória](./CONTROLE-DE-MUDANCAS.md)
 - [Auditoria do estado real — 08/11/2026](./AUDITORIA-ESTADO-2026-11-08.md)

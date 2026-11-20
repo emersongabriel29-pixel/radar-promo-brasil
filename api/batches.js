@@ -1,4 +1,5 @@
-import { db,scheduler } from 'hatchable';
+import { scheduler } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { getOrCreateAccount } from 'lib/accounts.js';
 import { httpsUrl } from 'lib/validation.js';
 // Offer eligibility is checked from account-scoped rows below.

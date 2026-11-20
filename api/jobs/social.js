@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { prepareSocialPosts,dispatchSocialPosts } from 'lib/social-autopilot.js';
 
 export const access='scheduler';

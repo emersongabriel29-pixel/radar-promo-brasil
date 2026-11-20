@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { classifyLomadeeProduct } from 'lib/lomadee-catalog.js';
 import { directImageUrl } from 'lib/validation.js';
 

@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { message as promoMessage, offerScore } from 'lib/automation.js';
 import { getLomadeeActiveLinks, listLomadeeRows, lomadeeGet, lomadeeProductPrices, normalizeLomadeeProductUrl } from 'lib/lomadee-api.js';
 

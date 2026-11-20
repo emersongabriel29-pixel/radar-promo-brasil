@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { offerScore } from 'lib/automation.js';
 import { enqueueMatches } from 'lib/autopilot.js';
 import { isAdultProduct, isMedicationProduct } from 'lib/product-safety.js';

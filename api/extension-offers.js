@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { formatPromo } from 'lib/promo-message.js';
 // Gemini is intentionally deferred to the controlled enrichment queue.
 
