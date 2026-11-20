@@ -1,0 +1,32 @@
+{
+  "version": "0.3.1+4",
+  "abi": "arm64-v8a",
+  "file": "Radar_Promo_Ofertas_0.3.1_arm64.apk",
+  "size_bytes": 18452287,
+  "sha256": "b32de273f22bdb8f427169e739ac74ba5c4d816f8019ca22181915997fe16511",
+  "certificate_sha256": "c5f6176299c7cf0775050e36c84c1ac54e605a22b3d1c687f1ef541729fcd5a4",
+  "source_commit": "c050315113f5757348babe51610de6d9da837495",
+  "workflow_run_id": 44792133980,
+  "signature_verified": true,
+  "apk_payload_unchanged_after_signing": true,
+  "device_install_tested": false,
+  "pending": [
+    "push",
+    "account deletion",
+    "moderation",
+    "live backend availability"
+  ],
+  "private_signing_files_in_apk": [],
+  "bounded_secret_pattern_matches": 0,
+  "engine_libraries": [
+    "lib/arm64-v8a/libapp.so",
+    "lib/arm64-v8a/libflutter.so"
+  ],
+  "artifact_id": 14656783608,
+  "artifact_zip_sha256": "094b2a58375492900eb1b653412175546ec3da55b6aa6c715ea7d7828159ce8e",
+  "hatchable_versions": {
+    "radar": 672,
+    "ofertas": 3
+  },
+  "ci_signing_key_configured": false
+}

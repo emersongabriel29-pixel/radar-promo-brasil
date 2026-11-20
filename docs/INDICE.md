@@ -82,3 +82,5 @@ Quando houver conflito entre documentação e execução, não presumir que a do
 ## APK 0.3.1 solicitado
 
 - [Compilação e assinatura persistente](./ANDROID-BUILD.md): fonte auditada, sem nova implantação do backend; consultar resultado final.
+
+- APK 0.3.1+4 entregue com assinatura persistente: [resultado, hashes e limitações](./ANDROID-BUILD.md#apk-031-entregue--20112026); [evidência](./evidence/apk-0.3.1-2026-11-20.json).
