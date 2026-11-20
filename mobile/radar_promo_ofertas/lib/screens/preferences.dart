@@ -91,7 +91,7 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(
             labelText: 'Preço máximo (R\$)',
-            helperText: 'Apenas referência local; não envia notificações.',
+            helperText: 'Alerta local ao abrir ou atualizar ofertas; sem monitoramento em segundo plano.',
           ),
         ),
         actions: [
@@ -219,11 +219,11 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
       ),
       const SizedBox(height: 16),
       const Text(
-        'Para excluir uma busca, deslize o cartão para o lado. Pausar e definir preço são preferências locais; não controlam notificações reais.',
+        'Para excluir uma busca, deslize o cartão para o lado. Pausar uma busca também desativa seus alertas locais.',
       ),
       const SizedBox(height: 8),
       const Text(
-        'As buscas ficam neste aparelho. Esta versão não envia alertas ou notificações em segundo plano.',
+        'As buscas ficam neste aparelho. Alertas de preço são verificados quando as ofertas são carregadas; não há notificações em segundo plano.',
         style: TextStyle(color: Color(0xFF6B7C72)),
       ),
     ],
@@ -261,7 +261,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     if (confirm != true || !mounted) return;
     setState(() => working = true);
     final prefs = await SharedPreferences.getInstance();
-    for (final key in ['favorites', 'saved_offers', 'saved_searches', 'saved_search_target_prices', 'saved_search_muted']) {
+    for (final key in ['favorites', 'saved_offers', 'saved_searches', 'saved_search_target_prices', 'saved_search_muted', 'price_alert_seen_v1']) {
       await prefs.remove(key);
     }
     if (!mounted) return;
@@ -287,7 +287,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
         const ListTile(
           leading: Icon(Icons.notifications_none),
           title: Text('Notificações'),
-          subtitle: Text('Alertas push ainda não estão disponíveis.'),
+          subtitle: Text('Alertas locais de preço ao carregar ofertas; push em segundo plano indisponível.'),
         ),
         const SizedBox(height: 12),
         ValueListenableBuilder<ThemeMode>(
