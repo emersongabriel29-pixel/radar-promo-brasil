@@ -271,7 +271,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     if (confirm != true || !mounted) return;
     setState(() => working = true);
     final prefs = await SharedPreferences.getInstance();
-    for (final key in ['favorites', 'saved_offers', 'saved_searches', 'saved_search_target_prices', 'saved_search_muted', 'price_alert_seen_v1']) {
+    for (final key in ['favorites', 'saved_offers', 'saved_searches', 'saved_search_target_prices', 'saved_search_muted', 'price_alert_seen_v1', 'last_real_offers_v1']) {
       await prefs.remove(key);
     }
     if (!mounted) return;
