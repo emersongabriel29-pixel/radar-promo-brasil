@@ -77,3 +77,9 @@ Projeto Hatchable da comunidade: `proj_rPigttuZOrM7` (versão publicada 3).
 - Teste SQL transacional com dois IDs de teste, filtros por `user_id` e `ROLLBACK`: **0 registros de teste persistidos**. Isto não equivale a teste ponta a ponta de duas sessões.
 - **Importante:** somente favoritos e votos foram convertidos. As demais APIs retornariam 503 com o modo Supabase habilitado; não habilitar `community_supabase_enabled` nem fazer deploy/cutover até implementar todas as operações necessárias e validar credenciais, autenticação, testes e divergências.
 - Ainda não foram configurados segredos nem testado HTTP HMAC; Hatchable segue com limitação 429.
+
+## Operações tipadas adicionais — 2026-11-20
+- Edge Function `radar-community-db-bridge` implantada na **versão 4 ACTIVE**: adicionadas `notifications.list`, `notifications.preference`, `notifications.read`, `comments.public`, `comments.own`.
+- Hatchable Radar Promo Ofertas (somente rascunho): `lib/community-operations.js` e `lib/community.js` atualizados para chamar as operações tipadas; leituras próprias filtradas por `user_id` e comentários públicos limitados por página.
+- Verificação de código publicado confirmou as cinco ações no switch; consulta SQL confirmou 0 registros em comentários, notificações e preferências no schema privado.
+- **Ainda não convertidos:** criação/edição/exclusão de comentários, envio e revisão de ofertas, denúncias, moderação, exportação e solicitação de exclusão de conta. Sem segredo configurado, sem teste HTTP, sem teste de duas sessões, sem deploy Hatchable. Manter a flag Supabase desligada.
