@@ -1,5 +1,5 @@
 name: Build Radar Promo Ofertas APK
-# Validate Android notification permission fix 6775e16 (2026-11-20).
+# Validate delivered-only price alerts through feature commit 9eb9306 (2026-11-20).
 on:
   push:
     branches: [main]
