@@ -16,6 +16,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'services/api.dart';
 import 'services/community.dart';
 import 'services/theme_preference.dart';
+import 'services/price_alerts.dart';
 import 'models/offer.dart';
 
 Future<void> main() async {
@@ -209,6 +210,15 @@ class _HomeScreenState extends State<HomeScreen> {
         loadingMore = false;
       });
       await _persistFavorites();
+      if (mounted) {
+        final alerts = await PriceAlerts.check(offers);
+        if (mounted && alerts.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('${alerts.length} oferta(s) encontradas dentro do preço desejado. Confira suas buscas.'),
+            action: SnackBarAction(label: 'Ver buscas', onPressed: () => setState(() => tab = 3)),
+          ));
+        }
+      }
     } catch (e) {
       if (!mounted || version != requestVersion || (!reset && pendingNextPage != targetPage)) return;
       setState(() {
