@@ -1,5 +1,5 @@
 name: Build Radar Promo Ofertas APK
-# Rebuild feature branch with price-dialog lifecycle fix bb4dca7 (2026-11-20).
+# Rebuild Flutter branch after offline-cache and account UI fixes aa95dfd (2026-11-20).
 on:
   push:
     branches: [main]
