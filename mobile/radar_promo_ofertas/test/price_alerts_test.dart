@@ -19,6 +19,7 @@ void main() {
     discountPercent: 45,
     category: 'eletronicos',
     couponCode: '',
+    createdAt: null,
   );
 
   test('alerts once per matching offer and price', () async {
