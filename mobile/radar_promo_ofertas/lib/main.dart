@@ -102,6 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int requestVersion = 0;
   int? pendingNextPage;
   bool loading = true;
+  bool showingCachedOffers = false;
   String? error;
   int page = 1;
   int total = 0;
@@ -183,6 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
         total = 0;
         page = 1;
         hasMore = false;
+        showingCachedOffers = false;
       } else {
         loadingMore = true;
         pendingNextPage = targetPage;
@@ -209,7 +211,13 @@ class _HomeScreenState extends State<HomeScreen> {
         hasMore = result.hasMore;
         loading = false;
         loadingMore = false;
+        showingCachedOffers = false;
       });
+      if (reset && search.text.trim().isEmpty && category.isEmpty && sort == 'recent') {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setStringList('last_real_offers_v1',
+            offers.take(60).map((offer) => jsonEncode(offer.toJson())).toList());
+      }
       await _persistFavorites();
       if (mounted) {
         final alerts = await PriceAlerts.check(offers);
@@ -224,10 +232,29 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       if (!mounted || version != requestVersion || (!reset && pendingNextPage != targetPage)) return;
+      final cached = <Offer>[];
+      if (reset && search.text.trim().isEmpty && category.isEmpty && sort == 'recent') {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          for (final raw in prefs.getStringList('last_real_offers_v1') ?? <String>[]) {
+            final offer = Offer.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+            if (offer.id.isNotEmpty) cached.add(offer);
+          }
+        } catch (_) {
+          cached.clear();
+        }
+      }
+      if (!mounted || version != requestVersion) return;
       setState(() {
         pendingNextPage = null;
         loading = false;
         loadingMore = false;
+        if (cached.isNotEmpty) {
+          offers = cached;
+          total = cached.length;
+          hasMore = false;
+          showingCachedOffers = true;
+        }
         error = e.toString().replaceFirst('Exception: ', '');
       });
     }
@@ -539,7 +566,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   if (error != null && offers.isNotEmpty && tab != 2)
-                    Text(error!, style: const TextStyle(color: Colors.red)),
+                    Text(showingCachedOffers
+                        ? 'Servidor indisponível. Exibindo ofertas consultadas anteriormente; preços e disponibilidade podem estar desatualizados. ${error!}'
+                        : error!, style: const TextStyle(color: Colors.red)),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -667,7 +696,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (categories.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
-            child: Text('As categorias aparecerão quando as ofertas forem carregadas.'),
+            child: Text('As categorias aparecerão quando as ofertas forem carregadas. Se o servidor estiver indisponível, tente novamente mais tarde.'),
           ),
         ...categories.map(
           (c) => Card(
