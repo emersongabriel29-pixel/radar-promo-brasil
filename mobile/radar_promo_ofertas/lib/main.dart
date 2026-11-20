@@ -328,6 +328,7 @@ class _HomeScreenState extends State<HomeScreen> {
             itemBuilder: (_) => const [
               PopupMenuItem(value: 'account', child: Text('Entrar / minha conta')),
               PopupMenuItem(value: 'inbox', child: Text('Notificações da conta')),
+              PopupMenuItem(value: 'submit', child: Text('Enviar oferta para análise')),
             ],
           ),
           IconButton(
