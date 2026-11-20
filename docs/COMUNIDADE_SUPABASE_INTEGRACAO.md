@@ -38,3 +38,10 @@ Projeto Hatchable da comunidade: `proj_rPigttuZOrM7` (versão publicada 3).
 
 ## Estado
 **Integração não concluída.** Este documento registra as dependências reais e evita migração prematura ou acesso indevido.
+
+## Estrutura de tabelas criada no Supabase
+- Criadas no schema privado `radar_community` as 10 tabelas: `rpo_favorites`, `rpo_votes`, `rpo_comments`, `rpo_notification_preferences`, `rpo_notifications`, `rpo_offer_submissions`, `rpo_moderators`, `rpo_reports`, `rpo_moderation_audit`, `rpo_account_deletion_requests`.
+- Estrutura adaptada das quatro migrações de rascunho do Hatchable, com nomes qualificados pelo schema privado.
+- Verificação posterior via catálogo `pg_class`: **10/10 com RLS habilitado**, `anon_select=false` e `authenticated_select=false` para todas.
+- Nenhuma política pública ou privilégio de escrita concedido; sem integração com a API e sem dados migrados.
+- **Próxima etapa obrigatória:** implementar e validar identidade confiável entre Hatchable e Supabase, definir acesso do backend e testar isolamento de dados antes de liberar as APIs.
