@@ -222,7 +222,8 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         final alerts = await PriceAlerts.check(offers);
         if (mounted && alerts.isNotEmpty) {
-          await AndroidPriceNotifications.show(alerts);
+          final delivered = await AndroidPriceNotifications.show(alerts);
+          await PriceAlerts.markDelivered(delivered);
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('${alerts.length} oferta(s) encontradas dentro do preço desejado. Confira suas buscas.'),
