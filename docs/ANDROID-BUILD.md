@@ -53,3 +53,9 @@ Fonte: commit 72d07d95d99a47aa199f0c7c44ce9992039479ac. [GitHub Actions 44727253
 SHA-256 do APK: 0796423d3afa05cc26fb6e55565534d2267c36c274b35beda1c5383609a3b3b2. ZIP do artefato e APK extraído tiveram hashes conferidos localmente; AndroidManifest.xml, lib/arm64-v8a/libflutter.so e libapp.so presentes. Arquivo APK preservado para download do proprietário. O código-fonte permanece no GitHub, sem incorporar código proprietário do Pelando.
 
 O build não altera backend, visibilidade, dados ou credenciais. Radar original v672 e Ofertas v3 preservados. Recursos online continuam sujeitos à quota 429 e ao acesso privado, e push não está configurado. Classificação: APK de teste compilado/verificado, não homologado em aparelho nem para publicação em loja. A solicitação expressa de APK substituiu o adiamento anterior somente para esta entrega de teste.
+
+## Geração solicitada do APK 0.3.1 — 20/11/2026
+
+Compilar a fonte auditada com versão 0.3.1+4, validar análise/testes e pacote ARM64. O artefato CI é intermediário: será reassinado no ambiente de entrega com a nova chave persistente do proprietário. Nenhuma chave privada vai para o repositório, logs ou argumentos em texto. Certificado público esperado SHA-256: c5f6176299c7cf0775050e36c84c1ac54e605a22b3d1c687f1ef541729fcd5a4. Backup da chave será preservado em arquivo privado do proprietário.
+
+O certificado difere do APK 0.3.0 de teste. Não se garante atualização in-place; desinstalar a versão anterior removeria dados locais, e nenhuma remoção de aplicativo/dados foi executada. Build baseado na fonte auditada não inclui o rascunho local ainda não validado de push, exclusão e moderação. Backend original v672 e Ofertas v3 preservados. Resultado e hash final serão registrados após compilação e assinatura reais.

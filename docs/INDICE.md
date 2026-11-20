@@ -78,3 +78,7 @@ Quando houver conflito entre documentação e execução, não presumir que a do
 - [Auditoria de 30 áreas do APK/Flutter/backend/Supabase](./AUDITORIA-APP-2026-11-20.md): parecer reprovado para produção, bloqueios reais e correções em validação.
 
 - [Evidências agregadas da auditoria](./evidence/app-audit-2026-11-20.json): testes, hashes, comparação live e consultas read-only; resultado final registrado.
+
+## APK 0.3.1 solicitado
+
+- [Compilação e assinatura persistente](./ANDROID-BUILD.md): fonte auditada, sem nova implantação do backend; consultar resultado final.
