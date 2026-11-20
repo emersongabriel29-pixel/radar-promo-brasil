@@ -1,0 +1,43 @@
+name: Android APK instalavel (debug)
+on:
+  push:
+    branches:
+      - feature/ofertas-price-watch-ui-204
+    paths:
+      - '.github/workflows/android-apk-download.yml'
+      - 'mobile/radar_promo_ofertas/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: mobile/radar_promo_ofertas
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Dependencias
+        run: flutter pub get
+      - name: Analise
+        run: flutter analyze
+      - name: Testes
+        run: flutter test
+      - name: Compilar APK instalavel de testes
+        run: flutter build apk --debug
+      - name: Publicar APK para download
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-promo-ofertas-android-debug
+          path: mobile/radar_promo_ofertas/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
