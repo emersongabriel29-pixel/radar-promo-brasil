@@ -45,3 +45,12 @@ Projeto Hatchable da comunidade: `proj_rPigttuZOrM7` (versão publicada 3).
 - Verificação posterior via catálogo `pg_class`: **10/10 com RLS habilitado**, `anon_select=false` e `authenticated_select=false` para todas.
 - Nenhuma política pública ou privilégio de escrita concedido; sem integração com a API e sem dados migrados.
 - **Próxima etapa obrigatória:** implementar e validar identidade confiável entre Hatchable e Supabase, definir acesso do backend e testar isolamento de dados antes de liberar as APIs.
+
+## Adaptador da comunidade preparado no Hatchable (2026-11-20)
+- Rascunho do projeto `proj_rPigttuZOrM7`: `lib/community-db.js` seleciona banco por `community_supabase_enabled` (padrão `false`); `lib/community-supabase-db.js` prepara requisições assinadas HMAC; `api/admin/community-db-health.js` permite diagnóstico somente para administrador.
+- `lib/api.js`, `api/submissions.js`, `api/reports.js`, `api/moderation.js`, `api/account/data.js` e `api/account/deletion-request.js` foram redirecionados para o adaptador. As identidades continuam derivadas de `req.user` autenticado pelo Hatchable, não de `user_id` fornecido pelo cliente.
+- `hatchable.toml` declara URL e segredo opcionais da ponte e flag desativada por padrão. **Não existe ponte configurada/validada para a comunidade**, portanto não habilitar a flag.
+- Teste SQL no Supabase confirmou as 10 tabelas com RLS e nenhum privilégio direto `SELECT/INSERT/UPDATE/DELETE` para `anon`/`authenticated`; o schema não permite `USAGE` a esses papéis.
+- Tentativas de executar `/api/admin/community-db-health` e `/api/favorites` no Hatchable retornaram HTTP 429 (`usage_limit`, 2,1h de 2,0h); **não há validação ponta a ponta nem teste entre duas sessões reais**.
+- Antes do cutover: implementar/inspecionar servidor da ponte com allowlist restrita às operações de comunidade, autenticação HMAC e proteção contra replay, configurar segredos em cofre, validar identidade de dois usuários e autorização de moderador, reconciliar dados e executar testes em ambiente seguro.
+- **Não realizar deploy ou habilitar Supabase** enquanto esses itens estiverem pendentes.
