@@ -11,6 +11,8 @@ class PriceAlert {
   final String query;
   final Offer offer;
   const PriceAlert(this.query, this.offer);
+
+  String get deduplicationKey => '${query.toLowerCase()}:${offer.id}:${offer.currentPrice}';
 }
 
 class PriceAlerts {
@@ -42,14 +44,27 @@ class PriceAlerts {
         query: query,
         maximumPrice: limit.toDouble(),
       )) {
-        final key = '${query.toLowerCase()}:${offer.id}:${offer.currentPrice}';
-        if (seen.add(key)) found.add(PriceAlert(query, offer));
+        final alert = PriceAlert(query, offer);
+        if (!seen.contains(alert.deduplicationKey)) found.add(alert);
       }
     }
-    if (found.isNotEmpty) {
-      // Limit retained history so local storage cannot grow indefinitely.
+    return found;
+  }
+
+  /// Only mark notifications actually accepted by Android as delivered.
+  /// A denied permission or platform failure must leave them retryable.
+  static Future<void> markDelivered(
+    Iterable<PriceAlert> delivered, {
+    SharedPreferences? preferences,
+  }) async {
+    final prefs = preferences ?? await SharedPreferences.getInstance();
+    final seen = (prefs.getStringList(_seenKey) ?? <String>[]).toSet();
+    var changed = false;
+    for (final alert in delivered) {
+      changed = seen.add(alert.deduplicationKey) || changed;
+    }
+    if (changed) {
       await prefs.setStringList(_seenKey, seen.toList().reversed.take(500).toList());
     }
-    return found;
   }
 }
