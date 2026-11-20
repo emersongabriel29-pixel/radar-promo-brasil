@@ -63,7 +63,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     final api=OffersApi(client:MockClient((_) async=>http.Response('{}',429)));
     await tester.pumpWidget(MaterialApp(
-      builder:(context,child)=>MediaQuery(data:MediaQuery.of(context).copyWith(textScaler:TextScaler.linear(1.8)),child:child!),
+      builder:(context,child)=>MediaQuery(data:MediaQuery.of(context).copyWith(textScaler:const TextScaler.linear(1.8)),child:child!),
       home:HomeScreen(api:api),
     ));
     await tester.pumpAndSettle();

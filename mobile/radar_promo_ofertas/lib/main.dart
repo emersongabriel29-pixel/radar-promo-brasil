@@ -581,9 +581,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ...categories.map(
           (c) => Card(
             child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: const Color(0xFFEAF3D9),
-                child: Icon(Icons.category_outlined, color: const Color(0xFF234844)),
+              leading: const CircleAvatar(
+                backgroundColor: Color(0xFFEAF3D9),
+                child: Icon(Icons.category_outlined, color: Color(0xFF234844)),
               ),
               title: Text(
                 c,

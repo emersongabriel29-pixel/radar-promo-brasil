@@ -86,3 +86,9 @@ Referências dos advisors: [RLS sem política](https://supabase.com/docs/guides/
 ## Testes e implantação desta rodada
 
 Em execução no momento deste registro inicial. O adendo final registrará o resultado consultado do GitHub Actions. Correções em branch não representam APK novo nem deploy. Nenhuma alteração de dados, segredos, visibilidade, plano ou banco ativo foi feita. Rollback: reverter somente os arquivos desta auditoria na branch/WIP; não apagar tabelas nem dados.
+
+### Execução intermediária
+
+Código af4db40: CI web 44731567555 aprovado — build, 260 testes unitários (incluindo reprodução do erro anterior e SQL corrigido), 6 de navegador e audit sem vulnerabilidades reportadas. Flutter 44731567590 parou na análise por três prefer_const_constructors; testes e compilação dessa execução não foram executados. Ajustes de const preparados e validação repetida antes do parecer final.
+
+Observação de arquitetura: /api/account não executa consultas SQL no seu handler e também ficou sob 429. A dependência de autenticação/execução do Hatchable precisa ser considerada no cutover; apenas trocar o driver de banco não comprova remoção do bloqueio de plataforma.
