@@ -353,6 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.account_circle_outlined),
             onSelected: (section) => openCommunity(context, widget.community, section),
             itemBuilder: (_) => const [
+              PopupMenuItem(value: 'login', child: Text('Entrar na conta (site seguro)')),
               PopupMenuItem(value: 'account', child: Text('Minha conta (site seguro)')),
               PopupMenuItem(value: 'inbox', child: Text('Avisos da conta (site)')),
               PopupMenuItem(value: 'submit', child: Text('Enviar oferta para análise')),
