@@ -28,5 +28,13 @@ Projeto Hatchable da comunidade: `proj_rPigttuZOrM7` (versão publicada 3).
 - Revisar e corrigir SQL dos rascunhos, aplicar em ambiente controlado e validar RLS.
 - Testar operações reais com contas de teste (sem publicar ofertas nem excluir dados), depois avaliar implantação.
 
+## Preparação aplicada no Supabase em 2026-11-20
+- Criado o schema privado `radar_community` no projeto `runnmpzkomcdawwzuift`.
+- Executado `REVOKE ALL ON SCHEMA radar_community FROM PUBLIC, anon, authenticated`.
+- Verificação SQL posterior: `anon_usage=false`, `authenticated_usage=false`, `tables=0`.
+- Nenhuma tabela de comunidade ou conta foi migrada; dados existentes preservados.
+- A documentação Supabase de 2026-11-17 permite OIDC de terceiros com issuer discovery e JWT assimétrico. **Não foi comprovado que o Hatchable expõe issuer OIDC compatível**; não configurar um emissor presumido.
+- Próxima dependência: validar suporte oficial do Hatchable a identidade externa ou planejar migração autenticada para Supabase Auth antes de conceder permissões.
+
 ## Estado
 **Integração não concluída.** Este documento registra as dependências reais e evita migração prematura ou acesso indevido.
