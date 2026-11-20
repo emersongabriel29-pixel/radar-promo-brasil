@@ -39,6 +39,11 @@ void main() {
     expect(find.text('Produto para teste'), findsWidgets);
     expect(find.text('Loja de teste'), findsWidgets);
     expect(find.byType(NavigationBar), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.bookmark_border).first);
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.bookmark), findsWidgets);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getStringList('favorites'), contains('offer-test-1'));
   });
 
   testWidgets('feed handles an upstream failure without crashing', (tester) async {
