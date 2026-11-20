@@ -32,6 +32,15 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "br.com.radarpromo/notifications")
             .setMethodCallHandler { call, result ->
                 when (call.method) {
+                    "requestPermission" -> {
+                        if (Build.VERSION.SDK_INT >= 33 &&
+                            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 3102)
+                            result.success(false)
+                        } else {
+                            result.success(true)
+                        }
+                    }
                     "showPriceAlert" -> {
                         val title = call.argument<String>("title")?.take(100)
                         val body = call.argument<String>("body")?.take(200)
