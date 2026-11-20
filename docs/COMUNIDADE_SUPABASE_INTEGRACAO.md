@@ -63,3 +63,10 @@ Projeto Hatchable da comunidade: `proj_rPigttuZOrM7` (versão publicada 3).
 - O código do adaptador no Hatchable ainda é **rascunho não implantado** e `community_supabase_enabled=false`. Não há segredo compartilhado configurado, migração ou cutover.
 - **Não houve teste de chamada HTTP ponta a ponta**: Hatchable continua retornando `429 usage_limit`; acesso externo de teste não disponível. O estado ACTIVE indica deploy, não funcionamento validado.
 - Antes de produção: revisar allowlist de SQL e limites de acesso, testar assinatura válida/inválida e replay, confirmar identidade confiável, configurar segredo exclusivo em ambos os cofres, testar duas contas e moderador, comparar dados, só então habilitar a flag e implantar.
+
+## Revisão de segurança da ponte — 2026-11-20
+- Auditoria do código publicado da Edge Function `radar-community-db-bridge` versão 1 identificou que o filtro textual de SQL não constituía uma allowlist de operações segura: SQL assinado poderia executar comandos não previstos sobre tabelas da comunidade.
+- **Correção aplicada:** Edge Function publicada na versão **2** (`ACTIVE`), substituindo `safeSQL` por rejeição incondicional `SQL_NOT_ALLOWED`. O bloqueio impede execução de SQL arbitrário enquanto não houver API tipada com autorização por identidade.
+- A versão 2 foi recuperada e conferida pelo conector Supabase, confirmando rejeição de SQL, exigência de segredo e proteção de nonce. **Não houve teste HTTP real**: ambiente de execução local não conseguiu resolver DNS do domínio Supabase.
+- O adaptador Hatchable atual ainda envia SQL genérico e **não é compatível com a ponte bloqueada**; `community_supabase_enabled` deve permanecer `false`.
+- Próxima implementação: substituir SQL genérico por comandos explícitos (`favorites.list`, `favorites.add`, etc.) com identidade validada e autorização por operação; adicionar testes com duas identidades, configurar segredo compartilhado nos cofres e somente então fazer cutover.
