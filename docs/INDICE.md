@@ -62,3 +62,7 @@ Quando houver conflito entre documentação e execução, não presumir que a do
 ## Comunidade Android — 17/11/2026
 
 - [Conta, votos, comentários e avisos no Flutter](./COMUNIDADE-ANDROID-2026-11-17.md): implementação, limites da sessão, testes e estado da implantação.
+
+## Publicação autorizada — 20/11/2026
+
+- [Radar Promo Ofertas v3](./DEPLOY-OFERTAS-V3-2026-11-20.md): versão live, manifesto conferido, API 429, acesso público e homologação pendentes; sem APK.

@@ -1,5 +1,9 @@
 # Remediação Android — resultado atualizado
 
+## Atualização — 20/11/2026: Ofertas v3 publicado
+
+A publicação específica foi autorizada pelo proprietário e concluída. Radar Promo Ofertas v3 live, manifesto de código equivalente ao GitHub; Radar original v672 preservado. Testes de API pós-deploy retornaram 429; visibilidade personal e push seguem pendentes. Nenhum APK. Consulte [resultado e evidências](./DEPLOY-OFERTAS-V3-2026-11-20.md). Os registros abaixo descrevem as etapas anteriores.
+
 ## Incremento de comunidade — 17/11/2026
 
 Conta, votos, comentários e avisos de respostas implementados para abertura em aba segura a partir do Flutter. Código b4991b7: 10 testes Flutter, 258 unitários e 6 de navegador aprovados; build web e auditoria de dependências aprovados, zero vulnerabilidades reportadas. Novo deploy foi recusado pela revisão automática por exigir autorização específica. Ofertas segue live na v2 e Radar na v672; WIP independente preparado. API 429, visibilidade personal, push e homologação no aparelho continuam pendentes. Veja [resultado detalhado](./COMUNIDADE-ANDROID-2026-11-17.md). Nenhum APK novo.

@@ -1,0 +1,91 @@
+{
+  "dateBrazil": "2026-11-20",
+  "authorization": "Explicit user confirmation: Autorizado, after request naming this v3 deployment.",
+  "repository": "emersongabriel29-pixel/radar-promo-brasil",
+  "branch": "android/github-actions-build",
+  "headBeforeDocumentation": "d6b82af69aeaf61a9c2055ba1758e9005c344090",
+  "codeCommit": "b4991b7b4f1e19ce797562de05fb3fd824142dbe",
+  "deployment": {
+    "version": 3,
+    "status": "live",
+    "deployedAt": "2026-11-20T11:10:26+00:00",
+    "url": "https://radar-promo-ofertas.hatchable.site"
+  },
+  "originalVersion": 672,
+  "hashChecks": [
+    {
+      "path": "lib/community.js",
+      "hash": "0b032e21211a12b78abb3360a97b7828e0bfa5dd643dc9955c8070405b1fab5c",
+      "preDeployEqual": true,
+      "liveManifestEqual": true
+    },
+    {
+      "path": "public/community-ui.js",
+      "hash": "43193a7b0077aaa9cafd8c1d81d098f89ee6a2cd79ee84674a3137a418e13b34",
+      "preDeployEqual": true,
+      "liveManifestEqual": true
+    },
+    {
+      "path": "public/community-client.js",
+      "hash": "c6ef4ec7c1d79391e99ebe8586cb37c711a3bf0b60511a3a2bae81d40fd2a279",
+      "preDeployEqual": true,
+      "liveManifestEqual": true
+    },
+    {
+      "path": "public/community.html",
+      "hash": "993c3df950204a465cb4ab91d78a110fa5323ed123df8232c62a5f7ac8c2d9ad",
+      "preDeployEqual": true,
+      "liveManifestEqual": true
+    },
+    {
+      "path": "public/login.html",
+      "hash": "821730ee292d85b20661ca63ee1bc7ea4109569957db38a40b0af95f7a38169d",
+      "preDeployEqual": true,
+      "liveManifestEqual": true
+    },
+    {
+      "path": "public/community.css",
+      "hash": "1bfdc9d1094791ffc3b4a4ca1d7d146ac227cb671b94ace9fdf13f3555763084",
+      "preDeployEqual": true,
+      "liveManifestEqual": true
+    },
+    {
+      "path": "api/comments/manage.js",
+      "hash": "533d05d435aedc0ad303956fc7c18c4cc753b5f5e161e7afd736bb965ce57519",
+      "preDeployEqual": true,
+      "liveManifestEqual": true
+    },
+    {
+      "path": "hatchable.toml",
+      "hash": "a2ba991423654daa4fcad74f17f438a1f177cdf09bf15839f37b641dbf97217f",
+      "preDeployEqual": true,
+      "liveManifestEqual": true
+    }
+  ],
+  "ci": [
+    {
+      "run": 44226053359,
+      "conclusion": "success"
+    },
+    {
+      "run": 44226053347,
+      "conclusion": "success"
+    }
+  ],
+  "postDeployReadTests": [
+    {
+      "route": "GET /api/offers?limit=1",
+      "status": 429,
+      "code": "usage_limit"
+    },
+    {
+      "route": "GET /api/comments/manage",
+      "status": 429,
+      "code": "usage_limit"
+    }
+  ],
+  "publicAccess": "blocked_by_personal_visibility",
+  "apkGenerated": false,
+  "productionWritesTested": false,
+  "pushConfigured": false
+}
