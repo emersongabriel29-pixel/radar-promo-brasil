@@ -70,3 +70,10 @@ Projeto Hatchable da comunidade: `proj_rPigttuZOrM7` (versão publicada 3).
 - A versão 2 foi recuperada e conferida pelo conector Supabase, confirmando rejeição de SQL, exigência de segredo e proteção de nonce. **Não houve teste HTTP real**: ambiente de execução local não conseguiu resolver DNS do domínio Supabase.
 - O adaptador Hatchable atual ainda envia SQL genérico e **não é compatível com a ponte bloqueada**; `community_supabase_enabled` deve permanecer `false`.
 - Próxima implementação: substituir SQL genérico por comandos explícitos (`favorites.list`, `favorites.add`, etc.) com identidade validada e autorização por operação; adicionar testes com duas identidades, configurar segredo compartilhado nos cofres e somente então fazer cutover.
+
+## Operações tipadas implantadas — 2026-11-20
+- Edge Function `radar-community-db-bridge` **versão 3 ACTIVE**: somente `favorites.list`, `favorites.add`, `favorites.remove`, `votes.get`, `votes.set`, `votes.remove`; SQL parametrizado definido no servidor, sem entrada SQL do chamador.
+- Hatchable Radar Promo Ofertas (rascunho): criado `lib/community-operations.js` com HMAC e URL fixa do Supabase; `lib/community.js` usa seis operações tipadas derivadas de `req.user.id`. `lib/community-db.js` rejeita consultas SQL genéricas no modo Supabase.
+- Teste SQL transacional com dois IDs de teste, filtros por `user_id` e `ROLLBACK`: **0 registros de teste persistidos**. Isto não equivale a teste ponta a ponta de duas sessões.
+- **Importante:** somente favoritos e votos foram convertidos. As demais APIs retornariam 503 com o modo Supabase habilitado; não habilitar `community_supabase_enabled` nem fazer deploy/cutover até implementar todas as operações necessárias e validar credenciais, autenticação, testes e divergências.
+- Ainda não foram configurados segredos nem testado HTTP HMAC; Hatchable segue com limitação 429.
