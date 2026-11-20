@@ -120,3 +120,10 @@ Projeto Hatchable da comunidade: `proj_rPigttuZOrM7` (versão publicada 3).
 - Verificação: leitura da função publicada confirmou versão 12, assinatura HMAC SHA-256, inserção de nonce com `ON CONFLICT DO NOTHING` e consulta de limpeza limitada. Consulta SQL de leitura confirmou 0 nonces totais/expirados na ocasião.
 - **Limite da validação:** nenhuma requisição HMAC real foi executada; a limpeza não foi exercitada com nonces expirados e não há prova de desempenho sob carga. O Hatchable segue bloqueado por HTTP 429 e suas versões publicadas permanecem 672 (principal) e 3 (Ofertas).
 - **Sem ativação:** segredo HMAC e URL do bridge precisam ser configurados nos dois ambientes, com teste de autorização e isolamento entre usuários antes do cutover. Nenhum dado de comunidade foi apagado.
+
+## Verificação de credenciais, cota e testes SQL — 2026-11-20
+- Hatchable Radar Promo Ofertas: `run_function GET /api/favorites` como visitante retornou HTTP **429 usage_limit**, consumo reportado de 2,1 h/2,0 h. A cota não foi restabelecida; nenhum teste HTTP de autenticação foi possível.
+- As ferramentas conectadas de Hatchable e Supabase nesta sessão não expõem operação para gravar/rotacionar segredos do cofre. **Segredos HMAC não configurados**; não foram gravados em código, documentação ou mensagens. Não ativar `community_supabase_enabled`.
+- Teste SQL transacional de isolamento de favoritos: dois usuários sintéticos e ofertas distintas, verificações cruzadas sem linhas indevidas; `ROLLBACK` confirmado com 0 linhas de teste persistidas. **Isso verifica predicados SQL, não autenticação de sessões nem HMAC.**
+- Teste SQL transacional de limpeza: nonce sintético expirado inserido, executada a mesma consulta de limpeza limitada a 500 registros, verificado desaparecimento dentro da transação e `ROLLBACK`; 0 nonces de teste persistidos. **Não exercita a seleção probabilística dentro da Edge Function.**
+- Próximos bloqueios: configurar mesmo segredo privado em ambos os cofres e URL exata do bridge no Hatchable, liberar cota 429, testar HMAC válido/inválido/replay e duas sessões autenticadas antes de deploy e cutover.
