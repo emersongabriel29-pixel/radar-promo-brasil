@@ -52,5 +52,18 @@ void main() {
     expect(requested!.queryParameters.keys, isNot(contains('token')));
     expect(requested!.queryParameters.keys, isNot(contains('password')));
   });
+  test('opening offer account actions uses the approved route and keeps IDs encoded', () async {
+    Uri? requested;
+    final links = CommunityLinks(opener: (uri, mode) async {
+      requested = uri;
+      return true;
+    });
+    expect(await links.open('offer', offerId: 'offer:123'), isTrue);
+    expect(requested!.scheme, 'https');
+    expect(requested!.path, '/community.html');
+    expect(requested!.queryParameters['section'], 'offer');
+    expect(requested!.queryParameters['offerId'], 'offer:123');
+    expect(requested!.queryParameters.keys, isNot(contains('token')));
+  });
 
 }
