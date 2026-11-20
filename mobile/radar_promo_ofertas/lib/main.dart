@@ -98,6 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool loadingMore = false;
   bool hasMore = false;
   int requestVersion = 0;
+  int? pendingNextPage;
   bool loading = true;
   String? error;
   int page = 1;
@@ -175,12 +176,14 @@ class _HomeScreenState extends State<HomeScreen> {
       if (reset) {
         loading = true;
         loadingMore = false;
+        pendingNextPage = null;
         offers = [];
         total = 0;
         page = 1;
         hasMore = false;
       } else {
         loadingMore = true;
+        pendingNextPage = targetPage;
       }
     });
     try {
@@ -190,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
         category: category,
         sort: sort,
       );
-      if (!mounted || version != requestVersion) return;
+      if (!mounted || version != requestVersion || (!reset && pendingNextPage != targetPage)) return;
       setState(() {
         final merged = <String, Offer>{
           if (!reset)
@@ -198,8 +201,8 @@ class _HomeScreenState extends State<HomeScreen> {
           for (final offer in result.offers) offer.id: offer,
         };
         offers = merged.values.toList();
-        if (reset) storeFilter = '';
         page = targetPage;
+        pendingNextPage = null;
         total = result.total;
         hasMore = result.hasMore;
         loading = false;
@@ -207,8 +210,9 @@ class _HomeScreenState extends State<HomeScreen> {
       });
       await _persistFavorites();
     } catch (e) {
-      if (!mounted || version != requestVersion) return;
+      if (!mounted || version != requestVersion || (!reset && pendingNextPage != targetPage)) return;
       setState(() {
+        pendingNextPage = null;
         loading = false;
         loadingMore = false;
         error = e.toString().replaceFirst('Exception: ', '');
