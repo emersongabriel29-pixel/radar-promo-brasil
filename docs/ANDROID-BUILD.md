@@ -39,3 +39,13 @@ A geração do APK permanece desativada até prontidão confirmada. A PR 202 con
 O proprietário solicitou expressamente o APK nesta conversa, substituindo o adiamento anterior para esta entrega de teste. Novo workflow radar-apk-requested.yml compila o código existente em modo release para ARM64, versão 0.3.0+3 por flags, com a assinatura de desenvolvimento já prevista no Gradle. Não altera credenciais nem habilita publicação em loja. Dispara somente manualmente ou quando o próprio workflow é alterado na branch Android; o workflow regular continua de análise/testes.
 
 Inclui flutter pub get --enforce-lockfile, análise, testes, compilação, apksigner verify, badging de pacote/versão/atividade inicial/ABI e SHA-256. O artefato será entregue após consulta ao resultado real; estar instalável não significa homologação das integrações. Ofertas v3 e Radar original v672 preservados. Quota 429, visibilidade personal, push e teste físico continuam pendentes. Resultado do build e arquivo serão registrados ao término.
+
+## Resultado do APK solicitado — 20/11/2026
+
+APK de teste gerado e disponibilizado: Radar_Promo_Ofertas_0.3.0_arm64_teste.apk, 18421380 bytes (18,4 MB), versão 0.3.0+3, pacote br.com.radarpromo.radar_promo_ofertas, Android API 24+ e engine Flutter ARM64. Compilação release otimizada, assinatura de desenvolvimento (Android Debug), sem chave de produção configurada.
+
+Fonte: commit 72d07d95d99a47aa199f0c7c44ce9992039479ac. [GitHub Actions 44727253742](https://github.com/emersongabriel29-pixel/radar-promo-brasil/actions/runs/44727253742), job 136257688502: análise sem problemas, 10 testes Flutter aprovados, build APK aprovado, assinatura v2 verificada e atividade inicial conferida. Artefato 14623949657. O pacote informa o nome Radar Promo Ofertas e atividade MainActivity iniciável pelo launcher; não houve instalação em aparelho físico.
+
+SHA-256 do APK: 0796423d3afa05cc26fb6e55565534d2267c36c274b35beda1c5383609a3b3b2. ZIP do artefato e APK extraído tiveram hashes conferidos localmente; AndroidManifest.xml, lib/arm64-v8a/libflutter.so e libapp.so presentes. Arquivo APK preservado para download do proprietário. O código-fonte permanece no GitHub, sem incorporar código proprietário do Pelando.
+
+O build não altera backend, visibilidade, dados ou credenciais. Radar original v672 e Ofertas v3 preservados. Recursos online continuam sujeitos à quota 429 e ao acesso privado, e push não está configurado. Classificação: APK de teste compilado/verificado, não homologado em aparelho nem para publicação em loja. A solicitação expressa de APK substituiu o adiamento anterior somente para esta entrega de teste.

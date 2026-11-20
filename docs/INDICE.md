@@ -70,3 +70,5 @@ Quando houver conflito entre documentação e execução, não presumir que a do
 ## APK de teste solicitado — 20/11/2026
 
 - [Geração Android autorizada](./ANDROID-BUILD.md): build ARM64 0.3.0+3 em andamento; consultar resultado posterior, não homologado.
+
+- APK 0.3.0 de teste gerado em 20/11/2026; [hash, compatibilidade e evidência de compilação](./ANDROID-BUILD.md#resultado-do-apk-solicitado--20112026).
