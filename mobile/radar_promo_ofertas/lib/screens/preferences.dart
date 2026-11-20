@@ -1,3 +1,4 @@
+import 'dart:convert';
 // Keep compatibility with Flutter versions before Material UI was split.
 // ignore: deprecated_member_use
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ class SavedSearchesScreen extends StatefulWidget {
 class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
   final input = TextEditingController();
   List<String> searches = [];
+  Map<String, double> targetPrices = {};
   bool ready = false;
 
   @override
@@ -23,9 +25,25 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
 
   Future<void> _read() async {
     final prefs = await SharedPreferences.getInstance();
+    final storedPrices = prefs.getString('saved_search_target_prices');
+    final prices = <String, double>{};
+    if (storedPrices != null) {
+      try {
+        final decoded = jsonDecode(storedPrices);
+        if (decoded is Map) {
+          for (final entry in decoded.entries) {
+            final value = entry.value;
+            if (entry.key is String && value is num && value.isFinite && value > 0) {
+              prices[entry.key as String] = value.toDouble();
+            }
+          }
+        }
+      } catch (_) { /* Invalid local preference is ignored. */ }
+    }
     if (mounted) {
       setState(() {
         searches = prefs.getStringList('saved_searches') ?? [];
+        targetPrices = prices;
         ready = true;
       });
     }
@@ -53,11 +71,62 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
     }
   }
 
+  Future<void> _editTarget(String term) async {
+    final controller = TextEditingController(
+      text: targetPrices[term]?.toStringAsFixed(2).replaceAll('.', ',') ?? '',
+    );
+    final value = await showDialog<double?>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Preço desejado: $term'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Preço máximo (R\$)',
+            helperText: 'Apenas referência local; não envia notificações.',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext, -1), child: const Text('Sem limite')),
+          FilledButton(
+            onPressed: () {
+              final raw = controller.text.trim().replaceAll(' ', '');
+              final normalized = raw.contains(',')
+                  ? raw.replaceAll('.', '').replaceAll(',', '.')
+                  : raw;
+              final amount = double.tryParse(normalized);
+              if (amount == null || !amount.isFinite || amount <= 0 || amount > 100000000) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('Informe um preço válido maior que zero.')),
+                );
+                return;
+              }
+              Navigator.pop(dialogContext, amount);
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (value == null || !mounted) return;
+    final next = Map<String, double>.from(targetPrices);
+    if (value < 0) { next.remove(term); } else { next[term] = value; }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_search_target_prices', jsonEncode(next));
+    if (mounted) setState(() => targetPrices = next);
+  }
+
   Future<void> _remove(String term) async {
     final next = searches.where((s) => s != term).toList();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('saved_searches', next);
-    if (mounted) setState(() => searches = next);
+    final prices = Map<String, double>.from(targetPrices)..remove(term);
+    await prefs.setString('saved_search_target_prices', jsonEncode(prices));
+    if (mounted) setState(() { searches = next; targetPrices = prices; });
   }
 
   @override
@@ -98,20 +167,34 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
           ),
         ),
       ...searches.map(
-        (term) => Card(
+        (term) => Dismissible(
+          key: ValueKey(term),
+          direction: DismissDirection.endToStart,
+          background: Container(alignment: Alignment.centerRight, padding: const EdgeInsets.all(16), color: Colors.red.shade100, child: const Icon(Icons.delete_outline)),
+          onDismissed: (_) => _remove(term),
+          child: Card(
           child: ListTile(
             leading: const Icon(Icons.search),
             title: Text(term),
+            subtitle: Text(targetPrices.containsKey(term)
+                ? 'Preço desejado: R\$ ${targetPrices[term]!.toStringAsFixed(2).replaceAll('.', ',')}'
+                : 'Sem preço máximo'),
             onTap: () => widget.onSearch(term),
+            onLongPress: () => _editTarget(term),
             trailing: IconButton(
-              tooltip: 'Excluir busca',
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () => _remove(term),
+              tooltip: 'Definir preço desejado',
+              icon: const Icon(Icons.price_change_outlined),
+              onPressed: () => _editTarget(term),
             ),
+          ),
           ),
         ),
       ),
       const SizedBox(height: 16),
+      const Text(
+        'Para excluir uma busca, deslize o cartão para o lado. O preço desejado é apenas uma referência local.',
+      ),
+      const SizedBox(height: 8),
       const Text(
         'As buscas ficam neste aparelho. Esta versão não envia alertas ou notificações em segundo plano.',
         style: TextStyle(color: Color(0xFF6B7C72)),
@@ -151,7 +234,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     if (confirm != true || !mounted) return;
     setState(() => working = true);
     final prefs = await SharedPreferences.getInstance();
-    for (final key in ['favorites', 'saved_offers', 'saved_searches']) {
+    for (final key in ['favorites', 'saved_offers', 'saved_searches', 'saved_search_target_prices']) {
       await prefs.remove(key);
     }
     if (!mounted) return;
