@@ -83,3 +83,11 @@ Projeto Hatchable da comunidade: `proj_rPigttuZOrM7` (versão publicada 3).
 - Hatchable Radar Promo Ofertas (somente rascunho): `lib/community-operations.js` e `lib/community.js` atualizados para chamar as operações tipadas; leituras próprias filtradas por `user_id` e comentários públicos limitados por página.
 - Verificação de código publicado confirmou as cinco ações no switch; consulta SQL confirmou 0 registros em comentários, notificações e preferências no schema privado.
 - **Ainda não convertidos:** criação/edição/exclusão de comentários, envio e revisão de ofertas, denúncias, moderação, exportação e solicitação de exclusão de conta. Sem segredo configurado, sem teste HTTP, sem teste de duas sessões, sem deploy Hatchable. Manter a flag Supabase desligada.
+
+## Operações tipadas de escrita — 2026-11-20
+- Edge Function `radar-community-db-bridge` versão **7 ACTIVE**, conferida após deploy: `comments.add`, `comments.edit`, `comments.remove`, `submissions.add`, `submissions.list`, `reports.add`, `reports.list` acrescentadas.
+- Comentários: escrita com limite de 5/min por usuário e edição/remoção condicionadas ao proprietário. **A versão tipada ainda não envia notificação de resposta** (diferença funcional a resolver antes do cutover).
+- Submissões: limite de 10/h, deduplicação de URL por usuário por 7 dias, status `pending`, sem publicação. Denúncias: limite de 10/h, alvo existente e deduplicação por usuário/alvo.
+- Hatchable Radar Promo Ofertas (rascunho): `lib/community.js`, `lib/community-operations.js`, `api/submissions.js`, `lib/moderation.js` modificados para chamar a ponte.
+- SQL de verificação: 0 comentários, 0 submissões e 0 denúncias nas tabelas do schema privado. Não foram realizados testes HTTP HMAC nem testes ponta a ponta, nem deploy Hatchable.
+- **Pendências críticas:** revisão de código e testes de autorização, notificação de resposta, moderação com auditoria, exportação e solicitação de exclusão, credenciais seguras, teste entre duas contas e liberação do limite 429 do Hatchable. Manter flag Supabase desligada.
