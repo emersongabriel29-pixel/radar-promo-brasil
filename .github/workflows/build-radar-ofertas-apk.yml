@@ -1,5 +1,5 @@
 name: Build Radar Promo Ofertas APK
-# Validate delivered-only price alerts through feature commit 9eb9306 (2026-11-20).
+# Build audited Flutter revision cf4b25ce9621b57dfca78263c9a527ea66c4d889 (2026-11-20).
 on:
   push:
     branches: [main]
@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - name: Checkout Flutter source from feature branch
+      - name: Checkout audited Flutter revision
         uses: actions/checkout@v4
         with:
-          ref: feature/ofertas-price-watch-ui-204
+          ref: cf4b25ce9621b57dfca78263c9a527ea66c4d889
       - name: Verify Flutter project
         run: test -f mobile/radar_promo_ofertas/pubspec.yaml
       - uses: actions/setup-java@v4
@@ -39,10 +39,18 @@ jobs:
       - name: Build debug APK
         working-directory: mobile/radar_promo_ofertas
         run: flutter build apk --debug
+      - name: Record source and APK checksums
+        working-directory: mobile/radar_promo_ofertas
+        run: |
+          git rev-parse HEAD > build/app/outputs/flutter-apk/source-commit.txt
+          sha256sum build/app/outputs/flutter-apk/app-debug.apk > build/app/outputs/flutter-apk/app-debug.apk.sha256
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
           name: radar-promo-ofertas-apk-debug
-          path: mobile/radar_promo_ofertas/build/app/outputs/flutter-apk/app-debug.apk
+          path: |
+            mobile/radar_promo_ofertas/build/app/outputs/flutter-apk/app-debug.apk
+            mobile/radar_promo_ofertas/build/app/outputs/flutter-apk/app-debug.apk.sha256
+            mobile/radar_promo_ofertas/build/app/outputs/flutter-apk/source-commit.txt
           if-no-files-found: error
           retention-days: 30
