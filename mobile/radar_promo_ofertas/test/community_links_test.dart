@@ -12,6 +12,14 @@ void main() {
     }
   });
 
+  test('submission route opens the dedicated hosted form', () {
+    final uri = CommunityLinks.destination('submit');
+    expect(uri.scheme, 'https');
+    expect(uri.host, 'radar-promo-ofertas.hatchable.site');
+    expect(uri.path, '/submit-offer.html');
+    expect(uri.queryParameters['section'], 'submit');
+  });
+
   test('offer route preserves a safe ID', () {
     final uri = CommunityLinks.destination('offer', offerId: 'offer-123:abc');
     expect(uri.queryParameters['offerId'], 'offer-123:abc');
