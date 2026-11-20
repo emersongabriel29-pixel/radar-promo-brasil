@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 
 export const access='public';
 export const methods=['GET'];

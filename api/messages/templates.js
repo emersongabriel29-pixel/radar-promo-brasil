@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { getOrCreateAccount } from 'lib/accounts.js';
 import { validateMessageTemplate, renderMessageTemplate } from 'lib/message-templates.js';
 

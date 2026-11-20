@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { configuredBotToken,telegramCall } from 'lib/telegram.js';
 import {httpsUrl} from 'lib/validation.js';
 export const access='member';

@@ -1,4 +1,5 @@
-import { config, db } from 'hatchable';
+import { config } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { fingerprint, offerScore } from 'lib/automation.js';
 import { classifyProduct } from 'lib/category-classifier.js';
 // API catalog items are not filtered by product category.

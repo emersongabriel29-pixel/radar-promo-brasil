@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 export const access='member';
 export const methods=['GET','POST'];
 const uid=()=>crypto.randomUUID(),text=(v,n=200)=>String(v??'').trim().slice(0,n),stores=['AMAZON','SHOPEE','MERCADO_LIVRE','SHEIN','ALIEXPRESS','MAGALU','CASAS_BAHIA','HOTMART','KABUM','AMERICANAS','NATURA','AVON'];

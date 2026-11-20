@@ -1,4 +1,5 @@
-import { config, db, webhooks } from 'hatchable';
+import { config, webhooks } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { persistDiscoveryPage } from 'lib/affiliate-discovery.js';
 
 export const access = 'public';

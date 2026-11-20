@@ -1,4 +1,4 @@
-import {db} from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import {exportAccountData,verifyPrivacyRequest,resolvePrivacyRequest,runRetention} from 'lib/privacy.js';
 export const access='member';
 export const methods=['GET','POST'];

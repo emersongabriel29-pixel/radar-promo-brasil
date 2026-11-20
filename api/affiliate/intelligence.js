@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { scoreAffiliateOpportunity } from 'lib/affiliate-intelligence.js';
 export const access='member';
 export const methods=['GET'];

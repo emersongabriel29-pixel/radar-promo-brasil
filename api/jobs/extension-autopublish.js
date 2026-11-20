@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { enqueueMatches } from 'lib/autopilot.js';
 import { httpsUrl } from 'lib/validation.js';
 

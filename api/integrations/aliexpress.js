@@ -1,5 +1,6 @@
 import { assertAliExpressResponse } from 'lib/aliexpress-response.js';
-import { config, db } from 'hatchable';
+import { config } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { signTopParams } from 'lib/top-signature.js';
 import { createAliExpressAffiliateUrl, signAliExpressParams, validateAliExpressProductUrl } from 'lib/afilimax-aliexpress-provider.js';
 import { fingerprint, offerScore } from 'lib/automation.js';

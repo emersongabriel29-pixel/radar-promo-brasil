@@ -1,4 +1,5 @@
-import { db, config, webhooks } from 'hatchable';
+import { config, webhooks } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { configuredBotToken, sendTelegramOffer } from 'lib/telegram.js';
 import { eligiblePublication, claimPublication } from 'lib/delivery.js';
 import { cacheOfferImage } from 'lib/offer-images.js';

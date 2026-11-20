@@ -1,4 +1,4 @@
-import {db} from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import {processIngestionBatch} from 'lib/ingestion.js';
 export const access='scheduler';
 export const methods=['POST'];

@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { generateGeminiText } from 'lib/gemini.js';
 import {safeCreative} from 'lib/creative.js';
 import { checkGeminiCooldown, registerGeminiQuotaError } from 'lib/radar-ai-guard.js';

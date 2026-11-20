@@ -1,5 +1,5 @@
 import { deliveryBackoffSeconds } from 'lib/delivery-retry.js';
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { configuredBotToken, sendTelegramOffer } from 'lib/telegram.js';
 import { cacheOfferImage } from 'lib/offer-images.js';
 import { formatPromo } from 'lib/promo-message.js';
