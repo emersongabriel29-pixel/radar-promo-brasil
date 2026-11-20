@@ -17,6 +17,7 @@ import 'services/api.dart';
 import 'services/community.dart';
 import 'services/theme_preference.dart';
 import 'services/price_alerts.dart';
+import 'services/android_price_notifications.dart';
 import 'models/offer.dart';
 
 Future<void> main() async {
@@ -213,6 +214,8 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         final alerts = await PriceAlerts.check(offers);
         if (mounted && alerts.isNotEmpty) {
+          await AndroidPriceNotifications.show(alerts);
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('${alerts.length} oferta(s) encontradas dentro do preço desejado. Confira suas buscas.'),
             action: SnackBarAction(label: 'Ver buscas', onPressed: () => setState(() => tab = 3)),
