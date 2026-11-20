@@ -1,3 +1,5 @@
+// Flutter 3.50 deprecates this import; retain compatibility with the pinned app dependencies.
+// ignore: deprecated_member_use
 import 'package:flutter/material.dart';
 
 import '../models/offer.dart';
