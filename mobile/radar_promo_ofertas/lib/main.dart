@@ -18,9 +18,9 @@ import 'services/community.dart';
 import 'services/theme_preference.dart';
 import 'models/offer.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  AppThemePreference.load().then((_) {});
+  await AppThemePreference.load();
   runApp(const RadarPromoApp());
 }
 
