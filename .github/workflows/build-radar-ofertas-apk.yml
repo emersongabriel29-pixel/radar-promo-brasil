@@ -1,0 +1,47 @@
+name: Build Radar Promo Ofertas APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-radar-ofertas-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout Flutter source from feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/ofertas-price-watch-ui-204
+      - name: Verify Flutter project
+        run: test -f mobile/radar_promo_ofertas/pubspec.yaml
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        working-directory: mobile/radar_promo_ofertas
+        run: flutter pub get
+      - name: Analyze
+        working-directory: mobile/radar_promo_ofertas
+        run: flutter analyze
+      - name: Test
+        working-directory: mobile/radar_promo_ofertas
+        run: flutter test
+      - name: Build debug APK
+        working-directory: mobile/radar_promo_ofertas
+        run: flutter build apk --debug
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-promo-ofertas-apk-debug
+          path: mobile/radar_promo_ofertas/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
