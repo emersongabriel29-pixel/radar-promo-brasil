@@ -213,7 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
         loadingMore = false;
         showingCachedOffers = false;
       });
-      if (reset && search.text.trim().isEmpty && category.isEmpty && sort == 'recent') {
+      if (reset && offers.isNotEmpty && search.text.trim().isEmpty && category.isEmpty && sort == 'recent') {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setStringList('last_real_offers_v1',
             offers.take(60).map((offer) => jsonEncode(offer.toJson())).toList());
