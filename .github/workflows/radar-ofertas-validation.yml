@@ -1,0 +1,47 @@
+name: Radar Ofertas Flutter validation
+
+# Registered on main so GitHub enables manual runs for the development branch.
+# No deployment, publishing, or production credentials are used.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/ofertas-price-watch-ui-204
+    paths:
+      - 'mobile/radar_promo_ofertas/**'
+      - '.github/workflows/radar-ofertas-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: mobile/radar_promo_ofertas
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Flutter version
+        run: flutter --version
+      - name: Dependencies
+        run: flutter pub get
+      - name: Static analysis
+        run: flutter analyze
+      - name: Unit and widget tests
+        run: flutter test
+      - name: Build test APK (debug signing only)
+        run: flutter build apk --debug
+      - name: Upload test APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-ofertas-debug-apk
+          path: mobile/radar_promo_ofertas/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
