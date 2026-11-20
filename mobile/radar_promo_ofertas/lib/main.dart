@@ -485,6 +485,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
+                  if (tab == 2) ...[
+                    Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.cloud_outlined),
+                        title: const Text('Favoritos da conta'),
+                        subtitle: const Text(
+                          'Consulte seus favoritos sincronizados no site seguro. '
+                          'Os favoritos abaixo são salvos somente neste aparelho.',
+                        ),
+                        trailing: const Icon(Icons.open_in_new),
+                        onTap: () => openCommunity(context, widget.community, 'account'),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   TextField(
                     controller: search,
                     onSubmitted: (_) {
