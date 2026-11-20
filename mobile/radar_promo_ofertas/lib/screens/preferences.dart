@@ -78,28 +78,35 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
   }
 
   Future<void> _editTarget(String term) async {
-    final controller = TextEditingController(
-      text: targetPrices[term]?.toStringAsFixed(2).replaceAll('.', ',') ?? '',
-    );
-    final value = await showDialog<double?>(
+    // Keep the input owned by the dialog rather than disposing a controller
+    // while Flutter is still unmounting its focused TextField.
+    var inputValue = targetPrices[term]?.toStringAsFixed(2).replaceAll('.', ',') ?? '';
+    final value = await showDialog<double>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text('Preço desejado: $term'),
-        content: TextField(
-          controller: controller,
+        content: TextFormField(
+          initialValue: inputValue,
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: (value) => inputValue = value,
           decoration: const InputDecoration(
-            labelText: 'Preço máximo (R\$)',
-            helperText: 'Alerta local ao abrir ou atualizar ofertas; sem monitoramento em segundo plano.',
+            labelText: 'Preço máximo (R\\$)',
+            helperText: 'Alerta local ao atualizar ofertas; sem monitoramento em segundo plano.',
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.pop(dialogContext, -1), child: const Text('Sem limite')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, -1.0),
+            child: const Text('Sem limite'),
+          ),
           FilledButton(
             onPressed: () {
-              final raw = controller.text.trim().replaceAll(' ', '');
+              final raw = inputValue.trim().replaceAll(' ', '');
               final normalized = raw.contains(',')
                   ? raw.replaceAll('.', '').replaceAll(',', '.')
                   : raw;
@@ -117,10 +124,13 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
         ],
       ),
     );
-    controller.dispose();
-    if (value == null || !mounted) return;
+    if (!mounted || value == null) return;
     final next = Map<String, double>.from(targetPrices);
-    if (value < 0) { next.remove(term); } else { next[term] = value; }
+    if (value < 0) {
+      next.remove(term);
+    } else {
+      next[term] = value;
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('saved_search_target_prices', jsonEncode(next));
     if (mounted) setState(() => targetPrices = next);
