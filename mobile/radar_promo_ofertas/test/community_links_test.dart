@@ -65,5 +65,13 @@ void main() {
     expect(requested!.queryParameters['offerId'], 'offer:123');
     expect(requested!.queryParameters.keys, isNot(contains('token')));
   });
+  test('failed account browser launch is surfaced without leaking credentials', () async {
+    final links = CommunityLinks(opener: (uri, mode) async {
+      expect(uri.queryParameters.keys, isNot(contains('access_token')));
+      expect(uri.queryParameters.keys, isNot(contains('session')));
+      return false;
+    });
+    expect(await links.open('account'), isFalse);
+  });
 
 }
