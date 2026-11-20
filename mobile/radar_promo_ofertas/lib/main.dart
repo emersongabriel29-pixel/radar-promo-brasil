@@ -1138,6 +1138,13 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
             },
           ),
           OutlinedButton.icon(
+            icon: const Icon(Icons.cloud_upload_outlined),
+            label: const Text('Salvar ou remover dos favoritos da conta'),
+            onPressed: () => openCommunity(
+              context, widget.community, 'offer', offerId: offer.id,
+            ),
+          ),
+          OutlinedButton.icon(
             icon: const Icon(Icons.forum_outlined),
             label: const Text('Votos e comentários'),
             onPressed: () => openCommunity(
@@ -1145,7 +1152,9 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
             ),
           ),
           const Text(
-            'Sua conta abre em uma aba segura. Os favoritos deste aparelho continuam disponíveis em Salvos.',
+            'Na página segura, entre na sua conta e use “Salvar na conta” ou '
+            '“Remover da conta”. Os favoritos do ícone acima continuam '
+            'salvos somente neste aparelho.',
           ),
           _detailLine(
             'Oferta recebida em',
