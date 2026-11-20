@@ -183,6 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
           for (final offer in result.offers) offer.id: offer,
         };
         offers = merged.values.toList();
+        if (reset) storeFilter = '';
         page = targetPage;
         total = result.total;
         hasMore = result.hasMore;
@@ -480,7 +481,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                   if (tab == 0 && offers.isNotEmpty) ...[
                     DropdownButtonFormField<String>(
-                      value: storeFilter.isEmpty || offers.any((offer) => offer.source.trim().toLowerCase() == storeFilter.toLowerCase()) ? storeFilter : '',
+                      value: storeFilter.isEmpty || offers.any((offer) => offer.source.trim() == storeFilter) ? storeFilter : '',
                       isExpanded: true,
                       decoration: const InputDecoration(labelText: 'Loja (ofertas carregadas)', border: OutlineInputBorder()),
                       items: [
