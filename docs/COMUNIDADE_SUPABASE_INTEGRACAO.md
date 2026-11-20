@@ -54,3 +54,12 @@ Projeto Hatchable da comunidade: `proj_rPigttuZOrM7` (versão publicada 3).
 - Tentativas de executar `/api/admin/community-db-health` e `/api/favorites` no Hatchable retornaram HTTP 429 (`usage_limit`, 2,1h de 2,0h); **não há validação ponta a ponta nem teste entre duas sessões reais**.
 - Antes do cutover: implementar/inspecionar servidor da ponte com allowlist restrita às operações de comunidade, autenticação HMAC e proteção contra replay, configurar segredos em cofre, validar identidade de dois usuários e autorização de moderador, reconciliar dados e executar testes em ambiente seguro.
 - **Não realizar deploy ou habilitar Supabase** enquanto esses itens estiverem pendentes.
+
+## Ponte Supabase criada em 2026-11-20
+- Edge Function independente `radar-community-db-bridge` implantada no Supabase `runnmpzkomcdawwzuift`, versão 1, status `ACTIVE`, `verify_jwt=false` **porque valida HMAC no próprio handler**.
+- Exige segredo `COMMUNITY_SUPABASE_BRIDGE_SECRET` de pelo menos 32 caracteres; sem ele responde `503 BRIDGE_NOT_CONFIGURED` (fail closed).
+- Inclui validação de timestamp, assinatura HMAC, nonce único persistido em `radar_community.bridge_nonces`, limites de corpo, lote, SQL e parâmetros, transações e consultas restritas ao schema da comunidade.
+- Criada tabela privada `radar_community.bridge_nonces`, com RLS habilitado e sem acesso `anon` ou `authenticated`.
+- O código do adaptador no Hatchable ainda é **rascunho não implantado** e `community_supabase_enabled=false`. Não há segredo compartilhado configurado, migração ou cutover.
+- **Não houve teste de chamada HTTP ponta a ponta**: Hatchable continua retornando `429 usage_limit`; acesso externo de teste não disponível. O estado ACTIVE indica deploy, não funcionamento validado.
+- Antes de produção: revisar allowlist de SQL e limites de acesso, testar assinatura válida/inválida e replay, confirmar identidade confiável, configurar segredo exclusivo em ambos os cofres, testar duas contas e moderador, comparar dados, só então habilitar a flag e implantar.
