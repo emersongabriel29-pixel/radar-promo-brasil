@@ -1,5 +1,5 @@
 name: Build Radar Promo Ofertas APK
-# Rebuild Flutter branch after API error and offline-cache fixes 3c251dd (2026-11-20).
+# Validate price dialog lifecycle regression test 9f3cff4 (2026-11-20).
 on:
   push:
     branches: [main]
