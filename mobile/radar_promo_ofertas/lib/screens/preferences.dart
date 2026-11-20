@@ -133,13 +133,14 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
 
   Future<void> _remove(String term) async {
     final next = searches.where((s) => s != term).toList();
+    final prices = Map<String, double>.from(targetPrices)..remove(term);
+    final muted = Set<String>.from(mutedSearches)..remove(term);
+    // Dismissible must leave the widget tree synchronously after dismissal.
+    if (mounted) setState(() { searches = next; targetPrices = prices; mutedSearches = muted; });
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('saved_searches', next);
-    final prices = Map<String, double>.from(targetPrices)..remove(term);
     await prefs.setString('saved_search_target_prices', jsonEncode(prices));
-    final muted = Set<String>.from(mutedSearches)..remove(term);
     await prefs.setStringList('saved_search_muted', muted.toList());
-    if (mounted) setState(() { searches = next; targetPrices = prices; mutedSearches = muted; });
   }
 
   @override
