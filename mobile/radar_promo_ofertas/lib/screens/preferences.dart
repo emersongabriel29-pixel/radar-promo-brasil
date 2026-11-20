@@ -222,7 +222,7 @@ class PrivacyScreen extends StatelessWidget {
           ),
           SizedBox(height: 18),
           Text(
-            'Esta versão não exige conta e não oferece comentários, votos ou notificações push.',
+            'Consultar ofertas e usar favoritos locais não exige conta. Ao abrir Minha conta no navegador, e-mail, votos, comentários, favoritos da conta e preferências são tratados pelo serviço de comunidade. Essa sessão fica no navegador. Os avisos de respostas aparecem na conta; notificações push ainda não estão disponíveis.',
           ),
         ],
       ),

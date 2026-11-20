@@ -48,7 +48,7 @@ export default async function(req, res) {
   if (q) { params.push('%' + q + '%'); filters += ` AND (o.title ILIKE $2 OR o.source ILIKE $2)`; }
   if (category) { params.push(category); filters += ` AND c.name=$${params.length}`; }
   const offerId = String(req.query.id || '').trim().slice(0,128);
-  if (offerId) { params.push(offerId); filters += ` AND o.id=${params.length}`; }
+  if (offerId) { params.push(offerId); filters += ` AND o.id=$${params.length}`; }
   const count = await db.query(`
     SELECT count(*)::int AS total
     FROM offers o

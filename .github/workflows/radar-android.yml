@@ -58,7 +58,9 @@ jobs:
             echo "::error::No Flutter tests are present. Add meaningful tests before accepting validation."
             exit 1
           fi
+      - name: Compile native Android changes for validation
+        run: flutter build apk --debug --target-platform android-arm64
       - name: Record validation scope
         run: |
-          echo "Análise estática e testes existentes concluídos. Nenhum APK foi gerado." >> "$GITHUB_STEP_SUMMARY"
+          echo "Análise, testes e compilação Android de depuração concluídos; nenhum APK foi distribuído por este workflow." >> "$GITHUB_STEP_SUMMARY"
           echo "Integrações e funcionamento em aparelho ainda exigem validação própria." >> "$GITHUB_STEP_SUMMARY"

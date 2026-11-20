@@ -72,3 +72,7 @@ Quando houver conflito entre documentação e execução, não presumir que a do
 - [Geração Android autorizada](./ANDROID-BUILD.md): build ARM64 0.3.0+3 em andamento; consultar resultado posterior, não homologado.
 
 - APK 0.3.0 de teste gerado em 20/11/2026; [hash, compatibilidade e evidência de compilação](./ANDROID-BUILD.md#resultado-do-apk-solicitado--20112026).
+
+## Auditoria completa do aplicativo — 20/11/2026
+
+- [Auditoria de 30 áreas do APK/Flutter/backend/Supabase](./AUDITORIA-APP-2026-11-20.md): parecer reprovado para produção, bloqueios reais e correções em validação.

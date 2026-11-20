@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'screens/preferences.dart';
+import 'screens/app_version.dart';
 
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -159,6 +160,9 @@ class _HomeScreenState extends State<HomeScreen> {
         loading = true;
         loadingMore = false;
         offers = [];
+        total = 0;
+        page = 1;
+        hasMore = false;
       } else {
         loadingMore = true;
       }
@@ -248,11 +252,15 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            const Column(
+            const Expanded(
+              child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'RADAR PROMO',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w900,
@@ -261,6 +269,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 Text(
                   'OFERTAS',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
@@ -269,6 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ],
+            ),
             ),
           ],
         ),
@@ -381,7 +392,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(height: 7),
                               Text(
-                                'Ofertas encontradas pelas APIs do Radar.',
+                                'Encontre ofertas e confira as condições na loja.',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: .75),
                                   fontSize: 12,
@@ -458,7 +469,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          '${tab == 2 ? list.length : total} ofertas encontradas',
+                          tab != 2 && error != null && offers.isEmpty
+                              ? 'Ofertas indisponíveis'
+                              : '${tab == 2 ? list.length : total} ofertas encontradas',
                           style: const TextStyle(
                             color: Color(0xFF6B7C72),
                             fontSize: 12,
@@ -537,33 +550,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _categories() {
-    final categories = [
-      ('Casa & Lar', Icons.chair_alt_outlined),
-      ('Moda & Beleza', Icons.checkroom_outlined),
-      ('Tech & Eletrônicos', Icons.devices_outlined),
-      ('Pet', Icons.pets_outlined),
-      ('Baby & Kids', Icons.child_friendly_outlined),
-      ('Esporte & Lazer', Icons.sports_soccer_outlined),
-      ('Mercado', Icons.shopping_basket_outlined),
-      ('Automotivo', Icons.directions_car_outlined),
-      ...offers
-          .map((o) => o.category)
-          .where((c) => c.isNotEmpty)
-          .toSet()
-          .where(
-            (c) => !const [
-              'Casa & Lar',
-              'Moda & Beleza',
-              'Tech & Eletrônicos',
-              'Pet',
-              'Baby & Kids',
-              'Esporte & Lazer',
-              'Mercado',
-              'Automotivo',
-            ].contains(c),
-          )
-          .map((c) => (c, Icons.label_outline)),
-    ];
+    final categories = offers
+        .map((offer) => offer.category.trim())
+        .where((name) => name.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
@@ -577,25 +569,30 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Escolha um tema para filtrar as ofertas disponíveis.',
+          'Categorias das ofertas carregadas. Escolha uma para filtrar.',
           style: TextStyle(color: Color(0xFF6B7C72)),
         ),
         const SizedBox(height: 18),
+        if (categories.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Text('As categorias aparecerão quando as ofertas forem carregadas.'),
+          ),
         ...categories.map(
           (c) => Card(
             child: ListTile(
               leading: CircleAvatar(
                 backgroundColor: const Color(0xFFEAF3D9),
-                child: Icon(c.$2, color: const Color(0xFF234844)),
+                child: Icon(Icons.category_outlined, color: const Color(0xFF234844)),
               ),
               title: Text(
-                c.$1,
+                c,
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 setState(() {
-                  category = c.$1;
+                  category = c;
                   tab = 0;
                 });
                 _load();
@@ -630,18 +627,18 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       const SizedBox(height: 12),
       const Text(
-        'O Radar Promo Ofertas é um aplicativo independente. As ofertas são recebidas do Radar Promo Brasil por uma conexão segura de servidor para servidor.',
+        'Pesquise ofertas, salve seus produtos e confira as condições diretamente na loja.',
       ),
       const SizedBox(height: 18),
       _infoTile(
         Icons.verified_outlined,
-        'Preços verificados',
-        'O feed deve exibir apenas ofertas aprovadas e com validação recente pela origem.',
+        'Confira na loja',
+        'Preços e disponibilidade podem mudar. Confirme o valor final antes de comprar.',
       ),
       _infoTile(
         Icons.link,
         'Links de afiliados',
-        'Ao tocar em comprar, você será direcionado à loja pelo link rastreável da oferta.',
+        'Alguns links podem gerar comissão de afiliado. Confira as condições da oferta na loja.',
       ),
       _infoTile(
         Icons.bookmark_outline,
@@ -668,10 +665,7 @@ class _HomeScreenState extends State<HomeScreen> {
           context,
         ).push(MaterialPageRoute(builder: (_) => const PrivacyScreen())),
       ),
-      const Text(
-        'Versão 0.2.0 • Projeto independente',
-        style: TextStyle(color: Color(0xFF6B7C72), fontSize: 12),
-      ),
+      const InstalledAppVersion(),
     ],
   );
 
@@ -793,7 +787,7 @@ class OfferCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        if (offer.discountPercent > 0)
+                        if (offer.hasPrice && offer.discountPercent > 0)
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 7,
@@ -837,14 +831,14 @@ class OfferCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 7),
                     Text(
-                      money.format(offer.currentPrice),
+                      offer.hasPrice ? money.format(offer.currentPrice) : 'Preço indisponível',
                       style: const TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w900,
                         color: Color(0xFF102A2A),
                       ),
                     ),
-                    if (offer.originalPrice > offer.currentPrice)
+                    if (offer.hasPrice && offer.originalPrice > offer.currentPrice)
                       Text(
                         money.format(offer.originalPrice),
                         style: const TextStyle(
@@ -936,7 +930,7 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
                 : const Icon(Icons.shopping_bag_outlined, size: 60),
           ),
           const SizedBox(height: 18),
-          if (offer.discountPercent > 0)
+          if (offer.hasPrice && offer.discountPercent > 0)
             Align(
               alignment: Alignment.centerLeft,
               child: Chip(
@@ -954,10 +948,10 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
           ),
           const SizedBox(height: 14),
           Text(
-            money.format(offer.currentPrice),
+            offer.hasPrice ? money.format(offer.currentPrice) : 'Preço indisponível',
             style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
           ),
-          if (offer.originalPrice > offer.currentPrice)
+          if (offer.hasPrice && offer.originalPrice > offer.currentPrice)
             Text(
               'Antes ${money.format(offer.originalPrice)}',
               style: const TextStyle(
@@ -1008,7 +1002,9 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
           ),
           _detailLine(
             'Oferta recebida em',
-            DateFormat('dd/MM/yyyy HH:mm').format(offer.createdAt.toLocal()),
+            offer.createdAt == null
+                ? 'Data indisponível'
+                : DateFormat('dd/MM/yyyy HH:mm').format(offer.createdAt!.toLocal()),
           ),
           const SizedBox(height: 24),
           FilledButton.icon(

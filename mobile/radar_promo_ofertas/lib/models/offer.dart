@@ -9,7 +9,7 @@ class Offer {
   final int discountPercent;
   final String category;
   final String couponCode;
-  final DateTime createdAt;
+  final DateTime? createdAt;
 
   const Offer({
     required this.id,
@@ -33,13 +33,14 @@ class Offer {
     originalPrice: _number(json['originalPrice']),
     imageUrl: (json['imageUrl'] ?? '').toString(),
     affiliateUrl: (json['affiliateUrl'] ?? '').toString(),
-    discountPercent: _number(json['discountPercent']).round(),
+    discountPercent: _number(json['discountPercent']).round().clamp(0, 100).toInt(),
     category: (json['category'] ?? '').toString(),
     couponCode: (json['couponCode'] ?? '').toString(),
     createdAt:
-        DateTime.tryParse((json['createdAt'] ?? '').toString()) ??
-        DateTime.now(),
+        DateTime.tryParse((json['createdAt'] ?? '').toString()),
   );
+
+  bool get hasPrice => currentPrice.isFinite && currentPrice > 0;
 
   bool get hasValidLink {
     final uri = Uri.tryParse(affiliateUrl);
@@ -60,11 +61,13 @@ class Offer {
     'discountPercent': discountPercent,
     'category': category,
     'couponCode': couponCode,
-    'createdAt': createdAt.toIso8601String(),
+    'createdAt': createdAt?.toIso8601String(),
   };
 
   static double _number(dynamic value) {
-    if (value is num) return value.toDouble();
-    return double.tryParse(value?.toString() ?? '') ?? 0;
+    final parsed = value is num
+        ? value.toDouble()
+        : double.tryParse(value?.toString() ?? '');
+    return parsed != null && parsed.isFinite && parsed >= 0 ? parsed : 0;
   }
 }
