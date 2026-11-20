@@ -15,11 +15,17 @@ class AndroidPriceNotifications {
       if (allowed != true) return const [];
       final deliveredAlerts = <PriceAlert>[];
       for (final alert in alerts.take(5)) {
-        final delivered = await channel.invokeMethod<bool>('showPriceAlert', {
-          'title': 'Preço desejado: ${alert.query}',
-          'body': '${alert.offer.title} por R\$ ${alert.offer.currentPrice.toStringAsFixed(2)}',
-        });
-        if (delivered == true) deliveredAlerts.add(alert);
+        try {
+          final delivered = await channel.invokeMethod<bool>('showPriceAlert', {
+            'title': 'Preço desejado: ${alert.query}',
+            'body': '${alert.offer.title} por R\\$ ${alert.offer.currentPrice.toStringAsFixed(2)}',
+          });
+          if (delivered == true) deliveredAlerts.add(alert);
+        } on PlatformException {
+          // Keep previously delivered alerts and retry this one later.
+        } on MissingPluginException {
+          break;
+        }
       }
       return deliveredAlerts;
     } on MissingPluginException {
