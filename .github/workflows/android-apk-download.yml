@@ -1,4 +1,5 @@
 name: Android APK instalavel (debug)
+# Publica o APK de depuracao como artefato baixavel a cada build.
 on:
   push:
     branches:
