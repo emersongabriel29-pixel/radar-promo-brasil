@@ -12,6 +12,29 @@ import android.Manifest
 import android.content.pm.PackageManager
 
 class MainActivity : FlutterActivity() {
+    private var pendingNotificationPermission: MethodChannel.Result? = null
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 3102) {
+            val pending = pendingNotificationPermission
+            pendingNotificationPermission = null
+            pending?.success(
+                Build.VERSION.SDK_INT < 33 ||
+                    checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            )
+        }
+    }
+
+    override fun onDestroy() {
+        pendingNotificationPermission?.success(false)
+        pendingNotificationPermission = null
+        super.onDestroy()
+    }
     @Suppress("DEPRECATION")
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -35,8 +58,17 @@ class MainActivity : FlutterActivity() {
                     "requestPermission" -> {
                         if (Build.VERSION.SDK_INT >= 33 &&
                             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 3102)
-                            result.success(false)
+                            if (pendingNotificationPermission != null) {
+                                result.success(false)
+                            } else {
+                                pendingNotificationPermission = result
+                                try {
+                                    requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 3102)
+                                } catch (_: Exception) {
+                                    pendingNotificationPermission = null
+                                    result.success(false)
+                                }
+                            }
                         } else {
                             result.success(true)
                         }
