@@ -73,5 +73,14 @@ void main() {
     });
     expect(await links.open('account'), isFalse);
   });
+  test('login returns only to the same-origin account page', () async {
+    final uri = CommunityLinks.destination('login');
+    expect(uri.scheme, 'https');
+    expect(uri.host, 'radar-promo-ofertas.hatchable.site');
+    expect(uri.path, '/login');
+    expect(uri.queryParameters['next'], '/community.html?section=account');
+    expect(uri.queryParameters.keys, isNot(contains('token')));
+    expect(uri.queryParameters.keys, isNot(contains('email')));
+  });
 
 }
