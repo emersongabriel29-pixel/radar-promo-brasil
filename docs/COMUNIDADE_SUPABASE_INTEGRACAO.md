@@ -91,3 +91,12 @@ Projeto Hatchable da comunidade: `proj_rPigttuZOrM7` (versão publicada 3).
 - Hatchable Radar Promo Ofertas (rascunho): `lib/community.js`, `lib/community-operations.js`, `api/submissions.js`, `lib/moderation.js` modificados para chamar a ponte.
 - SQL de verificação: 0 comentários, 0 submissões e 0 denúncias nas tabelas do schema privado. Não foram realizados testes HTTP HMAC nem testes ponta a ponta, nem deploy Hatchable.
 - **Pendências críticas:** revisão de código e testes de autorização, notificação de resposta, moderação com auditoria, exportação e solicitação de exclusão, credenciais seguras, teste entre duas contas e liberação do limite 429 do Hatchable. Manter flag Supabase desligada.
+
+## Moderação, notificações de resposta e privacidade — 2026-11-20
+- Edge Function `radar-community-db-bridge` implantada na **versão 10 ACTIVE**, confirmada via leitura da versão publicada.
+- `comments.add` envia notificação transacional de resposta somente quando há comentário original visível, usuário distinto e preferência habilitada. Deduplicação por ID do novo comentário.
+- `moderation.check`, `moderation.list`, `moderation.decide`: consultam a tabela privada `rpo_moderators`; decisão e auditoria usam CTE no banco e restringem ação a relatório pendente/alvo compatível. **Sem moderadores cadastrados no Supabase, acesso negado por padrão.**
+- `account.request.get`, `account.request.create`, `account.request.cancel`: gerenciam apenas solicitação de exclusão, sem apagar dados nem conta; pedidos `completed` não podem ser reabertos.
+- Hatchable Radar Promo Ofertas: rascunhos atualizados `lib/community.js`, `lib/community-operations.js`, `lib/moderation.js`, `api/account/deletion-request.js`.
+- Consulta de verificação: `rpo_moderators=0`, `rpo_moderation_audit=0`, `rpo_account_deletion_requests=0`. **Não foi realizado teste HTTP de decisão de moderação, HMAC, autenticação ou isolamento entre sessões.**
+- **Pendência:** exportação integral de dados ainda usa SQL genérico; deve ser convertida com paginação segura antes de ativar Supabase. Credenciais HMAC não configuradas; Hatchable sem deploy e bloqueio 429 permanece. Revisar comportamento de erros, testar permissões, auditar SQL, e validar operações com contas reais de teste antes de produção.
