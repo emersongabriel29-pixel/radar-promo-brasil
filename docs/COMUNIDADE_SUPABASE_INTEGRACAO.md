@@ -100,3 +100,10 @@ Projeto Hatchable da comunidade: `proj_rPigttuZOrM7` (versão publicada 3).
 - Hatchable Radar Promo Ofertas: rascunhos atualizados `lib/community.js`, `lib/community-operations.js`, `lib/moderation.js`, `api/account/deletion-request.js`.
 - Consulta de verificação: `rpo_moderators=0`, `rpo_moderation_audit=0`, `rpo_account_deletion_requests=0`. **Não foi realizado teste HTTP de decisão de moderação, HMAC, autenticação ou isolamento entre sessões.**
 - **Pendência:** exportação integral de dados ainda usa SQL genérico; deve ser convertida com paginação segura antes de ativar Supabase. Credenciais HMAC não configuradas; Hatchable sem deploy e bloqueio 429 permanece. Revisar comportamento de erros, testar permissões, auditar SQL, e validar operações com contas reais de teste antes de produção.
+
+## Exportação paginada — 2026-11-20
+- Edge Function `radar-community-db-bridge` versão **11 ACTIVE**: operação `account.export.page` com oito datasets explícitos, consulta SQL parametrizada no servidor, filtro por `user_id`/`reporter_id`, páginas de 200 registros e sinalização `hasMore`.
+- Hatchable Radar Promo Ofertas **somente rascunho**: `lib/community-operations.js` permite operação tipada; `api/account/data.js` busca páginas sequenciais por dataset e retorna erro `EXPORT_TOO_LARGE` acima de 10.000 itens por conjunto em vez de truncar silenciosamente.
+- Verificação: leitura da Edge Function confirmou versão 11, operação presente e filtros de propriedade; leitura do rascunho confirmou paginação e guarda de limite. **Não houve chamada HTTP autenticada, teste de duas contas, teste de volumes nem deploy Hatchable**.
+- **Riscos a resolver antes da ativação:** exportação por OFFSET não garante snapshot consistente sob escrita concorrente; revisar autorização, configuração HMAC e credenciais, testes ponta a ponta, divergências GitHub/Hatchable, limite 429 e demais operações.
+- `community_supabase_enabled` permanece desativado. Nenhum dado real foi migrado ou apagado.
