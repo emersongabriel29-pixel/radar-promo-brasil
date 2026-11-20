@@ -33,3 +33,9 @@ Consulte [resultado da remediação](./REMEDIACAO-ANDROID-2026-11-16.md) e [font
 ## Entrega e rollback
 
 A geração do APK permanece desativada até prontidão confirmada. A PR 202 continua sem merge automático. Para reverter código, reverter os commits da branch; para hospedagem, usar a versão anterior apropriada, preservando dados das tabelas novas. Não apagar o catálogo original ou truncar o destino.
+
+## APK solicitado — 20/11/2026
+
+O proprietário solicitou expressamente o APK nesta conversa, substituindo o adiamento anterior para esta entrega de teste. Novo workflow radar-apk-requested.yml compila o código existente em modo release para ARM64, versão 0.3.0+3 por flags, com a assinatura de desenvolvimento já prevista no Gradle. Não altera credenciais nem habilita publicação em loja. Dispara somente manualmente ou quando o próprio workflow é alterado na branch Android; o workflow regular continua de análise/testes.
+
+Inclui flutter pub get --enforce-lockfile, análise, testes, compilação, apksigner verify, badging de pacote/versão/atividade inicial/ABI e SHA-256. O artefato será entregue após consulta ao resultado real; estar instalável não significa homologação das integrações. Ofertas v3 e Radar original v672 preservados. Quota 429, visibilidade personal, push e teste físico continuam pendentes. Resultado do build e arquivo serão registrados ao término.

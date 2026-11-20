@@ -66,3 +66,7 @@ Quando houver conflito entre documentação e execução, não presumir que a do
 ## Publicação autorizada — 20/11/2026
 
 - [Radar Promo Ofertas v3](./DEPLOY-OFERTAS-V3-2026-11-20.md): versão live, manifesto conferido, API 429, acesso público e homologação pendentes; sem APK.
+
+## APK de teste solicitado — 20/11/2026
+
+- [Geração Android autorizada](./ANDROID-BUILD.md): build ARM64 0.3.0+3 em andamento; consultar resultado posterior, não homologado.

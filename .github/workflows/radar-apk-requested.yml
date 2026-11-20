@@ -1,0 +1,68 @@
+name: Radar APK solicitado
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['android/github-actions-build']
+    paths: ['.github/workflows/radar-apk-requested.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: requested-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: mobile/radar_promo_ofertas
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.50.0'
+          cache: true
+      - name: Validar fonte e dependências
+        run: |
+          flutter --version
+          flutter pub get --enforce-lockfile
+          flutter analyze
+          flutter test
+      - name: Gerar APK ARM64 para teste autorizado
+        run: flutter build apk --release --target-platform android-arm64 --build-name 0.3.0 --build-number 3
+      - name: Conferir assinatura e entrada no menu Android
+        run: |
+          set -euo pipefail
+          mkdir -p delivery
+          cp build/app/outputs/flutter-apk/app-release.apk delivery/Radar_Promo_Ofertas_0.3.0_arm64_teste.apk
+          build_tools_dir="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          "$build_tools_dir/apksigner" verify --verbose --print-certs delivery/Radar_Promo_Ofertas_0.3.0_arm64_teste.apk > delivery/signature.txt
+          "$build_tools_dir/aapt" dump badging delivery/Radar_Promo_Ofertas_0.3.0_arm64_teste.apk > delivery/android-package.txt
+          grep -F "package: name='br.com.radarpromo.radar_promo_ofertas'" delivery/android-package.txt
+          grep -F "versionName='0.3.0'" delivery/android-package.txt
+          grep -F "launchable-activity:" delivery/android-package.txt
+          grep -F "application-label:'Radar Promo Ofertas'" delivery/android-package.txt
+          grep -F "native-code: 'arm64-v8a'" delivery/android-package.txt
+          sha256sum delivery/*.apk > delivery/SHA256SUMS.txt
+          git rev-parse HEAD > delivery/source-commit.txt
+          printf '%s\n' 'APK de teste solicitado em 20/11/2026. Android 7.0/API 24 ou superior, ARM64.' 'Build release otimizado, assinatura de desenvolvimento existente. Não é entrega homologada para loja.' 'Backend Ofertas v3: quota 429 e visibilidade personal podem bloquear os recursos online.' 'Não houve teste em aparelho físico nem configuração de push.' > delivery/LEIA-ME.txt
+          cat delivery/SHA256SUMS.txt
+          printf '%s\n' 'APK de teste gerado; assinatura e atividade inicial verificadas. Sem implantação de backend.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Radar-Promo-Ofertas-0.3.0-arm64-teste
+          path: mobile/radar_promo_ofertas/delivery/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
