@@ -1,0 +1,36 @@
+name: Radar dependency audit
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "prototypes/remotion-offer-video/**"
+      - ".github/workflows/radar-remotion-render.yml"
+      - ".github/workflows/radar-dependency-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  npm-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: prototypes/remotion-offer-video
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install pinned dependencies
+        run: npm install --no-audit --no-fund
+      - name: Audit dependency tree
+        run: npm audit --json > npm-audit.json || true
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-remotion-npm-audit
+          path: prototypes/remotion-offer-video/npm-audit.json
+          if-no-files-found: error
+          retention-days: 30
