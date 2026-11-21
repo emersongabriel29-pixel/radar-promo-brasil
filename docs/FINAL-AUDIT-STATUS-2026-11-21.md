@@ -175,3 +175,22 @@ Esta seção substitui as declarações anteriores de que Remotion/CodeQL/npm au
 5. Primeiro relatório da automação semanal ainda está pendente; execução sob demanda foi solicitada, mas não deve ser tratada como relatório entregue até receber o resultado.
 
 **Conclusão atualizada:** Remotion render e validação de dependências do protótipo concluídos; CI principal concluído; CodeQL executado com SARIF enviado, findings pendentes de triagem; revisão visual e auditoria manual completa ainda abertas; documentação permanece em PR draft #211; Hatchable permanece v672 sem alterações.
+
+## Continuação da auditoria — leitura direta dos artefatos e logs (21/11/2026)
+
+### Evidência direta adicional
+- Artifact Remotion 14726347622 baixado e inspecionado: vertical 1080×1920 H.264 30 fps 15,000 s 659.241 bytes; horizontal 1920×1080 H.264 30 fps 15,000 s 690.458 bytes; preview PNG 1080×1920 1.519.427 bytes. A prévia foi aberta e mostra composição demonstrativa com aviso de dados fictícios. Não foi feita revisão quadro a quadro.
+- Artifact npm audit 14726114936 baixado e JSON lido: total 296 dependências (242 prod, 3 dev, 52 optional), vulnerabilidades total=0. Escopo exclusivo do protótipo Remotion.
+- Logs CodeQL confirmam análise security-extended, exportação SARIF e upload processado. O log não contém resumo com quantidade de alertas; a ferramenta GitHub disponível nesta sessão não expõe listagem de Code Scanning Alerts. Resultado não pode ser declarado zero-alertas.
+- Log CodeQL mostrou warning de workflow sem gatilho on.push para branch default e depreciação de github/codeql-action@v3 em dezembro de 2026. Workflow corrigido na branch no commit b918ee50e5b87cb6af3f84ad6df4f5cbf9ba67de: CodeQL action v4, push em main e arquivamento do results/javascript.sarif por 30 dias. Nova execução/artefato ainda não confirmados.
+- Avisos Node 20: checkout@v4, setup-node@v4, upload-artifact@v4 e CodeQL actions emitiram aviso de depreciação do runtime Node 20, forçado para Node 24 no runner. Revisar atualização das actions separadamente com validação de compatibilidade.
+- CI principal 44953749284: build, testes unitários, npm audit moderate, instalação do Chromium e Playwright E2E concluídos com sucesso.
+- Comparação main...branch: 10 commits ahead, 0 behind; main base 0dfff4cb81476e3a47bdaf13322ceaf2609f8201. A branch alterou 5 arquivos nesta comparação. PR #211 sem reviews e sem threads na última consulta.
+- Automação semanal ativa; run_now devolveu prompt inline, mas peek continuou com last_run=null/latest_result=null. A execução imediata não pode ser considerada realizada nem seu relatório entregue. Próxima execução agendada: 2026-11-23 08:30 America/Sao_Paulo.
+
+### Próximas ações prioritárias
+1. Aguardar nova execução CodeQL da branch com artifact SARIF e inspecionar resultados JSON/SARIF, classificar cada finding e separar falsos positivos.
+2. Obter acesso à lista de Code Scanning Alerts ou usar artifact SARIF exportado para contabilizar e revisar todos os findings.
+3. Completar auditoria manual de todas as rotas e arquivos; mapear as 114 ocorrências de export const access contra 127 API routes do dry-run e 136 funções registradas.
+4. Capturar screenshots reais do dashboard em mobile e desktop usando browser com acesso à aplicação; não substituir por preview Remotion nem teste E2E.
+5. Revisar PR #211 e integrar handoff/status à main somente depois de resolver ou documentar findings; não realizar merge/deploy automaticamente.
