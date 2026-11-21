@@ -31,18 +31,44 @@ Este documento padroniza a continuidade entre Codex, ChatGPT, revisores e agente
 - Próxima ação exata:
 - Ações explicitamente NÃO realizadas (ex.: deploy, publicação, envio real):
 
-## Regras de continuidade
-Antes de continuar um trabalho:
-1. Ler `docs/MASTER-CONTEXT.md`, `docs/MASTER-RULES.md`, `docs/HATCHABLE-GITHUB-SYNC-RULE.md` e o documento de auditoria/feature relevante.
-2. Verificar o commit atual e estado real do Hatchable.
-3. Identificar alterações não integradas e PRs abertos.
-4. Revalidar afirmações históricas críticas antes de agir.
-5. Atualizar este handoff ao concluir uma etapa significativa.
+## Continuidade — atualização 2026-11-21
 
-## Registro desta adoção open source
+### Estado verificado nesta sessão
+- Hatchable project ID: `proj_1Xj94QxQmCam`.
+- Deployment live mais recente retornado pelo Hatchable: v672, deploy timestamp 2026-11-17T01:06:26Z, 348 files, 136 functions.
+- Dry-run do estado atual: `ok=true`, 0 errors, 0 warnings; estimativa do próximo deploy v673, 16 public files, 127 API functions, 9 pages, 74 migrations, auth_enabled=false. Dry-run não é deploy nem prova de funcionamento.
+- O arquivo `prototypes/remotion-offer-video/README.md` e `package.json` foram lidos no GitHub. O protótipo Remotion é código isolado, com dependências pinadas, dados sintéticos; não há lockfile, instalação ou render comprovados.
+- A memória existente estava desatualizada: descrevia o protótipo Remotion como ainda não criado, apesar dos arquivos já existirem no repositório. Corrigir essa divergência por este registro.
+- Nenhuma mudança foi feita no Hatchable, banco, filas, ofertas, APIs, canais ou produção.
+
+### Status dos cinco objetivos
+1. **Remotion render/demo — BLOQUEADO:** código existente, mas não há runtime de shell/Node para instalar/renderizar neste ambiente. Nenhum MP4 foi produzido ou validado.
+2. **Auditoria de segurança arquivo a arquivo — PARCIAL:** triagem histórica e relatório de status registrados em `docs/FINAL-AUDIT-STATUS-2026-11-21.md`. Não é auditoria completa; revisão de todas as rotas, SQL, tenant isolation, OAuth/webhooks, uploads, SSRF, secrets, dependências e execução de testes continua pendente.
+3. **Revisão visual real mobile/desktop — BLOQUEADA:** não há ferramenta de browser/screenshot nesta sessão. Nenhuma captura ou inspeção visual foi fabricada.
+4. **Memória operacional — PARCIAL/ATUALIZADA:** este handoff corrige a informação do Remotion, registra estado verificado, pendências e limites.
+5. **Monitoramento recorrente — VERIFICADO:** automação criada, ID `6b02113310108191b0e1428a92cb30f0`, semanal às segundas 08:30 America/Sao_Paulo, iniciando 2026-11-23. Escopo read-only: GitHub/Hatchable, regressões, segurança, comparação de estados, screenshots/render somente se ferramentas disponíveis; não corrigir, publicar, mergear ou deployar automaticamente.
+
+### Regras específicas desta etapa
+- Não declarar render, segurança integral ou visual review concluídos sem artefatos/evidências.
+- Não fazer deploy, merge, publicação, envio real ou alteração de dados operacionais.
+- A PR de documentação/handoff é proposta e precisa de revisão; não foi mergeada.
+
+### Próximas ações
+1. Em ambiente com shell/Node isolado, instalar dependências pinadas do protótipo Remotion, gerar lockfile, revisar licença/risco, renderizar fixture sintética, validar MP4 (codec, duração, dimensões, reprodução, tamanho) e registrar artefato.
+2. Executar auditoria estática completa em todos os arquivos/rotas e revisar achados manualmente; documentar arquivo, linha, evidência, impacto, confiança e recomendação.
+3. Capturar app real em viewport mobile e desktop com browser, revisar acessibilidade/layout e registrar screenshots e achados.
+4. Revisar PR e validar CI; reconciliar GitHub/Hatchable antes de qualquer deploy.
+5. A automação semanal reporta resultados, não altera código nem produção.
+
+## Registro da adoção open source (histórico)
 - 2026-11-21: plano dos cinco projetos integrado ao main no commit `deb355d919751c3803f6290edbf9a8dd464d0762`.
 - Cloudflare Security Audit: skill Radar adaptada criada nesta branch; não executa auditoria nem instala dependências.
 - ClaudeMem: ainda não instalado. A memória versionada acima é o fluxo de fallback seguro; avaliar ClaudeMem como ferramenta externa de agente antes de adoção.
 - Design: `.codex/skills/ui-ux-pro-max/` já existe no main e foi verificada; não duplicar. A integração de design deve consultar essa skill e avaliar Impeccable quando repositório/licença confirmados.
 - FreeLLM API: repo exato do vídeo não identificado com confiança; não instalar homônimo. Nenhum provider atual alterado.
-- Remotion: protótipo/worker ainda não criado; runtime Hatchable não deve receber renderização pesada sem prova de compatibilidade. Próxima etapa é protótipo externo isolado e synthetic fixtures.
+- Remotion: protótipo isolado criado em PR #208; código não equivale a instalação ou render. Runtime Hatchable não deve receber renderização pesada sem prova de compatibilidade. Próxima etapa é protótipo externo isolado e synthetic fixtures.
+
+## Regra final
+**Não alucinar. Não presumir. Não apagar. Não sobrescrever cegamente. Não quebrar. Não esquecer.**
+
+Pensar antes de alterar; prever antes de executar; preservar antes de otimizar; testar antes de aprovar; comparar antes de sincronizar; validar antes de implantar; registrar antes de encerrar.
