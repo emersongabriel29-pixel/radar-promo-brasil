@@ -99,3 +99,9 @@ Foi criado em branch separada `codex/remotion-offer-video-prototype-20261121` o 
 - Taste Skill: https://github.com/Leonxlnx/taste-skill — MIT. Skill Radar adaptada com design-review para dashboard, sem importar hooks/scripts executáveis.
 - FreeLLMAPI: https://github.com/tashfeenahmed/freellmapi — MIT; self-hosted Node/Docker + dashboard/SQLite, mas README declara personal experimentation/learning, não produção. Não usar como provider de produção nem expor endpoint sem revisão de ToS/security. Avaliar apenas em ambiente isolado de laboratório, com dados sintéticos.
 - Remotion: release upstream consultada v4.0.545; protótipo isolado foi criado e mergeado (commit 3290121...). Ainda não instalado/renderizado.
+
+
+## FreeLLMAPI — identificação e decisão (2026-11-21)
+
+Repo identificado como https://github.com/tashfeenahmed/freellmapi, licença MIT, self-hosted Node/Docker com dashboard, SQLite e provider key management. O README explicitamente declara que o projeto é para personal experimentation/learning, não production, e que free tiers não são uma base de inferência estável. Segurança de armazenamento de keys inclui encryption key; requer infraestrutura e revisão dos termos de cada provider. **Decisão: não conectar ao Radar de produção.** Pode ser avaliado num lab isolado para uso pessoal com dados sintéticos, sem publicar, processar dados reais nem confiar como fallback operacional. Não foi instalado.
+
