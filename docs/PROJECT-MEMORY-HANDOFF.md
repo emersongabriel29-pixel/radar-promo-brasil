@@ -48,6 +48,12 @@ Este documento padroniza a continuidade entre Codex, ChatGPT, revisores e agente
 4. **Memória operacional — PARCIAL/ATUALIZADA:** este handoff corrige a informação do Remotion, registra estado verificado, pendências e limites.
 5. **Monitoramento recorrente — VERIFICADO:** automação criada, ID `6b02113310108191b0e1428a92cb30f0`, semanal às segundas 08:30 America/Sao_Paulo, iniciando 2026-11-23. Escopo read-only: GitHub/Hatchable, regressões, segurança, comparação de estados, screenshots/render somente se ferramentas disponíveis; não corrigir, publicar, mergear ou deployar automaticamente.
 
+### Continuação — workflows de CI propostos nesta branch
+- `.github/workflows/radar-remotion-render.yml`: renderiza fixtures sintéticas vertical/horizontal e preview still em GitHub Actions e arquiva artefatos por 7 dias. Criado, mas ainda sem run verificado.
+- `.github/workflows/radar-dependency-audit.yml`: executa `npm audit` e arquiva JSON; relatório precisa de revisão. Criado, sem run verificado.
+- `.github/workflows/radar-codeql.yml`: CodeQL security-extended para JS/TS. Criado, sem run verificado.
+- Esses workflows não fazem deploy, publicação nem integração com Hatchable; não são evidência de execução até os resultados do Actions serem verificados.
+
 ### Regras específicas desta etapa
 - Não declarar render, segurança integral ou visual review concluídos sem artefatos/evidências.
 - Não fazer deploy, merge, publicação, envio real ou alteração de dados operacionais.
