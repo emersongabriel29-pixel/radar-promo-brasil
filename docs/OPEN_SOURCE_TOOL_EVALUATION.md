@@ -1,54 +1,77 @@
-# Avaliação de ferramentas open source para o Radar Promo Brasil
+# Avaliação e adoção dos 5 projetos open source selecionados
 
 Data: 2026-11-21
-Status: avaliação inicial; nenhum pacote externo foi instalado nem executado.
+Escopo: Cloudflare Security Audit, ClaudeMem, Design Skills (Impeccable/TasteSkill), FreeLLM API e Remotion.
+Status: avaliação e plano; não foram instalados executáveis, dependências ou serviços, nem alterada a produção.
 
-## Regras
+## Regras obrigatórias
+- Não alterar, excluir ou substituir funcionalidades existentes.
 - Não instalar ferramentas indiscriminadamente no runtime Hatchable.
-- O Radar roda em ambiente gerenciado: ferramentas locais de desktop, TV, voz, Docker ou renderização que exijam binários/daemon/child_process não são compatíveis sem arquitetura externa aprovada.
-- Não publicar, enviar mensagens reais, consumir cotas pagas, alterar fila ou dados de produção durante avaliação.
-- Verificar repositório oficial, licença, dependências, permissões, manutenção, requisitos e threat model antes de integrar.
-- Integrações devem ser isoladas, opt-in, documentadas, com feature flag e testes; preservar APIs, filas e comportamento existentes.
-- Toda mudança deve seguir a sincronização GitHub/Hatchable e passar por auditoria, testes e dry-run antes de deploy.
+- Não publicar ofertas, enviar mensagens reais, modificar filas ou dados de produção durante testes.
+- Confirmar repositório oficial, licença, versão/commit, dependências, permissões, manutenção e threat model antes de adotar.
+- Integrações de runtime isoladas, opt-in, com feature flag, fallback e rollback.
+- Testes com dados sintéticos; segredos e dados pessoais nunca enviados a provedores não aprovados.
+- Toda alteração documentada e sincronizada GitHub/Hatchable; deploy somente depois de auditoria e autorização.
 
-## Matriz inicial
+## Matriz de adoção
 
-| Ferramenta do vídeo | Uso possível | Decisão inicial |
-|---|---|---|
-| Rhea / Craft Anything | Engenharia reversa/reconstrução de software | Não integrar ao runtime. Só usar em análise de código próprio e com autorização/licença. |
-| Voice Studio / VoiceBox | Voz local, TTS, clonagem e transcrição | Não integrar ao Hatchable. Requer avaliar execução local/serviço externo, GPU, consentimento e direitos de voz. |
-| Clean Your TV / TV Detox | Debloat Android TV/Google TV | Sem relação com o produto Radar. Não instalar. |
-| FreeLLM API | Gateway a provedores de LLM com quotas gratuitas | Investigar como opção de provider isolado. Não enviar dados pessoais/segredos/ofertas privadas a provedores não aprovados. Verificar disponibilidade, limites, licença e segurança antes de teste. |
-| Hallmark / Impeccable / TasteSkill | Skills de design para agentes de programação | Avaliar como ferramentas de desenvolvimento; não são dependências do aplicativo. Aplicar somente em branch/PR e preservar UI/UX existente. |
-| Remotion | Renderização programática de vídeo | Possível serviço de renderização externo/worker isolado. Não executar dentro do runtime Hatchable sem validação de compatibilidade, custo, limites e arquitetura. |
-| OpenShot / ReScript | Edição de vídeo local/transcrição | Não integrar diretamente ao runtime. Requer binários/ambiente de processamento e análise de licenças. |
-| ClaudeMem / AI Memory | Memória de sessões de agente | Priorizar avaliação de memória de projeto baseada em documentação versionada, não coleta automática irrestrita. Verificar armazenamento, retenção, dados sensíveis, compatibilidade e licença. |
-| Fluid Voice / Hex | Ditado local | Ferramenta de workstation, não runtime do Radar. Não integrar. |
-| Cloudflare Security Audit Skill | Auditoria de segurança assistida por agente | Prioridade de avaliação para o fluxo de desenvolvimento; requer instalar o skill completo no ambiente do agente, verificar todos os arquivos e seguir sandbox/execução segura. Não é uma dependência da aplicação. |
+| Projeto | Aplicação no Radar | Plano | Compatibilidade Hatchable |
+|---|---|---|---|
+| Cloudflare Security Audit Skill | Auditoria de segurança no ciclo de desenvolvimento | Revisar skill e arquivos auxiliares completos; fixar versão; usar ambiente de agente separado, inicialmente somente leitura e sem execução do alvo. Criar checklist recorrente e registrar findings com evidências. | Não é dependência de runtime; usar no ambiente de desenvolvimento. |
+| ClaudeMem | Memória persistente para agentes que trabalham no Radar | Avaliar armazenamento, retenção, privacidade, dependências e compatibilidade. Até aprovação, usar memória versionada do projeto: estado atual, decisões, auditorias, changelog e handoff. Não duplicar nem contradizer docs existentes. | Não instalar no servidor Hatchable. |
+| Design Skills (Impeccable / TasteSkill) | UX/UI do painel e interfaces | Confirmar repositórios oficiais exatos antes de importar. Revisar licença e conteúdo. Aplicar em branch isolada, primeiro em uma tela piloto, comparando screenshots e preservando navegação, responsividade e comportamento. | Skill de desenvolvimento, não runtime. |
+| FreeLLM API | Provider/gateway experimental de modelos | O nome do repositório citado não foi identificado com confiança. Não instalar clone homônimo. Confirmar URL exata; revisar endpoints, quotas, logging, autenticação e tratamento de dados. Testar com dados sintéticos atrás de feature flag; Gemini e providers atuais permanecem intactos. | Somente se API HTTP compatível e segura; validar limites/timeouts. |
+| Remotion | Renderização de vídeos de ofertas | Projetar worker isolado; validar licença, requisitos Node/Chromium/FFmpeg, memória, armazenamento, concorrência e custos. Protótipo offline com ofertas sintéticas, templates e saída vertical/horizontal. Só conectar à fila depois de testes e aprovação. | Renderização não deve ocorrer no runtime Hatchable atual sem comprovação de compatibilidade. |
 
-## Prioridades recomendadas
+## Implementação em fases
 
-1. **Segurança do código:** usar a skill oficial Cloudflare Security Audit em ambiente de agente de desenvolvimento, após conferir todo o conteúdo, arquivos auxiliares e licença. A auditoria deve ser somente leitura inicialmente, sem executar código do alvo nem testar endpoints de produção.
-2. **Memória de projeto:** manter decisões, estado, auditorias e próximos passos em arquivos versionados existentes; avaliar ferramenta externa apenas após análise de privacidade e risco de duplicar/contradizer a documentação.
-3. **Design:** avaliar skills no ambiente Codex/Cursor/Claude em uma branch separada; nenhum pacote de runtime.
-4. **Vídeo:** elaborar arquitetura de worker isolado para Remotion apenas se houver necessidade confirmada de vídeo automático, limites e armazenamento. O app atual gera roteiros/arte, mas não deve passar a renderizar vídeos sem testes e orçamento.
-5. **LLM gateway:** investigar FreeLLM API como provider experimental com feature flag e dados sintéticos. Não substituir Gemini/fallback atual nem afetar classificação ou publicação automática.
+### Fase 0 — Identidade e segurança dos repositórios
+- [ ] Confirmar URLs oficiais dos cinco projetos (incluindo qual FreeLLM API, Impeccable e TasteSkill são os citados).
+- [ ] Revisar licença, commit/tag, releases e arquivos de instalação.
+- [ ] Registrar dependências, permissões, chamadas externas, riscos de supply-chain e privacidade.
+- [ ] Não executar scripts de instalação de terceiros no ambiente de produção.
 
-## Checklist antes de qualquer integração
-- [ ] URL oficial e proprietário verificados.
-- [ ] Licença compatível verificada.
-- [ ] Commit/tag fixado (não instalar latest sem pin).
-- [ ] Dependências, scripts e arquivos de instalação revisados.
-- [ ] Permissões e chamadas de rede documentadas.
-- [ ] Risco de prompt injection e exfiltração avaliado.
-- [ ] Testes em branch isolada e dados sintéticos.
-- [ ] Feature flag / fallback / rollback documentados.
-- [ ] Nenhuma alteração de fila ou publicação real.
-- [ ] Documentação atualizada e evidência dos testes anexada.
+### Fase 1 — Segurança
+- [ ] Integrar Cloudflare Security Audit ao fluxo de auditoria de desenvolvimento, sem tocar produção.
+- [ ] Produzir checklist adaptado às APIs, autenticação, secrets, SSRF, webhooks, filas, uploads, acesso a dados e controles de publicação do Radar.
+- [ ] Findings precisam apontar arquivo/linha, evidência, severidade, risco e correção sugerida.
+- [ ] Confirmar falso positivos e regressões antes de qualquer correção.
 
-## Fonte inicial
+### Fase 2 — Memória
+- [ ] Auditar ClaudeMem e compatibilidade com ambiente de agente.
+- [ ] Manter como fonte da verdade a documentação versionada do Radar.
+- [ ] Criar processo de handoff que atualize estado, decisões, riscos, commits, deployments e pendências.
+- [ ] Não armazenar secrets, tokens, dados pessoais ou conteúdo desnecessário.
+- [ ] Se ClaudeMem não for seguro/compatível, adotar o fluxo versionado sem instalar.
+
+### Fase 3 — Design
+- [ ] Identificar exatamente as skills do vídeo.
+- [ ] Auditar conteúdo e licença; importar somente arquivos necessários e revisados.
+- [ ] Selecionar tela piloto sem alterar a interface live.
+- [ ] Avaliar acessibilidade, contraste, mobile, performance e consistência.
+- [ ] Comparar visual e funcionalmente antes de abrir PR.
+
+### Fase 4 — IA alternativa
+- [ ] Confirmar projeto FreeLLM API correto.
+- [ ] Testar disponibilidade, limite, privacidade, modelo, rate-limit e timeout.
+- [ ] Criar adapter isolado e feature flag desativada por padrão.
+- [ ] Testar classificação, texto e fallback com dados sintéticos.
+- [ ] Não mudar Gemini nem automatizações/publicações existentes.
+- [ ] Nunca enviar tokens/segredos, dados pessoais, dados privados de afiliados ou informação confidencial para endpoints não aprovados.
+
+### Fase 5 — Vídeos
+- [ ] Prototipar Remotion em ambiente externo/isolado, sem conexão com produção.
+- [ ] Criar template de vídeo de oferta com dados sintéticos, branding, preço, economia, CTA e formatos.
+- [ ] Medir render, memória, tamanho, armazenamento e falhas.
+- [ ] Definir serviço/worker, autenticação, limite de jobs, retries e limpeza.
+- [ ] Só integrar a geração de vídeos ao Radar após testes, orçamento/limites e aprovação explícita.
+
+## Critérios de conclusão
+Cada integração só será considerada concluída com: origem oficial verificada; licença revisada; commit fixado; documentação; testes reproduzíveis; evidências; feature flag/fallback/rollback quando aplicável; auditoria de regressão; PR revisado. Nenhum item será descrito como instalado ou funcional antes de comprovação.
+
+## Links conhecidos
 - Cloudflare Security Audit Skill: https://github.com/cloudflare/security-audit-skill
+- ClaudeMem: https://github.com/thedotmack/claude-mem
 - Remotion: https://github.com/remotion-dev/remotion
-- Claude Mem: https://github.com/thedotmack/claude-mem
 
-Os nomes e números de estrelas mencionados no vídeo não foram todos confirmados. Esta matriz não afirma que os projetos estejam instalados, aprovados ou executados.
+Os repositórios exatos de FreeLLM API e das skills de design não foram confirmados; não usar repositórios homônimos sem validação.
