@@ -27,7 +27,7 @@ const marketplace=host=>{
 export default async function handler(req,res){
   try{
     const auth=String(req.headers.authorization||'');
-    const match=auth.match(/^Bearer\\s+(rpb_ext_[A-Za-z0-9_-]{30,100})$/);
+    const match=auth.match(/^Bearer\s+(rpb_ext_[A-Za-z0-9_-]{30,100})$/);
     if(!match)return res.status(401).json({ok:false,error:'Informe o token Android do Radar uma única vez nesta sessão.'});
     const tokenHash=await hash(match[1]);
     const token=(await db.query("SELECT id,account_id,label FROM extension_api_tokens WHERE token_hash=$1 AND revoked_at IS NULL LIMIT 1",[tokenHash])).rows[0];
@@ -46,7 +46,7 @@ export default async function handler(req,res){
       if(final.protocol!=='https:'||!hostAllowed(final.hostname))return {error:'REDIRECT_FORA_DO_MARKETPLACE'};
       const meta=await page.evaluate(()=>{
         const get=(s,a='content')=>document.querySelector(s)?.getAttribute(a)||'';
-        const clean=v=>String(v||'').replace(/\\s+/g,' ').trim();
+        const clean=v=>String(v||'').replace(/\s+/g,' ').trim();
         const jsonProducts=[];
         const walk=v=>{
           if(!v||jsonProducts.length>20)return;
