@@ -75,3 +75,14 @@ Cada integração só será considerada concluída com: origem oficial verificad
 - Remotion: https://github.com/remotion-dev/remotion
 
 Os repositórios exatos de FreeLLM API e das skills de design não foram confirmados; não usar repositórios homônimos sem validação.
+
+
+## Execução inicial (2026-11-21)
+
+- Criada skill adaptada `.codex/skills/radar-security-audit/SKILL.md` com escopo Radar, metodologia source-first, evidências, validação sintética e proibições de ações reais.
+- Criado `docs/PROJECT-MEMORY-HANDOFF.md` como protocolo versionado de continuidade; ClaudeMem não instalado.
+- Confirmada a skill existente `.codex/skills/ui-ux-pro-max/`; evitar duplicidade. Repositórios exatos Impeccable/TasteSkill ainda precisam ser identificados.
+- Criado `docs/OPEN_SOURCE_ADOPTION_IMPLEMENTATION.md` para estado, critérios e próximos passos.
+- FreeLLM API não identificada com confiança. Não instalar clones homônimos.
+- Remotion permanece fora do runtime Hatchable; protótipo de worker exige ambiente isolado e avaliação de licença/infra.
+- Nenhuma dependência, arquivo de aplicação, banco, fila, canal, segredo ou deployment foi alterado.
