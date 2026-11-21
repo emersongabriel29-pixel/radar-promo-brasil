@@ -34,3 +34,13 @@ Data: 2026-11-21. Branch de implementação; alterações ainda não integradas/
 - UI UX Pro Max: existing local skill; provenance tracked in `.codex/skills/ui-ux-pro-max/provenance.json`.
 
 FreeLLM API, Impeccable and TasteSkill exact upstream repos remain unconfirmed.
+
+
+## Auditoria source-only inicial (2026-11-21)
+
+- Hatchable manifest listou 136 funções; 127 rotas API e 9 páginas internas.
+- Busca no código Hatchable encontrou declaração `export const access` em 127/127 arquivos API (a contagem inicial de 114 foi causada por glob que não cobria arquivos no root `api/`; a busca ampla foi refeita e confirmou 127). Isso confirma declaração de tier, não valida autorização de cada handler.
+- Busca por chamadas `eval(`, `new Function` e `child_process` em `api/**/*.js`: nenhum match no scan realizado.
+- Foram localizados fetches com URLs fornecidas/derivadas; os casos amostrados `api/ai/media.js`, `api/ai/vision-review.js` e `api/ai/video-ia.js` implementam validação de HTTPS/domínio e redirecionamentos manuais. `api/clone/inspect.js` valida HTTPS e allowlist, e no trecho analisado apenas reconhece/inspeciona o link; não faz fetch do link submetido.
+- **Não é uma auditoria completa.** Sem execução de código, testes, revisão de todas as 127 rotas, DB/RLS, secrets, callbacks, jobs e frontend. Nenhuma vulnerabilidade confirmada nesta triagem. Pendências permanecem para auditoria completa e validação segura.
+- Nenhum dado de produção foi alterado; nenhum endpoint live foi testado.
