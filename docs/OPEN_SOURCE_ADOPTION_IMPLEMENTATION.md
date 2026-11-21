@@ -10,7 +10,7 @@ Data: 2026-11-21. Branch de implementação; alterações ainda não integradas/
 | ClaudeMem | Implementado handoff/memória versionada em `docs/PROJECT-MEMORY-HANDOFF.md`. | Avaliar ClaudeMem upstream, armazenamento, privacidade, licença e dependências; não duplicar docs. | Memória de projeto pronta; ClaudeMem não instalado |
 | Impeccable/TasteSkill | Reaproveitar UI UX Pro Max já existente em `.codex/skills/ui-ux-pro-max/`. | Confirmar repos exatos de Impeccable/TasteSkill; testar em tela protótipo e comparar acessibilidade/mobile. | Skill existente; ferramentas extras pendentes |
 | FreeLLM API | Nenhuma instalação; pesquisas não identificaram com segurança o repo citado. | Solicitar/identificar URL exata; auditar API, licença, quotas, privacy e OpenAI-compatibilidade. | Bloqueado por identidade |
-| Remotion | Plano técnico isolado; não adicionada dependência nem worker. | Protótipo externo com dados sintéticos, template vertical/horizontal, medir runtime/memória e validar licença. | Não implementado; compatibilidade/infra pendentes |
+| Remotion | Protótipo isolado em `prototypes/remotion-offer-video/`: composition vertical/horizontal, 15s/30fps, dados sintéticos, preço/desconto/economia/cupom/CTA. Remotion/CLI pin 4.0.545. | Revisar licença/uso, gerar lockfile, instalar e renderizar em worker isolado; medir recursos e validar layout. | Código protótipo versionado; não instalado, não renderizado e não integrado |
 
 ## Segurança e compatibilidade
 - Hatchable runtime possui restrições de build/dependências; não adicionar React/Remotion/Chromium/FFmpeg ao runtime.

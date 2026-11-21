@@ -86,3 +86,8 @@ Os repositórios exatos de FreeLLM API e das skills de design não foram confirm
 - FreeLLM API não identificada com confiança. Não instalar clones homônimos.
 - Remotion permanece fora do runtime Hatchable; protótipo de worker exige ambiente isolado e avaliação de licença/infra.
 - Nenhuma dependência, arquivo de aplicação, banco, fila, canal, segredo ou deployment foi alterado.
+
+
+## Protótipo Remotion (2026-11-21)
+
+Foi criado em branch separada `codex/remotion-offer-video-prototype-20261121` o scaffold isolado `prototypes/remotion-offer-video/`: package com Remotion 4.0.545 pinado, composição vertical/horizontal de 15s/30fps, título, loja fictícia, preço antigo/atual, desconto, economia, cupom e CTA. Não foi instalado, não possui lockfile, não foi renderizado/testado e não foi integrado à aplicação/Hatchable. Requer revisão de licença/termos, instalação isolada, lockfile, render de fixture e medição antes de qualquer worker ou integração.
