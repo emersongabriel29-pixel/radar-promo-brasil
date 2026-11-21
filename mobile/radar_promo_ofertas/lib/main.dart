@@ -43,9 +43,29 @@ class RadarPromoApp extends StatelessWidget {
       darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF101B1B),
         colorScheme: ColorScheme.fromSeed(
           seedColor: green,
           brightness: Brightness.dark,
+          surface: const Color(0xFF1B2929),
+          onSurface: const Color(0xFFF4F8F4),
+          onSurfaceVariant: const Color(0xFFD1DDD4),
+        ),
+        cardTheme: CardThemeData(
+          color: const Color(0xFF223333),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF101B1B),
+          foregroundColor: Color(0xFFF4F8F4),
+          elevation: 0,
+        ),
+        inputDecorationTheme: const InputDecorationTheme(
+          labelStyle: TextStyle(color: Color(0xFFD1DDD4)),
+          helperStyle: TextStyle(color: Color(0xFFD1DDD4)),
         ),
       ),
       title: 'Radar Promo Ofertas',
