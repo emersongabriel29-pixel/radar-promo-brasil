@@ -84,15 +84,17 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
     final value = await showDialog<double>(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         title: Text('Preço desejado: $term'),
         content: TextFormField(
           initialValue: inputValue,
-          autofocus: true,
+          autofocus: false,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           onChanged: (value) => inputValue = value,
           decoration: const InputDecoration(
             labelText: 'Preço máximo (R\\$)',
             helperText: 'Alerta local ao atualizar ofertas; sem monitoramento em segundo plano.',
+            helperMaxLines: 3,
           ),
         ),
         actions: [
