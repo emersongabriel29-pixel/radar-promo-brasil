@@ -34,10 +34,14 @@ jobs:
       - uses: github/codeql-action/analyze@v4
         with:
           category: "/language:javascript-typescript"
+      - name: Stage SARIF for artifact upload
+        run: |
+          mkdir -p codeql-results
+          cp ../results/javascript.sarif codeql-results/javascript.sarif
       - name: Archive SARIF for manual triage
         uses: actions/upload-artifact@v4
         with:
           name: radar-codeql-sarif-${{ github.run_id }}
-          path: ../results/javascript.sarif
+          path: codeql-results/javascript.sarif
           if-no-files-found: error
           retention-days: 30
