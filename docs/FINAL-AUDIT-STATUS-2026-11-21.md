@@ -115,3 +115,16 @@ A solicitação só será **CONCLUÍDA** quando:
 5. Monitoramento estiver ativo e seu primeiro relatório for recebido/revisado.
 
 Estado atual: **PARCIALMENTE CONCLUÍDO / 3 itens bloqueados ou parciais, 2 concluídos (handoff proposto e automação criada)**.
+
+
+## Continuação — CI de execução e análise adicionados (2026-11-21)
+
+Para reduzir o bloqueio de ausência de runtime local, foram adicionados workflows isolados à branch da PR. **Ainda não foram executados nem validados pelo GitHub Actions.**
+
+- `.github/workflows/radar-remotion-render.yml`: em PR com mudanças no protótipo ou por execução manual, instala Node 20 e dependências pinadas, renderiza fixture sintética vertical e horizontal e uma imagem still, verifica que arquivos existem e publica artifact por 7 dias. Não publica ofertas nem conecta ao Radar/Hatchable.
+- `.github/workflows/radar-dependency-audit.yml`: executa `npm audit --json` e arquiva o relatório; o comando não falha automaticamente por vulnerabilidade, para permitir triagem, mas o resultado precisa ser revisado.
+- `.github/workflows/radar-codeql.yml`: análise CodeQL `security-extended` para JavaScript/TypeScript, acionada manualmente e em PRs que toquem código/arquivo do workflow.
+
+Esses workflows aumentam a capacidade de executar render e análise no CI, mas **não são evidência de sucesso até que os runs terminem e os artifacts/findings sejam examinados**. Dependências instaladas no CI e lockfile ainda precisam ser reconciliados e revisados; não foi adicionado lockfile neste commit.
+
+A revisão visual do app real continua bloqueada: o workflow Remotion captura somente o frame do protótipo sintético, não screenshots do dashboard Radar.
