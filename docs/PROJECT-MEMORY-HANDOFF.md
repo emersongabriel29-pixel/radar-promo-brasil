@@ -78,3 +78,14 @@ Este documento padroniza a continuidade entre Codex, ChatGPT, revisores e agente
 **Não alucinar. Não presumir. Não apagar. Não sobrescrever cegamente. Não quebrar. Não esquecer.**
 
 Pensar antes de alterar; prever antes de executar; preservar antes de otimizar; testar antes de aprovar; comparar antes de sincronizar; validar antes de implantar; registrar antes de encerrar.
+
+
+## Atualização de evidências — 2026-11-21 (após execução CI)
+- Remotion synthetic render concluído no GitHub Actions run 44953749308. Artifact 14726347622 inspecionado: MP4 vertical 1080×1920 H.264/30fps/15s; horizontal 1920×1080 H.264/30fps/15s; still PNG 1080×1920. Fixture contém dados fictícios; não é vídeo de oferta real.
+- npm audit do protótipo isolado concluído: 296 dependências, zero vulnerabilidades reportadas; isso não cobre dependências do Radar inteiro.
+- CodeQL security-extended JavaScript/TypeScript run 44953749197 concluiu e upload SARIF foi processado. Lista/quantidade dos alertas ainda não foi consultada; não afirmar zero findings.
+- CI principal run 44953749284 passou build, unit tests, npm audit moderate e Playwright E2E.
+- Hatchable revalidado: v672 live, 348 arquivos, 136 funções. Dry-run sem erros/warnings; estimativa 127 API functions + 9 pages, 74 migrations. Sem deploy ou alteração no Hatchable.
+- Documentação de status recebeu retificação e evidências nesta branch; commit mais recente da retificação de status: 127d7940e90e03963149a55fda6aacc3d9471828. Este handoff ainda precisa de atualização/integrar via PR #211.
+- Pendências: triagem dos alertas CodeQL; auditoria manual completa e reconciliação de contagens de rotas; screenshots reais mobile/desktop (browser externo indisponível); integração da documentação na main após revisão; receber/revisar o relatório da execução imediata do monitoramento.
+- A automação semanal permanece ativa para segunda-feira 08:30 America/Sao_Paulo. Uma execução sob demanda foi solicitada em 21/11; não presumir relatório entregue até resultado disponível.
