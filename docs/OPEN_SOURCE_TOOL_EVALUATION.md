@@ -91,3 +91,11 @@ Os repositórios exatos de FreeLLM API e das skills de design não foram confirm
 ## Protótipo Remotion (2026-11-21)
 
 Foi criado em branch separada `codex/remotion-offer-video-prototype-20261121` o scaffold isolado `prototypes/remotion-offer-video/`: package com Remotion 4.0.545 pinado, composição vertical/horizontal de 15s/30fps, título, loja fictícia, preço antigo/atual, desconto, economia, cupom e CTA. Não foi instalado, não possui lockfile, não foi renderizado/testado e não foi integrado à aplicação/Hatchable. Requer revisão de licença/termos, instalação isolada, lockfile, render de fixture e medição antes de qualquer worker ou integração.
+
+
+## Repositórios oficiais identificados (2026-11-21)
+
+- Impeccable: https://github.com/pbakaus/impeccable — Apache-2.0. Não importar CLI/scripts de instalação automaticamente; skill Radar adaptada prioriza UI UX Pro Max já instalada.
+- Taste Skill: https://github.com/Leonxlnx/taste-skill — MIT. Skill Radar adaptada com design-review para dashboard, sem importar hooks/scripts executáveis.
+- FreeLLMAPI: https://github.com/tashfeenahmed/freellmapi — MIT; self-hosted Node/Docker + dashboard/SQLite, mas README declara personal experimentation/learning, não produção. Não usar como provider de produção nem expor endpoint sem revisão de ToS/security. Avaliar apenas em ambiente isolado de laboratório, com dados sintéticos.
+- Remotion: release upstream consultada v4.0.545; protótipo isolado foi criado e mergeado (commit 3290121...). Ainda não instalado/renderizado.
