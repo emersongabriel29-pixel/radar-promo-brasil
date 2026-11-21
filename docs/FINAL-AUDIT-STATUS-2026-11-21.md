@@ -128,3 +128,50 @@ Para reduzir o bloqueio de ausência de runtime local, foram adicionados workflo
 Esses workflows aumentam a capacidade de executar render e análise no CI, mas **não são evidência de sucesso até que os runs terminem e os artifacts/findings sejam examinados**. Dependências instaladas no CI e lockfile ainda precisam ser reconciliados e revisados; não foi adicionado lockfile neste commit.
 
 A revisão visual do app real continua bloqueada: o workflow Remotion captura somente o frame do protótipo sintético, não screenshots do dashboard Radar.
+
+
+## Retificação com evidências dos workflows — 2026-11-21
+
+Esta seção substitui as declarações anteriores de que Remotion/CodeQL/npm audit ainda não tinham sido executados. O texto anterior é histórico do momento em que foi escrito.
+
+### Remotion — EXECUTADO E ARTEFATOS INSPECIONADOS
+- Workflow run: https://github.com/emersongabriel29-pixel/radar-promo-brasil/actions/runs/44953749308 — job `render-synthetic-demo` concluído com sucesso; instalação, render vertical, render horizontal, still, validação de arquivos e upload concluídos.
+- Artifact `radar-remotion-synthetic-demo`, ID `14726347622`, 2.797.702 bytes; ZIP baixado e inspecionado.
+- `radar-offer-vertical.mp4`: H.264, 1080×1920, 30 fps, 15,000 s, 659.241 bytes.
+- `radar-offer-horizontal.mp4`: H.264, 1920×1080, 30 fps, 15,000 s, 690.458 bytes.
+- `preview.png`: PNG 1080×1920, 1.519.427 bytes; imagem inspecionada. Conteúdo usa produto/loja de demonstração e declara dados fictícios.
+- Os arquivos têm estrutura/metadata legíveis por ffprobe; não foi feita revisão humana quadro a quadro nem validação de publicação/uso comercial. São demos sintéticas, não criativos de ofertas reais.
+
+### Dependências — AUDIT CONCLUÍDO PARA O PROTÓTIPO
+- Workflow run: https://github.com/emersongabriel29-pixel/radar-promo-brasil/actions/runs/44953749290 — job concluído com sucesso.
+- Artifact `radar-remotion-npm-audit`, ID `14726114936`, contém `npm-audit.json`.
+- Resultado: 296 dependências totais (242 prod, 3 dev, 52 optional); 0 vulnerabilidades reportadas (0 info/low/moderate/high/critical).
+- Escopo é somente `prototypes/remotion-offer-video` e sua árvore instalada no CI. Não é auditoria de dependências do Radar inteiro.
+- O workflow usa `npm audit --json || true`; portanto, status verde sozinho não é gate de segurança. O JSON foi aberto e verificado.
+
+### CodeQL — ANÁLISE EXECUTADA; ALERT COUNT NÃO CONFIRMADO NESTA INTERFACE
+- Workflow run: https://github.com/emersongabriel29-pixel/radar-promo-brasil/actions/runs/44953749197 — análise JavaScript/TypeScript security-extended concluída e resultados SARIF enviados ao GitHub com confirmação de upload/processamento.
+- Logs confirmam extração, interpretação de queries, exportação SARIF e upload concluído. O log consultável nesta sessão não expõe a lista/count final de alertas; portanto, não declarar “zero findings”. É necessário abrir Code scanning > Alerts no GitHub e revisar cada alerta com caminho/linha/fluxo.
+- Log do CodeQL registra aviso de depreciação de Node 20 em actions usadas; atualizar actions/runtime em tarefa própria após avaliar compatibilidade.
+
+### CI principal — TESTES CONCLUÍDOS
+- Workflow run: https://github.com/emersongabriel29-pixel/radar-promo-brasil/actions/runs/44953749284 — job `validate` concluído com sucesso.
+- Passaram: `npm ci`, `npm run build`, `npm test`, `npm audit --audit-level=moderate`, instalação do Chromium e `npm run test:e2e` (Playwright).
+- O upload de artifact foi ignorado pelo workflow (step skipped); não interpretar como falha dos testes.
+
+### Estado Hatchable — REVALIDADO
+- Deployment live continua v672, implantado em 2026-11-17T01:06:26Z, 348 arquivos e 136 funções registradas.
+- Dry-run: `ok=true`, zero erros e zero warnings; estimativa de 16 public files, 127 API functions, 9 pages, 74 migrations, auth_enabled=false, próxima versão 673. Dry-run não é deploy nem prova de equivalência com main.
+- Inventário de funções: 136 entradas. A diferença entre 136 funções registradas e 127 API functions + 9 pages do dry-run precisa ser conciliada por inventário de arquivos/rotas; não é evidência automática de defeito.
+
+### Monitoramento — EXECUÇÃO IMEDIATA SOLICITADA E INICIADA
+- Automação `6b02113310108191b0e1428a92cb30f0` foi acionada uma vez sob demanda nesta conversa; o executor devolveu prompt inline para executar agora. O primeiro relatório completo ainda depende de concluir a auditoria read-only; isso não altera o agendamento semanal de segunda-feira às 08:30 America/Sao_Paulo.
+
+### Pendências reais após esta retificação
+1. Abrir e revisar alertas CodeQL/SARIF (o upload concluiu, mas a contagem e triagem dos alertas não foram recuperadas pela interface disponível).
+2. Auditoria manual arquivo a arquivo e reconciliação das 114 declarações `export const access` encontradas no scan anterior contra 127 rotas API estimadas no dry-run e 136 funções registradas.
+3. Capturar screenshots reais do dashboard em mobile e desktop; não há ferramenta de browser/screenshot externo disponível nesta sessão. Playwright E2E verde não substitui screenshots reais nem revisão visual.
+4. Integrar os documentos de handoff/status à `main` por PR #211 após revisão. Não houve merge nem deploy.
+5. Primeiro relatório da automação semanal ainda está pendente; execução sob demanda foi solicitada, mas não deve ser tratada como relatório entregue até receber o resultado.
+
+**Conclusão atualizada:** Remotion render e validação de dependências do protótipo concluídos; CI principal concluído; CodeQL executado com SARIF enviado, findings pendentes de triagem; revisão visual e auditoria manual completa ainda abertas; documentação permanece em PR draft #211; Hatchable permanece v672 sem alterações.
