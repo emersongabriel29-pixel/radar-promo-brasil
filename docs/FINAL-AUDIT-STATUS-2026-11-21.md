@@ -56,6 +56,17 @@ Revisar todos os arquivos e rotas com evidência e classificação:
 - migrations, backup/restore e integridade.
 Cada finding deve incluir caminho, linha, evidência, impacto, confiança, classificação CRITICAL/HIGH/MEDIUM/LOW/INFO, recomendação e teste de confirmação. Separar confirmado de hipótese. Sem pentest/probes live.
 
+
+### Scans read-only adicionais executados nesta sessão (Hatchable)
+- Inventário atual de funções: 136 (tool response), com rotas API e páginas; não confundir com o dry-run que estimou 127 API functions e 9 pages.
+- Regex `export const access` em `api/**/*.js`: 114 arquivos correspondentes. Isso não reconcilia por si só com o inventário de 127 API functions; precisa mapear funções/arquivos e revisar endpoints que não correspondem. **Possível lacuna de cobertura, não vulnerabilidade confirmada.**
+- Regex para `eval(`, `new Function`, `child_process` e `exec(`: 1 ocorrência em `api/ai/video-ia.js`, linha 45, referente a `anchorRe.exec(html)` de RegExp — falso positivo da busca; não é execução de shell.
+- Busca por padrões de SQL concatenado: 13 ocorrências em 10 arquivos. Inspeção de linhas selecionadas mostra composição de cláusulas/helpers e placeholders parametrizados; não foi confirmado SQL injection. Revisão manual completa dessas construções permanece pendente.
+- Busca `fetch/URL/http(s)`: 236 ocorrências em 55 arquivos. É inventário de superfície para SSRF/redirect/allowlist, não finding.
+- Busca de `innerHTML`, `outerHTML`, `document.write`, `javascript:` em `public/**/*.js`: zero ocorrências. Escopo limitado; não cobre todos os scripts inline/HTML nem XSS por outros sinks.
+- Busca de indicadores de segredo (`API_KEY`, `SECRET`, `TOKEN`, `PASSWORD`, `process.env`): 38 ocorrências em 23 arquivos, esperadas em código que lê configurações; nenhum valor secreto foi transcrito nem validado.
+- Estas buscas não substituem revisão de código, testes, dependências ou controles runtime. Não foram realizadas chamadas de endpoints, testes de credenciais, probes de produção ou modificações.
+
 ## 3 — Revisão visual mobile e desktop
 **Status: BLOQUEADO.**
 
