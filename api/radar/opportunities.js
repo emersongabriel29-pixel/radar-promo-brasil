@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { calculateRadarScore, classifyRadarScore } from '../../lib/radar.js';
 
 export const access = 'member';

@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { eligiblePublication } from 'lib/delivery.js';
 import { publicationPrioritySql, discoveryPriorityJoin } from 'lib/publication-priority.js';
 import {recoverRecurrences} from 'lib/recurrences.js';

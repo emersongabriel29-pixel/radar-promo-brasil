@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { lomadeeGet, listLomadeeRows } from 'lib/lomadee-api.js';
 
 export const access='member';

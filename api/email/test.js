@@ -1,4 +1,5 @@
-import { db,email } from 'hatchable';
+import { email } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 
 export const access='member';
 export const methods=['POST'];

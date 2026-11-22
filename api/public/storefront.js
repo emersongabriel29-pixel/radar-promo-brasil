@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import {hydrateImages} from 'lib/offer-images.js';
 
 export const access='public';

@@ -1,4 +1,4 @@
-import {db} from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import {runMonitors,canActivateMonitor} from 'lib/monitoring.js';
 export const access='member';
 export const methods=['POST'];

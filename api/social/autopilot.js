@@ -1,4 +1,5 @@
-import { db, scheduler } from 'hatchable';
+import { scheduler } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { prepareSocialPosts,dispatchSocialPosts,verifyMeta,socialSnapshot } from 'lib/social-autopilot.js';
 import { timeValue } from 'lib/validation.js';
 

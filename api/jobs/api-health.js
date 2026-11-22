@@ -1,4 +1,5 @@
-import { db, config } from 'hatchable';
+import { config } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 
 export const access = 'scheduler';
 export const methods = ['POST'];

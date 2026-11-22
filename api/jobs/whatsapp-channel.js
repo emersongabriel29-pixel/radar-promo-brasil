@@ -1,4 +1,5 @@
-import { db, config } from 'hatchable';
+import { config } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { eligiblePublication, claimPublication } from 'lib/delivery.js';
 import { publicationPrioritySql, discoveryPriorityJoin } from 'lib/publication-priority.js';
 import { sendWhatsAppChannelText } from 'lib/whatsapp-channel.js';

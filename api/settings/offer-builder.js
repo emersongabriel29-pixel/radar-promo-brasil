@@ -1,4 +1,4 @@
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { getOrCreateAccount } from 'lib/accounts.js';
 export const access='member';
 export const methods=['GET','PUT'];

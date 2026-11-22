@@ -1,4 +1,5 @@
-import { config, db } from 'hatchable';
+import { config } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { fetchWithRetry } from 'lib/http-retry.js';
 import { isRetryableShopeeErrorCode, shopeeRetryDelay } from 'lib/shopee-api-errors.js';
 import { fingerprint } from 'lib/automation.js';

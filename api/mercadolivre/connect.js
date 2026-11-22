@@ -1,4 +1,5 @@
-import { config,db } from 'hatchable';
+import { config } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { meliConfig,seal } from 'lib/direct-connectors.js';
 export const access='member'; export const methods=['GET'];
 const account=async m=>(await db.query('SELECT id FROM accounts WHERE owner_member_id=$1',[String(m.id)])).rows[0];

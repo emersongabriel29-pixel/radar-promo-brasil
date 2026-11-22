@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { db } from 'hatchable';
+import { db } from 'lib/radar-db.js';
 import { moneyCents } from 'lib/validation.js';
 // Manual observations do not update promotional copy or authorize publication.
 export const access = 'member';
