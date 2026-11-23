@@ -17,3 +17,9 @@ Resumo de cron de 7 dias em 08/11/2026: link queue 12 erros/124 execuções; job
 
 ## Estado
 Código presente; fluxo ponta a ponta e credenciais não certificados por esta documentação.
+
+## Adendo de auditoria — 08/11/2026, parecer35
+
+Consulta somente leitura de produtos retornou um item em452ms. Não gerou link nem acionou worker. Backlog/falhas da linkqueue continuam pendentes. Documentação oficial consultada retornou403.
+
+Evidências e limitações: [relatório consolidado](../AUDITORIA-CONTINUIDADE-2026-11-08.md) e `../audit-evidence/2026-11-08/`. Os probes de fornecedores executaram helpers derivados no isolate; não equivalem a importar e homologar toda a rota implantada. Sem mensagem, migration, token renovado ou deploy.

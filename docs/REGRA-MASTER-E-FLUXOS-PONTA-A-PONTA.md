@@ -480,3 +480,10 @@ A fila continua com trabalho futuro por causa do plano Free (cron mínimo de uma
 ### 19.4 Ajuste de throughput
 
 Após validar o tempo de execução, o lote padrão do autopilot foi elevado ao máximo técnico de 200 ofertas por conta/ciclo. O dispatcher usa 14 por turno, timeout de mídia de 1s e fallback textual. A configuração do canal ativo foi atualizada para `batch_size=14`, `interval_minutes=5`. A cadência declarada continua horária por exigência do plano Free; o wake-up central após cada lote permite um segundo turno sem agendar tarefas por produto.
+
+
+## Adendo normativo — auditoria de 08/11/2026: medicamentos
+
+A solicitação mais recente do titular determina excluir medicamentos das ofertas publicáveis. Esta exceção prevalece sobre os trechos históricos deste documento que mandam remover o filtro de medicamentos. Não estender a exceção a produtos +18 ou outras categorias. O registro deve ser preservado.
+
+Proposta em branch: `canEnterOfferFlow` consulta `isMedicationProduct` e devolve `MEDICATION_PUBLICATION_EXCLUDED`; o autopilot usa esse gate antes de criar publicações. Acessórios não medicinais, como porta-comprimidos, continuam elegíveis. Esta proposta NÃO garante bloqueio de filas preexistentes, dispatchers ou todos os demais caminhos de publicação. A homologação desses caminhos e a reconciliação Hatchable continuam pendentes. Nenhum medicamento real foi enfileirado ou publicado durante os testes.

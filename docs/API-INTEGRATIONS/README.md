@@ -27,3 +27,8 @@ Para cada fornecedor preencher endpoint oficial, autenticação, escopos, limite
 | Temu | Fluxo manual de link oficial; sem API de afiliados validada |
 | SHEIN | Fluxo manual de link oficial; sem API de afiliados validada |
 | Collshp | Importação de vitrine pública; tracking não validado |
+
+
+## Atualização de evidências — parecer35
+
+Preferir o [último parecer consolidado](../AUDITORIA-CONTINUIDADE-2026-11-08.md) aos estados históricos acima: leitura Shopee/Lomadee positiva em uma operação; AliExpress erro de negócio405; Rakuten falha com token salvo; Mercado Livre dois tokens401; Magalu sem TenantID. Amazon retornou412 sem credenciais; Admitad/Awin NOT_CONFIGURED; Temu/SHEIN são workflows manuais. Nenhum teste completo de atribuição, comissão ou entrega foi aprovado.

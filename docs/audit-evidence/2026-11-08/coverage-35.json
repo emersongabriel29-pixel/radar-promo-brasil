@@ -1,0 +1,815 @@
+[
+  {
+    "id": 1,
+    "title": "Identidade do projeto",
+    "status": "APROVADA",
+    "severity": "Baixa",
+    "sources": [
+      "README.md",
+      "docs/MASTER-CONTEXT.md",
+      "GitHub get_repo",
+      "Hatchable list_projects"
+    ],
+    "evidence": [
+      "E01",
+      "E15"
+    ],
+    "finding": "Projeto, slug, repositório e branch principal confirmados.",
+    "impact": "Projeto, slug, repositório e branch principal confirmados.",
+    "required_action": "Manter a conferência de identidade antes de novas operações.",
+    "tests": "Conector confirma owner no Hatchable e escrita no GitHub.",
+    "dependency": "Nenhuma dependência externa pendente para identificação.",
+    "result": "APROVADA",
+    "pending": "Sem pendência no escopo estrito deste controle; não certifica o restante do sistema."
+  },
+  {
+    "id": 2,
+    "title": "Executar, não apenas orientar",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Alta",
+    "sources": [
+      "docs/AUDIT-LEDGER.md",
+      "lib/offer-flow-policy.js",
+      "tests/medication-enqueue.test.mjs"
+    ],
+    "evidence": [
+      "E05",
+      "E08",
+      "E13"
+    ],
+    "finding": "Foram executados testes, consultas, diagnóstico de canais e proposta de correção; ainda não houve homologação integral.",
+    "impact": "Foram executados testes, consultas, diagnóstico de canais e proposta de correção; ainda não houve homologação integral.",
+    "required_action": "Executar correções priorizadas e homologação compatível antes da liberação.",
+    "tests": "Resultados locais, HTTP e probes registrados separadamente.",
+    "dependency": "Falhas da suíte, divergências e acessos descritos neste parecer.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Executar correções priorizadas e homologação compatível antes da liberação."
+  },
+  {
+    "id": 3,
+    "title": "Diagnóstico inicial somente leitura",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Média",
+    "sources": [
+      "docs/AUDITORIA-CONTINUIDADE-2026-11-08.md",
+      "docs/HATCHABLE-GITHUB-SYNC-RULE.md"
+    ],
+    "evidence": [
+      "E01",
+      "E02",
+      "E03",
+      "E04"
+    ],
+    "finding": "Baseline inicialmente limpa, inventário e diagnóstico apresentados antes da proposta; inventário de produção ampliado após conexão.",
+    "impact": "Baseline inicialmente limpa, inventário e diagnóstico apresentados antes da proposta; inventário de produção ampliado após conexão.",
+    "required_action": "Preservar snapshots; resolver verificações de RLS, ledger de migrations e fontes externas indisponíveis.",
+    "tests": "Leituras por conectores, SQL agregado, manifesto e histórico.",
+    "dependency": "Parte da introspecção bloqueada pelo gateway e documentação externa.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Preservar snapshots; resolver verificações de RLS, ledger de migrations e fontes externas indisponíveis."
+  },
+  {
+    "id": 4,
+    "title": "Objetivo funcional do Radar",
+    "status": "REPROVADA",
+    "severity": "Alta",
+    "sources": [
+      "lib/ingestion.js",
+      "lib/autopilot.js",
+      "api/reports.js",
+      "api/jobs/telegram.js"
+    ],
+    "evidence": [
+      "E03",
+      "E04",
+      "E05",
+      "E14"
+    ],
+    "finding": "A cadeia completa não está homologada: filas falhas, credenciais/escopos incompletos e ausência de vendas importadas.",
+    "impact": "A cadeia completa não está homologada: filas falhas, credenciais/escopos incompletos e ausência de vendas importadas.",
+    "required_action": "Homologar captura → conversão → entrega → atribuição por fornecedor/canal, preservando registros.",
+    "tests": "Leituras reais e testes isolados; nenhum envio real.",
+    "dependency": "Fornecedores, canais, contratos e dados oficiais de conversão.",
+    "result": "REPROVADA",
+    "pending": "Homologar captura → conversão → entrega → atribuição por fornecedor/canal, preservando registros."
+  },
+  {
+    "id": 5,
+    "title": "Preservação do sistema existente",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Alta",
+    "sources": [
+      "docs/CHANGE-IMPACT-LOG.md",
+      "migrations/",
+      "docs/audit-evidence/2026-11-08/recovery-44.json"
+    ],
+    "evidence": [
+      "E02",
+      "E11",
+      "E13"
+    ],
+    "finding": "Nenhuma exclusão, limpeza de fila ou migration de produção realizada; diferenças e branches foram preservadas.",
+    "impact": "Nenhuma exclusão, limpeza de fila ou migration de produção realizada; diferenças e branches foram preservadas.",
+    "required_action": "Comparar compatibilidade e backup antes de qualquer recuperação ou lote.",
+    "tests": "Checks de órfãos nos dois vínculos e revisão de diffs; não equivalem a integridade global.",
+    "dependency": "Snapshot/rollback validado para futuras mudanças de dados.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Comparar compatibilidade e backup antes de qualquer recuperação ou lote."
+  },
+  {
+    "id": 6,
+    "title": "APIs e integrações",
+    "status": "REPROVADA",
+    "severity": "Alta",
+    "sources": [
+      "api/integrations/",
+      "api/mercadolivre/",
+      "lib/direct-connectors.js",
+      "lib/lomadee-api.js"
+    ],
+    "evidence": [
+      "E05",
+      "E12"
+    ],
+    "finding": "Shopee e Lomadee passaram em uma leitura; AliExpress retornou erro de negócio 405 não tratado; Rakuten falhou; Mercado Livre retornou 401; Magalu sem Tenant ID.",
+    "impact": "Shopee e Lomadee passaram em uma leitura; AliExpress retornou erro de negócio 405 não tratado; Rakuten falhou; Mercado Livre retornou 401; Magalu sem Tenant ID.",
+    "required_action": "Tratar envelope AliExpress; diagnosticar tokens/permissões sem confundir OAuth seller com programa de afiliados; homologar operações individualmente.",
+    "tests": "Queries de leitura com helpers derivados; endpoints de configuração; portais oficiais acessíveis/bloqueados registrados.",
+    "dependency": "Credenciais, escopos/campanhas e documentação de cada programa; não há certificação ponta a ponta.",
+    "result": "REPROVADA",
+    "pending": "Tratar envelope AliExpress; diagnosticar tokens/permissões sem confundir OAuth seller com programa de afiliados; homologar operações individualmente."
+  },
+  {
+    "id": 7,
+    "title": "Categorias, subcategorias e palavras-chave",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Média",
+    "sources": [
+      "lib/category-classifier.js",
+      "lib/category-routing.js",
+      "tests/category-classifier.test.mjs",
+      "lib/category-classifier.test.js"
+    ],
+    "evidence": [
+      "E03",
+      "E08",
+      "E11"
+    ],
+    "finding": "Casa & Lar e Pet encontrados; inventário inclui rótulo de bebês/crianças, sem correspondência literal Baby & Kids. Há PRs de classificação pendentes.",
+    "impact": "Casa & Lar e Pet encontrados; inventário inclui rótulo de bebês/crianças, sem correspondência literal Baby & Kids. Há PRs de classificação pendentes.",
+    "required_action": "Conferir alias de Baby & Kids, conflitos e PRs por fonte; preservar ofertas sem classificação e categorias manuais.",
+    "tests": "Suíte de classificadores e nove testes adicionais aprovados; não houve reclassificação em lote.",
+    "dependency": "Taxonomia por conta e revisão dos PRs #187/#169 e consumidores.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Conferir alias de Baby & Kids, conflitos e PRs por fonte; preservar ofertas sem classificação e categorias manuais."
+  },
+  {
+    "id": 8,
+    "title": "Filas, workers e processamento",
+    "status": "REPROVADA",
+    "severity": "Alta",
+    "sources": [
+      "api/jobs/telegram.js",
+      "api/jobs/lomadee-link-queue.js",
+      "lib/ingestion.js",
+      "lib/delivery.js"
+    ],
+    "evidence": [
+      "E03",
+      "E04"
+    ],
+    "finding": "Snapshot: 144 FAILED sem próxima tentativa, quatro WAITING_CONFIRMATION e grande backlog; helper de ingestão corta acima de 50 itens.",
+    "impact": "Snapshot: 144 FAILED sem próxima tentativa, quatro WAITING_CONFIRMATION e grande backlog; helper de ingestão corta acima de 50 itens.",
+    "required_action": "Definir recuperação com causa/dono/checkpoint, preservar excedentes e investigar falhas antes de qualquer reprocessamento.",
+    "tests": "SQL agregado, código e logs; sem disparo de worker ou alteração de fila.",
+    "dependency": "Confirmação no destino para entregas incertas e causa das falhas Lomadee.",
+    "result": "REPROVADA",
+    "pending": "Definir recuperação com causa/dono/checkpoint, preservar excedentes e investigar falhas antes de qualquer reprocessamento."
+  },
+  {
+    "id": 9,
+    "title": "Telegram, WhatsApp e canais",
+    "status": "BLOQUEADA",
+    "severity": "Alta",
+    "sources": [
+      "api/telegram/diagnostics.js",
+      "lib/telegram.js",
+      "lib/whatsapp-channel.js",
+      "workers/whatsapp.mjs"
+    ],
+    "evidence": [
+      "E06",
+      "E03"
+    ],
+    "finding": "Diagnóstico de leitura Casa & Lar/Pet passou sem envio. Chat ID histórico Pet diverge do ativo. Zero conexões WhatsApp, 12 destinos pausados.",
+    "impact": "Diagnóstico de leitura Casa & Lar/Pet passou sem envio. Chat ID histórico Pet diverge do ativo. Zero conexões WhatsApp, 12 destinos pausados.",
+    "required_action": "Preservar destinos atuais validados; homologação de entrega exige destino de teste autorizado e conexão WhatsApp funcional.",
+    "tests": "getMe/getChat/getChatMember através da rota de diagnóstico, sentMessage=false; worker real não executado.",
+    "dependency": "Conexão oficial de canal e autorização específica de teste de entrega; nenhuma mensagem disparada.",
+    "result": "BLOQUEADA",
+    "pending": "Preservar destinos atuais validados; homologação de entrega exige destino de teste autorizado e conexão WhatsApp funcional."
+  },
+  {
+    "id": 10,
+    "title": "Painel de filas e relatórios",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Média",
+    "sources": [
+      "api/reports.js",
+      "public/radar.js",
+      "api/admin/ai-usage.js"
+    ],
+    "evidence": [
+      "E14",
+      "E03",
+      "E08"
+    ],
+    "finding": "GET real de relatórios respondeu 200 com dados agregados; sete dias: 1.538 publicações, zero cliques e zero vendas no relatório consultado.",
+    "impact": "GET real de relatórios respondeu 200 com dados agregados; sete dias: 1.538 publicações, zero cliques e zero vendas no relatório consultado.",
+    "required_action": "Cobrir todos os estados/APIs, idade da fila, retries, workers e erros; reconciliar métricas do banco com UI hospedada.",
+    "tests": "Endpoint real e E2E local; não usou demonstração como evidência.",
+    "dependency": "Dados reais de tracking/conversões e diferenças GitHub/Hatchable de relatórios.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Cobrir todos os estados/APIs, idade da fila, retries, workers e erros; reconciliar métricas do banco com UI hospedada."
+  },
+  {
+    "id": 11,
+    "title": "Ollama e infraestrutura de IA",
+    "status": "BLOQUEADA",
+    "severity": "Alta",
+    "sources": [
+      "lib/ollama.js",
+      "api/admin/ollama.js",
+      "hatchable.toml"
+    ],
+    "evidence": [
+      "E07"
+    ],
+    "finding": "Ollama responde OLLAMA_SETUP_REQUIRED. Nenhum perfil AWS disponível; CLI e manifesto de identidade ausentes. EC2/região/orçamento históricos não reconfirmados.",
+    "impact": "Ollama responde OLLAMA_SETUP_REQUIRED. Nenhum perfil AWS disponível; CLI e manifesto de identidade ausentes. EC2/região/orçamento históricos não reconfirmados.",
+    "required_action": "Disponibilizar acesso seguro à infraestrutura e configurar endpoint/modelo/token; testar sem substituir Gemini nem criar recursos pagos.",
+    "tests": "GET de status 200, configured=false; inspeção de metadados de acesso, sem ler valores de segredos.",
+    "dependency": "Acesso AWS/SSM, servidor Ollama e limites/custos reais.",
+    "result": "BLOQUEADA",
+    "pending": "Disponibilizar acesso seguro à infraestrutura e configurar endpoint/modelo/token; testar sem substituir Gemini nem criar recursos pagos."
+  },
+  {
+    "id": 12,
+    "title": "Recursos de IA",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Média",
+    "sources": [
+      "lib/gemini.js",
+      "lib/radar-ai.js",
+      "lib/radar-ai-guard.js",
+      "lib/promo-classifier.js",
+      "api/ai/"
+    ],
+    "evidence": [
+      "E07",
+      "E08"
+    ],
+    "finding": "Regras/fallback e ledger presentes; 32 chamadas SUCCESS em consulta agregada. Não foi feita nova geração paga. lib/radar-ai.js é candidato sem import estático.",
+    "impact": "Regras/fallback e ledger presentes; 32 chamadas SUCCESS em consulta agregada. Não foi feita nova geração paga. lib/radar-ai.js é candidato sem import estático.",
+    "required_action": "Verificar consumidores dinâmicos, qualidade factual e fallback por recurso; separar metadados de campanha de texto gerado.",
+    "tests": "Testes locais de fatos, promoções e governança; dados de tokens não foram convertidos em custo inventado.",
+    "dependency": "Provedor/modelos habilitados e validação factual com amostra representativa.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Verificar consumidores dinâmicos, qualidade factual e fallback por recurso; separar metadados de campanha de texto gerado."
+  },
+  {
+    "id": 13,
+    "title": "Segurança completa",
+    "status": "REPROVADA",
+    "severity": "Alta",
+    "sources": [
+      "lib/security.js",
+      "server.js",
+      "lib/network-guard.js",
+      "lib/monitoring.js",
+      "lib/media.js",
+      "api/n8n/bridge.js"
+    ],
+    "evidence": [
+      "E10",
+      "E02",
+      "E08"
+    ],
+    "finding": "API privada bloqueia anônimo com 401. Header CSP real da raiz contém somente frame-ancestors; hardening do standalone não pode ser assumido no Hatchable. RLS não confirmado.",
+    "impact": "API privada bloqueia anônimo com 401. Header CSP real da raiz contém somente frame-ancestors; hardening do standalone não pode ser assumido no Hatchable. RLS não confirmado.",
+    "required_action": "Reconciliar políticas de headers e proteção de rede de cada runtime, revisar autorização/segredos/webhooks e completar RLS sem contornar o gateway.",
+    "tests": "Scan de 481 arquivos: um padrão em fixture de teste; testes locais de isolamento/HMAC/SSRF; não é pentest nem varredura histórica de segredos.",
+    "dependency": "Controles de rede da plataforma, introspecção RLS e revisão de todas as rotas.",
+    "result": "REPROVADA",
+    "pending": "Reconciliar políticas de headers e proteção de rede de cada runtime, revisar autorização/segredos/webhooks e completar RLS sem contornar o gateway."
+  },
+  {
+    "id": 14,
+    "title": "Banco de dados e migrations",
+    "status": "BLOQUEADA",
+    "severity": "Alta",
+    "sources": [
+      "migrations/",
+      "hatchable/migrations.js",
+      "docs/BANCO-DADOS-2026-11-08.md"
+    ],
+    "evidence": [
+      "E02",
+      "E03",
+      "E09"
+    ],
+    "finding": "67 tabelas; 77 SQL no GitHub e 73 no inventário dry-run. Há arquivos renomeados/standalone; 27 migrations comuns divergentes em hash equivalentes por tokens. Ledger de aplicação não obtido.",
+    "impact": "67 tabelas; 77 SQL no GitHub e 73 no inventário dry-run. Há arquivos renomeados/standalone; 27 migrations comuns divergentes em hash equivalentes por tokens. Ledger de aplicação não obtido.",
+    "required_action": "Obter prova de migrations aplicadas, revisar aliases/constraints/índices e validar restauração antes de migration nova.",
+    "tests": "Schema, information_schema, checks de órfãos e migração local em memória; pg_catalog foi rejeitado.",
+    "dependency": "Ledger da plataforma, RLS e backup/restauração reais; nenhuma migration reescrita.",
+    "result": "BLOQUEADA",
+    "pending": "Obter prova de migrations aplicadas, revisar aliases/constraints/índices e validar restauração antes de migration nova."
+  },
+  {
+    "id": 15,
+    "title": "Agendamentos e operação 24/7",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Alta",
+    "sources": [
+      "hatchable.toml",
+      "lib/recurrences.js",
+      "api/jobs/hourly.js",
+      "lib/autopilot.js"
+    ],
+    "evidence": [
+      "E04",
+      "E02"
+    ],
+    "finding": "16 crons observados, 14 no manifesto GitHub; dois jobs extras confirmados no scheduler. Logs antigos mostram quota one-shot esgotada; código atual já separa jobs.",
+    "impact": "16 crons observados, 14 no manifesto GitHub; dois jobs extras confirmados no scheduler. Logs antigos mostram quota one-shot esgotada; código atual já separa jobs.",
+    "required_action": "Reconciliar origem dos 16 agendamentos e monitorar backlog, quotas, leases e cadência; não criar one-shot por produto.",
+    "tests": "Inventário do scheduler e logs reais; tarefas não foram disparadas manualmente.",
+    "dependency": "Observação continuada e limites do plano; falhas de fila ainda em aberto.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Reconciliar origem dos 16 agendamentos e monitorar backlog, quotas, leases e cadência; não criar one-shot por produto."
+  },
+  {
+    "id": 16,
+    "title": "Qualidade e conformidade das ofertas",
+    "status": "REPROVADA",
+    "severity": "Alta",
+    "sources": [
+      "lib/product-safety.js",
+      "lib/offer-flow-policy.js",
+      "lib/delivery.js",
+      "api/jobs/aliexpress-review.js"
+    ],
+    "evidence": [
+      "E16",
+      "E08",
+      "E13"
+    ],
+    "finding": "Baseline publicada permite medicamento no gate; correção protege novo enqueue somente no WIP/PR. Busca limitada por nove nomes não encontrou candidatos, sem provar ausência de todos os medicamentos.",
+    "impact": "Baseline publicada permite medicamento no gate; correção protege novo enqueue somente no WIP/PR. Busca limitada por nove nomes não encontrou candidatos, sem provar ausência de todos os medicamentos.",
+    "required_action": "Proteger todos os caminhos de publicação e filas existentes; preservar registro e acessórios; não usar falta de dado como fraude.",
+    "tests": "Gate e enqueue isolados passam, probe puro no isolate; sem alteração de ofertas reais.",
+    "dependency": "Dispatchers, publicação manual/social, migração de filas e reconciliação de produção.",
+    "result": "REPROVADA",
+    "pending": "Proteger todos os caminhos de publicação e filas existentes; preservar registro e acessórios; não usar falta de dado como fraude."
+  },
+  {
+    "id": 17,
+    "title": "Rastreamento e conversões",
+    "status": "BLOQUEADA",
+    "severity": "Alta",
+    "sources": [
+      "api/r/[id].js",
+      "lib/affiliate-sales.js",
+      "api/reports.js",
+      "api/n8n/bridge.js"
+    ],
+    "evidence": [
+      "E03",
+      "E05",
+      "E14"
+    ],
+    "finding": "affiliate_sales vazia; cliques zero no relatório. Preservação de links é implementada, mas links diretos podem não passar pelo redirect de contagem.",
+    "impact": "affiliate_sales vazia; cliques zero no relatório. Preservação de links é implementada, mas links diretos podem não passar pelo redirect de contagem.",
+    "required_action": "Validar atribuição/SubID e importação oficial por programa; distinguir clique, pedido, conversão e comissão.",
+    "tests": "Testes locais de normalização/idempotência e leitura real do banco; nenhuma venda simulada como produção.",
+    "dependency": "Dados/relatórios oficiais e políticas de atribuição dos provedores.",
+    "result": "BLOQUEADA",
+    "pending": "Validar atribuição/SubID e importação oficial por programa; distinguir clique, pedido, conversão e comissão."
+  },
+  {
+    "id": 18,
+    "title": "Interface e experiência do usuário",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Média",
+    "sources": [
+      "public/radar.js",
+      "public/radar.css",
+      "public/radar-theme-v5.css",
+      "pages/",
+      "tests/e2e/production.spec.js"
+    ],
+    "evidence": [
+      "E08",
+      "E02"
+    ],
+    "finding": "Sete áreas preservadas, três E2E locais aprovados em cinco larguras; CSS/páginas e assets divergem entre ambientes.",
+    "impact": "Sete áreas preservadas, três E2E locais aprovados em cinco larguras; CSS/páginas e assets divergem entre ambientes.",
+    "required_action": "Validar UI autenticada hospedada, estados vazios/erro e assets antes de reconciliar CSP; preservar navegação.",
+    "tests": "E2E local inclui acessibilidade, modal, upload e layout; não certifica UI de produção autenticada.",
+    "dependency": "Sessão de navegador no app hospedado e reconciliação dos assets.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Validar UI autenticada hospedada, estados vazios/erro e assets antes de reconciliar CSP; preservar navegação."
+  },
+  {
+    "id": 19,
+    "title": "Desempenho e controle de custos",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Alta",
+    "sources": [
+      "hatchable.toml",
+      "api/jobs/shopee.js",
+      "api/jobs/lomadee-link-queue.js",
+      "lib/autopilot.js",
+      "docs/RESOURCE-MANAGER.md"
+    ],
+    "evidence": [
+      "E04",
+      "E07",
+      "E14"
+    ],
+    "finding": "Lotes/cadência protegem o plano, mas backlog e erros permanecem. Sem medição de CPU/memória AWS ou custo completo; não houve gasto/upgrade.",
+    "impact": "Lotes/cadência protegem o plano, mas backlog e erros permanecem. Sem medição de CPU/memória AWS ou custo completo; não houve gasto/upgrade.",
+    "required_action": "Medir eficiência por lote, consultas lentas e taxa de drenagem sem sobrecarregar produção; reconciliar orçamento externo.",
+    "tests": "Durações das chamadas e logs registrados; não foi teste de carga.",
+    "dependency": "Métricas de hospedagem, quotas por API e identidade AWS para orçamento.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Medir eficiência por lote, consultas lentas e taxa de drenagem sem sobrecarregar produção; reconciliar orçamento externo."
+  },
+  {
+    "id": 20,
+    "title": "Dezesseis auditorias principais",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Alta",
+    "sources": [
+      "docs/AUDITORIA-CONTINUIDADE-2026-11-08.md"
+    ],
+    "evidence": [
+      "E01",
+      "E02",
+      "E03",
+      "E04",
+      "E05",
+      "E06",
+      "E07",
+      "E08",
+      "E09",
+      "E10",
+      "E11",
+      "E14"
+    ],
+    "finding": "As 16 frentes possuem parecer separado neste adendo; várias estão reprovadas ou bloqueadas.",
+    "impact": "As 16 frentes possuem parecer separado neste adendo; várias estão reprovadas ou bloqueadas.",
+    "required_action": "Resolver as pendências específicas antes de aprovar as frentes; cobertura não é homologação.",
+    "tests": "Matriz A relaciona frente, fonte, resultado e próxima validação.",
+    "dependency": "As dependências de cada frente permanecem distintas.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Resolver as pendências específicas antes de aprovar as frentes; cobertura não é homologação."
+  },
+  {
+    "id": 21,
+    "title": "Dez fases de execução",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Alta",
+    "sources": [
+      "docs/AUDITORIA-CONTINUIDADE-2026-11-08.md",
+      "docs/CONTROLE-DE-MUDANCAS.md"
+    ],
+    "evidence": [
+      "E13",
+      "E15"
+    ],
+    "finding": "As dez fases estão registradas separadamente; auditoria não equivale a executar dez fases de implantação.",
+    "impact": "As dez fases estão registradas separadamente; auditoria não equivale a executar dez fases de implantação.",
+    "required_action": "Seguir sequência e gates de dados/segurança/testes; implantação ainda não iniciada.",
+    "tests": "Matriz E diferencia análise, proposta, teste e deploy.",
+    "dependency": "Correções, homologação e reconciliação antes da fase 10.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Seguir sequência e gates de dados/segurança/testes; implantação ainda não iniciada."
+  },
+  {
+    "id": 22,
+    "title": "Controles transversais",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Alta",
+    "sources": [
+      "docs/CHANGE-IMPACT-LOG.md",
+      "docs/audit-evidence/2026-11-08/coverage-35.json"
+    ],
+    "evidence": [
+      "E02",
+      "E03",
+      "E04",
+      "E08",
+      "E09",
+      "E10",
+      "E13"
+    ],
+    "finding": "Controles de integridade, regressão, custo, dados e recuperação foram rastreados; os não comprovados permanecem explícitos.",
+    "impact": "Controles de integridade, regressão, custo, dados e recuperação foram rastreados; os não comprovados permanecem explícitos.",
+    "required_action": "Manter monitoramento e provas por mudança; não atribuir aprovação global.",
+    "tests": "Matriz D registra os 22 controles do prompt.",
+    "dependency": "Métricas contínuas, backup real e homologação externa.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Manter monitoramento e provas por mudança; não atribuir aprovação global."
+  },
+  {
+    "id": 23,
+    "title": "Documentação do projeto",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Média",
+    "sources": [
+      "docs/INDICE.md",
+      "docs/MASTER-CONTEXT.md",
+      "docs/AUDIT-LEDGER.md",
+      "docs/CHANGE-IMPACT-LOG.md",
+      "lib/documentation/ no Hatchable"
+    ],
+    "evidence": [
+      "E13",
+      "E15"
+    ],
+    "finding": "Documentação consultada e adendos atuais preparados com índice, domínio, evidências e impacto; cópia privada exigida nas duas plataformas.",
+    "impact": "Documentação consultada e adendos atuais preparados com índice, domínio, evidências e impacto; cópia privada exigida nas duas plataformas.",
+    "required_action": "Conferir hashes após espelhamento e versionamento desta consolidação; manter fatos antigos como históricos.",
+    "tests": "Validação de JSON/links locais e comparação de conteúdo; sem publicar documentação em public/.",
+    "dependency": "Commit final e inventário WIP desta consolidação, registrados no PR.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Conferir hashes após espelhamento e versionamento desta consolidação; manter fatos antigos como históricos."
+  },
+  {
+    "id": 24,
+    "title": "Controle de status das auditorias",
+    "status": "APROVADA",
+    "severity": "Baixa",
+    "sources": [
+      "docs/audit-evidence/2026-11-08/coverage-35.json"
+    ],
+    "evidence": [
+      "E15"
+    ],
+    "finding": "Os 35 itens têm identificador, status, fonte, teste, impacto, dependência e ação; implementação/configuração/teste/produção separados.",
+    "impact": "Os 35 itens têm identificador, status, fonte, teste, impacto, dependência e ação; implementação/configuração/teste/produção separados.",
+    "required_action": "Manter o status atualizado quando novas provas chegarem.",
+    "tests": "Assert de exatamente 35 IDs sem repetição e estados permitidos.",
+    "dependency": "Nenhuma dependência para o controle de classificação.",
+    "result": "APROVADA",
+    "pending": "Sem pendência no escopo estrito deste controle; não certifica o restante do sistema."
+  },
+  {
+    "id": 25,
+    "title": "Regra GitHub e Hatchable",
+    "status": "REPROVADA",
+    "severity": "Alta",
+    "sources": [
+      "docs/HATCHABLE-GITHUB-SYNC-RULE.md",
+      "docs/audit-evidence/2026-11-08/comparison-77.json"
+    ],
+    "evidence": [
+      "E02",
+      "E13"
+    ],
+    "finding": "Na baseline, 77 hashes divergem; 47 equivalentes pela normalização declarada e 30 com diferenças de código/conteúdo/configuração. Parte é adapter intencional.",
+    "impact": "Na baseline, 77 hashes divergem; 47 equivalentes pela normalização declarada e 30 com diferenças de código/conteúdo/configuração. Parte é adapter intencional.",
+    "required_action": "Decidir fonte de verdade por arquivo; preservar melhorias/segurança; não copiar pacote standalone ou migrations renomeadas para produção.",
+    "tests": "Comparação de 267 caminhos e leitura dos 77 divergentes, mais inventário de caminhos exclusivos.",
+    "dependency": "Reconciliação dos 30 candidatos e compatibilidade do runtime; proposta não é release.",
+    "result": "REPROVADA",
+    "pending": "Decidir fonte de verdade por arquivo; preservar melhorias/segurança; não copiar pacote standalone ou migrations renomeadas para produção."
+  },
+  {
+    "id": 26,
+    "title": "Testes obrigatórios",
+    "status": "REPROVADA",
+    "severity": "Alta",
+    "sources": [
+      "package.json",
+      ".github/workflows/ci.yml",
+      "tests/",
+      "scripts/verify-backup.mjs"
+    ],
+    "evidence": [
+      "E08",
+      "E09"
+    ],
+    "finding": "Local: 243 testes/236 aprovados/7 falhas; E2E 3 aprovados e audit zero. CI falhou em npm test e pulou audit/E2E. Teste de backup isolado depende de fixtures de outros testes.",
+    "impact": "Local: 243 testes/236 aprovados/7 falhas; E2E 3 aprovados e audit zero. CI falhou em npm test e pulou audit/E2E. Teste de backup isolado depende de fixtures de outros testes.",
+    "required_action": "Corrigir regressões/expectativas obsoletas com testes comportamentais; tornar fixtures independentes; repetir checks pertinentes após alterações.",
+    "tests": "Rerun de operations: 20 testes, 19 passam, um falha; restore de 36 tabelas passa no arquivo completo.",
+    "dependency": "Compatibilidade de testes e runtime hospedado; CI continua bloqueando release.",
+    "result": "REPROVADA",
+    "pending": "Corrigir regressões/expectativas obsoletas com testes comportamentais; tornar fixtures independentes; repetir checks pertinentes após alterações."
+  },
+  {
+    "id": 27,
+    "title": "Autorização e autonomia",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Alta",
+    "sources": [
+      "prompt mestre",
+      "docs/CHANGE-IMPACT-LOG.md",
+      "registro de ferramentas"
+    ],
+    "evidence": [
+      "E15",
+      "E06"
+    ],
+    "finding": "Sem envio, gasto, deploy, migration ou exclusão. Revisão automática rejeitou testar o job Telegram por risco de processamento/envio; alternativa de leitura foi usada.",
+    "impact": "Sem envio, gasto, deploy, migration ou exclusão. Revisão automática rejeitou testar o job Telegram por risco de processamento/envio; alternativa de leitura foi usada.",
+    "required_action": "Manter limites específicos de envios, gastos, alterações críticas e dados; não contornar a rejeição.",
+    "tests": "Diagnósticos oficiais de leitura retornaram sentMessage=false.",
+    "dependency": "Teste de entrega real depende de autorização específica e destino adequado.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Manter limites específicos de envios, gastos, alterações críticas e dados; não contornar a rejeição."
+  },
+  {
+    "id": 28,
+    "title": "Continuidade",
+    "status": "APROVADA",
+    "severity": "Baixa",
+    "sources": [
+      "docs/MASTER-CONTEXT.md",
+      "docs/AUDIT-LEDGER.md",
+      "docs/AUDITORIA-CONTINUIDADE-2026-11-08.md"
+    ],
+    "evidence": [
+      "E01",
+      "E13",
+      "E15"
+    ],
+    "finding": "Trabalho retomado do PR #193 e baseline já conhecida; conexão Hatchable resolveu bloqueio anterior, sem reiniciar o projeto.",
+    "impact": "Trabalho retomado do PR #193 e baseline já conhecida; conexão Hatchable resolveu bloqueio anterior, sem reiniciar o projeto.",
+    "required_action": "Registrar o próximo ponto exato ao encerrar cada etapa.",
+    "tests": "Comparação do novo texto com o anterior: hashes iguais; histórico preservado.",
+    "dependency": "Nenhuma dependência para o registro de continuidade.",
+    "result": "APROVADA",
+    "pending": "Sem pendência no escopo estrito deste controle; não certifica o restante do sistema."
+  },
+  {
+    "id": 29,
+    "title": "Relatório obrigatório",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Média",
+    "sources": [
+      "docs/AUDITORIA-CONTINUIDADE-2026-11-08.md",
+      "docs/audit-evidence/2026-11-08/"
+    ],
+    "evidence": [
+      "E01",
+      "E02",
+      "E13",
+      "E15"
+    ],
+    "finding": "Relatório contém execução, local, baseline, validação, implantação, pendências e prioridades; não confunde PR, WIP e produção.",
+    "impact": "Relatório contém execução, local, baseline, validação, implantação, pendências e prioridades; não confunde PR, WIP e produção.",
+    "required_action": "Consultar commit final no PR e hashes de espelhamento; manter limitações do relatório explícitas.",
+    "tests": "Índice de evidências e matriz de rastreabilidade incluídos.",
+    "dependency": "Sincronização do escopo documental desta consolidação, sem afirmar sincronização integral.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Consultar commit final no PR e hashes de espelhamento; manter limitações do relatório explícitas."
+  },
+  {
+    "id": 30,
+    "title": "Critério de conclusão das 16 auditorias",
+    "status": "REPROVADA",
+    "severity": "Alta",
+    "sources": [
+      "docs/MATRIZ-TESTES-2026-11-08.md",
+      "docs/AUDITORIA-CONTINUIDADE-2026-11-08.md"
+    ],
+    "evidence": [
+      "E05",
+      "E08",
+      "E09",
+      "E10",
+      "E13"
+    ],
+    "finding": "Os critérios de liberação não foram atingidos: há falhas de testes, erro de API, verificações bloqueadas e diferenças não reconciliadas.",
+    "impact": "Os critérios de liberação não foram atingidos: há falhas de testes, erro de API, verificações bloqueadas e diferenças não reconciliadas.",
+    "required_action": "Tratar achados críticos e completar provas faltantes antes de aprovar o projeto; não declarar 100%.",
+    "tests": "Parecer final é REPROVADO PARA LIBERAÇÃO, independentemente da cobertura das 35 seções.",
+    "dependency": "Correções e homologação das frentes não aprovadas.",
+    "result": "REPROVADA",
+    "pending": "Tratar achados críticos e completar provas faltantes antes de aprovar o projeto; não declarar 100%."
+  },
+  {
+    "id": 31,
+    "title": "Ordem de execução",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Média",
+    "sources": [
+      "docs/AUDIT-LEDGER.md",
+      "docs/CHANGE-IMPACT-LOG.md"
+    ],
+    "evidence": [
+      "E01",
+      "E13",
+      "E15"
+    ],
+    "finding": "Diagnóstico precedeu a proposta; a produção não foi alterada nesta auditoria; correção incremental está isolada em PR/WIP.",
+    "impact": "Diagnóstico precedeu a proposta; a produção não foi alterada nesta auditoria; correção incremental está isolada em PR/WIP.",
+    "required_action": "Continuar pelos achados priorizados, com análise de impacto e evidência nas duas plataformas.",
+    "tests": "Histórico de commits e writes WIP separado de deployment v664.",
+    "dependency": "Conclusão operacional exige fases posteriores e seus gates.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Continuar pelos achados priorizados, com análise de impacto e evidência nas duas plataformas."
+  },
+  {
+    "id": 32,
+    "title": "Implementações perdidas, desconectadas ou não integradas",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Alta",
+    "sources": [
+      "docs/audit-evidence/2026-11-08/recovery-44.json",
+      "docs/audit-evidence/2026-11-08/disconnected-candidates.json"
+    ],
+    "evidence": [
+      "E11",
+      "E02"
+    ],
+    "finding": "44 PRs abertos inventariados com refs, arquivos, dependências e decisão; 194 branches, 160 com patches únicos; 2.230 commits alcançáveis. Há candidatos desconectados e protótipos.",
+    "impact": "44 PRs abertos inventariados com refs, arquivos, dependências e decisão; 194 branches, 160 com patches únicos; 2.230 commits alcançáveis. Há candidatos desconectados e protótipos.",
+    "required_action": "Revisar compatibilidade individual antes de recuperação; inventário não aprova merge dos 44 PRs nem prova ausência de chamadas dinâmicas.",
+    "tests": "Diffs, equivalência de patches, grafo de imports/referências e busca de revert; identificados falsos positivos por adapter e scheduler.",
+    "dependency": "Decisão funcional de recuperação e teste por candidato; nenhuma recuperação automática autorizada pelo inventário.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Revisar compatibilidade individual antes de recuperação; inventário não aprova merge dos 44 PRs nem prova ausência de chamadas dinâmicas."
+  },
+  {
+    "id": 33,
+    "title": "Qualidade e confiabilidade complementares",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Alta",
+    "sources": [
+      "scripts/verify-backup.mjs",
+      "package-lock.json",
+      "lib/backups.js",
+      ".github/workflows/ci.yml"
+    ],
+    "evidence": [
+      "E08",
+      "E09",
+      "E10",
+      "E11"
+    ],
+    "finding": "Nove frentes complementares examinadas; backup local de 36 tabelas passa, real não restaurado; quatro pacotes sem licença declarada no lock; falhas e gaps de logs permanecem.",
+    "impact": "Nove frentes complementares examinadas; backup local de 36 tabelas passa, real não restaurado; quatro pacotes sem licença declarada no lock; falhas e gaps de logs permanecem.",
+    "required_action": "Reconciliar cobertura/retencão de backups, licenças, contratos e observabilidade; validar restauração real em isolamento.",
+    "tests": "Matriz C inclui dependências, duplicidade, backup, observabilidade, contratos, incompletos, flags, regressão e aceite.",
+    "dependency": "Backups reais, ambientes isolados, revisão jurídica se necessária e métricas da plataforma.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Reconciliar cobertura/retencão de backups, licenças, contratos e observabilidade; validar restauração real em isolamento."
+  },
+  {
+    "id": 34,
+    "title": "Matriz final de cobertura",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Média",
+    "sources": [
+      "docs/AUDITORIA-CONTINUIDADE-2026-11-08.md",
+      "docs/audit-evidence/2026-11-08/coverage-35.json"
+    ],
+    "evidence": [
+      "E15"
+    ],
+    "finding": "Grupos A–E mantidos separados, ligados às 35 seções e às evidências; seções processuais não foram contadas como testes técnicos independentes.",
+    "impact": "Grupos A–E mantidos separados, ligados às 35 seções e às evidências; seções processuais não foram contadas como testes técnicos independentes.",
+    "required_action": "Atualizar resultado de cada requisito sem propagar aprovação de uma frente para outra.",
+    "tests": "Assert de 35 IDs e tabelas distintas de 16 frentes, nove complementares, 22 controles e dez fases.",
+    "dependency": "Pendências específicas nas matrizes, sem certificado global.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Atualizar resultado de cada requisito sem propagar aprovação de uma frente para outra."
+  },
+  {
+    "id": 35,
+    "title": "Evolução segura",
+    "status": "APROVADA COM RESSALVAS",
+    "severity": "Alta",
+    "sources": [
+      "docs/HATCHABLE-GITHUB-SYNC-RULE.md",
+      "docs/CONTROLE-DE-MUDANCAS.md",
+      "docs/CHANGE-IMPACT-LOG.md"
+    ],
+    "evidence": [
+      "E13",
+      "E15"
+    ],
+    "finding": "Investigação, comparação e testes precederam o WIP; nenhuma arquitetura substituída ou fila apagada. Proposta não foi publicada com suíte falha.",
+    "impact": "Investigação, comparação e testes precederam o WIP; nenhuma arquitetura substituída ou fila apagada. Proposta não foi publicada com suíte falha.",
+    "required_action": "Resolver achados em mudanças pequenas, revisar impacto e rollback e manter documentação GitHub/Hatchable equivalente no escopo de cada alteração.",
+    "tests": "Gate testado, dry-run sem erros/avisos e hash do escopo WIP comparado; não comprova os 30 arquivos pendentes.",
+    "dependency": "Gates de release e recuperação listados neste parecer.",
+    "result": "APROVADA COM RESSALVAS",
+    "pending": "Resolver achados em mudanças pequenas, revisar impacto e rollback e manter documentação GitHub/Hatchable equivalente no escopo de cada alteração."
+  }
+]

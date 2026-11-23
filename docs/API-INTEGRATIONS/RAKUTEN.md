@@ -13,3 +13,9 @@ Há rota api/integrations/rakuten no inventário Hatchable. O uso de uma base UR
 
 ## Estado
 Rota presente; integração não validada ponta a ponta nesta auditoria.
+
+## Adendo de auditoria — 08/11/2026, parecer35
+
+Leitura advertisers com token salvo falhou(status normalizado502), sem acionar refresh. O status VALIDATED de31/10 é histórico e não homologa a operação atual. Diagnosticar expiração, escopos, parceria e resposta oficial sem expor token.
+
+Evidências e limitações: [relatório consolidado](../AUDITORIA-CONTINUIDADE-2026-11-08.md) e `../audit-evidence/2026-11-08/`. Os probes de fornecedores executaram helpers derivados no isolate; não equivalem a importar e homologar toda a rota implantada. Sem mensagem, migration, token renovado ou deploy.

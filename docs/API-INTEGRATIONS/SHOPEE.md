@@ -20,3 +20,10 @@ Código presente; não classificar como fluxo ponta a ponta testado nesta docume
 
 ## Diagnóstico de API e worker
 A credencial passou em teste somente leitura em 08/11/2026: 1 produto retornado em 3,3s, sem criar oferta/link/publicação. A API respondeu `10000` em consultas de descoberta; documentação pública consultada classifica `10000` como System Error e `10030` como Rate Limit. Os erros `10010` no relatório de conversões em 01/11 vieram de versões anteriores das queries; o código atual declara `Int64` e `DisplayOrderStatus`, mas ainda requer teste de relatório com autorização e janela de dados apropriada. Não confundir autenticação válida com todas as operações validadas.
+
+
+## Adendo de auditoria — 08/11/2026, parecer35
+
+Consulta somente leitura com helper derivado retornou um produto e hasNextPage=true em4057ms. Não escreveu status, criou links ou importou ofertas. Homologação completa de paginação/campanhas/relatórios permanece pendente.
+
+Evidências e limitações: [relatório consolidado](../AUDITORIA-CONTINUIDADE-2026-11-08.md) e `../audit-evidence/2026-11-08/`. Os probes de fornecedores executaram helpers derivados no isolate; não equivalem a importar e homologar toda a rota implantada. Sem mensagem, migration, token renovado ou deploy.

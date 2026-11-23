@@ -14,3 +14,9 @@ Foi observada a tarefa /api/jobs/mercadolivre-notifications no scheduler. O call
 
 ## Estado
 Integração não validada ponta a ponta nesta auditoria. Não inferir que tarefa de notificações equivale a descoberta de ofertas ou geração de links funcional.
+
+## Adendo de auditoria — 08/11/2026, parecer35
+
+A chave de conexão persistida é MERCADOLIVRE; a fonte de oferta pode usar MERCADO_LIVRE. Consulta agregada confirmou duas conexões ACTIVE. GET/users/me com os dois access_tokens salvos retornou401 e expiração passada; nenhum refresh foi executado. OAuth não equivale à habilitação no Programa de Afiliados e não autoriza inventar parâmetros.
+
+Evidências e limitações: [relatório consolidado](../AUDITORIA-CONTINUIDADE-2026-11-08.md) e `../audit-evidence/2026-11-08/`. Os probes de fornecedores executaram helpers derivados no isolate; não equivalem a importar e homologar toda a rota implantada. Sem mensagem, migration, token renovado ou deploy.

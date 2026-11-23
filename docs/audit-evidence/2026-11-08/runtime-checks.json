@@ -1,0 +1,287 @@
+{
+  "project": "Radar Promo Brasil",
+  "project_id": "proj_1Xj94QxQmCam",
+  "production_version": 664,
+  "read_only_external_probes": {
+    "SHOPEE": {
+      "http_status": 200,
+      "duration_ms": 4057,
+      "result": {
+        "provider": "SHOPEE",
+        "ok": true,
+        "count": 1,
+        "pageInfo": {
+          "page": 1,
+          "limit": 1,
+          "hasNextPage": true
+        },
+        "readOnly": true
+      },
+      "error": null
+    },
+    "LOMADEE": {
+      "http_status": 200,
+      "duration_ms": 452,
+      "result": {
+        "provider": "LOMADEE",
+        "ok": true,
+        "count": 1,
+        "readOnly": true
+      },
+      "error": null
+    },
+    "RAKUTEN": {
+      "http_status": 200,
+      "duration_ms": 125,
+      "result": {
+        "provider": "RAKUTEN",
+        "ok": false,
+        "status": 502,
+        "errorClass": "Error",
+        "readOnly": true,
+        "tokenRefreshed": false
+      },
+      "error": null
+    },
+    "ALIEXPRESS-envelope": {
+      "http_status": 200,
+      "duration_ms": 1450,
+      "result": {
+        "provider": "ALIEXPRESS",
+        "envelopePresent": true,
+        "respCode": 405,
+        "count": 0,
+        "readOnly": true
+      },
+      "error": null
+    }
+  },
+  "metadata_only_checks": {
+    "/api/integrations/aliexpress": {
+      "http_status": 200,
+      "body": {
+        "provider": "ALIEXPRESS",
+        "status": "VALIDATED",
+        "mode": "aliexpress_open_platform_sync_sha256",
+        "capabilities": [
+          "product_search",
+          "smart_match_recommendations",
+          "hot_products",
+          "hot_product_download",
+          "product_details",
+          "product_sku_details",
+          "categories",
+          "featured_campaigns",
+          "campaign_products",
+          "affiliate_link_generation",
+          "batch_affiliate_link_generation",
+          "read_only_capability_audit",
+          "order_list",
+          "order_details",
+          "cursor_order_reports"
+        ],
+        "apiDocumentationStatus": "OPEN_PLATFORM_SYNC_SHA256_READ_TEST_CONFIRMED",
+        "publicationEnabled": false,
+        "note": "Uma consulta de leitura foi validada anteriormente; isso não confirma todas as permissões avançadas."
+      },
+      "error": null
+    },
+    "/api/integrations/lomadee": {
+      "http_status": 200,
+      "body": {
+        "marketplace": "LOMADEE",
+        "status": "VALIDATED",
+        "configured": true,
+        "apiStatus": "VALIDATED",
+        "publicationEnabled": true,
+        "linkGenerationStatus": "VALIDATED",
+        "capabilities": [
+          "products:read",
+          "campaigns:read",
+          "brands:read",
+          "channels:read",
+          "orders:read",
+          "shortener:read",
+          "shortener:write"
+        ],
+        "availableResources": [
+          "products:read",
+          "campaigns:read",
+          "brands:read",
+          "channels:read",
+          "orders:read",
+          "shortener:read"
+        ],
+        "writeCapabilitiesConfirmed": true,
+        "portalUrl": "https://www.lomadee.com.br/pt-br/afiliados",
+        "docsUrl": "https://docs.lomadee.com.br/llms.txt"
+      },
+      "error": null
+    },
+    "/api/integrations/rakuten": {
+      "http_status": 200,
+      "body": {
+        "provider": "RAKUTEN",
+        "status": "VALIDATED",
+        "capabilities": [
+          "advertiser_search",
+          "product_search_xml",
+          "affiliate_deep_links"
+        ],
+        "apiDocumentation": "https://developers.rakutenadvertising.com/",
+        "tokenLifetimeMinutes": 60,
+        "publicationEnabled": false,
+        "note": "A API oficial emite access_token e refresh_token por /token; o Radar renova automaticamente usando Client ID, Client Secret e Account ID. Parcerias e permissões do anunciante continuam obrigatórias."
+      },
+      "error": null
+    },
+    "/api/integrations/amazon": {
+      "http_status": 412,
+      "body": {
+        "error": "Cadastre as credenciais da Amazon Creators API antes de executar consultas."
+      },
+      "error": null
+    },
+    "/api/integrations/admitad": {
+      "http_status": 200,
+      "body": {
+        "provider": "ADMITAD",
+        "status": "NOT_CONFIGURED",
+        "capabilities": [
+          "affiliate_campaigns",
+          "website_campaigns",
+          "product_feed_preview",
+          "automatic_token_refresh",
+          "affiliate_deeplinks"
+        ],
+        "apiDocumentation": "https://developers.mitgo.com/hc/en-us/articles/34481290690834-Introduction",
+        "publicationEnabled": false,
+        "note": "Client credentials e tokens são criptografados. O token é renovado com refresh_token; o Website ID deve pertencer à sua conta."
+      },
+      "error": null
+    },
+    "/api/integrations/awin": {
+      "http_status": 200,
+      "body": {
+        "provider": "AWIN",
+        "status": "NOT_CONFIGURED",
+        "capabilities": [
+          "publisher_programmes",
+          "retail_product_feed_jsonl"
+        ],
+        "apiDocumentation": "https://help.awin.com/apidocs/introduction-1",
+        "publicationEnabled": false,
+        "note": "O token e o Publisher ID precisam ser emitidos pela Awin. Feed disponível apenas para anunciantes/idiomas autorizados na conta."
+      },
+      "error": null
+    },
+    "/api/integrations/temu": {
+      "http_status": 200,
+      "body": {
+        "provider": "TEMU",
+        "mode": "official_affiliate_portal_link_import",
+        "status": "MANUAL_LINK_WORKFLOW",
+        "capabilities": [
+          "validate_official_link_domain",
+          "create_pending_offer_draft",
+          "manual_campaign_link_import",
+          "manual_product_link_import",
+          "affiliate_tracking_confirmation"
+        ],
+        "unavailableWithoutAffiliateApi": [
+          "automated_product_discovery",
+          "automated_campaign_feed",
+          "programmatic_link_generation",
+          "commission_reports",
+          "conversion_reports"
+        ],
+        "publicationEnabled": false,
+        "note": "Use o link/código gerado no portal oficial de Afiliados Temu. A Open Platform pública não comprova acesso a uma API de afiliados."
+      },
+      "error": null
+    },
+    "/api/integrations/shein": {
+      "http_status": 200,
+      "body": {
+        "provider": "SHEIN",
+        "mode": "official_affiliate_center_link_import",
+        "status": "MANUAL_LINK_WORKFLOW",
+        "capabilities": [
+          "validate_official_link_domain",
+          "create_pending_offer_draft",
+          "manual_campaign_link_import",
+          "manual_product_link_import",
+          "affiliate_tracking_confirmation"
+        ],
+        "unavailableWithoutOfficialAffiliateAPI": [
+          "automated_product_discovery",
+          "automated_campaign_feed",
+          "programmatic_link_generation",
+          "commission_reports",
+          "conversion_reports"
+        ],
+        "publicationEnabled": false,
+        "note": "Não há endpoint público de afiliados validado neste projeto. A Open Platform pública da SHEIN é voltada à integração de vendedores. Use links gerados pela sua conta no Centro de Afiliados."
+      },
+      "error": null
+    }
+  },
+  "telegram_read_only_diagnostics": {
+    "Casa & Lar": {
+      "http_status": 200,
+      "checks": {
+        "botTokenValid": true,
+        "groupAccessible": true,
+        "membershipChecked": true,
+        "postingPermission": true
+      },
+      "readyForDelivery": true,
+      "sentMessage": false
+    },
+    "Pet": {
+      "http_status": 200,
+      "checks": {
+        "botTokenValid": true,
+        "groupAccessible": true,
+        "membershipChecked": true,
+        "postingPermission": true
+      },
+      "readyForDelivery": true,
+      "sentMessage": false
+    }
+  },
+  "live_report": {
+    "http_status": 200,
+    "days": 7,
+    "summary": {
+      "shared": 1538,
+      "clicks": 0,
+      "sales": 0,
+      "revenue": 0,
+      "commission": 0,
+      "conversionRate": 0,
+      "averageTicket": 0,
+      "averageCommission": 0
+    },
+    "duration_ms": 2525
+  },
+  "ci": {
+    "run_id": 42511074821,
+    "conclusion": "failure",
+    "failed_step": "npm test",
+    "audit_step": "skipped",
+    "e2e_step": "skipped"
+  },
+  "aws": {
+    "cli_available": false,
+    "profiles_found": [],
+    "outbound_identity_manifest_present": false
+  },
+  "ollama": {
+    "http_status": 200,
+    "configured": false,
+    "code": "OLLAMA_SETUP_REQUIRED"
+  },
+  "medication_name_candidates": [],
+  "scope_note": "Testes dos helpers de API executados com fontes derivadas no isolate, sem importar módulos do projeto nem escrever dados. Metadata GET não homologa API externa."
+}

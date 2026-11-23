@@ -1,0 +1,38 @@
+{
+  "dependency_audit": "0 vulnerabilidades reportadas no npm audit executado",
+  "license_metadata": {
+    "NOT_DECLARED": 4,
+    "Apache-2.0": 11,
+    "BSD-3-Clause": 12,
+    "MIT": 91,
+    "MPL-2.0": 1,
+    "ISC": 4
+  },
+  "secret_pattern_scan": [
+    {
+      "path": "tests/automation.test.mjs",
+      "pattern": "telegram_token"
+    }
+  ],
+  "secret_scan_limit": "481 arquivos atuais rastreados; o padrão Telegram encontrado está em assert de fixture, sem valor incluído neste artefato; não é varredura histórica nem garantia de ausência de segredos",
+  "live_root_security_headers": {
+    "x-content-type-options": "nosniff",
+    "content-security-policy": "frame-ancestors 'self' https://hatchable.com https://*.hatchable.com",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "strict-transport-security": "max-age=31536000; includeSubDomains"
+  },
+  "backup_targeted_test": "Falhou isolado por fixture inexistente (access_token_enc); no arquivo completo o teste de restauração passa",
+  "operations_full": {
+    "tests": 20,
+    "pass": 19,
+    "fail": 1,
+    "restore_36_tables_passed": true
+  },
+  "baseline_test_suite": {
+    "tests": 243,
+    "pass": 236,
+    "fail": 7,
+    "e2e_pass": 3,
+    "syntax_files_pass": 205
+  }
+}
