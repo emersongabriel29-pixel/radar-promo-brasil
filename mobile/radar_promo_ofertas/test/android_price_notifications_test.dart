@@ -45,7 +45,7 @@ void main() {
     final sent = await AndroidPriceNotifications.show(
       [const PriceAlert('fone', offer)],
     );
-    expect(sent, 1);
+    expect(sent.length, 1);
     expect(calls.map((call) => call.method),
         ['requestPermission', 'showPriceAlert']);
     final payload = calls.last.arguments as Map;
