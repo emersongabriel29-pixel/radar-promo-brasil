@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import 'screens/preferences.dart';
 import 'screens/app_version.dart';
+import 'screens/stores_coupons.dart';
 
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,10 +15,14 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'services/api.dart';
 import 'services/community.dart';
+import 'services/theme_preference.dart';
+import 'services/price_alerts.dart';
+import 'services/android_price_notifications.dart';
 import 'models/offer.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppThemePreference.load();
   runApp(const RadarPromoApp());
 }
 
@@ -30,8 +35,39 @@ class RadarPromoApp extends StatelessWidget {
   Widget build(BuildContext context) {
     const ink = Color(0xFF102A2A);
     const green = Color(0xFFB8F34A);
-    return MaterialApp(
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: AppThemePreference.mode,
+      builder: (context, themeMode, _) => MaterialApp(
       debugShowCheckedModeBanner: false,
+      themeMode: themeMode,
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF101B1B),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: green,
+          brightness: Brightness.dark,
+          surface: const Color(0xFF1B2929),
+          onSurface: const Color(0xFFF4F8F4),
+          onSurfaceVariant: const Color(0xFFD1DDD4),
+        ),
+        cardTheme: CardThemeData(
+          color: const Color(0xFF223333),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF101B1B),
+          foregroundColor: Color(0xFFF4F8F4),
+          elevation: 0,
+        ),
+        inputDecorationTheme: const InputDecorationTheme(
+          labelStyle: TextStyle(color: Color(0xFFD1DDD4)),
+          helperStyle: TextStyle(color: Color(0xFFD1DDD4)),
+        ),
+      ),
       title: 'Radar Promo Ofertas',
       theme: ThemeData(
         useMaterial3: true,
@@ -58,6 +94,7 @@ class RadarPromoApp extends StatelessWidget {
         ),
       ),
       home: HomeScreen(api: api, community: community),
+      ),
     );
   }
 }
@@ -76,13 +113,17 @@ class _HomeScreenState extends State<HomeScreen> {
   int tab = 0;
   String sort = 'recent';
   String category = '';
+  String storeFilter = '';
   List<Offer> offers = [];
   Set<String> favorites = {};
   Map<String, Offer> savedOffers = {};
+  final Set<String> knownCategories = {};
   bool loadingMore = false;
   bool hasMore = false;
   int requestVersion = 0;
+  int? pendingNextPage;
   bool loading = true;
+  bool showingCachedOffers = false;
   String? error;
   int page = 1;
   int total = 0;
@@ -159,12 +200,15 @@ class _HomeScreenState extends State<HomeScreen> {
       if (reset) {
         loading = true;
         loadingMore = false;
+        pendingNextPage = null;
         offers = [];
         total = 0;
         page = 1;
         hasMore = false;
+        showingCachedOffers = false;
       } else {
         loadingMore = true;
+        pendingNextPage = targetPage;
       }
     });
     try {
@@ -174,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
         category: category,
         sort: sort,
       );
-      if (!mounted || version != requestVersion) return;
+      if (!mounted || version != requestVersion || (!reset && pendingNextPage != targetPage)) return;
       setState(() {
         final merged = <String, Offer>{
           if (!reset)
@@ -182,25 +226,73 @@ class _HomeScreenState extends State<HomeScreen> {
           for (final offer in result.offers) offer.id: offer,
         };
         offers = merged.values.toList();
+        knownCategories.addAll(
+          result.offers.map((offer) => offer.category.trim()).where((name) => name.isNotEmpty),
+        );
         page = targetPage;
+        pendingNextPage = null;
         total = result.total;
         hasMore = result.hasMore;
         loading = false;
         loadingMore = false;
+        showingCachedOffers = false;
       });
+      if (reset && offers.isNotEmpty && search.text.trim().isEmpty && category.isEmpty && sort == 'recent') {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setStringList('last_real_offers_v1',
+            offers.take(60).map((offer) => jsonEncode(offer.toJson())).toList());
+      }
       await _persistFavorites();
+      if (mounted) {
+        final alerts = await PriceAlerts.check(offers);
+        if (mounted && alerts.isNotEmpty) {
+          final delivered = await AndroidPriceNotifications.show(alerts);
+          await PriceAlerts.markDelivered(delivered);
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('${alerts.length} oferta(s) encontradas dentro do preço desejado. Confira suas buscas.'),
+            action: SnackBarAction(label: 'Ver buscas', onPressed: () => setState(() => tab = 3)),
+          ));
+        }
+      }
     } catch (e) {
+      if (!mounted || version != requestVersion || (!reset && pendingNextPage != targetPage)) return;
+      final cached = <Offer>[];
+      if (reset && search.text.trim().isEmpty && category.isEmpty && sort == 'recent') {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          for (final raw in prefs.getStringList('last_real_offers_v1') ?? <String>[]) {
+            final offer = Offer.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+            if (offer.id.isNotEmpty) cached.add(offer);
+          }
+        } catch (_) {
+          cached.clear();
+        }
+      }
       if (!mounted || version != requestVersion) return;
       setState(() {
+        pendingNextPage = null;
         loading = false;
         loadingMore = false;
+        if (cached.isNotEmpty) {
+          offers = cached;
+          knownCategories.addAll(
+            cached.map((offer) => offer.category.trim()).where((name) => name.isNotEmpty),
+          );
+          total = cached.length;
+          hasMore = false;
+          showingCachedOffers = true;
+        }
         error = e.toString().replaceFirst('Exception: ', '');
       });
     }
   }
 
   List<Offer> get visibleOffers {
-    if (tab != 2) return offers;
+    if (tab != 2) {
+      if (storeFilter.isEmpty) return offers;
+      return offers.where((offer) => offer.source.trim().toLowerCase() == storeFilter.toLowerCase()).toList();
+    }
     final query = search.text.trim().toLowerCase();
     return savedOffers.values
         .where(
@@ -210,6 +302,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   '${o.title} ${o.source}'.toLowerCase().contains(query)),
         )
         .toList();
+  }
+
+  List<String> get availableCategories {
+    final names = knownCategories.toList()..sort();
+    return names;
+  }
+
+  void _selectCategory(String value) {
+    setState(() {
+      category = value;
+      tab = 0;
+    });
+    _load();
   }
 
   void _openOffer(Offer offer) {
@@ -289,8 +394,10 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.account_circle_outlined),
             onSelected: (section) => openCommunity(context, widget.community, section),
             itemBuilder: (_) => const [
-              PopupMenuItem(value: 'account', child: Text('Entrar / minha conta')),
-              PopupMenuItem(value: 'inbox', child: Text('Notificações da conta')),
+              PopupMenuItem(value: 'login', child: Text('Entrar na conta (site seguro)')),
+              PopupMenuItem(value: 'account', child: Text('Minha conta (site seguro)')),
+              PopupMenuItem(value: 'inbox', child: Text('Avisos da conta (site)')),
+              PopupMenuItem(value: 'submit', child: Text('Enviar oferta para análise')),
             ],
           ),
           IconButton(
@@ -305,6 +412,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ? _about()
             : tab == 3
             ? SavedSearchesScreen(
+                loadedOffers: offers,
                 onSearch: (query) {
                   setState(() {
                     search.text = query;
@@ -419,6 +527,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
+                  if (tab == 2) ...[
+                    Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.cloud_outlined),
+                        title: const Text('Favoritos da conta'),
+                        subtitle: const Text(
+                          'Consulte seus favoritos sincronizados no site seguro. '
+                          'Os favoritos abaixo são salvos somente neste aparelho.',
+                        ),
+                        trailing: const Icon(Icons.open_in_new),
+                        onTap: () => openCommunity(context, widget.community, 'account'),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   TextField(
                     controller: search,
                     onSubmitted: (_) {
@@ -452,19 +575,75 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  if (category.isNotEmpty && tab != 2)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: InputChip(
-                        label: Text(category),
-                        onDeleted: () {
-                          setState(() => category = '');
-                          _load();
-                        },
+                  if (tab == 0) ...[
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'score', label: Text('Destaques')),
+                        ButtonSegment(value: 'recent', label: Text('Recentes')),
+                        ButtonSegment(value: 'discount', label: Text('Descontos')),
+                      ],
+                      selected: {sort},
+                      onSelectionChanged: (selection) {
+                        if (selection.first == sort) return;
+                        setState(() => sort = selection.first);
+                        _load();
+                      },
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    const Text('Destaques seguem a pontuação do Radar; não representam votos da comunidade.',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF6B7C72))),
+                    if (tab == 0 && availableCategories.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      const Text('Filtrar por categoria', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 6),
+                      SizedBox(
+                        height: 38,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(right: 7),
+                              child: ChoiceChip(
+                                label: const Text('Todas'),
+                                selected: category.isEmpty,
+                                onSelected: (_) => _selectCategory(''),
+                              ),
+                            ),
+                            ...availableCategories.map((name) => Padding(
+                              padding: const EdgeInsets.only(right: 7),
+                              child: ChoiceChip(
+                                label: Text(name),
+                                selected: category == name,
+                                onSelected: (_) => _selectCategory(name),
+                              ),
+                            )),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                  ],
+                  if (tab == 0 && offers.isNotEmpty) ...[
+                    DropdownButtonFormField<String>(
+                      initialValue: storeFilter.isEmpty || offers.any((offer) => offer.source.trim() == storeFilter) ? storeFilter : '',
+                      isExpanded: true,
+                      decoration: const InputDecoration(labelText: 'Loja (ofertas carregadas)', border: OutlineInputBorder()),
+                      items: [
+                        const DropdownMenuItem(value: '', child: Text('Todas as lojas')),
+                        ...((offers.map((o) => o.source.trim()).where((v) => v.isNotEmpty).toSet().toList())..sort())
+                            .map((name) => DropdownMenuItem(value: name, child: Text(name, overflow: TextOverflow.ellipsis))),
+                      ],
+                      onChanged: (value) => setState(() => storeFilter = value ?? ''),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
                   if (error != null && offers.isNotEmpty && tab != 2)
-                    Text(error!, style: const TextStyle(color: Colors.red)),
+                    Text(showingCachedOffers
+                        ? 'Servidor indisponível. Exibindo ofertas consultadas anteriormente; preços e disponibilidade podem estar desatualizados. ${error!}'
+                        : error!, style: const TextStyle(color: Colors.red)),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -477,7 +656,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             fontSize: 12,
                           ),
                       ),
-                      if (tab != 2)
+                      if (tab != 2 && tab != 0)
                         DropdownButton<String>(
                           isExpanded: true,
                           value: sort,
@@ -515,10 +694,26 @@ class _HomeScreenState extends State<HomeScreen> {
             SliverFillRemaining(hasScrollBody: false, child: _errorState())
           else if (list.isEmpty)
             SliverFillRemaining(
-              child: _emptyState(
-                tab == 2
-                    ? 'Você ainda não salvou ofertas.'
-                    : 'Nenhuma oferta encontrada agora.',
+              hasScrollBody: false,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _emptyState(tab == 2
+                      ? 'Você ainda não salvou ofertas.'
+                      : storeFilter.isNotEmpty
+                          ? 'Nenhuma oferta desta loja nas páginas carregadas.'
+                          : 'Nenhuma oferta encontrada agora.'),
+                  if (tab != 2 && hasMore)
+                    TextButton(
+                      onPressed: loadingMore ? null : () => _load(reset: false),
+                      child: Text(loadingMore ? 'Carregando...' : 'Buscar nas próximas páginas'),
+                    ),
+                  if (tab != 2 && storeFilter.isNotEmpty)
+                    TextButton(
+                      onPressed: () => setState(() => storeFilter = ''),
+                      child: const Text('Limpar filtro de loja'),
+                    ),
+                ],
               ),
             )
           else
@@ -550,12 +745,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _categories() {
-    final categories = offers
-        .map((offer) => offer.category.trim())
-        .where((name) => name.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final categories = availableCategories;
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
@@ -576,7 +766,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (categories.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
-            child: Text('As categorias aparecerão quando as ofertas forem carregadas.'),
+            child: Text('As categorias aparecerão quando as ofertas forem carregadas. Se o servidor estiver indisponível, tente novamente mais tarde.'),
           ),
         ...categories.map(
           (c) => Card(
@@ -627,7 +817,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       const SizedBox(height: 12),
       const Text(
-        'Pesquise ofertas, salve seus produtos e confira as condições diretamente na loja.',
+        'As ofertas são recebidas pelas APIs do Radar Promo Brasil. O aplicativo organiza, filtra e exibe os dados recebidos, preservando os links de afiliado e seus parâmetros de rastreamento.',
       ),
       const SizedBox(height: 18),
       _infoTile(
@@ -646,6 +836,18 @@ class _HomeScreenState extends State<HomeScreen> {
         'Favoritos desta versão ficam armazenados localmente neste aparelho.',
       ),
       const SizedBox(height: 16),
+      ListTile(
+        leading: const Icon(Icons.storefront_outlined),
+        title: const Text('Lojas e cupons das ofertas carregadas'),
+        subtitle: const Text('Catálogo parcial; consulte validade na loja'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => StoresCouponsScreen(
+            offers: offers,
+            onOpen: (offer) => _openOffer(offer),
+          )),
+        ),
+      ),
       ListTile(
         leading: const Icon(Icons.settings_outlined),
         title: const Text('Preferências e dados locais'),
@@ -829,6 +1031,31 @@ class OfferCard extends StatelessWidget {
                         height: 1.25,
                       ),
                     ),
+                    if (offer.couponCode.isNotEmpty) ...[
+                      const SizedBox(height: 7),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEAF6D7),
+                          borderRadius: BorderRadius.circular(7),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.confirmation_number_outlined, size: 13, color: Color(0xFF315B20)),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                'Cupom ${offer.couponCode}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF315B20)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 7),
                     Text(
                       offer.hasPrice ? money.format(offer.currentPrice) : 'Preço indisponível',
@@ -991,6 +1218,13 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
             },
           ),
           OutlinedButton.icon(
+            icon: const Icon(Icons.cloud_upload_outlined),
+            label: const Text('Salvar ou remover dos favoritos da conta'),
+            onPressed: () => openCommunity(
+              context, widget.community, 'offer', offerId: offer.id,
+            ),
+          ),
+          OutlinedButton.icon(
             icon: const Icon(Icons.forum_outlined),
             label: const Text('Votos e comentários'),
             onPressed: () => openCommunity(
@@ -998,7 +1232,9 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
             ),
           ),
           const Text(
-            'Sua conta abre em uma aba segura. Os favoritos deste aparelho continuam disponíveis em Salvos.',
+            'Na página segura, entre na sua conta e use “Salvar na conta” ou '
+            '“Remover da conta”. Os favoritos do ícone acima continuam '
+            'salvos somente neste aparelho.',
           ),
           _detailLine(
             'Oferta recebida em',

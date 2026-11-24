@@ -1,11 +1,16 @@
+import 'dart:convert';
 // Keep compatibility with Flutter versions before Material UI was split.
 // ignore: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/theme_preference.dart';
+import '../models/offer.dart';
+import '../services/local_price_matches.dart';
 
 class SavedSearchesScreen extends StatefulWidget {
-  const SavedSearchesScreen({super.key, required this.onSearch});
+  const SavedSearchesScreen({super.key, required this.onSearch, this.loadedOffers = const []});
   final ValueChanged<String> onSearch;
+  final List<Offer> loadedOffers;
   @override
   State<SavedSearchesScreen> createState() => _SavedSearchesScreenState();
 }
@@ -13,6 +18,8 @@ class SavedSearchesScreen extends StatefulWidget {
 class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
   final input = TextEditingController();
   List<String> searches = [];
+  Map<String, double> targetPrices = {};
+  Set<String> mutedSearches = {};
   bool ready = false;
 
   @override
@@ -23,9 +30,26 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
 
   Future<void> _read() async {
     final prefs = await SharedPreferences.getInstance();
+    final storedPrices = prefs.getString('saved_search_target_prices');
+    final prices = <String, double>{};
+    if (storedPrices != null) {
+      try {
+        final decoded = jsonDecode(storedPrices);
+        if (decoded is Map) {
+          for (final entry in decoded.entries) {
+            final value = entry.value;
+            if (entry.key is String && value is num && value.isFinite && value > 0) {
+              prices[entry.key as String] = value.toDouble();
+            }
+          }
+        }
+      } catch (_) { /* Invalid local preference is ignored. */ }
+    }
     if (mounted) {
       setState(() {
         searches = prefs.getStringList('saved_searches') ?? [];
+        targetPrices = prices;
+        mutedSearches = (prefs.getStringList('saved_search_muted') ?? []).toSet();
         ready = true;
       });
     }
@@ -53,11 +77,85 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
     }
   }
 
+  Future<void> _editTarget(String term) async {
+    // Keep the input owned by the dialog rather than disposing a controller
+    // while Flutter is still unmounting its focused TextField.
+    var inputValue = targetPrices[term]?.toStringAsFixed(2).replaceAll('.', ',') ?? '';
+    final value = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        scrollable: true,
+        title: Text('Preço desejado: $term'),
+        content: TextFormField(
+          initialValue: inputValue,
+          autofocus: false,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: (value) => inputValue = value,
+          decoration: const InputDecoration(
+            labelText: 'Preço máximo (R\$)',
+            helperText: 'Alerta local ao atualizar ofertas; sem monitoramento em segundo plano.',
+            helperMaxLines: 3,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, -1.0),
+            child: const Text('Sem limite'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final raw = inputValue.trim().replaceAll(' ', '');
+              final normalized = raw.contains(',')
+                  ? raw.replaceAll('.', '').replaceAll(',', '.')
+                  : raw;
+              final amount = double.tryParse(normalized);
+              if (amount == null || !amount.isFinite || amount <= 0 || amount > 100000000) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('Informe um preço válido maior que zero.')),
+                );
+                return;
+              }
+              Navigator.pop(dialogContext, amount);
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || value == null) return;
+    final next = Map<String, double>.from(targetPrices);
+    if (value < 0) {
+      next.remove(term);
+    } else {
+      next[term] = value;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_search_target_prices', jsonEncode(next));
+    if (mounted) setState(() => targetPrices = next);
+  }
+
+  Future<void> _toggleMute(String term) async {
+    final next = Set<String>.from(mutedSearches);
+    if (!next.add(term)) next.remove(term);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('saved_search_muted', next.toList());
+    if (mounted) setState(() => mutedSearches = next);
+  }
+
   Future<void> _remove(String term) async {
     final next = searches.where((s) => s != term).toList();
+    final prices = Map<String, double>.from(targetPrices)..remove(term);
+    final muted = Set<String>.from(mutedSearches)..remove(term);
+    // Dismissible must leave the widget tree synchronously after dismissal.
+    if (mounted) setState(() { searches = next; targetPrices = prices; mutedSearches = muted; });
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('saved_searches', next);
-    if (mounted) setState(() => searches = next);
+    await prefs.setString('saved_search_target_prices', jsonEncode(prices));
+    await prefs.setStringList('saved_search_muted', muted.toList());
   }
 
   @override
@@ -98,22 +196,46 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
           ),
         ),
       ...searches.map(
-        (term) => Card(
+        (term) => Dismissible(
+          key: ValueKey(term),
+          direction: DismissDirection.endToStart,
+          background: Container(alignment: Alignment.centerRight, padding: const EdgeInsets.all(16), color: Colors.red.shade100, child: const Icon(Icons.delete_outline)),
+          onDismissed: (_) => _remove(term),
+          child: Card(
           child: ListTile(
             leading: const Icon(Icons.search),
             title: Text(term),
+            subtitle: Text('${mutedSearches.contains(term) ? 'Pausada localmente · ' : ''}'
+                '${targetPrices.containsKey(term) ? 'Preço desejado: R\$ ${targetPrices[term]!.toStringAsFixed(2).replaceAll('.', ',')}' : 'Sem preço máximo'}'
+                '${!mutedSearches.contains(term) && targetPrices.containsKey(term) ? ' · ${LocalPriceMatches.find(widget.loadedOffers, query: term, maximumPrice: targetPrices[term]!).length} correspondência(s) nas ofertas carregadas' : ''}'),
             onTap: () => widget.onSearch(term),
-            trailing: IconButton(
-              tooltip: 'Excluir busca',
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () => _remove(term),
+            onLongPress: () => _editTarget(term),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: mutedSearches.contains(term) ? 'Reativar busca' : 'Pausar busca',
+                  icon: Icon(mutedSearches.contains(term) ? Icons.notifications_off_outlined : Icons.notifications_active_outlined),
+                  onPressed: () => _toggleMute(term),
+                ),
+                IconButton(
+                  tooltip: 'Definir preço desejado',
+                  icon: const Icon(Icons.price_change_outlined),
+                  onPressed: () => _editTarget(term),
+                ),
+              ],
             ),
+          ),
           ),
         ),
       ),
       const SizedBox(height: 16),
       const Text(
-        'As buscas ficam neste aparelho. Esta versão não envia alertas ou notificações em segundo plano.',
+        'Para excluir uma busca, deslize o cartão para o lado. Pausar uma busca também desativa seus alertas locais.',
+      ),
+      const SizedBox(height: 8),
+      const Text(
+        'As buscas ficam neste aparelho. Alertas de preço são verificados quando as ofertas são carregadas; não há notificações em segundo plano.',
         style: TextStyle(color: Color(0xFF6B7C72)),
       ),
     ],
@@ -151,7 +273,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     if (confirm != true || !mounted) return;
     setState(() => working = true);
     final prefs = await SharedPreferences.getInstance();
-    for (final key in ['favorites', 'saved_offers', 'saved_searches']) {
+    for (final key in ['favorites', 'saved_offers', 'saved_searches', 'saved_search_target_prices', 'saved_search_muted', 'price_alert_seen_v1', 'last_real_offers_v1']) {
       await prefs.remove(key);
     }
     if (!mounted) return;
@@ -177,7 +299,27 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
         const ListTile(
           leading: Icon(Icons.notifications_none),
           title: Text('Notificações'),
-          subtitle: Text('Alertas push ainda não estão disponíveis.'),
+          subtitle: Text('Alertas locais de preço ao carregar ofertas; push em segundo plano indisponível.'),
+        ),
+        const SizedBox(height: 12),
+        ValueListenableBuilder<ThemeMode>(
+          valueListenable: AppThemePreference.mode,
+          builder: (context, selected, _) => ListTile(
+            leading: const Icon(Icons.palette_outlined),
+            title: const Text('Aparência'),
+            subtitle: const Text('Tema do aparelho, claro ou escuro'),
+            trailing: DropdownButton<ThemeMode>(
+              value: selected,
+              items: const [
+                DropdownMenuItem(value: ThemeMode.system, child: Text('Sistema')),
+                DropdownMenuItem(value: ThemeMode.light, child: Text('Claro')),
+                DropdownMenuItem(value: ThemeMode.dark, child: Text('Escuro')),
+              ],
+              onChanged: (value) {
+                if (value != null) AppThemePreference.setMode(value);
+              },
+            ),
+          ),
         ),
         const SizedBox(height: 20),
         OutlinedButton.icon(

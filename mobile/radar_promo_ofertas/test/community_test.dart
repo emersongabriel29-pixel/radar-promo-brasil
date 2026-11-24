@@ -33,7 +33,8 @@ void main() {
       offer: Offer.fromJson({'id':'real-route','title':'Oferta de teste local'}),
       isFavorite:false, onFavorite:(){}, community:links,
     )));
-    await tester.scrollUntilVisible(find.text('Votos e comentários'), 200);
+    await tester.ensureVisible(find.text('Votos e comentários'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Votos e comentários'));
     await tester.pumpAndSettle();
     expect(requested, 'real-route');
