@@ -63,7 +63,7 @@ void main() {
   });
 
   test('does not request permission without alerts', () async {
-    expect(await AndroidPriceNotifications.show([]), 0);
+    expect(await AndroidPriceNotifications.show([]), isEmpty);
     expect(calls, isEmpty);
   });
 }
