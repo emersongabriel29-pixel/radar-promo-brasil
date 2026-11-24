@@ -34,23 +34,22 @@ As abas Quentes, Mais baratos, Comentadas e Discussões não foram adicionadas c
 APIs oficiais e fontes integradas ao Radar Promo Brasil
                   |
                   v
-api/public/offers-feed.js
-                  |
-       autenticação servidor-servidor
+APIs oficiais e fontes integradas ao Radar Promo Brasil
                   |
                   v
-Radar Promo Ofertas — /api/offers
+Banco Supabase (espelho operacional)
                   |
-         JSON validado e sanitizado
+      Edge Function read-only
+      radar-offers-feed
                   |
                   v
 Radar Promo Ofertas — aplicativo Flutter
 ```
 
-- O app consulta exclusivamente `https://radar-promo-ofertas.hatchable.site/api/offers`.
-- O proxy chama `https://radar-promo-brasil.hatchable.site/api/public/offers-feed`.
-- `RADAR_API_TOKEN` e `RADAR_OFFERS_FEED_TOKEN` permanecem no servidor. Nenhum segredo é incluído no APK, no Flutter ou em `--dart-define`.
-- O proxy aceita apenas o host/caminho esperado, restringe os parâmetros e valida o contrato.
+- O app consulta `https://runnmpzkomcdawwzuift.supabase.co/functions/v1/radar-offers-feed`.
+- A Edge Function executa SQL somente de leitura no Supabase usando `SUPABASE_DB_URL` do ambiente gerenciado; não aceita SQL, conta, tabela ou colunas fornecidas pelo cliente.
+- O endpoint fixa a conta Radar, restringe paginação e ordenação, seleciona apenas campos públicos e mantém os links afiliados HTTPS sem modificar seus parâmetros.
+- A resposta exige preço oficial verificado nas últimas 24 horas e correspondência entre preço atual e último histórico oficial. O APK não recebe credenciais privilegiadas.
 - `affiliateUrl` e seus parâmetros são mantidos no modelo do app. O app só abre URLs HTTPS sem credenciais embutidas.
 - O feed principal só retorna ofertas nos estados públicos permitidos e com histórico de preço oficial recente; o app não inventa nem completa preços ausentes.
 
@@ -65,10 +64,11 @@ Radar Promo Ofertas — aplicativo Flutter
 
 - Projeto Radar Promo Brasil verificado em 24/11/2026: versão 674.
 - Projeto Radar Promo Ofertas verificado em 24/11/2026: versão 3.
-- A execução diagnóstica de `/api/offers` retornou `429 usage_limit` da plataforma antes da validação do handler. Portanto, ainda não há evidência de resposta 200 com ofertas reais.
-- O projeto Radar Promo Ofertas está classificado como `personal`; a disponibilidade anônima externa precisa ser confirmada pelo proprietário nas configurações.
-- O ambiente desta sessão não possui Flutter/Dart instalados. A análise, os testes e a compilação devem ser confirmados pelo workflow do GitHub Actions.
-- Nenhuma alteração foi feita nos dados, credenciais, visibilidade dos projetos ou publicação de ofertas.
+- O endpoint anterior do Hatchable retornou `429 usage_limit` antes de executar o handler.
+- O espelho Supabase contém 10.360 ofertas e 22 categorias, mas a última atualização das ofertas observada foi em 13/11/2026; `offer_price_history` contém 0 registros. Portanto, a Edge Function corretamente retorna feed vazio até que o Radar volte a sincronizar e validar preços recentes.
+- A Edge Function Supabase foi criada e está ACTIVE na versão 2; `verify_jwt=false` porque o feed é público, mas o código restringe a leitura a uma conta e campos públicos, sem permitir operações de escrita.
+- A execução HTTP real da função e a CI do novo commit ainda precisam ser confirmadas.
+- Nenhuma linha de dados, segredo, visibilidade de projeto, publicação ou credencial foi alterada.
 
 ## Regra de continuidade
 
