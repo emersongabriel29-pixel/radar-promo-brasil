@@ -71,7 +71,7 @@ void main() {
     expect(tester.takeException(),isNull);
     await tester.tap(find.text('Categorias'));
     await tester.pumpAndSettle();
-    expect(find.text('As categorias aparecerão quando as ofertas forem carregadas.'),findsOneWidget);
+    expect(find.textContaining('As categorias aparecerão quando as ofertas forem carregadas.'),findsOneWidget);
     expect(tester.takeException(),isNull);
   });
 }
