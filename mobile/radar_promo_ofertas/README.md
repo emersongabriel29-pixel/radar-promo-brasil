@@ -17,17 +17,16 @@ Cliente Flutter independente. O Radar Promo Brasil e seus dados não foram alter
 - Paginação sem cliques concorrentes, sem duplicar IDs e sem sobrescrever uma busca mais recente com uma resposta antiga.
 
 ## Integração e pendências reais
-O cliente consulta exclusivamente `https://radar-promo-ofertas.hatchable.site/api/offers`.
-O proxy consulta o feed do Radar Promo Brasil; a credencial pertence somente aos servidores.
+O cliente consulta exclusivamente a Edge Function pública e somente de leitura `https://runnmpzkomcdawwzuift.supabase.co/functions/v1/radar-offers-feed`, que acessa o PostgreSQL Supabase no servidor. O endpoint não depende do proxy Hatchable pausado e não expõe credenciais no APK.
 **Nunca coloque credenciais no APK, no código Flutter ou em `--dart-define`.**
 
 Estado verificado em 24/11/2026:
 - Radar Promo Brasil: versão 674; endpoint protegido `api/public/offers-feed.js`.
 - Radar Promo Ofertas: versão 3; endpoint público declarado `/api/offers`, que consulta o feed principal por `lib/radar-feed.js`.
 - Contrato do feed: `{source, generatedAt, page, limit, total, hasMore, offers}`. Os parâmetros de ordenação suportados pelo servidor são `recent`, `discount` e `score`.
-- O proxy valida o host e o caminho do Radar, usa `RADAR_API_TOKEN` somente no servidor e remove a chave interna de armazenamento de imagens da resposta.
+- A Edge Function usa `SUPABASE_DB_URL` apenas no ambiente server-side, consulta um conjunto fixo de colunas e conta, limita paginação a 60 itens e só devolve ofertas com histórico oficial de preço verificado nas últimas 24 horas. Nenhuma chave privilegiada entra no APK.
 - O APK não contém token nem envia cabeçalho `Authorization`; os links `affiliateUrl` são preservados e só são abertos quando HTTPS válido.
-- A execução diagnóstica de `/api/offers` em 24/11 retornou `429 usage_limit` da plataforma antes de validar o handler. O GET público com retorno 200 continua pendente; portanto o APK foi compilado e testado, mas ainda não foi homologado com ofertas reais em aparelho.
+- O endpoint anterior `/api/offers` retornava `429 usage_limit` antes do handler. O novo endpoint Supabase foi criado para contornar esse bloqueio. A tabela de histórico de preço no Supabase está vazia e as ofertas espelhadas estão desatualizadas (última atualização observada em 13/11/2026); por segurança, o novo feed não as apresenta como atuais. O retorno HTTP real da Edge Function e o primeiro lote de ofertas atualizadas ainda precisam ser validados.
 
 A visibilidade atual do projeto Radar Promo Ofertas é `personal` no cadastro da plataforma. O proprietário precisa confirmar/alterar a visibilidade nas configurações e regularizar o limite de execução. Nenhuma visibilidade foi alterada e nenhum plano foi contratado nesta tarefa. O status das duas credenciais servidor-a-servidor não foi exposto nem copiado para o APK.
 
