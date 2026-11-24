@@ -1,0 +1,14 @@
+[[config]]
+name = "radar_api_url"
+required = true
+default = "https://radar-promo-brasil.hatchable.site/api/public/offers-feed"
+description = "Endpoint de leitura do Radar Promo Brasil. Não altere para outro host sem validar a origem."
+
+[[secret]]
+name = "RADAR_API_TOKEN"
+required = true
+description = "Token Bearer exclusivo compartilhado com o endpoint de feed do Radar Promo Brasil. Configurar somente no Setup; nunca colocar no aplicativo Android, código ou GitHub."
+
+[auth]
+enabled = true
+providers = ["email"]

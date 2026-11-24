@@ -104,3 +104,42 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 
 
 | 2026-11-08 | Aumento do lote técnico do autopilot para 200 e dispatcher Telegram para 14 | lib/autopilot, cache de imagem, worker WhatsApp, settings de publicação | Dry-run anterior sem erros/avisos; configuração DB batch=14/interval=5 confirmada; sem alteração de filtro de elegibilidade | commits 04dae24a, fc1a1059, 7551724f | draft para v664 | Próximo deploy; homologação de WhatsApp bloqueada por ausência de conexão |
+
+
+| 2026-11-16 | Preparação de GitHub Actions para APK Flutter independente | Novo workflow radar-android.yml e documentação ANDROID-BUILD; fonte prevista em mobile/radar_promo_ofertas | Revisão do inventário e documentação; nenhum teste Flutter/build executado porque fonte ainda não importado e runtime local indisponível | Consultar commit desta branch android/github-actions-build | v671 preservada; sem deploy | Configurado em branch; não homologado e sem APK novo; documentação não espelhada no Hatchable |
+
+
+| 2026-11-16 | Adequação à decisão do usuário: desenvolver e validar antes de gerar APK | Workflow Android passa a análise e testes; removidos build, pacote e upload; índice e documento do domínio atualizados | Inventário da branch confirma fonte ausente; execução local indisponível; nenhum teste Flutter executado | Consultar commit desta retomada na branch android/github-actions-build | Sem deploy; sistema original preservado | Configuração revisada; fonte e validação funcional pendentes; sem sincronização Hatchable |
+
+
+| 2026-11-16 | Auditoria Android das 23 áreas, com relatório e evidências agregadas | Docs de Android, índice e evidências; inspeção read-only GitHub/Hatchable/Supabase | CI web do commit 9b893e5 aprovado; 2 testes isolados concluídos; 23 áreas registradas (16 parciais, 6 bloqueadas, entrega adiada); API 429 e fonte Flutter indisponível; nenhuma aprovação integral | Consultar commit documental desta auditoria na PR 202 | v671/v1 preservadas, sem deploy | Relatório parcial com bloqueios explícitos; nenhum APK; documentação não espelhada no Hatchable |
+
+
+| 2026-11-16 | Backend independente de comunidade, URLs assinadas de imagem e reconciliação dos helpers Supabase | independent/radar-promo-ofertas, feed original, helpers, testes e documento de remediação | Dry-run independente passou após correção; CI e execução real pendentes; origem contém 10.360 ofertas; cópia de dados não confirmada | Commit desta rodada na PR 202 | Publicação a registrar no adendo final | Sem APK; quota, visibilidade, fonte Flutter e migração continuam explicitamente pendentes |
+
+
+| 2026-11-16 | Validação final e bloqueio de publicação da remediação Android | Relatório final, plano de transferência e migração do checkpoint privado | CI 43983201094: 255 testes unitários e 3 de navegador aprovados, build/audit aprovados; 19 arquivos WIP conferidos; publicação recusada pela revisão automática | Código 60e8087; commit documental desta conclusão | Radar v671 e Ofertas v1 preservados | Correções testadas em branch/WIP; produção, transferência, quota e fonte Flutter pendentes; nenhum APK |
+
+
+| 2026-11-16 | Publicação autorizada e recuperação do fonte Flutter | Radar v672, Ofertas v2; mobile/radar_promo_ofertas e workflow de validação | Cinco tabelas próprias confirmadas; wrapper Gradle conferido por hash; testes Flutter atuais ainda pendentes; API 429 persiste; cópia de catálogo em andamento | Commit desta recuperação na PR 202 | v672/v2 publicadas após autorização explícita | Sem APK, sem cutover; integração nativa e reconciliação da cópia ainda pendentes |
+
+
+| 2026-11-16 | Conclusão das publicações autorizadas, cópia de catálogo e recuperação Flutter | Radar v672, Ofertas v2; Supabase e mobile/radar_promo_ofertas | Contagens/assinaturas iguais: 2 contas, 22 categorias, 1 cupom, 10.360 ofertas; 55 lotes sem conflitos; CI Flutter 43994639891 e web 43994639761 aprovados | Recuperação f58a4ce; commit documental desta conclusão na PR 202 | v672/v2 live | Origem preservada, sem cutover e sem APK; quota, visibilidade, integração nativa da comunidade e push ainda pendentes |
+
+| 2026-11-17 | Conexão da comunidade ao Flutter por aba segura do navegador | Flutter, páginas próprias, GET de autoria e avisos transacionais de respostas | Dois testes JS locais aprovados; Chromium local bloqueado por socket; Flutter e suíte completa seguem para Actions | Commit desta etapa na PR 202 | Original v672 preservado; independente v2 antes da publicação | Sem APK; produção bloqueada por quota/visibilidade e push não configurado; detalhes em COMUNIDADE-ANDROID-2026-11-17.md |
+
+| 2026-11-17 | Validação da comunidade e bloqueio de publicação | Flutter, backend independente e documentação | Código b4991b7: 10 Flutter, 258 unitários e 6 de navegador aprovados; build e audit aprovados; 7 arquivos equivalentes ao WIP | b4991b7; adendo documental desta rodada | Radar v672 e Ofertas v2 preservadas | Novo deploy recusado pela revisão automática; necessita autorização específica; sem APK |
+
+| 2026-11-20 | Publicação específica autorizada da comunidade Android | Ofertas v3; sete arquivos de código e documentação privada | Dry-run zero erros; manifesto equivalente ao GitHub; CIs 44226053359 e 44226053347 aprovadas; leituras pós-deploy 429 usage_limit | Código b4991b7; HEAD anterior d6b82af; commit documental desta publicação | Ofertas v3 live; Radar v672 preservado | Sem APK; quota, visibilidade personal, push e homologação real pendentes; ver DEPLOY-OFERTAS-V3-2026-11-20.md |
+
+| 2026-11-20 | Geração de APK de teste solicitada expressamente pelo proprietário | Novo workflow radar-apk-requested.yml; Flutter ARM64 0.3.0+3 via flags | Build e verificação de assinatura a executar; nenhuma nova alteração de aplicativo/backend | Commit desta geração na PR 202 | Ofertas v3 e Radar v672 preservados | APK em preparação; não homologado e sem publicação em loja |
+
+| 2026-11-20 | Entrega do APK de teste solicitado | Radar Promo Ofertas 0.3.0+3 ARM64, 18.421.380 bytes | Actions 44727253742: análise, 10 testes, build, assinatura v2 e launcher aprovados; SHA-256 local igual ao CI | Fonte 72d07d9; commit documental desta entrega | Backend Ofertas v3 e original v672 preservados | Arquivo disponibilizado; sem teste físico/homologação online ou publicação em loja |
+
+| 2026-11-20 | Auditoria completa do aplicativo após vídeo do usuário | 30 áreas; Flutter, APK, feed original, backend e Supabase; correções SQL/versão/UX/metadados | 21/21 arquivos independentes iguais à v3; API 429; catálogo Supabase contado; regressões e compilação nativa a executar | Commit desta auditoria na PR 202 | Radar v672 e Ofertas v3 preservados | Reprovado para produção; sem cutover, segredos, mensagens ou novo APK distribuído |
+
+| 2026-11-20 | Conclusão da auditoria completa do aplicativo e regressões corrigidas | 30 áreas; filtro ID, versão nativa, preços/datas, categorias, privacidade e fonte ampliada | Fonte a132abd: Flutter 44732326516 (15 testes + build debug); web 44732326723 (260 unitários, 6 navegador, build/audit sem vulnerabilidades reportadas); dry-run original zero erros/avisos | a132abde3475a0c4a05f3a28563761de458d6263; commit documental desta conclusão | Radar v672 e Ofertas v3 preservados; filtro ID preparado no WIP | Reprovado para produção: API429, visibilidade, migração parcial, assinatura/push e homologação pendentes; APK instalado não alterado |
+
+| 2026-11-20 | Novo APK solicitado após auditoria | Build 0.3.1+4, fonte auditada e certificado público de nova chave persistente | Compilação e assinatura em preparação; nenhum segredo no GitHub | Commit desta geração | Ofertas v3 e Radar v672 preservados | Sem homologação online; novos recursos locais ainda fora deste build |
+
+| 2026-11-20 | Entrega APK 0.3.1+4 com correções auditadas e assinatura persistente local | Workflow solicitado, fingerprint público e evidências | Actions 44792133980 aprovado; 15 testes Flutter; assinatura v2/v3 e SHA-256 final conferidos; sem teste físico | Fonte c050315; commit documental desta entrega | Radar v672 / Ofertas v3 preservados, sem deploy | Push, exclusão de conta, moderação e CI com chave privada pendentes; documentação WIP espelhada, sem sincronização integral |

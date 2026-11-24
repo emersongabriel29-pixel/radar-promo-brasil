@@ -1,0 +1,10 @@
+00:00 +0: loading test/offers_api_test.dart
+00:00 +0: test/offers_api_test.dart: decimal prices and saved offers round trip without losing affiliate parameters
+00:00 +1: test/offers_api_test.dart: feed uses server pagination and encodes filter text
+00:00 +2: test/offers_api_test.dart: HTML sign in page is rejected instead of appearing as empty feed
+00:00 +3: test/offers_api_test.dart: quota error is translated without exposing infrastructure internals
+00:00 +4: test/offers_api_test.dart: empty page terminates pagination even for inconsistent upstream flag
+00:00 +5: test/home_test.dart: saved offers remain visible when the live feed is unavailable
+00:01 +6: test/home_test.dart: bottom navigation reaches searches and privacy on narrow screens
+00:01 +7: test/home_test.dart: favorite button updates in offer detail
+00:02 +8: All tests passed!
