@@ -117,6 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Offer> offers = [];
   Set<String> favorites = {};
   Map<String, Offer> savedOffers = {};
+  final Set<String> knownCategories = {};
   bool loadingMore = false;
   bool hasMore = false;
   int requestVersion = 0;
@@ -225,6 +226,9 @@ class _HomeScreenState extends State<HomeScreen> {
           for (final offer in result.offers) offer.id: offer,
         };
         offers = merged.values.toList();
+        knownCategories.addAll(
+          result.offers.map((offer) => offer.category.trim()).where((name) => name.isNotEmpty),
+        );
         page = targetPage;
         pendingNextPage = null;
         total = result.total;
@@ -272,6 +276,9 @@ class _HomeScreenState extends State<HomeScreen> {
         loadingMore = false;
         if (cached.isNotEmpty) {
           offers = cached;
+          knownCategories.addAll(
+            cached.map((offer) => offer.category.trim()).where((name) => name.isNotEmpty),
+          );
           total = cached.length;
           hasMore = false;
           showingCachedOffers = true;
@@ -295,6 +302,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   '${o.title} ${o.source}'.toLowerCase().contains(query)),
         )
         .toList();
+  }
+
+  List<String> get availableCategories {
+    final names = knownCategories.toList()..sort();
+    return names;
+  }
+
+  void _selectCategory(String value) {
+    setState(() {
+      category = value;
+      tab = 0;
+    });
+    _load();
   }
 
   void _openOffer(Offer offer) {
@@ -575,6 +595,35 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 8),
                     const Text('Destaques seguem a pontuação do Radar; não representam votos da comunidade.',
                         style: TextStyle(fontSize: 11, color: Color(0xFF6B7C72))),
+                    if (tab == 0 && availableCategories.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      const Text('Filtrar por categoria', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 6),
+                      SizedBox(
+                        height: 38,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(right: 7),
+                              child: ChoiceChip(
+                                label: const Text('Todas'),
+                                selected: category.isEmpty,
+                                onSelected: (_) => _selectCategory(''),
+                              ),
+                            ),
+                            ...availableCategories.map((name) => Padding(
+                              padding: const EdgeInsets.only(right: 7),
+                              child: ChoiceChip(
+                                label: Text(name),
+                                selected: category == name,
+                                onSelected: (_) => _selectCategory(name),
+                              ),
+                            )),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 10),
                   ],
                   if (tab == 0 && offers.isNotEmpty) ...[
@@ -591,17 +640,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 10),
                   ],
-                  if (category.isNotEmpty && tab != 2)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: InputChip(
-                        label: Text(category),
-                        onDeleted: () {
-                          setState(() => category = '');
-                          _load();
-                        },
-                      ),
-                    ),
                   if (error != null && offers.isNotEmpty && tab != 2)
                     Text(showingCachedOffers
                         ? 'Servidor indisponível. Exibindo ofertas consultadas anteriormente; preços e disponibilidade podem estar desatualizados. ${error!}'
@@ -707,12 +745,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _categories() {
-    final categories = offers
-        .map((offer) => offer.category.trim())
-        .where((name) => name.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final categories = availableCategories;
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
@@ -784,7 +817,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       const SizedBox(height: 12),
       const Text(
-        'Pesquise ofertas, salve seus produtos e confira as condições diretamente na loja.',
+        'As ofertas são recebidas pelas APIs do Radar Promo Brasil. O aplicativo organiza, filtra e exibe os dados recebidos, preservando os links de afiliado e seus parâmetros de rastreamento.',
       ),
       const SizedBox(height: 18),
       _infoTile(
@@ -998,6 +1031,31 @@ class OfferCard extends StatelessWidget {
                         height: 1.25,
                       ),
                     ),
+                    if (offer.couponCode.isNotEmpty) ...[
+                      const SizedBox(height: 7),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEAF6D7),
+                          borderRadius: BorderRadius.circular(7),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.confirmation_number_outlined, size: 13, color: Color(0xFF315B20)),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                'Cupom ${offer.couponCode}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF315B20)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 7),
                     Text(
                       offer.hasPrice ? money.format(offer.currentPrice) : 'Preço indisponível',

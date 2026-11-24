@@ -20,7 +20,9 @@ void main() {
   });
 
   testWidgets('feed displays a fetched offer and can save it', (tester) async {
+    final requests = <Map<String, String>>[];
     final api = OffersApi(client: MockClient((request) async {
+      requests.add(request.url.queryParameters);
       return http.Response(jsonEncode({
         'offers': [
           {
@@ -28,6 +30,8 @@ void main() {
             'title': 'Produto para teste',
             'source': 'Loja de teste',
             'currentPrice': 49.90,
+            'category': 'Tecnologia',
+            'couponCode': 'RADAR10',
             'affiliateUrl': 'https://example.com/offer'
           }
         ],
@@ -38,9 +42,21 @@ void main() {
 
     await tester.pumpWidget(RadarPromoApp(api: api));
     await tester.pumpAndSettle();
+    expect(find.byType(ChoiceChip), findsWidgets);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    await tester.tap(find.text('Tecnologia').first);
+    await tester.pumpAndSettle();
+    expect(requests.last['category'], 'Tecnologia');
+    await tester.scrollUntilVisible(
+      find.text('Produto para teste'),
+      200,
+      scrollable: find.byWidgetPredicate(
+        (widget) => widget is Scrollable && widget.axisDirection == AxisDirection.down,
+      ),
+    );
     expect(find.text('Produto para teste'), findsWidgets);
     expect(find.text('Loja de teste'), findsWidgets);
-    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.text('Cupom RADAR10'), findsOneWidget);
     await tester.tap(find.byIcon(Icons.bookmark_border).first);
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.bookmark), findsWidgets);

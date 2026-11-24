@@ -45,7 +45,7 @@ void main() {
     final sent = await AndroidPriceNotifications.show(
       [const PriceAlert('fone', offer)],
     );
-    expect(sent, 1);
+    expect(sent.length, 1);
     expect(calls.map((call) => call.method),
         ['requestPermission', 'showPriceAlert']);
     final payload = calls.last.arguments as Map;
@@ -58,12 +58,12 @@ void main() {
     final sent = await AndroidPriceNotifications.show(
       [const PriceAlert('fone', offer)],
     );
-    expect(sent, 0);
+    expect(sent, isEmpty);
     expect(calls.map((call) => call.method), ['requestPermission']);
   });
 
   test('does not request permission without alerts', () async {
-    expect(await AndroidPriceNotifications.show([]), 0);
+    expect(await AndroidPriceNotifications.show([]), isEmpty);
     expect(calls, isEmpty);
   });
 }

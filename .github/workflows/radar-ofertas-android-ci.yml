@@ -1,0 +1,70 @@
+name: Radar Promo Ofertas Android CI
+
+on:
+  push:
+    branches:
+      - codex/android-pelando-inspired-ui-20261124
+    paths:
+      - 'mobile/radar_promo_ofertas/**'
+      - '.github/workflows/radar-ofertas-android-ci.yml'
+  pull_request:
+    paths:
+      - 'mobile/radar_promo_ofertas/**'
+      - '.github/workflows/radar-ofertas-android-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          channel: stable
+          cache: true
+
+      - name: Install locked dependencies
+        working-directory: mobile/radar_promo_ofertas
+        run: flutter pub get --enforce-lockfile
+
+      - name: Analyze
+        working-directory: mobile/radar_promo_ofertas
+        run: flutter analyze
+
+      - name: Test
+        working-directory: mobile/radar_promo_ofertas
+        run: flutter test --reporter expanded
+
+      - name: Build debug APK
+        working-directory: mobile/radar_promo_ofertas
+        run: flutter build apk --debug
+
+      - name: Record provenance and checksum
+        working-directory: mobile/radar_promo_ofertas
+        run: |
+          git rev-parse HEAD > build/app/outputs/flutter-apk/source-commit.txt
+          sha256sum build/app/outputs/flutter-apk/app-debug.apk > build/app/outputs/flutter-apk/app-debug.apk.sha256
+
+      - name: Upload APK and provenance
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-promo-ofertas-apk-debug
+          path: |
+            mobile/radar_promo_ofertas/build/app/outputs/flutter-apk/app-debug.apk
+            mobile/radar_promo_ofertas/build/app/outputs/flutter-apk/app-debug.apk.sha256
+            mobile/radar_promo_ofertas/build/app/outputs/flutter-apk/source-commit.txt
+          if-no-files-found: error
+          retention-days: 30
