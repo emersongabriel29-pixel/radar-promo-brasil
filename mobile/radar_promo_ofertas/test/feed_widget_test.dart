@@ -47,7 +47,8 @@ void main() {
     await tester.tap(find.text('Tecnologia').first);
     await tester.pumpAndSettle();
     expect(requests.last['category'], 'Tecnologia');
-    await tester.scrollUntilVisible(find.text('Produto para teste'), 200);
+    await tester.ensureVisible(find.text('Produto para teste'));
+    await tester.pumpAndSettle();
     expect(find.text('Produto para teste'), findsWidgets);
     expect(find.text('Loja de teste'), findsWidgets);
     expect(find.text('Cupom RADAR10'), findsOneWidget);
