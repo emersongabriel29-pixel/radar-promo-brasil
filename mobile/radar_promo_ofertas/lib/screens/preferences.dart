@@ -92,7 +92,7 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           onChanged: (value) => inputValue = value,
           decoration: const InputDecoration(
-            labelText: 'Preço máximo (R\\$)',
+            labelText: 'Preço máximo (R\$)',
             helperText: 'Alerta local ao atualizar ofertas; sem monitoramento em segundo plano.',
             helperMaxLines: 3,
           ),
