@@ -72,8 +72,8 @@ Radar Promo Ofertas — aplicativo Flutter
 
 ## Regra de continuidade
 
-Não apontar o APK como concluído nem distribuir o artefato até:
-1. CI aprovada para o commit final;
-2. GET anônimo do proxy retornando HTTP 200 com ofertas reais do Radar;
-3. validação de abertura do link afiliado preservando seus parâmetros;
-4. inspeção do APK gerado e confirmação de checksum/commit.
+APK debug compilado e testado; pode ser usado como prévia de interface. Não apontar como produção nem publicar em loja até:
+1. GET anônimo do proxy retornar HTTP 200 com ofertas reais do Radar;
+2. validar em aparelho a abertura de links afiliados preservando parâmetros;
+3. resolver a visibilidade `personal` e o limite `429 usage_limit` sem expor segredos;
+4. gerar assinatura de produção separada da chave debug.
