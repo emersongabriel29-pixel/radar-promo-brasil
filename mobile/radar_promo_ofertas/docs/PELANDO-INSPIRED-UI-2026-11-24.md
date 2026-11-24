@@ -50,7 +50,7 @@ Radar Promo Ofertas — aplicativo Flutter
 
 ## Alterações e validação
 
-Arquivos no commit do app `3137c13047fcb425834c78e448ada3b178ff09d4`:
+Arquivos no commit do app `c506eb99881f178976ead60ae17b9666fcc097b6`:
 - `mobile/radar_promo_ofertas/lib/main.dart`: filtros rápidos por categorias da API, selo de cupom nos cards e informação da origem dos dados.
 - `mobile/radar_promo_ofertas/test/feed_widget_test.dart`: teste de cupom e filtro de categoria.
 - `mobile/radar_promo_ofertas/README.md`: estado da integração e instruções CI.
