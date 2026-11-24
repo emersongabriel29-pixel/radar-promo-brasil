@@ -1,6 +1,6 @@
 # Documentação oficial — Radar Promo Brasil
 
-> Estado observado em 08/11/2026. Fonte de verdade técnica: código efetivamente verificado, schema e snapshot funcional consultado no Hatchable v658; implementação da Regra Master v1 preparada para publicação v659; GitHub `main` com baseline do código em `a6215ee2264cb70741fa27075f4584c526d93e2f`; os commits seguintes desta sessão registram a documentação e a implementação versionada. Este índice é a porta de entrada; documentos históricos não substituem a auditoria atual.
+> Estado observado em 24/11/2026. Radar Promo Brasil: Hatchable v674. Radar Promo Ofertas: Hatchable v3. GitHub `main`: `c94b3600fd1ba76439bc12e229faff2cb9ff8989` (PR #216). O workflow Android agora fixa o app Flutter no commit `8bb04882f9718dae084d75de0831411534f5616f`, ainda mantido na branch `codex/android-pelando-inspired-ui-20261124`; o código do APK não foi mesclado à `main` para evitar a divergência histórica da branch. O endpoint `/api/offers` ainda não foi homologado com HTTP 200 por bloqueio `429 usage_limit`. Este índice é a porta de entrada; documentos históricos não substituem a auditoria atual.
 
 ## Regra obrigatória
 
