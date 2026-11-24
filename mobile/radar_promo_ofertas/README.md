@@ -27,7 +27,7 @@ Estado verificado em 24/11/2026:
 - Contrato do feed: `{source, generatedAt, page, limit, total, hasMore, offers}`. Os parâmetros de ordenação suportados pelo servidor são `recent`, `discount` e `score`.
 - O proxy valida o host e o caminho do Radar, usa `RADAR_API_TOKEN` somente no servidor e remove a chave interna de armazenamento de imagens da resposta.
 - O APK não contém token nem envia cabeçalho `Authorization`; os links `affiliateUrl` são preservados e só são abertos quando HTTPS válido.
-- A execução diagnóstica de `/api/offers` em 24/11 retornou `429 usage_limit` da plataforma antes de ser possível validar a resposta do handler. O GET público com retorno 200 continua pendente.
+- A execução diagnóstica de `/api/offers` em 24/11 retornou `429 usage_limit` da plataforma antes de validar o handler. O GET público com retorno 200 continua pendente; portanto o APK foi compilado e testado, mas ainda não foi homologado com ofertas reais em aparelho.
 
 A visibilidade atual do projeto Radar Promo Ofertas é `personal` no cadastro da plataforma. O proprietário precisa confirmar/alterar a visibilidade nas configurações e regularizar o limite de execução. Nenhuma visibilidade foi alterada e nenhum plano foi contratado nesta tarefa. O status das duas credenciais servidor-a-servidor não foi exposto nem copiado para o APK.
 
@@ -44,7 +44,7 @@ flutter build apk --release
 ```
 
 O projeto nativo Android já está incluído. Não é necessário recriá-lo.
-O workflow `.github/workflows/radar-ofertas-android-ci.yml` executa `flutter analyze`, `flutter test` e `flutter build apk --debug`, anexando o APK, SHA-256 e commit de origem como artefato. A execução precisa ser confirmada no GitHub Actions; a presença do arquivo não comprova build aprovado.
+O workflow `.github/workflows/radar-ofertas-android-ci.yml` executa `flutter analyze`, `flutter test` e `flutter build apk --debug`, anexando o APK, SHA-256 e commit de origem. **Validação concluída em 24/11/2026:** run 29 aprovado nos três passos e artefato GitHub Actions `14968610754` gerado. O APK debug universal tem 154.696.848 bytes e SHA-256 `7c6de14bde43942e97dd8d40ad841248f24cbafd872189cdbe24f895c035c5b1`.
 
 ## Assinatura e instalação
 A configuração de release usa a chave de teste local gerada pelo Android. O APK serve para instalação direta e avaliação. Uma publicação na Play Store requer chave de produção e configuração própria de assinatura.
