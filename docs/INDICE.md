@@ -1,6 +1,6 @@
 # Documentação oficial — Radar Promo Brasil
 
-> Estado observado em 24/11/2026. Radar Promo Brasil: Hatchable v674. Radar Promo Ofertas: Hatchable v3. GitHub `main`: `c94b3600fd1ba76439bc12e229faff2cb9ff8989` (PR #216). O workflow Android agora fixa o app Flutter no commit `c506eb99881f178976ead60ae17b9666fcc097b6`, ainda mantido na branch `codex/android-pelando-inspired-ui-20261124`; o código do APK não foi mesclado à `main` para evitar a divergência histórica da branch. O endpoint `/api/offers` ainda não foi homologado com HTTP 200 por bloqueio `429 usage_limit`. Este índice é a porta de entrada; documentos históricos não substituem a auditoria atual.
+> Estado observado em 24/11/2026. Radar Promo Brasil: Hatchable v674. Radar Promo Ofertas: Hatchable v3. GitHub `main`: `c94b3600fd1ba76439bc12e229faff2cb9ff8989` (PR #216). O workflow Android agora fixa o app Flutter no commit `fe95dcdcff45d17d96318a385ae0d88a24ea2329`, ainda mantido na branch `codex/android-pelando-inspired-ui-20261124`; o código do APK não foi mesclado à `main` para evitar a divergência histórica da branch. O endpoint `/api/offers` ainda não foi homologado com HTTP 200 por bloqueio `429 usage_limit`. Este índice é a porta de entrada; documentos históricos não substituem a auditoria atual.
 
 ## Regra obrigatória
 
