@@ -15,7 +15,7 @@ class OffersResult {
 class OffersApi {
   // This endpoint is public. Server integration credentials never enter the APK.
   static const baseUrl =
-      'https://radar-promo-ofertas.hatchable.site/api/offers';
+      'https://runnmpzkomcdawwzuift.supabase.co/functions/v1/radar-offers-feed';
   final http.Client? client;
   OffersApi({this.client});
 
