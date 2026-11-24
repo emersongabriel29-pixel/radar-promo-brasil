@@ -42,14 +42,15 @@ void main() {
 
     await tester.pumpWidget(RadarPromoApp(api: api));
     await tester.pumpAndSettle();
-    expect(find.text('Produto para teste'), findsWidgets);
-    expect(find.text('Loja de teste'), findsWidgets);
-    expect(find.text('Cupom RADAR10'), findsOneWidget);
     expect(find.byType(ChoiceChip), findsWidgets);
     expect(find.byType(NavigationBar), findsOneWidget);
     await tester.tap(find.text('Tecnologia').first);
     await tester.pumpAndSettle();
     expect(requests.last['category'], 'Tecnologia');
+    await tester.scrollUntilVisible(find.text('Produto para teste'), 200);
+    expect(find.text('Produto para teste'), findsWidgets);
+    expect(find.text('Loja de teste'), findsWidgets);
+    expect(find.text('Cupom RADAR10'), findsOneWidget);
     await tester.tap(find.byIcon(Icons.bookmark_border).first);
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.bookmark), findsWidgets);
