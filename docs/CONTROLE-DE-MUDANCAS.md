@@ -104,3 +104,6 @@ Toda alteração em regras de elegibilidade, classificação, descoberta, links,
 
 
 | 2026-11-08 | Aumento do lote técnico do autopilot para 200 e dispatcher Telegram para 14 | lib/autopilot, cache de imagem, worker WhatsApp, settings de publicação | Dry-run anterior sem erros/avisos; configuração DB batch=14/interval=5 confirmada; sem alteração de filtro de elegibilidade | commits 04dae24a, fc1a1059, 7551724f | draft para v664 | Próximo deploy; homologação de WhatsApp bloqueada por ausência de conexão |
+
+
+| 2026-11-24 | Adaptação visual do Radar Promo Ofertas inspirada no feed Pelando, sem copiar marca/código e mantendo ofertas exclusivamente pelas APIs do Radar | App Flutter, filtro de categorias da API, selo de cupom, CI Android, proxy `/api/offers` | Teste Flutter adicionado; execução local indisponível; CI do commit do app pendente. Hatchable v674/v3; chamada diagnóstica ao proxy bloqueada por 429 usage_limit antes do handler; sem GET 200 homologado | app commit `8bb04882f9718dae084d75de0831411534f5616f`; atualização do workflow neste PR | v674 (Radar Promo Brasil), v3 (Radar Promo Ofertas), sem deploy | Código em branch isolada; build e feed real pendentes; nenhuma credencial/dado/visibilidade alterados |
