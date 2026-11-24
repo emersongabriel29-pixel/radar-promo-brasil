@@ -1,5 +1,5 @@
 name: Build Radar Promo Ofertas APK
-# Build audited Flutter revision 8bb04882f9718dae084d75de0831411534f5616f (2026-11-24).
+# Build Flutter source revision 8bb04882f9718dae084d75de0831411534f5616f (2026-11-24).
 on:
   push:
     branches: [main]
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - name: Checkout audited Flutter revision
+      - name: Checkout Flutter source revision
         uses: actions/checkout@v4
         with:
           ref: 8bb04882f9718dae084d75de0831411534f5616f
