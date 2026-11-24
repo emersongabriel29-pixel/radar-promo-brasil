@@ -1,5 +1,5 @@
 name: Build Radar Promo Ofertas APK
-# Build Flutter source revision fe95dcdcff45d17d96318a385ae0d88a24ea2329 (2026-11-24).
+# Build Flutter source revision be16bdc47420752efdeea52592a9ea23a4578ea7 (2026-11-24).
 on:
   push:
     branches: [main]
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout Flutter source revision
         uses: actions/checkout@v4
         with:
-          ref: fe95dcdcff45d17d96318a385ae0d88a24ea2329
+          ref: be16bdc47420752efdeea52592a9ea23a4578ea7
       - name: Verify Flutter project
         run: test -f mobile/radar_promo_ofertas/pubspec.yaml
       - uses: actions/setup-java@v4
