@@ -28,7 +28,9 @@ void main() {
       'saved_search_target_prices': jsonEncode({'fone': 50}),
     });
     final prefs = await SharedPreferences.getInstance();
-    expect((await PriceAlerts.check([offer], preferences: prefs)).length, 1);
+    final alerts = await PriceAlerts.check([offer], preferences: prefs);
+    expect(alerts.length, 1);
+    await PriceAlerts.markDelivered(alerts, preferences: prefs);
     expect(await PriceAlerts.check([offer], preferences: prefs), isEmpty);
   });
 
