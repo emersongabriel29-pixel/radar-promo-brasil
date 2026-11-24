@@ -193,7 +193,7 @@ async function processAccount(accountId, settings, {deadline=Date.now()+50000}={
       let providerAccepted=false;
       try {
         const affiliate=String(item.affiliateUrl||'').trim();
-        const baseMessage=String(item.message||'').replace(/https?:\/\/[^\\s]+\/api\/r\/[0-9a-f-]+/gi,affiliate);
+        const baseMessage=String(item.message||'').replace(/https?:\/\/[^\s]+\/api\/r\/[0-9a-f-]+/gi,affiliate);
         const couponUrl=String(item.couponUrl||'').trim();
         let message=item.contentType==='MESSAGE'
           ? (item.couponCode&&couponUrl&&!baseMessage.includes(couponUrl)?baseMessage+String.fromCharCode(10,10)+'🎟️ Resgate o cupom aqui: '+couponUrl:baseMessage)
