@@ -1,5 +1,5 @@
 name: Build Radar Promo Ofertas APK
-# Build audited Flutter revision cf4b25ce9621b57dfca78263c9a527ea66c4d889 (2026-11-20).
+# Build audited Flutter revision 8bb04882f9718dae084d75de0831411534f5616f (2026-11-20).
 on:
   push:
     branches: [main]
@@ -25,11 +25,12 @@ jobs:
           java-version: '21'
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.50.0'
           channel: stable
           cache: true
       - name: Install dependencies
         working-directory: mobile/radar_promo_ofertas
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
       - name: Analyze
         working-directory: mobile/radar_promo_ofertas
         run: flutter analyze
