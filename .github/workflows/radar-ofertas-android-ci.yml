@@ -48,6 +48,12 @@ jobs:
         working-directory: mobile/radar_promo_ofertas
         run: flutter test --reporter expanded
 
+      - name: Verify public Supabase offers feed
+        env:
+          FEED_URL: https://runnmpzkomcdawwzuift.supabase.co/functions/v1/radar-offers-feed
+        run: |
+          response="$(curl --retry 2 --retry-delay 2 --fail-with-body --silent --show-error "${FEED_URL}?page=1&limit=5&sort=recent")"
+          printf '%s' "$response" | python -c 'import json,sys; d=json.load(sys.stdin); assert isinstance(d,dict); assert isinstance(d.get("offers"),list); assert isinstance(d.get("total"),int); assert isinstance(d.get("hasMore"),bool); assert len(d["offers"]) <= 5; print("Supabase feed contract OK; offers returned:", len(d["offers"]))'
       - name: Build debug APK
         working-directory: mobile/radar_promo_ofertas
         run: flutter build apk --debug
