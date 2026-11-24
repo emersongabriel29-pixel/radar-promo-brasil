@@ -597,7 +597,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: TextStyle(fontSize: 11, color: Color(0xFF6B7C72))),
                     if (tab == 0 && availableCategories.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      const Text('Categorias', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                      const Text('Filtrar por categoria', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 6),
                       SizedBox(
                         height: 38,
