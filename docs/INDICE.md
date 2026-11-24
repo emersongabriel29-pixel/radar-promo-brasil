@@ -18,6 +18,7 @@
 - [Operação, filas, crons e recuperação](./OPERACAO-2026-11-08.md)
 - [Integrações e IA Gemini](./INTEGRACOES-IA-2026-11-08.md)
 - [Matriz de testes e critérios de aceite](./MATRIZ-TESTES-2026-11-08.md)
+- [Radar Promo Ofertas Android — adaptação visual e origem dos dados](../mobile/radar_promo_ofertas/docs/PELANDO-INSPIRED-UI-2026-11-24.md)
 - [Regra Hatchable ↔ GitHub](./HATCHABLE-GITHUB-SYNC-RULE.md)
 - [Release e procedimento de publicação](./RELEASE.md)
 
