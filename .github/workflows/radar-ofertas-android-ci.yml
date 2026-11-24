@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - codex/android-pelando-inspired-ui-20261124
+      - codex/android-supabase-feed-20261124
     paths:
       - 'mobile/radar_promo_ofertas/**'
       - '.github/workflows/radar-ofertas-android-ci.yml'
