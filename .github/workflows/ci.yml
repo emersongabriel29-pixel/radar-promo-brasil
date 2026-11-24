@@ -72,7 +72,7 @@ jobs:
       - name: Record APK provenance
         working-directory: flutter-source/mobile/radar_promo_ofertas
         run: |
-          git -C ../../.. rev-parse HEAD > build/app/outputs/flutter-apk/source-commit.txt
+          git -C ../.. rev-parse HEAD > build/app/outputs/flutter-apk/source-commit.txt
           sha256sum build/app/outputs/flutter-apk/app-debug.apk > build/app/outputs/flutter-apk/app-debug.apk.sha256
       - name: Upload validated debug APK
         uses: actions/upload-artifact@v4
