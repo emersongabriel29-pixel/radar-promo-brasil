@@ -1,5 +1,5 @@
 name: Build Radar Promo Ofertas APK
-# Build audited Flutter revision 8bb04882f9718dae084d75de0831411534f5616f (2026-11-20).
+# Build audited Flutter revision 8bb04882f9718dae084d75de0831411534f5616f (2026-11-24).
 on:
   push:
     branches: [main]
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout audited Flutter revision
         uses: actions/checkout@v4
         with:
-          ref: cf4b25ce9621b57dfca78263c9a527ea66c4d889
+          ref: 8bb04882f9718dae084d75de0831411534f5616f
       - name: Verify Flutter project
         run: test -f mobile/radar_promo_ofertas/pubspec.yaml
       - uses: actions/setup-java@v4
