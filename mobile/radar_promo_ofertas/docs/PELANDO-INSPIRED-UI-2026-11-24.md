@@ -50,7 +50,7 @@ Radar Promo Ofertas — aplicativo Flutter
 
 ## Alterações e validação
 
-Arquivos no commit do app `e2d53f632738776a6a123991b5294b9c737cbe03`:
+Arquivos no commit do app `3137c13047fcb425834c78e448ada3b178ff09d4`:
 - `mobile/radar_promo_ofertas/lib/main.dart`: filtros rápidos por categorias da API, selo de cupom nos cards e informação da origem dos dados.
 - `mobile/radar_promo_ofertas/test/feed_widget_test.dart`: teste de cupom e filtro de categoria.
 - `mobile/radar_promo_ofertas/README.md`: estado da integração e instruções CI.
@@ -61,7 +61,7 @@ Estado verificado em 24/11/2026:
 - Radar Promo Ofertas: Hatchable v3.
 - A execução diagnóstica de `/api/offers` retornou `429 usage_limit` da plataforma antes de validar o handler. Ainda não há prova de GET 200 com ofertas reais.
 - O projeto Radar Promo Ofertas está classificado como `personal`; acesso anônimo externo precisa ser confirmado pelo proprietário.
-- Flutter 3.50.0 / Dart 3.14.0 são usados no GitHub Actions. A primeira análise do commit anterior encontrou escapes de moeda inválidos em `preferences.dart` e `android_price_notifications.dart`; ambos foram corrigidos no commit acima. A nova análise, os testes e o build estão em execução no GitHub Actions (runs 9 e 100) e ainda não estão homologados.
+- Flutter 3.50.0 / Dart 3.14.0 são usados no GitHub Actions. A primeira análise do commit anterior encontrou escapes de moeda inválidos em `preferences.dart` e `android_price_notifications.dart`; ambos foram corrigidos no commit intermediário. A segunda análise identificou um aviso informativo de import Material depreciado no teste de ciclo de vida; foi suprimido localmente com comentário de compatibilidade no commit acima, sem mudar comportamento. As novas execuções Flutter (runs 11 e 101) estão em andamento; testes e build ainda não estão homologados.
 - Nenhuma credencial, dado, visibilidade, publicação ou deploy foi alterado.
 
 Não distribuir o APK até obter CI aprovada, GET público 200 com ofertas reais, teste de abertura de link preservando parâmetros e conferência do checksum/commit do APK.
