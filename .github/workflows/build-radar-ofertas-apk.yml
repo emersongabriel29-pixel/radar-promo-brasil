@@ -1,10 +1,16 @@
 name: Build Radar Promo Ofertas APK
-# Build Flutter source revision 2410f24980a12bd30a96393335e2cc094d4b152d (2026-11-24).
+# Build the checked-out revision; debug artifacts are for evaluation.
 on:
   push:
+    branches: [main, fix/android-consolidation-20261126]
+    paths:
+      - '.github/workflows/build-radar-ofertas-apk.yml'
+      - 'mobile/radar_promo_ofertas/**'
+  pull_request:
     branches: [main]
     paths:
       - '.github/workflows/build-radar-ofertas-apk.yml'
+      - 'mobile/radar_promo_ofertas/**'
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,8 +21,6 @@ jobs:
     steps:
       - name: Checkout Flutter source revision
         uses: actions/checkout@v4
-        with:
-          ref: 2410f24980a12bd30a96393335e2cc094d4b152d
       - name: Verify Flutter project
         run: test -f mobile/radar_promo_ofertas/pubspec.yaml
       - uses: actions/setup-java@v4
