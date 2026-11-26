@@ -101,7 +101,7 @@ void main() {
   for (final brightness in Brightness.values) {
     testWidgets('card contrast and touch semantics pass guidelines in $brightness', (tester) async {
       final semantics = tester.ensureSemantics();
-      addTearDown(semantics.dispose);
+      try {
       await tester.pumpWidget(MaterialApp(theme: ThemeData(brightness: brightness),
         home: Scaffold(body: OfferCard(
           offer: Offer.fromJson({'id': 'a', 'title': 'Produto', 'currentPrice': 80,
@@ -109,9 +109,12 @@ void main() {
           favorite: false, onFavorite: () {}, onTap: () {},
         ))));
       await tester.pumpAndSettle();
-      expect(tester, meetsGuideline(textContrastGuideline));
-      expect(tester, meetsGuideline(androidTapTargetGuideline));
-      expect(tester, meetsGuideline(labeledTapTargetGuideline));
+      await expectLater(tester, meetsGuideline(textContrastGuideline));
+      await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+      await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+      } finally {
+        semantics.dispose();
+      }
     });
     testWidgets('card fits 320 dp with 200 percent text in $brightness', (tester) async {
       tester.view.physicalSize = const Size(320, 900);

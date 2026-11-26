@@ -122,3 +122,39 @@ Próximos desbloqueios indispensáveis: restabelecer ingestão oficial e histór
 ### Verificação adicional de acessibilidade
 
 Após os 55 testes aprovados, acrescentadas verificações Flutter textContrastGuideline, androidTapTargetGuideline e labeledTapTargetGuideline dos cards em ambos os temas. Tamanhos 10/11 do main elevados ao mínimo de 12; toolbar da inicial acompanha a ampliação de fonte (sem limitar textScaler); ícones de erro/vazio usam onSurfaceVariant e favorito de detalhes anuncia remoção quando salvo. Essas últimas mudanças aguardam execução própria de CI; não estendem os resultados anteriores automaticamente.
+
+Run 45908825526 detectou duas falhas na nova instrumentação: o matcher assíncrono de acessibilidade não era aguardado, e o teste encerrava antes de liberar SemanticsHandle. Corrigido para await expectLater e try/finally com dispose; as três verificações de acessibilidade permanecem obrigatórias nos dois temas. Não foi alterada tolerância de contraste nem removida asserção.
+
+## Arquivos desta execução
+
+27 arquivos adicionados ou modificados em relação ao commit inicial; zero arquivos removidos; nenhuma dependência ou lockfile alterado.
+
+```text
+M	.github/workflows/radar-ofertas-validation.yml
+A	docs/ANDROID-AUDIT-2026-11-26.md
+M	docs/CONTROLE-DE-MUDANCAS.md
+M	docs/INDICE.md
+M	mobile/radar_promo_ofertas/README.md
+M	mobile/radar_promo_ofertas/android/app/src/main/AndroidManifest.xml
+M	mobile/radar_promo_ofertas/android/app/src/main/kotlin/br/com/radarpromo/radar_promo_ofertas/MainActivity.kt
+M	mobile/radar_promo_ofertas/android/app/src/main/res/drawable-v21/launch_background.xml
+M	mobile/radar_promo_ofertas/android/app/src/main/res/drawable/launch_background.xml
+A	mobile/radar_promo_ofertas/android/app/src/main/res/drawable/radar_foreground.xml
+A	mobile/radar_promo_ofertas/android/app/src/main/res/drawable/radar_monochrome.xml
+A	mobile/radar_promo_ofertas/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+A	mobile/radar_promo_ofertas/android/app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml
+A	mobile/radar_promo_ofertas/android/app/src/main/res/values-night-v31/styles.xml
+A	mobile/radar_promo_ofertas/android/app/src/main/res/values-v31/styles.xml
+A	mobile/radar_promo_ofertas/android/app/src/main/res/values/radar_icon.xml
+A	mobile/radar_promo_ofertas/android/signing-certificate.sha256
+A	mobile/radar_promo_ofertas/docs/FEED-SUPABASE-EDGE-2026-11-24.md
+M	mobile/radar_promo_ofertas/lib/main.dart
+M	mobile/radar_promo_ofertas/lib/models/offer.dart
+A	mobile/radar_promo_ofertas/lib/offer_image.dart
+M	mobile/radar_promo_ofertas/lib/screens/app_version.dart
+M	mobile/radar_promo_ofertas/lib/screens/stores_coupons.dart
+M	mobile/radar_promo_ofertas/lib/services/api.dart
+A	mobile/radar_promo_ofertas/test/audit_visual_safety_test.dart
+M	mobile/radar_promo_ofertas/test/community_test.dart
+M	mobile/radar_promo_ofertas/test/offers_api_test.dart
+```
