@@ -363,6 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 56 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.8),
         title: Row(
           children: [
             Container(
@@ -399,7 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 2.8,
                     ),
@@ -624,7 +625,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text('Destaques seguem a pontuação do Radar; não representam votos da comunidade.',
-                        style: TextStyle(fontSize: 11, )),
+                        style: TextStyle(fontSize: 12, )),
                     if (tab == 0 && availableCategories.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       const Text('Filtrar por categoria', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
@@ -912,10 +913,10 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.cloud_off_outlined,
             size: 48,
-            color: RadarPalette.muted,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 12),
           const Text(
@@ -941,10 +942,10 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.local_offer_outlined,
             size: 48,
-            color: RadarPalette.placeholder,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 12),
           Text(
@@ -1011,7 +1012,7 @@ class OfferCard extends StatelessWidget {
                               style: const TextStyle(
                                 color: RadarPalette.savingInk,
                                 fontWeight: FontWeight.w900,
-                                fontSize: 11,
+                                fontSize: 12,
                               ),
                             ),
                           ),
@@ -1078,7 +1079,7 @@ class OfferCard extends StatelessWidget {
                       Text(
                         money.format(offer.originalPrice),
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                           decoration: TextDecoration.lineThrough,
                         ),
@@ -1089,7 +1090,7 @@ class OfferCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         ),
                     ),
                   ],
@@ -1136,7 +1137,7 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
         title: const Text('Detalhes da oferta'),
         actions: [
           IconButton(
-            tooltip: 'Salvar oferta',
+            tooltip: isFavorite ? 'Remover dos favoritos' : 'Salvar oferta',
             onPressed: () {
               widget.onFavorite();
               setState(() => isFavorite = !isFavorite);
@@ -1278,7 +1279,7 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
           const Text(
             'Preço e disponibilidade podem mudar na loja. Confirme as condições antes de comprar.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 11),
+            style: TextStyle(fontSize: 12),
           ),
         ],
       ),
