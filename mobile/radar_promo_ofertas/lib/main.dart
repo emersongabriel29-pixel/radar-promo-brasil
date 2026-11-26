@@ -139,6 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Offer> offers = [];
   Set<String> favorites = {};
   Map<String, Offer> savedOffers = {};
+  List<String> unreadableSavedOffers = [];
   final Set<String> knownCategories = {};
   bool loadingMore = false;
   bool hasMore = false;
@@ -166,17 +167,25 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadFavorites() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = <String, Offer>{};
+    final unreadable = <String>[];
     for (final raw in prefs.getStringList('saved_offers') ?? <String>[]) {
       try {
         final offer = Offer.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-        if (offer.id.isNotEmpty) saved[offer.id] = offer;
+        if (offer.id.isNotEmpty) {
+          saved[offer.id] = offer;
+        } else {
+          unreadable.add(raw);
+        }
       } catch (_) {
-        /* Ignore a damaged local entry. */
+        // Keep original content for recovery; never discard a user's saved data
+        // just because this app version cannot decode it.
+        unreadable.add(raw);
       }
     }
     if (mounted) {
       setState(() {
         savedOffers = saved;
+        unreadableSavedOffers = unreadable;
         favorites = {
           ...(prefs.getStringList('favorites') ?? []),
           ...saved.keys,
@@ -194,10 +203,10 @@ class _HomeScreenState extends State<HomeScreen> {
     await prefs.setStringList('favorites', favorites.toList());
     await prefs.setStringList(
       'saved_offers',
-      savedOffers.values
+      [...savedOffers.values
           .where((o) => favorites.contains(o.id))
-          .map((o) => jsonEncode(o.toJson()))
-          .toList(),
+          .map((o) => jsonEncode(o.toJson())),
+        ...unreadableSavedOffers],
     );
   }
 

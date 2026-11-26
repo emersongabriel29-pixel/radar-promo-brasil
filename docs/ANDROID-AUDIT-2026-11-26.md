@@ -182,3 +182,11 @@ Sem mudança de URL, contrato do feed, credenciais, banco, RLS, cache, links afi
 Testes acrescentados em `test/offers_api_test.dart`: 429/503 com data HTTP, prazo acima de uma hora, cabeçalhos inválidos e conflito entre pausas concorrentes. Todos usam MockClient/relógio controlado, sem consultas ou publicação de ofertas reais. Análise e suíte Flutter serão verificadas no GitHub Actions, mantendo compilação/upload de APK desativados. Status desta correção até consultar o CI: implementada, aguardando validação.
 
 Referências primárias consultadas: https://www.rfc-editor.org/rfc/rfc9110.html#name-retry-after e https://api.dart.dev/dart-io/HttpDate/parse.html .
+
+### Resultado da espera HTTP e preservação de favoritos — auditoria 18
+
+Commit `ef654d71d16f2623562c12d1543f098e0cbde27f`: run Flutter 45910722560/job 140218144354 aprovado; análise sem problemas e 68 testes aprovados. Compilação e upload APK ignorados. Cobertos também Retry-After zero/vencido e 503 sem cabeçalho. Correção de espera HTTP validada em testes automatizados; bloqueios de dados/serviços e validação em aparelho permanecem.
+
+A inspeção de `_loadFavorites` revelou descarte silencioso: entradas ilegíveis ou sem ID eram ignoradas, e a chamada seguinte a `_persistFavorites` removia esses registros de saved_offers. Correção mínima em main.dart mantém as strings originais não interpretáveis junto aos registros válidos na mesma chave existente, inclusive após editar um favorito válido. Sem chave nova, migração, acesso de rede ou supressão de favoritos válidos. Uma remoção explícita de um favorito válido continua removendo apenas esse favorito; a ação confirmada de apagar dados locais continua com seu comportamento existente. Registros já perdidos em execuções anteriores não podem ser reconstruídos por esta correção.
+
+Teste home_test com entrada truncada, registro sem ID e favorito válido verifica sobrevivência dos dados brutos após leitura e edição, preservação dos IDs e ausência de erro na interface. Risco/limite: registros ilegíveis são preservados para recuperação, mas não são exibidos como ofertas válidas. Rollback por revert do commit desta etapa; sem force push. Status até execução: implementada, aguardando validação.

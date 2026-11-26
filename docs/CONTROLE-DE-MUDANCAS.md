@@ -2,6 +2,8 @@
 
 ## 26/11/2026 — continuidade: espera HTTP do feed
 
+Após 68 testes Flutter aprovados para a espera HTTP, corrigido descarte silencioso de favoritos ilegíveis/sem ID: strings originais são mantidas na chave saved_offers ao editar registros válidos. Teste específico adicionado; sem migração ou nova chave. Consultar resultados da rodada seguinte no relatório.
+
 Retomada a partir de cae1fbf no PR #221. O serviço Flutter passa a respeitar Retry-After em segundos ou data HTTP, sem reduzir a espera válida para uma hora; 503 com esse cabeçalho também é respeitado. Falhas concorrentes não encurtam uma pausa já estabelecida, e a mensagem mantém o motivo correto. Somente cliente, testes e documentação; sem alterações em endpoint, backend, banco, chaves ou APK. Resultados atuais e rollback na seção de continuidade de ANDROID-AUDIT-2026-11-26.md.
 
 ## 26/11/2026 — auditoria Android em andamento

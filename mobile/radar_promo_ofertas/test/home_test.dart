@@ -12,6 +12,33 @@ import 'package:radar_promo_ofertas/models/offer.dart';
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
+  testWidgets('unreadable saved entries survive loading and editing valid favorites', (tester) async {
+    const broken = '{"id":"recover-me",';
+    final missingId = jsonEncode({'title': 'Registro de versão anterior sem identificador'});
+    final valid = Offer.fromJson({'id': 'valid', 'title': 'Favorito preservado', 'currentPrice': 29});
+    SharedPreferences.setMockInitialValues({
+      'favorites': ['valid', 'recover-me'],
+      'saved_offers': [jsonEncode(valid.toJson()), broken, missingId],
+    });
+    final api = OffersApi(client: MockClient((_) async =>
+      http.Response('{"offers":[],"total":0,"hasMore":false}', 200)));
+    await tester.pumpWidget(MaterialApp(home: HomeScreen(api: api)));
+    await tester.pumpAndSettle();
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getStringList('saved_offers'), containsAll([broken, missingId]));
+    expect(prefs.getStringList('favorites'), containsAll(['valid', 'recover-me']));
+    await tester.tap(find.text('Salvos'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Favorito preservado'), 200,
+      scrollable: find.byWidgetPredicate((w) => w is Scrollable && w.axisDirection == AxisDirection.down));
+    await tester.tap(find.byTooltip('Remover dos favoritos'));
+    await tester.pumpAndSettle();
+    expect(prefs.getStringList('saved_offers'), containsAll([broken, missingId]));
+    expect(prefs.getStringList('saved_offers')!.length, 2);
+    expect(prefs.getStringList('favorites'), isNot(contains('valid')));
+    expect(prefs.getStringList('favorites'), contains('recover-me'));
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('saved offers remain visible when the live feed is unavailable', (
     tester,
   ) async {

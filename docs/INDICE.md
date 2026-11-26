@@ -10,7 +10,7 @@
 
 - [Auditoria Android e preservação — 26/11/2026](./ANDROID-AUDIT-2026-11-26.md)
 
-  Inclui a continuidade do tratamento de Retry-After, com testes de limites e indisponibilidade do feed.
+  Inclui a continuidade do tratamento de Retry-After e preservação de favoritos ilegíveis, com testes de regressão.
 
 - [Regra Master e fluxos ponta a ponta](./REGRA-MASTER-E-FLUXOS-PONTA-A-PONTA.md)
 - [Controle de mudanças e documentação obrigatória](./CONTROLE-DE-MUDANCAS.md)
