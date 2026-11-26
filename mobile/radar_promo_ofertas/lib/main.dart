@@ -399,8 +399,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 2.8,
-                    color: RadarPalette.muted,
-                  ),
+                    ),
                 ),
               ],
             ),
@@ -542,8 +541,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
-                      color: RadarPalette.ink,
-                    ),
+                      ),
                   ),
                   const SizedBox(height: 12),
                   if (tab == 2) ...[
@@ -613,7 +611,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text('Destaques seguem a pontuação do Radar; não representam votos da comunidade.',
-                        style: TextStyle(fontSize: 11, color: RadarPalette.muted)),
+                        style: TextStyle(fontSize: 11, )),
                     if (tab == 0 && availableCategories.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       const Text('Filtrar por categoria', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
@@ -671,7 +669,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               ? 'Ofertas indisponíveis'
                               : '${tab == 2 ? list.length : total} ofertas encontradas',
                           style: const TextStyle(
-                            color: RadarPalette.muted,
                             fontSize: 12,
                           ),
                       ),
@@ -773,13 +770,12 @@ class _HomeScreenState extends State<HomeScreen> {
           style: TextStyle(
             fontSize: 23,
             fontWeight: FontWeight.w900,
-            color: RadarPalette.ink,
-          ),
+            ),
         ),
         const SizedBox(height: 8),
         const Text(
           'Categorias das ofertas carregadas. Escolha uma para filtrar.',
-          style: TextStyle(color: RadarPalette.muted),
+          style: TextStyle(),
         ),
         const SizedBox(height: 18),
         if (categories.isEmpty)
@@ -831,8 +827,7 @@ class _HomeScreenState extends State<HomeScreen> {
         style: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.w900,
-          color: RadarPalette.ink,
-        ),
+          ),
       ),
       const SizedBox(height: 12),
       const Text(
@@ -918,7 +913,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             error ?? 'Tente novamente.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: RadarPalette.muted),
+            style: const TextStyle(),
           ),
           const SizedBox(height: 12),
           FilledButton(onPressed: _load, child: const Text('Tentar novamente')),
@@ -942,7 +937,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: RadarPalette.muted),
+            style: const TextStyle(),
           ),
         ],
       ),
@@ -1081,8 +1076,7 @@ class OfferCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w900,
-                        color: RadarPalette.ink,
-                      ),
+                        ),
                     ),
                     if (offer.hasPrice && offer.originalPrice > offer.currentPrice)
                       Text(
@@ -1100,8 +1094,7 @@ class OfferCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 11,
-                        color: RadarPalette.muted,
-                      ),
+                        ),
                     ),
                   ],
                 ),
@@ -1189,8 +1182,7 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w900,
-              color: RadarPalette.ink,
-            ),
+              ),
           ),
           const SizedBox(height: 14),
           Text(
@@ -1292,7 +1284,7 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
           const Text(
             'Preço e disponibilidade podem mudar na loja. Confirme as condições antes de comprar.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: RadarPalette.muted, fontSize: 11),
+            style: TextStyle(fontSize: 11),
           ),
         ],
       ),
@@ -1308,7 +1300,7 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
           width: 120,
           child: Text(
             label,
-            style: const TextStyle(color: RadarPalette.muted, fontSize: 12),
+            style: const TextStyle(fontSize: 12),
           ),
         ),
         Expanded(
