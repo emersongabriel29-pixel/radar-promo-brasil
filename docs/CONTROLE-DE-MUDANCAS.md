@@ -1,5 +1,9 @@
 # Controle de mudanças e documentação obrigatória
 
+## 26/11/2026 — continuidade: espera HTTP do feed
+
+Retomada a partir de cae1fbf no PR #221. O serviço Flutter passa a respeitar Retry-After em segundos ou data HTTP, sem reduzir a espera válida para uma hora; 503 com esse cabeçalho também é respeitado. Falhas concorrentes não encurtam uma pausa já estabelecida, e a mensagem mantém o motivo correto. Somente cliente, testes e documentação; sem alterações em endpoint, backend, banco, chaves ou APK. Resultados atuais e rollback na seção de continuidade de ANDROID-AUDIT-2026-11-26.md.
+
 ## 26/11/2026 — auditoria Android em andamento
 
 Branch fix/android-consolidation-20261126, PR #221. Inventário, análise de impacto, recuperação do endpoint público Supabase, bloqueio de APK intermediário no workflow legado e ajustes de tema/toque documentados em [ANDROID-AUDIT-2026-11-26.md](./ANDROID-AUDIT-2026-11-26.md). Backend e dados sem alterações; Hatchable v674/v3, sem deploy. Testes locais Flutter bloqueados pela revisão automática; consultar resultados de CI antes de homologar. Rollback por revert.

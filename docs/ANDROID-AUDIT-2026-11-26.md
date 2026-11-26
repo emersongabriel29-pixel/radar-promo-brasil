@@ -1,5 +1,7 @@
 # Radar Promo Ofertas — auditoria de 26/11/2026
 
+> Continuidade desta execução: consultar a seção final “Continuidade — espera HTTP do feed”. Os resultados anteriores permanecem como evidência histórica, sem substituir a validação da revisão atual.
+
 Registro de execução em andamento. Não é declaração de homologação ou release.
 
 ## Inventário e preservação
@@ -164,3 +166,19 @@ M	mobile/radar_promo_ofertas/test/offers_api_test.dart
 Relatório integral copiado como rascunho privado `lib/documentation/ANDROID-AUDIT-2026-11-26.md` nos dois projetos Hatchable. Os índices e controles de mudança receberam adições pontuais após leitura/comparação, preservando entradas exclusivas de cada ambiente. Não houve deploy: v674/v3 continuam sendo as versões publicadas. Este espelhamento é documental, não sincronização bidirecional ou implantação do Flutter.
 
 Código final validado: c6a49f43c934aef280e0d69c97f4f70e264a1730. Resultado: avanços implementados e testados, auditoria integral de produção ainda não concluída. As 25 linhas acima discriminam as pendências; nenhum APK final é disponibilizado enquanto os critérios de assinatura, atualidade do catálogo e testes Android permanecem abertos.
+
+## Continuidade — espera HTTP do feed
+
+Retomada solicitada pelo usuário a partir do commit `cae1fbf207de983d8759a250fecf4c3cf43b5887`, na mesma branch e PR #221. Main continua `1adc8791bd488c4f20a561ee9f10a852b6b257f3`; Hatchable v674/v3, sem deploy. Fonte de verdade para esta correção: arquivo Flutter lido do commit remoto e comparado à cópia de trabalho. Nenhum arquivo equivalente do app está implantado no Hatchable; documentação será espelhada em rascunho preservando diferenças dos índices.
+
+### Diagnóstico e impacto — auditorias 15, 23 e 25
+
+O parser anterior aceitava apenas inteiros e limitava toda espera a 3600 segundos. Uma resposta Retry-After de duas horas permitia consultar antes do prazo; uma data HTTP válida caía no fallback de 60s. Respostas 503 com orientação de espera eram ignoradas. Uma segunda falha concorrente podia encurtar a pausa definida pela primeira. Isso afeta carga de rede, experiência de erro e respeito aos limites do servidor; não é bloqueio comercial de ofertas.
+
+Correção mínima em `mobile/radar_promo_ofertas/lib/services/api.dart`: usar HttpDate da biblioteca padrão Dart para datas HTTP; manter segundos válidos sem truncamento para uma hora; proteger aritmética fora da faixa representável; manter fallback 60s para valores inválidos; respeitar 503 que contenha Retry-After; preservar a pausa mais longa e sua mensagem. Zero novas dependências. HttpDate pertence a dart:io, compatível com o alvo Android atual; não declara suporte novo a Flutter Web.
+
+Sem mudança de URL, contrato do feed, credenciais, banco, RLS, cache, links afiliados, preferências ou envio de mensagens. As chamadas continuam sem retentativa automática. HTTP 503 sem Retry-After mantém o comportamento anterior. Rollback: revert deste commit de continuidade, sem reset/force push.
+
+Testes acrescentados em `test/offers_api_test.dart`: 429/503 com data HTTP, prazo acima de uma hora, cabeçalhos inválidos e conflito entre pausas concorrentes. Todos usam MockClient/relógio controlado, sem consultas ou publicação de ofertas reais. Análise e suíte Flutter serão verificadas no GitHub Actions, mantendo compilação/upload de APK desativados. Status desta correção até consultar o CI: implementada, aguardando validação.
+
+Referências primárias consultadas: https://www.rfc-editor.org/rfc/rfc9110.html#name-retry-after e https://api.dart.dev/dart-io/HttpDate/parse.html .

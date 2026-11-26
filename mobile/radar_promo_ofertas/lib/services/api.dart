@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show HttpDate;
 
 import 'package:http/http.dart' as http;
 
@@ -20,6 +21,7 @@ class OffersApi {
   final DateTime Function()? clock;
   final _inFlight = <String, Future<OffersResult>>{};
   DateTime? _retryAt;
+  String _retryMessage = _rateLimitMessage;
   static const _rateLimitMessage = 'O servidor de ofertas atingiu o limite temporário de uso (HTTP 429). Não é uma falha do seu celular. Tente novamente após a liberação do serviço.';
   OffersApi({this.client, this.clock});
 
@@ -32,12 +34,30 @@ class OffersApi {
     String sort = 'recent',
   }) {
     if (_retryAt != null && _now.isBefore(_retryAt!)) {
-      return Future.error(Exception(_rateLimitMessage));
+      return Future.error(Exception(_retryMessage));
     }
     final key = jsonEncode([page, query, category, sort]);
     return _inFlight.putIfAbsent(key, () => _fetchOffers(
       page: page, query: query, category: category, sort: sort,
     ).whenComplete(() { _inFlight.remove(key); }));
+  }
+
+  DateTime _retryDeadline(String? header) {
+    final now = _now;
+    final value = header?.trim() ?? '';
+    try {
+      final seconds = int.tryParse(value);
+      if (seconds != null && RegExp(r'^\d+$').hasMatch(value)) {
+        // Reject values outside DateTime's representable range before Duration
+        // arithmetic can overflow. Valid server waits are never shortened.
+        if (seconds > 8640000000000) throw const FormatException();
+        return now.add(Duration(seconds: seconds));
+      }
+      final deadline = HttpDate.parse(value);
+      return deadline.isAfter(now) ? deadline : now;
+    } catch (_) {
+      return now.add(const Duration(seconds: 60));
+    }
   }
 
   Future<OffersResult> _fetchOffers({
@@ -71,10 +91,6 @@ class OffersApi {
       );
     }
     if (response.statusCode != 200) {
-      if (response.statusCode == 429) {
-        final seconds = (int.tryParse(response.headers['retry-after'] ?? '') ?? 60).clamp(1, 3600);
-        _retryAt = _now.add(Duration(seconds: seconds.toInt()));
-      }
       String? upstreamCode;
       try {
         final body = jsonDecode(response.body);
@@ -84,11 +100,10 @@ class OffersApi {
       } catch (_) {
         // Some infrastructure failures return HTML rather than JSON.
       }
-      if (upstreamCode == 'RADAR_CAPACITY_REACHED' ||
-          upstreamCode == 'RADAR_CONNECTION_NOT_CONFIGURED') {
-        throw Exception('O serviço de ofertas está temporariamente indisponível no servidor. As ofertas voltarão quando a integração for restabelecida.');
-      }
-      final message = switch (response.statusCode) {
+      final message = upstreamCode == 'RADAR_CAPACITY_REACHED' ||
+          upstreamCode == 'RADAR_CONNECTION_NOT_CONFIGURED'
+          ? 'O serviço de ofertas está temporariamente indisponível no servidor. As ofertas voltarão quando a integração for restabelecida.'
+          : switch (response.statusCode) {
         429 => _rateLimitMessage,
         401 ||
         403 => 'O serviço de ofertas precisa liberar o acesso ao aplicativo.',
@@ -96,6 +111,15 @@ class OffersApi {
           'As ofertas estão temporariamente indisponíveis. Tente novamente mais tarde.',
         _ => 'Não foi possível atualizar as ofertas (${response.statusCode}).',
       };
+      if (response.statusCode == 429 ||
+          (response.statusCode == 503 && response.headers.containsKey('retry-after'))) {
+        final deadline = _retryDeadline(response.headers['retry-after']);
+        // Concurrent failures may extend a server pause, never shorten it.
+        if (_retryAt == null || deadline.isAfter(_retryAt!)) {
+          _retryAt = deadline;
+          _retryMessage = message;
+        }
+      }
       throw Exception(message);
     }
     dynamic data;
