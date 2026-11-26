@@ -12,6 +12,11 @@ on:
       - '.github/workflows/build-radar-ofertas-apk.yml'
       - 'mobile/radar_promo_ofertas/**'
   workflow_dispatch:
+    inputs:
+      generate_apk:
+        description: 'Generate final audit APK only after all audits are complete'
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -42,14 +47,17 @@ jobs:
         working-directory: mobile/radar_promo_ofertas
         run: flutter test
       - name: Build debug APK
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.generate_apk == true }}
         working-directory: mobile/radar_promo_ofertas
         run: flutter build apk --debug
       - name: Record source and APK checksums
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.generate_apk == true }}
         working-directory: mobile/radar_promo_ofertas
         run: |
           git rev-parse HEAD > build/app/outputs/flutter-apk/source-commit.txt
           sha256sum build/app/outputs/flutter-apk/app-debug.apk > build/app/outputs/flutter-apk/app-debug.apk.sha256
       - name: Upload installable APK
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.generate_apk == true }}
         uses: actions/upload-artifact@v4
         with:
           name: radar-promo-ofertas-apk-debug
