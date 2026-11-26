@@ -20,6 +20,25 @@ import 'services/price_alerts.dart';
 import 'services/android_price_notifications.dart';
 import 'models/offer.dart';
 
+// Central brand tokens. Context-dependent foregrounds are audited separately.
+abstract final class RadarPalette {
+  static const ink = Color(0xFF10243A);
+  static const accent = Color(0xFF86EFAC);
+  static const background = Color(0xFFF5F7FA);
+  static const darkBackground = Color(0xFF0F172A);
+  static const darkSurface = Color(0xFF1E293B);
+  static const darkCard = Color(0xFF243449);
+  static const darkText = Color(0xFFF8FAFC);
+  static const darkMuted = Color(0xFFCBD5E1);
+  static const brandShade = Color(0xFF23466B);
+  static const muted = Color(0xFF526174);
+  static const placeholder = Color(0xFF64748B);
+  static const categoryTint = Color(0xFFE8EEF6);
+  static const imageBackground = Color(0xFFF1F5F9);
+  static const savingTint = Color(0xFFDCFCE7);
+  static const savingInk = Color(0xFF166534);
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppThemePreference.load();
@@ -33,8 +52,8 @@ class RadarPromoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const ink = Color(0xFF102A2A);
-    const green = Color(0xFFB8F34A);
+    const ink = RadarPalette.ink;
+    const green = RadarPalette.accent;
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: AppThemePreference.mode,
       builder: (context, themeMode, _) => MaterialApp(
@@ -43,35 +62,35 @@ class RadarPromoApp extends StatelessWidget {
       darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF101B1B),
+        scaffoldBackgroundColor: RadarPalette.darkBackground,
         colorScheme: ColorScheme.fromSeed(
           seedColor: green,
           brightness: Brightness.dark,
-          surface: const Color(0xFF1B2929),
-          onSurface: const Color(0xFFF4F8F4),
-          onSurfaceVariant: const Color(0xFFD1DDD4),
+          surface: RadarPalette.darkSurface,
+          onSurface: RadarPalette.darkText,
+          onSurfaceVariant: RadarPalette.darkMuted,
         ),
         cardTheme: CardThemeData(
-          color: const Color(0xFF223333),
+          color: RadarPalette.darkCard,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF101B1B),
-          foregroundColor: Color(0xFFF4F8F4),
+          backgroundColor: RadarPalette.darkBackground,
+          foregroundColor: RadarPalette.darkText,
           elevation: 0,
         ),
         inputDecorationTheme: const InputDecorationTheme(
-          labelStyle: TextStyle(color: Color(0xFFD1DDD4)),
-          helperStyle: TextStyle(color: Color(0xFFD1DDD4)),
+          labelStyle: TextStyle(color: RadarPalette.darkMuted),
+          helperStyle: TextStyle(color: RadarPalette.darkMuted),
         ),
       ),
       title: 'Radar Promo Ofertas',
       theme: ThemeData(
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF6F8F3),
+        scaffoldBackgroundColor: RadarPalette.background,
         colorScheme: ColorScheme.fromSeed(
           seedColor: ink,
           primary: ink,
@@ -80,7 +99,7 @@ class RadarPromoApp extends StatelessWidget {
         ),
         fontFamily: 'Roboto',
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFF6F8F3),
+          backgroundColor: RadarPalette.background,
           foregroundColor: ink,
           elevation: 0,
           centerTitle: false,
@@ -347,12 +366,12 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: const Color(0xFF102A2A),
+                color: RadarPalette.ink,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
                 Icons.radar_rounded,
-                color: Color(0xFFB8F34A),
+                color: RadarPalette.accent,
                 size: 23,
               ),
             ),
@@ -380,7 +399,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 2.8,
-                    color: Color(0xFF6B7C72),
+                    color: RadarPalette.muted,
                   ),
                 ),
               ],
@@ -475,10 +494,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF102A2A),
+                      color: RadarPalette.ink,
                       borderRadius: BorderRadius.circular(22),
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF102A2A), Color(0xFF234844)],
+                        colors: [RadarPalette.ink, RadarPalette.brandShade],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -511,7 +530,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const Icon(
                           Icons.radar,
-                          color: Color(0xFFB8F34A),
+                          color: RadarPalette.accent,
                           size: 48,
                         ),
                       ],
@@ -523,7 +542,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF102A2A),
+                      color: RadarPalette.ink,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -594,7 +613,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text('Destaques seguem a pontuação do Radar; não representam votos da comunidade.',
-                        style: TextStyle(fontSize: 11, color: Color(0xFF6B7C72))),
+                        style: TextStyle(fontSize: 11, color: RadarPalette.muted)),
                     if (tab == 0 && availableCategories.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       const Text('Filtrar por categoria', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
@@ -652,7 +671,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ? 'Ofertas indisponíveis'
                               : '${tab == 2 ? list.length : total} ofertas encontradas',
                           style: const TextStyle(
-                            color: Color(0xFF6B7C72),
+                            color: RadarPalette.muted,
                             fontSize: 12,
                           ),
                       ),
@@ -754,13 +773,13 @@ class _HomeScreenState extends State<HomeScreen> {
           style: TextStyle(
             fontSize: 23,
             fontWeight: FontWeight.w900,
-            color: Color(0xFF102A2A),
+            color: RadarPalette.ink,
           ),
         ),
         const SizedBox(height: 8),
         const Text(
           'Categorias das ofertas carregadas. Escolha uma para filtrar.',
-          style: TextStyle(color: Color(0xFF6B7C72)),
+          style: TextStyle(color: RadarPalette.muted),
         ),
         const SizedBox(height: 18),
         if (categories.isEmpty)
@@ -772,8 +791,8 @@ class _HomeScreenState extends State<HomeScreen> {
           (c) => Card(
             child: ListTile(
               leading: const CircleAvatar(
-                backgroundColor: Color(0xFFEAF3D9),
-                child: Icon(Icons.category_outlined, color: Color(0xFF234844)),
+                backgroundColor: RadarPalette.categoryTint,
+                child: Icon(Icons.category_outlined, color: RadarPalette.brandShade),
               ),
               title: Text(
                 c,
@@ -812,7 +831,7 @@ class _HomeScreenState extends State<HomeScreen> {
         style: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.w900,
-          color: Color(0xFF102A2A),
+          color: RadarPalette.ink,
         ),
       ),
       const SizedBox(height: 12),
@@ -873,7 +892,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _infoTile(IconData icon, String title, String body) => Card(
     child: ListTile(
-      leading: Icon(icon, color: const Color(0xFF234844)),
+      leading: Icon(icon, color: RadarPalette.brandShade),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
       subtitle: Text(body),
     ),
@@ -888,7 +907,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const Icon(
             Icons.cloud_off_outlined,
             size: 48,
-            color: Color(0xFF6B7C72),
+            color: RadarPalette.muted,
           ),
           const SizedBox(height: 12),
           const Text(
@@ -899,7 +918,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             error ?? 'Tente novamente.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF6B7C72)),
+            style: const TextStyle(color: RadarPalette.muted),
           ),
           const SizedBox(height: 12),
           FilledButton(onPressed: _load, child: const Text('Tentar novamente')),
@@ -917,13 +936,13 @@ class _HomeScreenState extends State<HomeScreen> {
           const Icon(
             Icons.local_offer_outlined,
             size: 48,
-            color: Color(0xFF8A9B8E),
+            color: RadarPalette.placeholder,
           ),
           const SizedBox(height: 12),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF6B7C72)),
+            style: const TextStyle(color: RadarPalette.muted),
           ),
         ],
       ),
@@ -961,7 +980,7 @@ class OfferCard extends StatelessWidget {
                 width: 112,
                 height: 118,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF3F5F0),
+                  color: RadarPalette.imageBackground,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: offer.imageUrl.isNotEmpty
@@ -979,7 +998,7 @@ class OfferCard extends StatelessWidget {
                     : const Icon(
                         Icons.shopping_bag_outlined,
                         size: 34,
-                        color: Color(0xFF8A9B8E),
+                        color: RadarPalette.placeholder,
                       ),
               ),
               const SizedBox(width: 12),
@@ -996,13 +1015,13 @@ class OfferCard extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEAF6D7),
+                              color: RadarPalette.savingTint,
                               borderRadius: BorderRadius.circular(7),
                             ),
                             child: Text(
                               '-${offer.discountPercent}%',
                               style: const TextStyle(
-                                color: Color(0xFF315B20),
+                                color: RadarPalette.savingInk,
                                 fontWeight: FontWeight.w900,
                                 fontSize: 11,
                               ),
@@ -1015,7 +1034,7 @@ class OfferCard extends StatelessWidget {
                           constraints: const BoxConstraints(),
                           icon: Icon(
                             favorite ? Icons.bookmark : Icons.bookmark_border,
-                            color: const Color(0xFF234844),
+                            color: RadarPalette.brandShade,
                           ),
                         ),
                       ],
@@ -1036,20 +1055,20 @@ class OfferCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEAF6D7),
+                          color: RadarPalette.savingTint,
                           borderRadius: BorderRadius.circular(7),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.confirmation_number_outlined, size: 13, color: Color(0xFF315B20)),
+                            const Icon(Icons.confirmation_number_outlined, size: 13, color: RadarPalette.savingInk),
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
                                 'Cupom ${offer.couponCode}',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF315B20)),
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: RadarPalette.savingInk),
                               ),
                             ),
                           ],
@@ -1062,7 +1081,7 @@ class OfferCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFF102A2A),
+                        color: RadarPalette.ink,
                       ),
                     ),
                     if (offer.hasPrice && offer.originalPrice > offer.currentPrice)
@@ -1081,7 +1100,7 @@ class OfferCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF6B7C72),
+                        color: RadarPalette.muted,
                       ),
                     ),
                   ],
@@ -1162,7 +1181,7 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
               alignment: Alignment.centerLeft,
               child: Chip(
                 label: Text('${offer.discountPercent}% de desconto'),
-                backgroundColor: const Color(0xFFEAF6D7),
+                backgroundColor: RadarPalette.savingTint,
               ),
             ),
           Text(
@@ -1170,7 +1189,7 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w900,
-              color: Color(0xFF102A2A),
+              color: RadarPalette.ink,
             ),
           ),
           const SizedBox(height: 14),
@@ -1245,7 +1264,7 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
           const SizedBox(height: 24),
           FilledButton.icon(
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF102A2A),
+              backgroundColor: RadarPalette.ink,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
@@ -1273,7 +1292,7 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
           const Text(
             'Preço e disponibilidade podem mudar na loja. Confirme as condições antes de comprar.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF6B7C72), fontSize: 11),
+            style: TextStyle(color: RadarPalette.muted, fontSize: 11),
           ),
         ],
       ),
@@ -1289,7 +1308,7 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
           width: 120,
           child: Text(
             label,
-            style: const TextStyle(color: Color(0xFF6B7C72), fontSize: 12),
+            style: const TextStyle(color: RadarPalette.muted, fontSize: 12),
           ),
         ),
         Expanded(
