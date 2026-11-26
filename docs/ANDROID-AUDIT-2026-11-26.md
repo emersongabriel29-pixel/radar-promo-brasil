@@ -51,3 +51,11 @@ Publicação via git push local indisponível por ausência de credencial no she
 Sem deploy Hatchable, migração, alteração de segredo, publicação de ofertas ou mensagens. Nenhum APK gerado nesta execução. Equivalência global GitHub/Hatchable não comprovada. Rollback por revert dos commits desta execução, preservando o histórico; não usar reset destrutivo nem force push.
 
 Matriz final das 25 auditorias e resultados de CI será registrada após execução das verificações.
+
+## Rodada de validação e correções complementares
+
+- Commit remoto `be567435958012ef31de2013eaf7e7739f19977f`, run Flutter 45907817430: dependências e análise estática aprovadas; 49 testes passaram e um falhou. O teste de comunidade usava ensureVisible em um elemento ainda não construído pela lista preguiçosa após a fixação do CTA. Corrigido para scrollUntilVisible no scroll vertical, preservando as asserções do destino real e mensagem de falha. Nenhum teste removido.
+- Local: `npm run build` verificou 215 arquivos; `npm test` 254/254; `npm audit --audit-level=moderate` zero vulnerabilidades reportadas. Primeira execução e2e bloqueada por navegador Chromium ausente; instalação e reexecução pendentes.
+- Ícone adaptativo: fallback vetorial original mantido; foreground separado do fundo, versão monocromática no qualifier API 33 e splash específico API 31, sem Activity ou atraso artificial. Manifest aponta ao recurso mipmap; API 24/25 preservam alias do drawable anterior. 12 XMLs de recursos parseados; compilação/launcher/máscaras em aparelho aguardam etapa final. Referências: documentação oficial Android sobre adaptive icons e splash screen.
+- API: requisições idênticas simultâneas compartilham Future; entrada removida após conclusão para permitir atualização posterior. HTTP 429 estabelece pausa local conforme Retry-After numérico (1–3600s; fallback 60s), sem retentativa automática. Testes verificam coalescência, nova consulta após conclusão e respeito à pausa com relógio injetado.
+- Cupons: acesso pelo menu de conta sem remoção de buscas/salvos/sobre; cópia direta no catálogo de lojas, com aviso de validade não confirmada. Fluxos externos preservados.

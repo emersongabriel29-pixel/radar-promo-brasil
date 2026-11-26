@@ -1,6 +1,7 @@
 // Flutter 3.50 deprecates this import; retain compatibility with the pinned app dependencies.
 // ignore: deprecated_member_use
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/offer.dart';
 
@@ -79,7 +80,19 @@ class _StoresCouponsScreenState extends State<StoresCouponsScreen> {
                       subtitle: Text(offer.couponCode.trim().isEmpty
                           ? 'Sem cupom informado'
                           : 'Cupom: ${offer.couponCode.trim()} — validade não confirmada'),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: offer.couponCode.trim().isEmpty
+                          ? const Icon(Icons.chevron_right)
+                          : IconButton(
+                              tooltip: 'Copiar cupom',
+                              icon: const Icon(Icons.copy),
+                              onPressed: () async {
+                                await Clipboard.setData(ClipboardData(text: offer.couponCode));
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Cupom copiado. Confira a validade na loja.')),
+                                );
+                              },
+                            ),
                       onTap: () => widget.onOpen(offer),
                     ),
                 ],

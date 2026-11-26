@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -7,6 +8,32 @@ import 'package:radar_promo_ofertas/services/api.dart';
 import 'package:radar_promo_ofertas/models/offer.dart';
 
 void main() {
+  test('identical concurrent requests share a single network call', () async {
+    var calls = 0;
+    final pending = Completer<http.Response>();
+    final api = OffersApi(client: MockClient((_) { calls++; return pending.future; }));
+    final first = api.getOffers(query: 'produto');
+    final second = api.getOffers(query: 'produto');
+    pending.complete(http.Response('{"offers":[],"total":0,"hasMore":false}', 200));
+    await Future.wait([first, second]);
+    expect(calls, 1);
+    await api.getOffers(query: 'produto');
+    expect(calls, 2);
+  });
+  test('rate limit respects retry delay without issuing repeat requests', () async {
+    var now = DateTime.utc(2026, 11, 26);
+    var calls = 0;
+    final api = OffersApi(clock: () => now, client: MockClient((_) async {
+      calls++;
+      return http.Response('{}', 429, headers: {'retry-after': '120'});
+    }));
+    await expectLater(api.getOffers(), throwsException);
+    await expectLater(api.getOffers(query: 'outra'), throwsException);
+    expect(calls, 1);
+    now = now.add(const Duration(seconds: 121));
+    await expectLater(api.getOffers(), throwsException);
+    expect(calls, 2);
+  });
   test(
     'decimal prices and saved offers round trip without losing affiliate parameters',
     () {

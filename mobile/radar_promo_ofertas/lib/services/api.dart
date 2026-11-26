@@ -17,9 +17,30 @@ class OffersApi {
   static const baseUrl =
       'https://runnmpzkomcdawwzuift.supabase.co/functions/v1/radar-offers-feed';
   final http.Client? client;
-  OffersApi({this.client});
+  final DateTime Function()? clock;
+  final _inFlight = <String, Future<OffersResult>>{};
+  DateTime? _retryAt;
+  static const _rateLimitMessage = 'O servidor de ofertas atingiu o limite temporário de uso (HTTP 429). Não é uma falha do seu celular. Tente novamente após a liberação do serviço.';
+  OffersApi({this.client, this.clock});
+
+  DateTime get _now => clock?.call() ?? DateTime.now();
 
   Future<OffersResult> getOffers({
+    int page = 1,
+    String query = '',
+    String category = '',
+    String sort = 'recent',
+  }) {
+    if (_retryAt != null && _now.isBefore(_retryAt!)) {
+      return Future.error(Exception(_rateLimitMessage));
+    }
+    final key = jsonEncode([page, query, category, sort]);
+    return _inFlight.putIfAbsent(key, () => _fetchOffers(
+      page: page, query: query, category: category, sort: sort,
+    ).whenComplete(() { _inFlight.remove(key); }));
+  }
+
+  Future<OffersResult> _fetchOffers({
     int page = 1,
     String query = '',
     String category = '',
@@ -50,6 +71,10 @@ class OffersApi {
       );
     }
     if (response.statusCode != 200) {
+      if (response.statusCode == 429) {
+        final seconds = (int.tryParse(response.headers['retry-after'] ?? '') ?? 60).clamp(1, 3600);
+        _retryAt = _now.add(Duration(seconds: seconds.toInt()));
+      }
       String? upstreamCode;
       try {
         final body = jsonDecode(response.body);
@@ -64,8 +89,7 @@ class OffersApi {
         throw Exception('O serviço de ofertas está temporariamente indisponível no servidor. As ofertas voltarão quando a integração for restabelecida.');
       }
       final message = switch (response.statusCode) {
-        429 =>
-          'O servidor de ofertas atingiu o limite temporário de uso (HTTP 429). Não é uma falha do seu celular. Tente novamente após a liberação do serviço.',
+        429 => _rateLimitMessage,
         401 ||
         403 => 'O serviço de ofertas precisa liberar o acesso ao aplicativo.',
         502 || 503 =>

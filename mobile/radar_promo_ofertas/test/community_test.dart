@@ -33,7 +33,12 @@ void main() {
       offer: Offer.fromJson({'id':'real-route','title':'Oferta de teste local'}),
       isFavorite:false, onFavorite:(){}, community:links,
     )));
-    await tester.ensureVisible(find.text('Votos e comentários'));
+    await tester.scrollUntilVisible(
+      find.text('Votos e comentários'), 200,
+      scrollable: find.byWidgetPredicate(
+        (widget) => widget is Scrollable && widget.axisDirection == AxisDirection.down,
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Votos e comentários'));
     await tester.pumpAndSettle();
