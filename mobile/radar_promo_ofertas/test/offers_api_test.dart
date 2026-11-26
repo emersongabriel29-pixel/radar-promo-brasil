@@ -29,6 +29,8 @@ void main() {
   test('feed uses server pagination and encodes filter text', () async {
     final api = OffersApi(
       client: MockClient((request) async {
+        expect(request.url.host, 'runnmpzkomcdawwzuift.supabase.co');
+        expect(request.url.path, '/functions/v1/radar-offers-feed');
         expect(request.url.queryParameters['page'], '2');
         expect(request.url.queryParameters['q'], 'café & leite');
         expect(request.headers.containsKey('Authorization'), false);

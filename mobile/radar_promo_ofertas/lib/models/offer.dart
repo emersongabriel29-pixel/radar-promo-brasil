@@ -42,6 +42,15 @@ class Offer {
 
   bool get hasPrice => currentPrice.isFinite && currentPrice > 0;
 
+  // Derive displayed savings from the same pair of prices shown to the reader.
+  // Keep the upstream percentage intact for persistence and diagnostics.
+  double get savingsAmount => hasPrice && originalPrice.isFinite && originalPrice > currentPrice
+      ? originalPrice - currentPrice : 0;
+
+  int get savingsPercent => savingsAmount > 0
+      ? (savingsAmount / originalPrice * 100).floor().clamp(0, 99).toInt()
+      : 0;
+
   bool get hasValidLink {
     final uri = Uri.tryParse(affiliateUrl);
     return uri != null &&

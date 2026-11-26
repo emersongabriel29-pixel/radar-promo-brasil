@@ -19,10 +19,13 @@ import 'services/theme_preference.dart';
 import 'services/price_alerts.dart';
 import 'services/android_price_notifications.dart';
 import 'models/offer.dart';
+import 'offer_image.dart';
 
 // Central brand tokens. Context-dependent foregrounds are audited separately.
 abstract final class RadarPalette {
   static const ink = Color(0xFF10243A);
+  static const green = Color(0xFF16A34A);
+  static const promotion = Color(0xFFF97316);
   static const accent = Color(0xFF86EFAC);
   static const background = Color(0xFFF5F7FA);
   static const darkBackground = Color(0xFF0F172A);
@@ -573,6 +576,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       hintText: 'Buscar produto, loja ou marca',
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: IconButton(
+                        tooltip: 'Limpar busca',
                         onPressed: () {
                           search.clear();
                           if (tab == 2) {
@@ -584,7 +588,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: const Icon(Icons.close),
                       ),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: Theme.of(context).colorScheme.surface,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(15),
                         borderSide: BorderSide.none,
@@ -617,7 +621,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const Text('Filtrar por categoria', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 6),
                       SizedBox(
-                        height: 38,
+                        height: 52,
                         child: ListView(
                           scrollDirection: Axis.horizontal,
                           children: [
@@ -660,7 +664,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (error != null && offers.isNotEmpty && tab != 2)
                     Text(showingCachedOffers
                         ? 'Servidor indisponível. Exibindo ofertas consultadas anteriormente; preços e disponibilidade podem estar desatualizados. ${error!}'
-                        : error!, style: const TextStyle(color: Colors.red)),
+                        : error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -887,7 +891,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _infoTile(IconData icon, String title, String body) => Card(
     child: ListTile(
-      leading: Icon(icon, color: RadarPalette.brandShade),
+      leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
       subtitle: Text(body),
     ),
@@ -971,30 +975,10 @@ class OfferCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 112,
+              SizedBox(
+                width: MediaQuery.sizeOf(context).width < 360 ? 84 : 112,
                 height: 118,
-                decoration: BoxDecoration(
-                  color: RadarPalette.imageBackground,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: offer.imageUrl.isNotEmpty
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
-                        child: Image.network(
-                          offer.imageUrl,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(
-                            Icons.image_not_supported_outlined,
-                            size: 32,
-                          ),
-                        ),
-                      )
-                    : const Icon(
-                        Icons.shopping_bag_outlined,
-                        size: 34,
-                        color: RadarPalette.placeholder,
-                      ),
+                child: OfferImage(offer: offer),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1003,7 +987,7 @@ class OfferCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        if (offer.hasPrice && offer.discountPercent > 0)
+                        if (offer.hasPrice && offer.savingsPercent > 0)
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 7,
@@ -1014,7 +998,7 @@ class OfferCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(7),
                             ),
                             child: Text(
-                              '-${offer.discountPercent}%',
+                              '-${offer.savingsPercent}%',
                               style: const TextStyle(
                                 color: RadarPalette.savingInk,
                                 fontWeight: FontWeight.w900,
@@ -1025,11 +1009,11 @@ class OfferCard extends StatelessWidget {
                         const Spacer(),
                         IconButton(
                           onPressed: onFavorite,
-                          visualDensity: VisualDensity.compact,
-                          constraints: const BoxConstraints(),
+                          tooltip: favorite ? 'Remover dos favoritos' : 'Salvar oferta',
+                          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                           icon: Icon(
                             favorite ? Icons.bookmark : Icons.bookmark_border,
-                            color: RadarPalette.brandShade,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       ],
@@ -1041,7 +1025,7 @@ class OfferCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
-                        fontSize: 13,
+                        fontSize: 14,
                         height: 1.25,
                       ),
                     ),
@@ -1063,7 +1047,7 @@ class OfferCard extends StatelessWidget {
                                 'Cupom ${offer.couponCode}',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: RadarPalette.savingInk),
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: RadarPalette.savingInk),
                               ),
                             ),
                           ],
@@ -1078,12 +1062,15 @@ class OfferCard extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                         ),
                     ),
+                    if (offer.savingsAmount > 0)
+                      Text('Economize ${money.format(offer.savingsAmount)}',
+                        style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600)),
                     if (offer.hasPrice && offer.originalPrice > offer.currentPrice)
                       Text(
                         money.format(offer.originalPrice),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           decoration: TextDecoration.lineThrough,
                         ),
                       ),
@@ -1126,6 +1113,7 @@ class OfferDetailScreen extends StatefulWidget {
 
 class _OfferDetailScreenState extends State<OfferDetailScreen> {
   late bool isFavorite = widget.isFavorite;
+  bool opening = false;
   Offer get offer => widget.offer;
 
   void _message(String text) =>
@@ -1148,32 +1136,53 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
+          child:
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: RadarPalette.ink,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            onPressed: offer.hasValidLink && !opening
+                ? () async {
+                    setState(() => opening = true);
+                    try {
+                      final opened = await launchUrl(
+                        Uri.parse(offer.affiliateUrl),
+                        mode: LaunchMode.externalApplication,
+                      );
+                      if (!opened && mounted) {
+                        _message(
+                          'Não foi possível abrir a loja. Copie o link e tente no navegador.',
+                        );
+                      }
+                    } catch (_) {
+                      if (mounted) _message('Não foi possível abrir a loja.');
+                    } finally {
+                      if (mounted) setState(() => opening = false);
+                    }
+                  }
+                : null,
+            icon: const Icon(Icons.open_in_new),
+            label: Text(opening ? 'ABRINDO LOJA...' : 'IR PARA A OFERTA'),
+          ),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(18),
         children: [
-          Container(
-            height: 250,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: offer.imageUrl.isNotEmpty
-                ? Image.network(
-                    offer.imageUrl,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Icons.image_not_supported_outlined,
-                      size: 50,
-                    ),
-                  )
-                : const Icon(Icons.shopping_bag_outlined, size: 60),
-          ),
+          SizedBox(height: 250, child: OfferImage(offer: offer)),
           const SizedBox(height: 18),
-          if (offer.hasPrice && offer.discountPercent > 0)
+          if (offer.hasPrice && offer.savingsPercent > 0)
             Align(
               alignment: Alignment.centerLeft,
               child: Chip(
-                label: Text('${offer.discountPercent}% de desconto'),
+                label: Text('${offer.savingsPercent}% de desconto'),
+                labelStyle: const TextStyle(color: RadarPalette.savingInk, fontWeight: FontWeight.w700),
                 backgroundColor: RadarPalette.savingTint,
               ),
             ),
@@ -1192,11 +1201,13 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
           if (offer.hasPrice && offer.originalPrice > offer.currentPrice)
             Text(
               'Antes ${money.format(offer.originalPrice)}',
-              style: const TextStyle(
-                color: Colors.grey,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 decoration: TextDecoration.lineThrough,
               ),
             ),
+          if (offer.savingsAmount > 0)
+            Text('Economize ${money.format(offer.savingsAmount)}', style: const TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 14),
           _detailLine('Loja / origem', offer.source),
           if (offer.category.isNotEmpty)
@@ -1254,32 +1265,6 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
                 : DateFormat('dd/MM/yyyy HH:mm').format(offer.createdAt!.toLocal()),
           ),
           const SizedBox(height: 24),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: RadarPalette.ink,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            onPressed: offer.hasValidLink
-                ? () async {
-                    try {
-                      final opened = await launchUrl(
-                        Uri.parse(offer.affiliateUrl),
-                        mode: LaunchMode.externalApplication,
-                      );
-                      if (!opened && mounted) {
-                        _message(
-                          'Não foi possível abrir a loja. Copie o link e tente no navegador.',
-                        );
-                      }
-                    } catch (_) {
-                      if (mounted) _message('Não foi possível abrir a loja.');
-                    }
-                  }
-                : null,
-            icon: const Icon(Icons.open_in_new),
-            label: const Text('IR PARA A OFERTA'),
-          ),
           const SizedBox(height: 10),
           const Text(
             'Preço e disponibilidade podem mudar na loja. Confirme as condições antes de comprar.',

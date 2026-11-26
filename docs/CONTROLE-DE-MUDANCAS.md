@@ -1,5 +1,9 @@
 # Controle de mudanças e documentação obrigatória
 
+## 26/11/2026 — auditoria Android em andamento
+
+Branch fix/android-consolidation-20261126, PR #221. Inventário, análise de impacto, recuperação do endpoint público Supabase, bloqueio de APK intermediário no workflow legado e ajustes de tema/toque documentados em [ANDROID-AUDIT-2026-11-26.md](./ANDROID-AUDIT-2026-11-26.md). Backend e dados sem alterações; Hatchable v674/v3, sem deploy. Testes locais Flutter bloqueados pela revisão automática; consultar resultados de CI antes de homologar. Rollback por revert.
+
 ## Regra permanente
 
 Toda alteração no Radar Promo Brasil DEVE produzir uma atualização documental na mesma tarefa. Não existe exceção para “mudança pequena”, hotfix, refatoração, ajuste visual, alteração de prompt, troca de configuração, mudança de cron ou correção emergencial. Se a alteração não mudar o comportamento documentado, registrar no changelog técnico que a documentação funcional foi revisada e não exigiu mudança, explicando o motivo.

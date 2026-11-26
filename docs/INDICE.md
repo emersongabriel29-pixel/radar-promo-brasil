@@ -8,6 +8,8 @@
 
 ## Documentos vigentes
 
+- [Auditoria Android e preservação — 26/11/2026](./ANDROID-AUDIT-2026-11-26.md)
+
 - [Regra Master e fluxos ponta a ponta](./REGRA-MASTER-E-FLUXOS-PONTA-A-PONTA.md)
 - [Controle de mudanças e documentação obrigatória](./CONTROLE-DE-MUDANCAS.md)
 - [Auditoria do estado real — 08/11/2026](./AUDITORIA-ESTADO-2026-11-08.md)
