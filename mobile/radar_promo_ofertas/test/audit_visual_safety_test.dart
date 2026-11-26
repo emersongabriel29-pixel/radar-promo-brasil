@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 // ignore: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -75,4 +76,44 @@ void main() {
     expect(find.text('IR PARA A OFERTA').hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('an old response never replaces a newer search', (tester) async {
+    final old = Completer<http.Response>();
+    final api = OffersApi(client: MockClient((request) async {
+      if (request.url.queryParameters['q'] == null) return old.future;
+      return http.Response(jsonEncode({'offers': [{'id': 'new', 'title': 'Resultado novo'}],
+        'total': 1, 'hasMore': false}), 200);
+    }));
+    await tester.pumpWidget(RadarPromoApp(api: api));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField).first, 'novo');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+    old.complete(http.Response(jsonEncode({'offers': [{'id': 'old', 'title': 'Resultado antigo'}],
+      'total': 1, 'hasMore': false}), 200));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Resultado novo'), 200,
+      scrollable: find.byWidgetPredicate((w) => w is Scrollable && w.axisDirection == AxisDirection.down));
+    expect(find.text('Resultado antigo'), findsNothing);
+    expect(find.text('Resultado novo'), findsOneWidget);
+  });
+
+  for (final brightness in Brightness.values) {
+    testWidgets('card fits 320 dp with 200 percent text in $brightness', (tester) async {
+      tester.view.physicalSize = const Size(320, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(MaterialApp(theme: ThemeData(brightness: brightness),
+        builder: (context, child) => MediaQuery(data: MediaQuery.of(context).copyWith(
+          textScaler: const TextScaler.linear(2)), child: child!),
+        home: Scaffold(body: SingleChildScrollView(child: OfferCard(
+          offer: Offer.fromJson({'id': 'a', 'title': 'Produto com nome completo e descrição longa',
+            'currentPrice': 80, 'originalPrice': 100, 'couponCode': 'CUPOMCOMCODIGOLONGO'}),
+          favorite: false, onFavorite: () {}, onTap: () {},
+        )))));
+      expect(tester.takeException(), isNull);
+      expect(find.byTooltip('Salvar oferta'), findsOneWidget);
+    });
+  }
 }

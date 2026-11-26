@@ -32,7 +32,7 @@ class _InstalledAppVersionState extends State<InstalledAppVersion> {
     future: version,
     builder: (_, snapshot) => Text(
       snapshot.data ?? 'Consultando versão…',
-      style: const TextStyle(color: Color(0xFF6B7C72), fontSize: 12),
+      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
     ),
   );
 }

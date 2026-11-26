@@ -1152,8 +1152,8 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
           child:
           FilledButton.icon(
             style: FilledButton.styleFrom(
-              backgroundColor: RadarPalette.ink,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
             onPressed: offer.hasValidLink && !opening

@@ -92,7 +92,7 @@ class MainActivity : FlutterActivity() {
                                 val builder = if (Build.VERSION.SDK_INT >= 26)
                                     Notification.Builder(this, channelId) else Notification.Builder(this)
                                 val notification = builder
-                                    .setSmallIcon(applicationInfo.icon)
+                                    .setSmallIcon(R.drawable.radar_monochrome)
                                     .setContentTitle(title)
                                     .setContentText(body)
                                     .setAutoCancel(true)

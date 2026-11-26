@@ -1,4 +1,4 @@
-> Fonte recuperado em 16/11/2026. Consulte [RECUPERACAO-2026-11-16.md](docs/RECUPERACAO-2026-11-16.md) e [PELANDO-INSPIRED-UI-2026-11-24.md](docs/PELANDO-INSPIRED-UI-2026-11-24.md) para o histórico e a adaptação visual. O workflow de CI do APK está em `.github/workflows/radar-ofertas-android-ci.yml`.
+> Fonte recuperado em 16/11/2026. Consulte [RECUPERACAO-2026-11-16.md](docs/RECUPERACAO-2026-11-16.md) e [PELANDO-INSPIRED-UI-2026-11-24.md](docs/PELANDO-INSPIRED-UI-2026-11-24.md) para o histórico e a adaptação visual. A validação sem APK está em `.github/workflows/build-radar-ofertas-apk.yml`; consulte também [a auditoria de 26/11/2026](../../docs/ANDROID-AUDIT-2026-11-26.md).
 
 # Radar Promo Ofertas — Android 0.2.0
 
@@ -17,11 +17,11 @@ Cliente Flutter independente. O Radar Promo Brasil e seus dados não foram alter
 - Paginação sem cliques concorrentes, sem duplicar IDs e sem sobrescrever uma busca mais recente com uma resposta antiga.
 
 ## Integração e pendências reais
-O cliente consulta exclusivamente `https://radar-promo-ofertas.hatchable.site/api/offers`.
-O proxy consulta o feed do Radar Promo Brasil; a credencial pertence somente aos servidores.
+O cliente consulta a Edge Function existente `https://runnmpzkomcdawwzuift.supabase.co/functions/v1/radar-offers-feed`.
+O endpoint anterior do Hatchable foi preservado no servidor, mas sua cota impede o uso atual. Credenciais continuam somente no servidor.
 **Nunca coloque credenciais no APK, no código Flutter ou em `--dart-define`.**
 
-Estado verificado em 24/11/2026:
+Estado histórico verificado em 24/11/2026 (estado atual na auditoria de 26/11):
 - Radar Promo Brasil: versão 674; endpoint protegido `api/public/offers-feed.js`.
 - Radar Promo Ofertas: versão 3; endpoint público declarado `/api/offers`, que consulta o feed principal por `lib/radar-feed.js`.
 - Contrato do feed: `{source, generatedAt, page, limit, total, hasMore, offers}`. Os parâmetros de ordenação suportados pelo servidor são `recent`, `discount` e `score`.
@@ -32,6 +32,10 @@ Estado verificado em 24/11/2026:
 A visibilidade atual do projeto Radar Promo Ofertas é `personal` no cadastro da plataforma. O proprietário precisa confirmar/alterar a visibilidade nas configurações e regularizar o limite de execução. Nenhuma visibilidade foi alterada e nenhum plano foi contratado nesta tarefa. O status das duas credenciais servidor-a-servidor não foi exposto nem copiado para o APK.
 
 Login nativo e sincronização de favoritos ainda não estão conectados no Flutter. Comentários e votos abrem a página segura do serviço; não são apresentados como recursos nativos. As buscas salvas são atalhos locais executados quando o usuário toca nelas, não monitoramento em segundo plano. Não há contadores fictícios, usuários simulados ou notificações fingidas.
+
+## Validação atual — 26/11/2026
+
+O feed Supabase respondeu HTTP 200 com catálogo vazio; há zero registros de histórico oficial de preços. Não reapresentar preços antigos como ofertas atuais. Análise e testes rodam sem compilar APK. A configuração release ainda usa assinatura debug: produção bloqueada. A impressão digital pública do certificado anterior foi recuperada em `android/signing-certificate.sha256`, sem chave privada. A versão histórica 0.3.1+4 exige reconciliar versionCode antes de qualquer APK final; não usar a versão 0.2.0+2 do fonte como atualização de produção.
 
 ## Compilar
 Ferramentas desta entrega: Flutter 3.50.0 / Dart 3.14.0, Java 21, Android SDK 36, NDK 28.2.13676358. Android mínimo: API 24 (Android 7).
