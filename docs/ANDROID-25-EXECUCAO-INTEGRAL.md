@@ -27,3 +27,11 @@ Arquivos: main.dart, screens/stores_coupons.dart, screens/preferences.dart; test
 ## Dependências externas — auditorias 19 e 20
 
 Inspeção real do auxiliar: api/account/deletion-request.js usa access=user, requireIdentity, ensureSameOrigin e confirmação explícita para solicitar exclusão, mas retorna accountDeleted=false. Portanto é solicitação pendente, não exclusão efetiva da conta. Auth email está habilitado no hatchable.toml; segredo de integração permanece apenas declarado no servidor. Não foi criado login paralelo nem excluída conta de teste/produção. Homologação de comunidade, conta e exclusão real continua bloqueada pelo gateway com 429. Fluxos de votos/comentários e proteção antispam exigem execução após liberação da infraestrutura; não serão classificados como validados por existirem no código.
+
+Resultado da etapa 2: commit 3b67845, run Flutter 45914856775/job 140231516139 aprovado, análise sem problemas e 83 testes aprovados. Navegação, cupons, exclusão acessível, busca separada e seis cenários de tamanho/tema com fonte 200% validados em widgets.
+
+## Etapa 3 — auditorias 08, 15, 16 e integração de leitura
+
+Causa do catálogo parcial: o cliente só conhece nomes presentes nas páginas do feed; a Edge Function existente não expõe catálogo. O banco contém categorias reais mesmo sem ofertas atuais elegíveis. Solução menos invasiva: acrescentar catalog=1 ao mesmo endpoint e função, somente GET, com paginação limitada por capacidade e conta fixa do servidor, sem criar outro backend, tabela ou política. Respostas normais de ofertas e seus critérios de atualidade permanecem intactos. Metadados de categorias/lojas não serão apresentados como ofertas disponíveis nem como prova de preço atual.
+
+Fonte de verdade: radar-offers-feed v2, verify_jwt=false já existente, fonte recuperado do projeto Supabase correto e guardado em supabase/functions/radar-offers-feed/ para restauração. Changelog e documentação oficial de conexão Postgres consultados. Advisor reconfirmou 83 avisos INFO de RLS sem policies; nenhuma abertura de policies ou troca de credenciais será feita. Implantação reversível da função existente autorizada no escopo do prompt mestre, somente após testes de contrato e comparação do hash da versão ainda implantada. Rollback: reimplantar exatamente os dois arquivos v2 preservados; sem mutação de dados.
