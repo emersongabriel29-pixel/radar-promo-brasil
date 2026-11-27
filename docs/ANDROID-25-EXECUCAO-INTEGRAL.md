@@ -148,3 +148,6 @@ Teste adicional local JVM: Java KeyStore leu a chave privada com alias/senhas ex
 Validação inicial da preparação: run45917946329/job140241580267 aprovou pub get, analyze,99testes,recursos XML e configuração Gradle/teste negativo de credenciais ausentes. A tarefa de configuração não produziu APK/AAB. CI backend45917946167 aprovado.
 
 Próxima verificação de acessibilidade: o teste existente de18telas passa a avaliar androidTapTargetGuideline, labeledTapTargetGuideline e textContrastGuideline sobre a árvore semântica. Impacto apenas nos testes, sem alterar dados/navegação; falhas deverão ser corrigidas no componente responsável. Isso não é homologação de TalkBack nem WCAG integral. Resultados aguardando CI.
+
+
+Regressão adicional do guard: o CI testa também certificado divergente e chave inacessível com identidade sintética descartável identificada como fixture, sem assinar aplicativo ou alterar a chave original. Um dry-run do grafo assembleRelease confirma dependência do guard sem executar compilação/pacote; a etapa exige ausência de APK/AAB após os testes. A configuração com certificado correto foi verificada localmente no JVM com a chave original, sem enviá-la ao CI.

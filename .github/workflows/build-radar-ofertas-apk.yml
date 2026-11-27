@@ -78,6 +78,25 @@ jobs:
             exit 1
           fi
           grep -q RADAR_SIGNING_MISSING "$RUNNER_TEMP/radar-signing-check.log"
+          # Disposable test identity: never used to sign or distribute the app.
+          keytool -genkeypair -storetype PKCS12 -keystore "$RUNNER_TEMP/radar-signing-fixture.p12" -storepass radar-fixture-only -keypass radar-fixture-only -alias fixture -dname CN=RadarSigningTestFixture -keyalg RSA -keysize 2048 -validity 1 > "$RUNNER_TEMP/radar-fixture.log" 2>&1
+          export RADAR_RELEASE_STORE_FILE="$RUNNER_TEMP/radar-signing-fixture.p12"
+          export RADAR_RELEASE_STORE_PASSWORD=radar-fixture-only
+          export RADAR_RELEASE_KEY_ALIAS=fixture
+          export RADAR_RELEASE_KEY_PASSWORD=radar-fixture-only
+          if bash ./gradlew :app:validateRadarReleaseSigning --console=plain > "$RUNNER_TEMP/radar-signing-mismatch.log" 2>&1; then
+            echo 'Signing guard unexpectedly accepted a different certificate'
+            exit 1
+          fi
+          grep -q RADAR_SIGNING_MISMATCH "$RUNNER_TEMP/radar-signing-mismatch.log"
+          export RADAR_RELEASE_KEY_PASSWORD=wrong-fixture-password
+          if bash ./gradlew :app:validateRadarReleaseSigning --console=plain > "$RUNNER_TEMP/radar-signing-unreadable.log" 2>&1; then
+            echo 'Signing guard unexpectedly accepted an unreadable private key'
+            exit 1
+          fi
+          grep -q RADAR_SIGNING_UNREADABLE "$RUNNER_TEMP/radar-signing-unreadable.log"
+          bash ./gradlew :app:assembleRelease --dry-run --console=plain > "$RUNNER_TEMP/radar-release-task-graph.log" 2>&1
+          grep -q ':app:validateRadarReleaseSigning SKIPPED' "$RUNNER_TEMP/radar-release-task-graph.log"
           test -z "$(find ../build -type f \( -name '*.apk' -o -name '*.aab' \) -print -quit)"
       - name: Upload labeled widget-render evidence (not device validation)
         if: always()
