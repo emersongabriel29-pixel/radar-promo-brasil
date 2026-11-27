@@ -1,0 +1,39 @@
+name: Build Android APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['lib/**', 'android/**', 'test/**', 'pubspec.yaml', 'pubspec.lock', '.github/workflows/android.yml']
+permissions:
+  contents: read
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Analyze
+        run: flutter analyze
+      - name: Test
+        run: flutter test
+      - name: Build installable test release
+        run: flutter build apk --release
+      - name: Checksum
+        working-directory: build/app/outputs/flutter-apk
+        run: sha256sum app-release.apk > app-release.apk.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: radar-promo-ofertas-android
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/app-release.apk.sha256

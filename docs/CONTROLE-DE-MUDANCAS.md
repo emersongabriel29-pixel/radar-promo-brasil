@@ -1,5 +1,27 @@
 # Controle de mudanças e documentação obrigatória
 
+## 27/11/2026 — APK novo explicitamente solicitado
+
+Compilado0.3.2+5 de teste, commitb7a1c6e/run45970410330 aprovado;99testes e Gradle aprovados. Builddebug assinado localmente com a chave original; certificado/manifesto/ZIP/alinhamento conferidos.83.201.166bytes. Sem homologação em aparelho/produção. Gatilho pontual removido; auditorias sem APK automático. Resultados e SHA256 em APK-TESTE-0.3.2-2026-11-27.md. Sem mudanças em banco/backend/credenciais.
+
+## 27/11/2026 — versão, assinatura e acessibilidade
+
+Fonte0.3.2+5; release exige chave existente com certificado fixado, sem fallback debug. Workflow final manual APK/AAB desativado por padrão; CI testa guard sem gerar app. Preço anterior legível nos dois temas; ciclo de vida do teste semântico corrigido. Código b815134:99Flutter/259Node/3e2e e verificações Gradle aprovados. Chave original validada localmente, sem valores privados no código/logs. Relatório completo em ANDROID-25-EXECUCAO-INTEGRAL.md; Hatchable674/3 sem deploy e quota429 permanece.
+
+## Continuidade integral das 25 auditorias Android
+
+Registro vigente em ANDROID-25-EXECUCAO-INTEGRAL.md, PR #221. Executadas quatro etapas: tema/contraste/movimento, navegação/busca/cupons, catálogo somente leitura na função Supabase existente v3 e jornada/responsividade/evidências. Flutter99, Node259 e e2e3 aprovados no CI; recursos Android compilados sem APK. Nenhum dado, credencial, assinatura ou backend Hatchable alterado. Inventário, impacto, testes e rollback constam no documento por etapa.
+
+## 26/11/2026 — continuidade: espera HTTP do feed
+
+Após 68 testes Flutter aprovados para a espera HTTP, corrigido descarte silencioso de favoritos ilegíveis/sem ID: strings originais são mantidas na chave saved_offers ao editar registros válidos. Teste específico adicionado; sem migração ou nova chave. Consultar resultados da rodada seguinte no relatório.
+
+Retomada a partir de cae1fbf no PR #221. O serviço Flutter passa a respeitar Retry-After em segundos ou data HTTP, sem reduzir a espera válida para uma hora; 503 com esse cabeçalho também é respeitado. Falhas concorrentes não encurtam uma pausa já estabelecida, e a mensagem mantém o motivo correto. Somente cliente, testes e documentação; sem alterações em endpoint, backend, banco, chaves ou APK. Resultados atuais e rollback na seção de continuidade de ANDROID-AUDIT-2026-11-26.md.
+
+## 26/11/2026 — auditoria Android em andamento
+
+Branch fix/android-consolidation-20261126, PR #221. Inventário, análise de impacto, recuperação do endpoint público Supabase, bloqueio de APK intermediário no workflow legado e ajustes de tema/toque documentados em [ANDROID-AUDIT-2026-11-26.md](./ANDROID-AUDIT-2026-11-26.md). Backend e dados sem alterações; Hatchable v674/v3, sem deploy. Testes locais Flutter bloqueados pela revisão automática; consultar resultados de CI antes de homologar. Rollback por revert.
+
 ## Regra permanente
 
 Toda alteração no Radar Promo Brasil DEVE produzir uma atualização documental na mesma tarefa. Não existe exceção para “mudança pequena”, hotfix, refatoração, ajuste visual, alteração de prompt, troca de configuração, mudança de cron ou correção emergencial. Se a alteração não mudar o comportamento documentado, registrar no changelog técnico que a documentação funcional foi revisada e não exigiu mudança, explicando o motivo.

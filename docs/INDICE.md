@@ -1,12 +1,24 @@
 # Documentação oficial — Radar Promo Brasil
 
+Estado vigente da auditoria Android: [matriz das 25 auditorias, testes e bloqueios](./ANDROID-25-EXECUCAO-INTEGRAL.md), PR #221, código validado em `4e4c957ca568b503c5ffde3e763883721bfdc7da`. Flutter: 99 testes; backend: 259 testes + 3 e2e no CI; sem APK novo. Os estados datados abaixo são históricos.
+
 > Estado observado em 24/11/2026. Radar Promo Brasil: Hatchable v674. Radar Promo Ofertas: Hatchable v3. GitHub `main`: `c94b3600fd1ba76439bc12e229faff2cb9ff8989` (PR #216). O workflow Android agora fixa o app Flutter no commit `2410f24980a12bd30a96393335e2cc094d4b152d`, ainda mantido na branch `codex/android-pelando-inspired-ui-20261124`; o código do APK não foi mesclado à `main` para evitar a divergência histórica da branch. O endpoint `/api/offers` ainda não foi homologado com HTTP 200 por bloqueio `429 usage_limit`. Este índice é a porta de entrada; documentos históricos não substituem a auditoria atual.
+
+Continuidade27/11: fonte0.3.2+5, identidade de assinatura preservada e verificada localmente, guard de release e acessibilidade ampliada aprovados no código b815134. [Resultados e bloqueios atuais](./ANDROID-25-EXECUCAO-INTEGRAL.md#resultado-da-continuidade2711--verificado). Sem APK novo.
 
 ## Regra obrigatória
 
 **Toda alteração deve ser registrada na documentação na mesma tarefa e antes de ser considerada concluída.** Consulte [CONTROLE-DE-MUDANCAS.md](./CONTROLE-DE-MUDANCAS.md). A regra vale para código, API, UI, configuração, integrações, banco/migrações, automações, testes, segurança, documentação e implantação.
 
 ## Documentos vigentes
+
+- [APK de teste0.3.2+5 solicitado em27/11](./APK-TESTE-0.3.2-2026-11-27.md): APK novo gerado e assinado com identidade preservada; download e checksum no relatório. Versão de teste, sem homologação integral.
+
+- [Execução integral das 25 auditorias Android](./ANDROID-25-EXECUCAO-INTEGRAL.md)
+
+- [Auditoria Android e preservação — 26/11/2026](./ANDROID-AUDIT-2026-11-26.md)
+
+  Inclui a continuidade do tratamento de Retry-After e preservação de favoritos ilegíveis, com testes de regressão.
 
 - [Regra Master e fluxos ponta a ponta](./REGRA-MASTER-E-FLUXOS-PONTA-A-PONTA.md)
 - [Controle de mudanças e documentação obrigatória](./CONTROLE-DE-MUDANCAS.md)
