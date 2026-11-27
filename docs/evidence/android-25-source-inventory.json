@@ -1,0 +1,111 @@
+{
+  "scope": "Files changed during integral continuation; excludes itself and later documentation-only updates",
+  "validated_code_commit": "4e4c957ca568b503c5ffde3e763883721bfdc7da",
+  "files": [
+    {
+      "path": ".github/workflows/build-radar-ofertas-apk.yml",
+      "bytes": 3390,
+      "sha256": "2a0140d2a6e09e39a41250f058ae267ea636a5cd4e82fd000da2a7a33d690bdd"
+    },
+    {
+      "path": "docs/ANDROID-25-EXECUCAO-INTEGRAL.md",
+      "bytes": 25947,
+      "sha256": "18a7390434cfa2afd8a7eda16cd71590bec585335f753467dc34cd84d188d274"
+    },
+    {
+      "path": "docs/CONTROLE-DE-MUDANCAS.md",
+      "bytes": 12833,
+      "sha256": "ff251c3847150c7ce9a939708f32432f3f694f6c02f1ac3e2cb0e66628eda50a"
+    },
+    {
+      "path": "docs/INDICE.md",
+      "bytes": 3456,
+      "sha256": "69e26bf5fb1fae369189f0fb254da094b39953234c3ebeda3f20931928ef3e33"
+    },
+    {
+      "path": "mobile/radar_promo_ofertas/lib/design/radar_theme.dart",
+      "bytes": 5503,
+      "sha256": "a8fe3b71b5e6884a3ee0d2eeb934887645f51b45b7550234f54c00e4a7be8450"
+    },
+    {
+      "path": "mobile/radar_promo_ofertas/lib/main.dart",
+      "bytes": 49759,
+      "sha256": "2b7a31654c2e38ff041a81b9e34dfd23fd50911ad3b132e8defd5fed21323ff5"
+    },
+    {
+      "path": "mobile/radar_promo_ofertas/lib/screens/preferences.dart",
+      "bytes": 14770,
+      "sha256": "4b62cbd3e69c21813f508c5a68a91f5618f8830a833c1b135aabf03cdaefafc1"
+    },
+    {
+      "path": "mobile/radar_promo_ofertas/lib/screens/stores_coupons.dart",
+      "bytes": 4647,
+      "sha256": "dfff919533e344f0102e2c9cc28c46030ea33fd31c4f5b1d243d61780992d68f"
+    },
+    {
+      "path": "mobile/radar_promo_ofertas/lib/services/api.dart",
+      "bytes": 6487,
+      "sha256": "9bea4fd865e2ffb966e39b0437016c1da9b0a6e71a74d89c61aae7a754891853"
+    },
+    {
+      "path": "mobile/radar_promo_ofertas/test/audit_regressions_test.dart",
+      "bytes": 4250,
+      "sha256": "448bf546acec6410ebd909dc172493edf70b4f17d85080e7508f3fa7c3c1eea6"
+    },
+    {
+      "path": "mobile/radar_promo_ofertas/test/design_system_test.dart",
+      "bytes": 2202,
+      "sha256": "1ccfc8ee4a09e87a711a67695348eb8216c887754b3e746a522f730ed624d0d0"
+    },
+    {
+      "path": "mobile/radar_promo_ofertas/test/feed_journey_test.dart",
+      "bytes": 4727,
+      "sha256": "14faf446617f7c892410932b194545f4c5bf5f47d14273a386666816a2214369"
+    },
+    {
+      "path": "mobile/radar_promo_ofertas/test/home_test.dart",
+      "bytes": 5096,
+      "sha256": "10bc1a8ddd6bbc41b2447e309b03728ed33d1d40ca1ecaa164465d5767a982d7"
+    },
+    {
+      "path": "mobile/radar_promo_ofertas/test/navigation_catalog_test.dart",
+      "bytes": 7207,
+      "sha256": "5031b329f07d6e3c7119a2275430cacceff882c4d66406772fbaa4f142583bf1"
+    },
+    {
+      "path": "mobile/radar_promo_ofertas/test/offers_api_test.dart",
+      "bytes": 9292,
+      "sha256": "0d112964daee69fda4f309acdcd80e772392a3e22a7237e02946c3a84853beb7"
+    },
+    {
+      "path": "mobile/radar_promo_ofertas/test/price_dialog_lifecycle_test.dart",
+      "bytes": 2163,
+      "sha256": "57b7a128d9fe018c2a572ffd6b017c9b6635e63f42c56e56446eecb194e04f23"
+    },
+    {
+      "path": "mobile/radar_promo_ofertas/test/responsive_screens_test.dart",
+      "bytes": 2041,
+      "sha256": "9f102a0a6339e02f6b1f430628290bb146be3b2880aa1ad5d0cc6a049b0192ee"
+    },
+    {
+      "path": "mobile/radar_promo_ofertas/test/visual_evidence_test.dart",
+      "bytes": 5698,
+      "sha256": "c3cfc1212b7056f1d3d7a5310924b32aa573a66af318080f6599432c553ca82b"
+    },
+    {
+      "path": "supabase/functions/radar-offers-feed/deno.json",
+      "bytes": 46,
+      "sha256": "fa1f9da4e79d2e9e2132e96c4703b48e0137be116d2f11cdbaa0a5b9690621a0"
+    },
+    {
+      "path": "supabase/functions/radar-offers-feed/index.ts",
+      "bytes": 6773,
+      "sha256": "9fbfa12f36ecb9e28fc3e964ead0470a1b93f1afabb923c19d55ed4a55b740e6"
+    },
+    {
+      "path": "tests/android-edge-catalog.test.mjs",
+      "bytes": 3069,
+      "sha256": "2915ed4891e79df9af838dd632d8f5496aac7f08d292704cb1402033885ccc45"
+    }
+  ]
+}

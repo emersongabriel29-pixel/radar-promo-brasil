@@ -1,5 +1,7 @@
 # Radar Promo Ofertas — auditoria de 26/11/2026
 
+> Registro vigente: [execução das 25 auditorias](./ANDROID-25-EXECUCAO-INTEGRAL.md). Este documento preserva as etapas anteriores.
+
 > Continuidade desta execução: consultar a seção final “Continuidade — espera HTTP do feed”. Os resultados anteriores permanecem como evidência histórica, sem substituir a validação da revisão atual.
 
 Registro de execução em andamento. Não é declaração de homologação ou release.

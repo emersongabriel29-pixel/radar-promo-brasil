@@ -2,7 +2,7 @@
 
 ## Continuidade integral das 25 auditorias Android
 
-Registro vigente em ANDROID-25-EXECUCAO-INTEGRAL.md, PR #221. Primeira etapa consolida tema, TextTheme, componentes e redução de movimento; sem tocar em dados, APIs, assinatura ou APK. Inventário, impacto, testes e rollback constam no documento por etapa.
+Registro vigente em ANDROID-25-EXECUCAO-INTEGRAL.md, PR #221. Executadas quatro etapas: tema/contraste/movimento, navegação/busca/cupons, catálogo somente leitura na função Supabase existente v3 e jornada/responsividade/evidências. Flutter99, Node259 e e2e3 aprovados no CI; recursos Android compilados sem APK. Nenhum dado, credencial, assinatura ou backend Hatchable alterado. Inventário, impacto, testes e rollback constam no documento por etapa.
 
 ## 26/11/2026 — continuidade: espera HTTP do feed
 
