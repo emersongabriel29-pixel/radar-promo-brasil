@@ -1,5 +1,9 @@
 # Controle de mudanças e documentação obrigatória
 
+## 27/11/2026 — APK novo explicitamente solicitado
+
+Compilado0.3.2+5 de teste, commitb7a1c6e/run45970410330 aprovado;99testes e Gradle aprovados. Builddebug assinado localmente com a chave original; certificado/manifesto/ZIP/alinhamento conferidos.83.201.166bytes. Sem homologação em aparelho/produção. Gatilho pontual removido; auditorias sem APK automático. Resultados e SHA256 em APK-TESTE-0.3.2-2026-11-27.md. Sem mudanças em banco/backend/credenciais.
+
 ## 27/11/2026 — versão, assinatura e acessibilidade
 
 Fonte0.3.2+5; release exige chave existente com certificado fixado, sem fallback debug. Workflow final manual APK/AAB desativado por padrão; CI testa guard sem gerar app. Preço anterior legível nos dois temas; ciclo de vida do teste semântico corrigido. Código b815134:99Flutter/259Node/3e2e e verificações Gradle aprovados. Chave original validada localmente, sem valores privados no código/logs. Relatório completo em ANDROID-25-EXECUCAO-INTEGRAL.md; Hatchable674/3 sem deploy e quota429 permanece.

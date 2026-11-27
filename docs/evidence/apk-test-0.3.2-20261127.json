@@ -1,0 +1,59 @@
+{
+  "file": "Radar_Promo_Ofertas_0.3.2_arm64_teste.apk",
+  "versionName": "0.3.2",
+  "versionCode": 5,
+  "package": "br.com.radarpromo.radar_promo_ofertas",
+  "minSdk": "24",
+  "targetSdk": "36",
+  "debuggable": "true",
+  "testOnly": "false",
+  "usesCleartextTraffic": "false",
+  "bytes": 83201166,
+  "sha256": "d8bccf4a41168529b4caf9984a692c0a768db6b32de89406a9cbdb170b7d8476",
+  "abis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86_64"
+  ],
+  "uncompressed_native_libraries": [
+    {
+      "name": "lib/arm64-v8a/libVkLayer_khronos_validation.so",
+      "aligned_16k": true
+    },
+    {
+      "name": "lib/arm64-v8a/libdartjni.so",
+      "aligned_16k": true
+    },
+    {
+      "name": "lib/arm64-v8a/libdatastore_shared_counter.so",
+      "aligned_16k": true
+    },
+    {
+      "name": "lib/arm64-v8a/libflutter.so",
+      "aligned_16k": true
+    },
+    {
+      "name": "lib/armeabi-v7a/libdartjni.so",
+      "aligned_16k": true
+    },
+    {
+      "name": "lib/armeabi-v7a/libdatastore_shared_counter.so",
+      "aligned_16k": true
+    },
+    {
+      "name": "lib/x86_64/libdartjni.so",
+      "aligned_16k": true
+    },
+    {
+      "name": "lib/x86_64/libdatastore_shared_counter.so",
+      "aligned_16k": true
+    }
+  ],
+  "signature": "original preserved identity; apksigner verified",
+  "build_commit": "b7a1c6eae234ca9278f5461a9ea032008314445e",
+  "real_device_installation_tested": false,
+  "engine_abis": [
+    "arm64-v8a"
+  ],
+  "build_mode": "debug test signed with preserved original key"
+}

@@ -106,46 +106,6 @@ jobs:
           path: mobile/radar_promo_ofertas/build/audit_visual_evidence/
           if-no-files-found: ignore
           retention-days: 3
-      # One explicit user-requested test build. Remove this block after delivery.
-      - name: Build explicitly requested test APK 0.3.2+5
-        if: >-
-          ${{ github.event_name == 'push' && github.ref == 'refs/heads/fix/android-consolidation-20261126' && github.event.head_commit.message == 'build(android): generate requested test APK 0.3.2+5 [20261127]' }}
-        working-directory: mobile/radar_promo_ofertas
-        shell: bash
-        env:
-          RADAR_ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          RADAR_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          RADAR_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          RADAR_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          mkdir -p build/requested-apk
-          if [ -n "$RADAR_ANDROID_KEYSTORE_BASE64" ] && [ -n "$RADAR_RELEASE_STORE_PASSWORD" ] && [ -n "$RADAR_RELEASE_KEY_ALIAS" ] && [ -n "$RADAR_RELEASE_KEY_PASSWORD" ]; then
-            umask 077
-            printf '%s' "$RADAR_ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/radar-requested-release.keystore"
-            export RADAR_RELEASE_STORE_FILE="$RUNNER_TEMP/radar-requested-release.keystore"
-            flutter build apk --release --target-platform android-arm64
-            cp build/app/outputs/flutter-apk/app-release.apk build/requested-apk/candidate.apk
-            echo mode=release > build/requested-apk/build-info.txt
-          else
-            echo 'Existing CI signing credentials unavailable; build test APK for local signing with preserved identity.'
-            flutter build apk --debug --target-platform android-arm64
-            cp build/app/outputs/flutter-apk/app-debug.apk build/requested-apk/candidate.apk
-            echo mode=debug-for-local-signing > build/requested-apk/build-info.txt
-          fi
-          git rev-parse HEAD >> build/requested-apk/build-info.txt
-          signer_jar=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner.jar | sort -V | tail -1)
-          test -n "$signer_jar"
-          cp "$signer_jar" build/requested-apk/apksigner.jar
-          sha256sum build/requested-apk/candidate.apk > build/requested-apk/candidate.apk.sha256
-      - name: Upload requested test build for signature verification
-        if: >-
-          ${{ github.event_name == 'push' && github.ref == 'refs/heads/fix/android-consolidation-20261126' && github.event.head_commit.message == 'build(android): generate requested test APK 0.3.2+5 [20261127]' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: radar-test-build-for-local-signing-0.3.2
-          path: mobile/radar_promo_ofertas/build/requested-apk/
-          if-no-files-found: error
-          retention-days: 3
       - name: Prepare existing release signing identity
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.generate_apk == true && inputs.audits_validated == true }}
         shell: bash
