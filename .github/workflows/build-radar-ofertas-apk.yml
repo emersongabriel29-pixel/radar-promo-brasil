@@ -49,7 +49,7 @@ jobs:
       - name: Compile Android XML resources without building an APK
         shell: bash
         run: |
-          aapt2_path=$(rg --files "$ANDROID_HOME/build-tools" -g aapt2 | sort -V | tail -1)
+          aapt2_path=$(find "$ANDROID_HOME/build-tools" -type f -name aapt2 | sort -V | tail -1)
           test -n "$aapt2_path"
           "$aapt2_path" compile --dir mobile/radar_promo_ofertas/android/app/src/main/res -o "$RUNNER_TEMP/radar-resources.zip"
       - name: Upload labeled widget-render evidence (not device validation)
