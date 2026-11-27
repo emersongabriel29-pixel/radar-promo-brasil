@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../models/offer.dart';
+import '../design/radar_theme.dart';
 
 /// Catalog is based on the feed pages already loaded, not a complete server index.
 class StoresCouponsScreen extends StatefulWidget {
@@ -101,7 +102,7 @@ class _StoresCouponsScreenState extends State<StoresCouponsScreen> {
         ],
     );
     return widget.embedded ? content : Scaffold(
-      appBar: AppBar(title: const Text('Lojas e cupons')), body: content,
+      appBar: AppBar(toolbarHeight: RadarLayout.toolbarHeight(context), title: const Text('Lojas e cupons')), body: content,
     );
   }
 }

@@ -29,6 +29,8 @@ abstract final class RadarLayout {
   static const touchTarget = 48.0;
   static const radius = 18.0;
   static const readingWidth = 840.0;
+  static double toolbarHeight(BuildContext context) =>
+      56 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0);
 }
 
 /// App-wide components and typography. Existing brand colors remain stable.

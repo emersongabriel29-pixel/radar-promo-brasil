@@ -1114,6 +1114,8 @@ class OfferCard extends StatelessWidget {
   }
 }
 
+typedef OfferOpener = Future<bool> Function(Uri uri, LaunchMode mode);
+
 class OfferDetailScreen extends StatefulWidget {
   const OfferDetailScreen({
     super.key,
@@ -1121,11 +1123,13 @@ class OfferDetailScreen extends StatefulWidget {
     required this.isFavorite,
     required this.onFavorite,
     this.community = const CommunityLinks(),
+    this.offerOpener,
   });
   final Offer offer;
   final bool isFavorite;
   final VoidCallback onFavorite;
   final CommunityLinks community;
+  final OfferOpener? offerOpener;
 
   @override
   State<OfferDetailScreen> createState() => _OfferDetailScreenState();
@@ -1145,6 +1149,7 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalhes da oferta'),
+        toolbarHeight: RadarLayout.toolbarHeight(context),
         actions: [
           IconButton(
             tooltip: isFavorite ? 'Remover dos favoritos' : 'Salvar oferta',
@@ -1171,10 +1176,9 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
                 ? () async {
                     setState(() => opening = true);
                     try {
-                      final opened = await launchUrl(
-                        Uri.parse(offer.affiliateUrl),
-                        mode: LaunchMode.externalApplication,
-                      );
+                      final uri = Uri.parse(offer.affiliateUrl);
+                      final opened = await (widget.offerOpener?.call(uri, LaunchMode.externalApplication)
+                        ?? launchUrl(uri, mode: LaunchMode.externalApplication));
                       if (!opened && mounted) {
                         _message(
                           'Não foi possível abrir a loja. Copie o link e tente no navegador.',

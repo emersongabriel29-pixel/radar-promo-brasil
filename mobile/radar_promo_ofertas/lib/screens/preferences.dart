@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/theme_preference.dart';
+import '../design/radar_theme.dart';
 import '../models/offer.dart';
 import '../services/local_price_matches.dart';
 
@@ -285,7 +286,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Preferências')),
+    appBar: AppBar(toolbarHeight: RadarLayout.toolbarHeight(context), title: const Text('Preferências')),
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -336,7 +337,7 @@ class PrivacyScreen extends StatelessWidget {
   const PrivacyScreen({super.key});
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Privacidade')),
+    appBar: AppBar(toolbarHeight: RadarLayout.toolbarHeight(context), title: const Text('Privacidade')),
     body: const SingleChildScrollView(
       padding: EdgeInsets.all(22),
       child: Column(

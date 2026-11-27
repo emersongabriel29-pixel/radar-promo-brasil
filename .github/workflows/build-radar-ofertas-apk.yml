@@ -45,7 +45,21 @@ jobs:
         run: flutter analyze
       - name: Test
         working-directory: mobile/radar_promo_ofertas
-        run: flutter test
+        run: flutter test --dart-define=CAPTURE_AUDIT=true
+      - name: Compile Android XML resources without building an APK
+        shell: bash
+        run: |
+          aapt2_path=$(rg --files "$ANDROID_HOME/build-tools" -g aapt2 | sort -V | tail -1)
+          test -n "$aapt2_path"
+          "$aapt2_path" compile --dir mobile/radar_promo_ofertas/android/app/src/main/res -o "$RUNNER_TEMP/radar-resources.zip"
+      - name: Upload labeled widget-render evidence (not device validation)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-widget-evidence
+          path: mobile/radar_promo_ofertas/build/audit_visual_evidence/
+          if-no-files-found: ignore
+          retention-days: 3
       - name: Build debug APK
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.generate_apk == true }}
         working-directory: mobile/radar_promo_ofertas
