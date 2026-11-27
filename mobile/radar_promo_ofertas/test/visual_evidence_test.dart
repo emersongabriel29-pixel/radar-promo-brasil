@@ -42,7 +42,7 @@ void main() {
       tester.view.physicalSize = const Size(393, 852);
       tester.view.devicePixelRatio = 1;
       final semantics = tester.ensureSemantics();
-      addTearDown(semantics.dispose);
+      try {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(() => AppThemePreference.mode.value = ThemeMode.system);
@@ -110,6 +110,9 @@ void main() {
             'size':[393,852],'theme':mode.name,'screens':names,
           }));
         });
+      }
+      } finally {
+        semantics.dispose();
       }
     });
   }

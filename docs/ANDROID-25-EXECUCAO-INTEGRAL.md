@@ -154,3 +154,6 @@ Regressão adicional do guard: o CI testa também certificado divergente e chave
 
 
 O teste ampliado encontrou contraste insuficiente no preço anterior riscado da tela de detalhes: renderização calculada1.35:1 no claro e3.73:1 no escuro (exigência4.5:1). Causa localizada no texto secundário pequeno com traço sobre os glifos; corrigido para16sp/peso600 e cor semântica onSurface, mantendo preço anterior riscado, dados e hierarquia do preço atual30sp. Os testes completos de contraste permanecem obrigatórios; não houve exclusão de critério ou semântica para esconder a falha. Run45918266414 registrou97pass/2falhas antes da correção.
+
+
+Retomada27/11: a rodada e894c3 aprovou as verificações de contraste/alvos/rótulos nas18telas, mas falhou na limpeza do próprio teste: o SemanticsHandle era descartado em addTearDown, depois da verificação final do binding. Corrigido o ciclo de vida com try/finally dentro do callback do teste, garantindo dispose antes da verificação e também em falhas. Nenhuma asserção foi removida; nenhuma alteração funcional do app nesta correção. Reexecução obrigatória da suíte e dos guards Gradle antes de concluir.
