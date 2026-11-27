@@ -7,7 +7,9 @@ import '../models/offer.dart';
 
 /// Catalog is based on the feed pages already loaded, not a complete server index.
 class StoresCouponsScreen extends StatefulWidget {
-  const StoresCouponsScreen({super.key, required this.offers, required this.onOpen});
+  const StoresCouponsScreen({super.key, required this.offers, required this.onOpen, this.embedded = false, this.initialCouponsOnly = false});
+  final bool embedded;
+  final bool initialCouponsOnly;
   final List<Offer> offers;
   final ValueChanged<Offer> onOpen;
 
@@ -17,7 +19,7 @@ class StoresCouponsScreen extends StatefulWidget {
 
 class _StoresCouponsScreenState extends State<StoresCouponsScreen> {
   final search = TextEditingController();
-  bool couponsOnly = false;
+  late bool couponsOnly = widget.initialCouponsOnly;
 
   @override
   void dispose() {
@@ -29,22 +31,20 @@ class _StoresCouponsScreenState extends State<StoresCouponsScreen> {
   Widget build(BuildContext context) {
     final term = search.text.trim().toLowerCase();
     final groups = <String, List<Offer>>{};
+    final seen = <String>{};
     for (final offer in widget.offers) {
+      if (offer.id.isNotEmpty && !seen.add(offer.id)) continue;
       final store = offer.source.trim();
-      if (store.isEmpty || !store.toLowerCase().contains(term)) continue;
+      if (store.isEmpty || !'$store ${offer.couponCode}'.toLowerCase().contains(term)) continue;
       if (couponsOnly && offer.couponCode.trim().isEmpty) continue;
       groups.putIfAbsent(store, () => []).add(offer);
     }
     final stores = groups.keys.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    return Scaffold(
-      appBar: AppBar(title: const Text('Lojas e cupons')),
-      body: ListView(
+    final content = ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text(
-            'Explore lojas e cupons das ofertas carregadas',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
-          ),
+          Text(couponsOnly ? 'Cupons das ofertas carregadas' : 'Explore lojas e cupons das ofertas carregadas',
+            style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           const Text('Este catálogo é parcial. Cupons e validade devem ser confirmados na loja.'),
           const SizedBox(height: 14),
@@ -53,7 +53,7 @@ class _StoresCouponsScreenState extends State<StoresCouponsScreen> {
             onChanged: (_) => setState(() {}),
             decoration: const InputDecoration(
               prefixIcon: Icon(Icons.search),
-              labelText: 'Pesquisar loja',
+              labelText: 'Pesquisar loja ou cupom',
               border: OutlineInputBorder(),
             ),
           ),
@@ -99,7 +99,9 @@ class _StoresCouponsScreenState extends State<StoresCouponsScreen> {
               ),
             ),
         ],
-      ),
+    );
+    return widget.embedded ? content : Scaffold(
+      appBar: AppBar(title: const Text('Lojas e cupons')), body: content,
     );
   }
 }

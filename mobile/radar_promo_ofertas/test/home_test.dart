@@ -27,7 +27,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getStringList('saved_offers'), containsAll([broken, missingId]));
     expect(prefs.getStringList('favorites'), containsAll(['valid', 'recover-me']));
-    await tester.tap(find.text('Salvos'));
+    await tester.tap(find.text('Favoritos'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('Favorito preservado'), 200,
       scrollable: find.byWidgetPredicate((w) => w is Scrollable && w.axisDirection == AxisDirection.down));
@@ -56,7 +56,7 @@ void main() {
     );
     await tester.pumpWidget(MaterialApp(home: HomeScreen(api: api)));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Salvos'));
+    await tester.tap(find.text('Favoritos'));
     await tester.pumpAndSettle();
     expect(find.text('Cafeteira salva'), findsOneWidget);
     expect(find.text('Carregar mais ofertas'), findsNothing);
@@ -77,13 +77,15 @@ void main() {
       );
       await tester.pumpWidget(MaterialApp(home: HomeScreen(api: api)));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Buscas'));
+      await tester.tap(find.text('Perfil'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Buscas salvas e alertas'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'notebook');
       await tester.tap(find.byTooltip('Salvar busca'));
       await tester.pumpAndSettle();
       expect(find.text('notebook'), findsOneWidget);
-      await tester.tap(find.text('Sobre'));
+      await tester.tap(find.text('Perfil'));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
         find.text('Privacidade'),

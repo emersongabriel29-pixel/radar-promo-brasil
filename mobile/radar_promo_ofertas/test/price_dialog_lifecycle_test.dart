@@ -21,7 +21,9 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Definir preço desejado'));
+    await tester.tap(find.byTooltip('Opções da busca'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Definir preço desejado'));
     await tester.pumpAndSettle();
     expect(find.text('Preço desejado: notebook'), findsOneWidget);
 
@@ -35,7 +37,9 @@ void main() {
     final prices = jsonDecode(prefs.getString('saved_search_target_prices')!) as Map<String, dynamic>;
     expect(prices['notebook'], 1299.9);
 
-    await tester.tap(find.byTooltip('Definir preço desejado'));
+    await tester.tap(find.byTooltip('Opções da busca'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Definir preço desejado'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Sem limite'));
     await tester.pumpAndSettle();
@@ -43,7 +47,9 @@ void main() {
     final cleared = jsonDecode(prefs.getString('saved_search_target_prices')!) as Map<String, dynamic>;
     expect(cleared.containsKey('notebook'), isFalse);
 
-    await tester.tap(find.byTooltip('Definir preço desejado'));
+    await tester.tap(find.byTooltip('Opções da busca'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Definir preço desejado'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cancelar'));
     await tester.pumpAndSettle();

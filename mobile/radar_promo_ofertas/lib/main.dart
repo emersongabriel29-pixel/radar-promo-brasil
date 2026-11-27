@@ -30,9 +30,10 @@ Future<void> main() async {
 }
 
 class RadarPromoApp extends StatelessWidget {
-  const RadarPromoApp({super.key, this.api, this.community = const CommunityLinks()});
+  const RadarPromoApp({super.key, this.api, this.community = const CommunityLinks(), this.builder});
   final OffersApi? api;
   final CommunityLinks community;
+  final TransitionBuilder? builder;
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +41,7 @@ class RadarPromoApp extends StatelessWidget {
       valueListenable: AppThemePreference.mode,
       builder: (context, themeMode, _) => MaterialApp(
       debugShowCheckedModeBanner: false,
+      builder: builder,
       themeMode: themeMode,
       darkTheme: RadarTheme.dark,
       title: 'Radar Promo Ofertas',
@@ -61,6 +63,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late final api = widget.api ?? OffersApi();
   final search = TextEditingController();
+  final favoritesSearch = TextEditingController();
+  TextEditingController get activeSearch => tab == 2 ? favoritesSearch : search;
   int tab = 0;
   String sort = 'recent';
   String category = '';
@@ -90,6 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     search.dispose();
+    favoritesSearch.dispose();
     super.dispose();
   }
 
@@ -253,7 +258,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (storeFilter.isEmpty) return offers;
       return offers.where((offer) => offer.source.trim().toLowerCase() == storeFilter.toLowerCase()).toList();
     }
-    final query = search.text.trim().toLowerCase();
+    final query = favoritesSearch.text.trim().toLowerCase();
     return savedOffers.values
         .where(
           (o) =>
@@ -299,7 +304,12 @@ class _HomeScreenState extends State<HomeScreen> {
       'Buscas',
       'Sobre',
     ];
-    return Scaffold(
+    return PopScope(
+      canPop: tab == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) setState(() => tab = tab == 3 ? 4 : 0);
+      },
+      child: Scaffold(
       appBar: AppBar(
         toolbarHeight: 56 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.8),
         title: Row(
@@ -377,7 +387,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: SafeArea(
-        child: tab == 4
+        child: tab == 5
+            ? StoresCouponsScreen(offers: offers, onOpen: _openOffer, embedded: true, initialCouponsOnly: true)
+            : tab == 4
             ? _about()
             : tab == 3
             ? SavedSearchesScreen(
@@ -396,32 +408,34 @@ class _HomeScreenState extends State<HomeScreen> {
             : _feed(titles[tab]),
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: tab,
+        selectedIndex: switch (tab) { 5 => 2, 2 => 3, 3 || 4 => 4, _ => tab },
         onDestinationSelected: (v) {
           FocusScope.of(context).unfocus();
-          setState(() => tab = v);
+          setState(() => tab = [0, 1, 5, 2, 4][v]);
         },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.local_offer_outlined),
             selectedIcon: Icon(Icons.local_offer),
-            label: 'Ofertas',
+            label: 'Início',
           ),
           NavigationDestination(
             icon: Icon(Icons.grid_view_rounded),
             label: 'Categorias',
           ),
           NavigationDestination(
-            icon: Icon(Icons.bookmark_border),
-            selectedIcon: Icon(Icons.bookmark),
-            label: 'Salvos',
+            icon: Icon(Icons.confirmation_number_outlined),
+            selectedIcon: Icon(Icons.confirmation_number),
+            label: 'Cupons',
           ),
           NavigationDestination(
-            icon: Icon(Icons.manage_search),
-            label: 'Buscas',
+            icon: Icon(Icons.bookmark_border),
+            selectedIcon: Icon(Icons.bookmark),
+            label: 'Favoritos',
           ),
-          NavigationDestination(icon: Icon(Icons.info_outline), label: 'Sobre'),
+          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Perfil'),
         ],
+      ),
       ),
     );
   }
@@ -511,7 +525,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 12),
                   ],
                   TextField(
-                    controller: search,
+                    controller: activeSearch,
                     onSubmitted: (_) {
                       if (tab == 2) {
                         setState(() {});
@@ -521,12 +535,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                     textInputAction: TextInputAction.search,
                     decoration: InputDecoration(
-                      hintText: 'Buscar produto, loja ou marca',
+                      labelText: tab == 2 ? 'Buscar nos favoritos' : 'Buscar produto, loja ou marca',
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: IconButton(
                         tooltip: 'Limpar busca',
                         onPressed: () {
-                          search.clear();
+                          activeSearch.clear();
                           if (tab == 2) {
                             setState(() {});
                           } else {
@@ -774,6 +788,30 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _about() => ListView(
     padding: const EdgeInsets.all(22),
     children: [
+      Text('Seu perfil', style: Theme.of(context).textTheme.headlineSmall),
+      const SizedBox(height: 16),
+      Card(child: ListTile(
+        leading: const Icon(Icons.account_circle_outlined),
+        title: const Text('Entrar ou gerenciar minha conta'),
+        subtitle: const Text('A sessão e os dados da conta ficam no site seguro.'),
+        trailing: const Icon(Icons.open_in_new),
+        onTap: () => openCommunity(context, widget.community, 'account'),
+      )),
+      ListTile(
+        leading: const Icon(Icons.manage_search),
+        title: const Text('Buscas salvas e alertas'),
+        subtitle: const Text('Preços desejados e avisos locais neste aparelho'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => setState(() => tab = 3),
+      ),
+      ListTile(
+        leading: const Icon(Icons.notifications_outlined),
+        title: const Text('Notificações da conta'),
+        trailing: const Icon(Icons.open_in_new),
+        onTap: () => openCommunity(context, widget.community, 'inbox'),
+      ),
+      const SizedBox(height: 24),
+
       const Text(
         'Ofertas com origem rastreável',
         style: TextStyle(

@@ -199,7 +199,9 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
         (term) => Dismissible(
           key: ValueKey(term),
           direction: DismissDirection.endToStart,
-          background: Container(alignment: Alignment.centerRight, padding: const EdgeInsets.all(16), color: Colors.red.shade100, child: const Icon(Icons.delete_outline)),
+          background: Container(alignment: Alignment.centerRight, padding: const EdgeInsets.all(16),
+            color: Theme.of(context).colorScheme.errorContainer,
+            child: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.onErrorContainer)),
           onDismissed: (_) => _remove(term),
           child: Card(
           child: ListTile(
@@ -210,19 +212,17 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
                 '${!mutedSearches.contains(term) && targetPrices.containsKey(term) ? ' · ${LocalPriceMatches.find(widget.loadedOffers, query: term, maximumPrice: targetPrices[term]!).length} correspondência(s) nas ofertas carregadas' : ''}'),
             onTap: () => widget.onSearch(term),
             onLongPress: () => _editTarget(term),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  tooltip: mutedSearches.contains(term) ? 'Reativar busca' : 'Pausar busca',
-                  icon: Icon(mutedSearches.contains(term) ? Icons.notifications_off_outlined : Icons.notifications_active_outlined),
-                  onPressed: () => _toggleMute(term),
-                ),
-                IconButton(
-                  tooltip: 'Definir preço desejado',
-                  icon: const Icon(Icons.price_change_outlined),
-                  onPressed: () => _editTarget(term),
-                ),
+            trailing: PopupMenuButton<String>(
+              tooltip: 'Opções da busca',
+              onSelected: (action) {
+                if (action == 'price') _editTarget(term);
+                if (action == 'mute') _toggleMute(term);
+                if (action == 'remove') _remove(term);
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'price', child: Text('Definir preço desejado')),
+                PopupMenuItem(value: 'mute', child: Text(mutedSearches.contains(term) ? 'Reativar busca' : 'Pausar busca')),
+                const PopupMenuItem(value: 'remove', child: Text('Excluir busca')),
               ],
             ),
           ),
@@ -231,12 +231,12 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
       ),
       const SizedBox(height: 16),
       const Text(
-        'Para excluir uma busca, deslize o cartão para o lado. Pausar uma busca também desativa seus alertas locais.',
+        'Para excluir uma busca, use o menu de opções ou deslize o cartão. Pausar também desativa seus alertas locais.',
       ),
       const SizedBox(height: 8),
-      const Text(
+      Text(
         'As buscas ficam neste aparelho. Alertas de preço são verificados quando as ofertas são carregadas; não há notificações em segundo plano.',
-        style: TextStyle(color: Color(0xFF6B7C72)),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
     ],
   );
