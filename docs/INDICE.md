@@ -8,6 +8,8 @@
 
 ## Documentos vigentes
 
+- [Execução integral das 25 auditorias Android](./ANDROID-25-EXECUCAO-INTEGRAL.md)
+
 - [Auditoria Android e preservação — 26/11/2026](./ANDROID-AUDIT-2026-11-26.md)
 
   Inclui a continuidade do tratamento de Retry-After e preservação de favoritos ilegíveis, com testes de regressão.

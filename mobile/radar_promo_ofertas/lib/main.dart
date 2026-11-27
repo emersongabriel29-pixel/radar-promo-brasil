@@ -20,27 +20,8 @@ import 'services/price_alerts.dart';
 import 'services/android_price_notifications.dart';
 import 'models/offer.dart';
 import 'offer_image.dart';
-
-// Central brand tokens. Context-dependent foregrounds are audited separately.
-abstract final class RadarPalette {
-  static const ink = Color(0xFF10243A);
-  static const green = Color(0xFF16A34A);
-  static const promotion = Color(0xFFF97316);
-  static const accent = Color(0xFF86EFAC);
-  static const background = Color(0xFFF5F7FA);
-  static const darkBackground = Color(0xFF0F172A);
-  static const darkSurface = Color(0xFF1E293B);
-  static const darkCard = Color(0xFF243449);
-  static const darkText = Color(0xFFF8FAFC);
-  static const darkMuted = Color(0xFFCBD5E1);
-  static const brandShade = Color(0xFF23466B);
-  static const muted = Color(0xFF526174);
-  static const placeholder = Color(0xFF64748B);
-  static const categoryTint = Color(0xFFE8EEF6);
-  static const imageBackground = Color(0xFFF1F5F9);
-  static const savingTint = Color(0xFFDCFCE7);
-  static const savingInk = Color(0xFF166534);
-}
+import 'design/radar_theme.dart';
+export 'design/radar_theme.dart' show RadarPalette;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,66 +36,14 @@ class RadarPromoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const ink = RadarPalette.ink;
-    const green = RadarPalette.accent;
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: AppThemePreference.mode,
       builder: (context, themeMode, _) => MaterialApp(
       debugShowCheckedModeBanner: false,
       themeMode: themeMode,
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: RadarPalette.darkBackground,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: green,
-          brightness: Brightness.dark,
-          surface: RadarPalette.darkSurface,
-          onSurface: RadarPalette.darkText,
-          onSurfaceVariant: RadarPalette.darkMuted,
-        ),
-        cardTheme: CardThemeData(
-          color: RadarPalette.darkCard,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: RadarPalette.darkBackground,
-          foregroundColor: RadarPalette.darkText,
-          elevation: 0,
-        ),
-        inputDecorationTheme: const InputDecorationTheme(
-          labelStyle: TextStyle(color: RadarPalette.darkMuted),
-          helperStyle: TextStyle(color: RadarPalette.darkMuted),
-        ),
-      ),
+      darkTheme: RadarTheme.dark,
       title: 'Radar Promo Ofertas',
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: RadarPalette.background,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: ink,
-          primary: ink,
-          secondary: green,
-          surface: Colors.white,
-        ),
-        fontFamily: 'Roboto',
-        appBarTheme: const AppBarTheme(
-          backgroundColor: RadarPalette.background,
-          foregroundColor: ink,
-          elevation: 0,
-          centerTitle: false,
-        ),
-        cardTheme: CardThemeData(
-          color: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-        ),
-      ),
+      theme: RadarTheme.light,
       home: HomeScreen(api: api, community: community),
       ),
     );

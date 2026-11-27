@@ -1,5 +1,9 @@
 # Controle de mudanças e documentação obrigatória
 
+## Continuidade integral das 25 auditorias Android
+
+Registro vigente em ANDROID-25-EXECUCAO-INTEGRAL.md, PR #221. Primeira etapa consolida tema, TextTheme, componentes e redução de movimento; sem tocar em dados, APIs, assinatura ou APK. Inventário, impacto, testes e rollback constam no documento por etapa.
+
 ## 26/11/2026 — continuidade: espera HTTP do feed
 
 Após 68 testes Flutter aprovados para a espera HTTP, corrigido descarte silencioso de favoritos ilegíveis/sem ID: strings originais são mantidas na chave saved_offers ao editar registros válidos. Teste específico adicionado; sem migração ou nova chave. Consultar resultados da rodada seguinte no relatório.
