@@ -71,6 +71,10 @@ void main() {
     expect(tester.takeException(),isNull);
     await tester.tap(find.text('Categorias'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.textContaining('As categorias aparecerão quando as ofertas forem carregadas.'), 150,
+      scrollable: find.byWidgetPredicate((w) => w is Scrollable && w.axisDirection == AxisDirection.down),
+    );
     expect(find.textContaining('As categorias aparecerão quando as ofertas forem carregadas.'),findsOneWidget);
     expect(tester.takeException(),isNull);
   });
