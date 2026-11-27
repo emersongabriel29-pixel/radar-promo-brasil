@@ -41,6 +41,8 @@ void main() {
     testWidgets('record actual widget routes with labeled fixture data in $mode', (tester) async {
       tester.view.physicalSize = const Size(393, 852);
       tester.view.devicePixelRatio = 1;
+      final semantics = tester.ensureSemantics();
+      addTearDown(semantics.dispose);
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(() => AppThemePreference.mode.value = ThemeMode.system);
@@ -51,6 +53,9 @@ void main() {
       Future<void> record(String name) async {
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
+        await expectLater(tester, meetsGuideline(androidTapTargetGuideline), reason: '$mode/$name Android touch targets');
+        await expectLater(tester, meetsGuideline(labeledTapTargetGuideline), reason: '$mode/$name labeled controls');
+        await expectLater(tester, meetsGuideline(textContrastGuideline), reason: '$mode/$name text contrast');
         names.add(name);
         if (!capture) return;
         await tester.runAsync(() async {

@@ -91,7 +91,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.generate_apk == true && inputs.audits_validated == true }}
         shell: bash
         env:
-          RADAR_ANDROID_KEYSTORE_BASE64: ${{ secrets.RADAR_ANDROID_KEYSTORE_BASE64 }}
+          RADAR_ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           test -n "$RADAR_ANDROID_KEYSTORE_BASE64" || { echo 'Existing release keystore is unavailable'; exit 1; }
           umask 077
@@ -101,9 +101,9 @@ jobs:
         working-directory: mobile/radar_promo_ofertas
         env:
           RADAR_RELEASE_STORE_FILE: ${{ runner.temp }}/radar-release.keystore
-          RADAR_RELEASE_STORE_PASSWORD: ${{ secrets.RADAR_RELEASE_STORE_PASSWORD }}
-          RADAR_RELEASE_KEY_ALIAS: ${{ secrets.RADAR_RELEASE_KEY_ALIAS }}
-          RADAR_RELEASE_KEY_PASSWORD: ${{ secrets.RADAR_RELEASE_KEY_PASSWORD }}
+          RADAR_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          RADAR_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          RADAR_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           flutter build apk --release
           flutter build appbundle --release

@@ -53,7 +53,7 @@ O workflow `.github/workflows/build-radar-ofertas-apk.yml` executa análise, tes
 ## Assinatura e instalação
 O release usa exclusivamente a chave existente via `android/key.properties` privado (storeFile/storePassword/keyAlias/keyPassword) ou variáveis RADAR_RELEASE_STORE_FILE, RADAR_RELEASE_STORE_PASSWORD, RADAR_RELEASE_KEY_ALIAS e RADAR_RELEASE_KEY_PASSWORD. O caminho relativo é resolvido a partir de android/. O certificado deve corresponder exatamente a android/signing-certificate.sha256; chave ausente, inacessível ou divergente bloqueia todas as tarefas release. Nenhuma chave nova é criada.
 
-No workflow manual final, os secrets esperados são RADAR_ANDROID_KEYSTORE_BASE64, RADAR_RELEASE_STORE_PASSWORD, RADAR_RELEASE_KEY_ALIAS e RADAR_RELEASE_KEY_PASSWORD. Não coloque valores em arquivos versionados ou logs. Esses secrets não foram criados/alterados nesta tarefa. O comando `cd android && bash ./gradlew :app:validateRadarReleaseSigning` verifica a configuração sem gerar APK/AAB.
+No workflow manual final, os secrets existentes referenciados são ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS e ANDROID_KEY_PASSWORD. Não coloque valores em arquivos versionados ou logs. Esses secrets não foram criados/alterados nesta tarefa. O comando `cd android && bash ./gradlew :app:validateRadarReleaseSigning` verifica a configuração sem gerar APK/AAB.
 
 No Android, abra o APK e autorize a instalação por esse aplicativo quando solicitado pelo sistema. Os links de afiliados abrem no navegador ou aplicativo da loja. Em versões futuras, atualizar sem reinstalação exige preservar a mesma chave de assinatura.
 
