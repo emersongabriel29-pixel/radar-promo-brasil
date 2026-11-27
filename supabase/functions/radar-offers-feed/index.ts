@@ -49,6 +49,33 @@ Deno.serve(async (request: Request) => {
   const limit = boundedInt(url.searchParams.get("limit"), 30, 1, MAX_LIMIT);
   if (page === null || limit === null) return json({ error: "INVALID_QUERY" }, 400);
 
+  const catalog = url.searchParams.get("catalog");
+  if (catalog !== null && catalog !== "1") return json({ error: "INVALID_QUERY" }, 400);
+  if (catalog === "1") {
+    try {
+      const parameters = [ACCOUNT_SLUG, limit, (page - 1) * limit];
+      const [categoryRows, storeRows] = await Promise.all([
+        getDb().unsafe(`SELECT DISTINCT trim(c.name) AS name
+          FROM public.categories c JOIN public.accounts a ON a.id=c.account_id
+          WHERE a.slug=$1 AND a.status='ACTIVE' AND c.name IS NOT NULL AND trim(c.name)<>''
+          ORDER BY name LIMIT $2 OFFSET $3`, parameters),
+        getDb().unsafe(`SELECT DISTINCT trim(o.source) AS name
+          FROM public.offers o JOIN public.accounts a ON a.id=o.account_id
+          WHERE a.slug=$1 AND a.status='ACTIVE' AND o.status IN ('APPROVED','PUBLISHED')
+            AND o.source IS NOT NULL AND trim(o.source)<>''
+          ORDER BY name LIMIT $2 OFFSET $3`, parameters),
+      ]);
+      return json({
+        source: "Radar Promo Brasil", generatedAt: new Date().toISOString(),
+        categories: categoryRows.map((row: Record<string, unknown>) => row.name),
+        stores: storeRows.map((row: Record<string, unknown>) => row.name),
+        page, limit, hasMore: categoryRows.length === limit || storeRows.length === limit,
+      });
+    } catch {
+      return json({ error: "Catálogo temporariamente indisponível.", code: "CATALOG_DATABASE_ERROR" }, 503, { "retry-after": "60" });
+    }
+  }
+
   const q = (url.searchParams.get("q") || "").trim().slice(0, 120);
   const category = (url.searchParams.get("category") || "").trim().slice(0, 128);
   const id = (url.searchParams.get("id") || "").trim().slice(0, 128);
