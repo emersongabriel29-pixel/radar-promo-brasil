@@ -12,6 +12,8 @@ Continuidade27/11: fonte0.3.2+5, identidade de assinatura preservada e verificad
 
 ## Documentos vigentes
 
+- [APK de teste0.3.2+5 solicitado em27/11](./APK-TESTE-0.3.2-2026-11-27.md): compilação explicitamente autorizada, sem homologação integral.
+
 - [Execução integral das 25 auditorias Android](./ANDROID-25-EXECUCAO-INTEGRAL.md)
 
 - [Auditoria Android e preservação — 26/11/2026](./ANDROID-AUDIT-2026-11-26.md)
