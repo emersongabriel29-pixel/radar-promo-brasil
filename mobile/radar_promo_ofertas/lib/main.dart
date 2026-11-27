@@ -1226,7 +1226,9 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
             Text(
               'Antes ${money.format(offer.originalPrice)}',
               style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
                 decoration: TextDecoration.lineThrough,
               ),
             ),

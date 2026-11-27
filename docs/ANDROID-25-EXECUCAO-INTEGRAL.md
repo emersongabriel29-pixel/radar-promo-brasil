@@ -151,3 +151,6 @@ Próxima verificação de acessibilidade: o teste existente de18telas passa a av
 
 
 Regressão adicional do guard: o CI testa também certificado divergente e chave inacessível com identidade sintética descartável identificada como fixture, sem assinar aplicativo ou alterar a chave original. Um dry-run do grafo assembleRelease confirma dependência do guard sem executar compilação/pacote; a etapa exige ausência de APK/AAB após os testes. A configuração com certificado correto foi verificada localmente no JVM com a chave original, sem enviá-la ao CI.
+
+
+O teste ampliado encontrou contraste insuficiente no preço anterior riscado da tela de detalhes: renderização calculada1.35:1 no claro e3.73:1 no escuro (exigência4.5:1). Causa localizada no texto secundário pequeno com traço sobre os glifos; corrigido para16sp/peso600 e cor semântica onSurface, mantendo preço anterior riscado, dados e hierarquia do preço atual30sp. Os testes completos de contraste permanecem obrigatórios; não houve exclusão de critério ou semântica para esconder a falha. Run45918266414 registrou97pass/2falhas antes da correção.
