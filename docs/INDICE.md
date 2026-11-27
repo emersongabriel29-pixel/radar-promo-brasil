@@ -4,6 +4,8 @@ Estado vigente da auditoria Android: [matriz das 25 auditorias, testes e bloquei
 
 > Estado observado em 24/11/2026. Radar Promo Brasil: Hatchable v674. Radar Promo Ofertas: Hatchable v3. GitHub `main`: `c94b3600fd1ba76439bc12e229faff2cb9ff8989` (PR #216). O workflow Android agora fixa o app Flutter no commit `2410f24980a12bd30a96393335e2cc094d4b152d`, ainda mantido na branch `codex/android-pelando-inspired-ui-20261124`; o código do APK não foi mesclado à `main` para evitar a divergência histórica da branch. O endpoint `/api/offers` ainda não foi homologado com HTTP 200 por bloqueio `429 usage_limit`. Este índice é a porta de entrada; documentos históricos não substituem a auditoria atual.
 
+Continuidade27/11: fonte0.3.2+5, identidade de assinatura preservada e verificada localmente, guard de release e acessibilidade ampliada aprovados no código b815134. [Resultados e bloqueios atuais](./ANDROID-25-EXECUCAO-INTEGRAL.md#resultado-da-continuidade2711--verificado). Sem APK novo.
+
 ## Regra obrigatória
 
 **Toda alteração deve ser registrada na documentação na mesma tarefa e antes de ser considerada concluída.** Consulte [CONTROLE-DE-MUDANCAS.md](./CONTROLE-DE-MUDANCAS.md). A regra vale para código, API, UI, configuração, integrações, banco/migrações, automações, testes, segurança, documentação e implantação.

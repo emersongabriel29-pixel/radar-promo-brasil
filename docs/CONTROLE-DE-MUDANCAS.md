@@ -1,5 +1,9 @@
 # Controle de mudanças e documentação obrigatória
 
+## 27/11/2026 — versão, assinatura e acessibilidade
+
+Fonte0.3.2+5; release exige chave existente com certificado fixado, sem fallback debug. Workflow final manual APK/AAB desativado por padrão; CI testa guard sem gerar app. Preço anterior legível nos dois temas; ciclo de vida do teste semântico corrigido. Código b815134:99Flutter/259Node/3e2e e verificações Gradle aprovados. Chave original validada localmente, sem valores privados no código/logs. Relatório completo em ANDROID-25-EXECUCAO-INTEGRAL.md; Hatchable674/3 sem deploy e quota429 permanece.
+
 ## Continuidade integral das 25 auditorias Android
 
 Registro vigente em ANDROID-25-EXECUCAO-INTEGRAL.md, PR #221. Executadas quatro etapas: tema/contraste/movimento, navegação/busca/cupons, catálogo somente leitura na função Supabase existente v3 e jornada/responsividade/evidências. Flutter99, Node259 e e2e3 aprovados no CI; recursos Android compilados sem APK. Nenhum dado, credencial, assinatura ou backend Hatchable alterado. Inventário, impacto, testes e rollback constam no documento por etapa.

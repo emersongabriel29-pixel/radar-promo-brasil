@@ -157,3 +157,16 @@ O teste ampliado encontrou contraste insuficiente no preço anterior riscado da 
 
 
 Retomada27/11: a rodada e894c3 aprovou as verificações de contraste/alvos/rótulos nas18telas, mas falhou na limpeza do próprio teste: o SemanticsHandle era descartado em addTearDown, depois da verificação final do binding. Corrigido o ciclo de vida com try/finally dentro do callback do teste, garantindo dispose antes da verificação e também em falhas. Nenhuma asserção foi removida; nenhuma alteração funcional do app nesta correção. Reexecução obrigatória da suíte e dos guards Gradle antes de concluir.
+
+
+## Resultado da continuidade27/11 — verificado
+
+Commit de código b81513471f1d33986e368a5e6c6dc8e1416b2683. Run Flutter45966574192/job140396560004 aprovado: pub get, analyze,99testes, critérios de alvos48dp/rótulos/contraste nas áreas renderizadas de18telas, compilação XML Android, configuração Gradle e três testes negativos de assinatura (ausente/divergente/inacessível). Grafo de release verificado em dry-run; nenhuma tarefa de compilação APK/AAB executada e ausência desses artefatos conferida. Não confundir identidade sintética de teste com a chave original, que permaneceu fora do CI.
+
+Backend45966573610/job140396556337 aprovado: build,259testes Node,3e2e e npm audit0vulnerabilidades. A falha anterior do SemanticsHandle foi corrigida e a suíte completa passou sem remover verificações.
+
+Links: https://github.com/emersongabriel29-pixel/radar-promo-brasil/actions/runs/45966574192 e https://github.com/emersongabriel29-pixel/radar-promo-brasil/actions/runs/45966573610 . Os screenshots continuam identificados como widgets com fixtures, sem aparelho/produção.
+
+Supabase reconfirmado27/11: offers10360/categories22/history0/backups2; última atualização de oferta2026-11-13T00:58:09.496188Z. Hatchable v674/v3 e429usage_limit reconfirmados. Não houve escrita no banco, alteração de secrets, deploy de backend, publicação de oferta/mensagem ou geração de APK/AAB.
+
+Bloqueios remanescentes para100%: liberar execução do Hatchable sem contornar quota; restabelecer ingestão/validação de ofertas atuais e histórico; validar conta/comunidade; implementar/homologar notificações com app encerrado e exclusão efetiva da conta; validar instalação/atualização, TalkBack e desempenho em Android. A chave existente está recuperada/validada localmente e o fonte está0.3.2+5, mas assinatura do binário final continua dependente da etapa final. As classificações da matriz permanecem18parciais/5aguardando validação/2bloqueadas.
