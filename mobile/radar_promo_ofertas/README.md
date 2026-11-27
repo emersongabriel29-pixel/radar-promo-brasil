@@ -1,6 +1,6 @@
 > Fonte recuperado em 16/11/2026. Consulte [RECUPERACAO-2026-11-16.md](docs/RECUPERACAO-2026-11-16.md) e [PELANDO-INSPIRED-UI-2026-11-24.md](docs/PELANDO-INSPIRED-UI-2026-11-24.md) para o histórico e a adaptação visual. A validação sem APK está em `.github/workflows/build-radar-ofertas-apk.yml`; consulte também [a auditoria de 26/11/2026](../../docs/ANDROID-AUDIT-2026-11-26.md).
 
-# Radar Promo Ofertas — Android 0.2.0
+# Radar Promo Ofertas — Android 0.3.2+5 (fonte, não release publicada)
 
 Cliente Flutter independente. O Radar Promo Brasil e seus dados não foram alterados nesta entrega.
 
@@ -35,7 +35,7 @@ Login nativo e sincronização de favoritos ainda não estão conectados no Flut
 
 ## Validação atual — 26/11/2026
 
-O feed Supabase respondeu HTTP 200 com catálogo vazio; há zero registros de histórico oficial de preços. Não reapresentar preços antigos como ofertas atuais. Análise e testes rodam sem compilar APK. A configuração release ainda usa assinatura debug: produção bloqueada. A impressão digital pública do certificado anterior foi recuperada em `android/signing-certificate.sha256`, sem chave privada. A versão histórica 0.3.1+4 exige reconciliar versionCode antes de qualquer APK final; não usar a versão 0.2.0+2 do fonte como atualização de produção.
+O feed Supabase respondeu HTTP 200 com catálogo vazio; há zero registros de histórico oficial de preços. Não reapresentar preços antigos como ofertas atuais. Análise e testes rodam sem compilar APK. A configuração release exige a chave existente e valida seu certificado; não há fallback para debug. Produção continua bloqueada até provisionamento seguro e validação final. A impressão digital pública do certificado anterior foi recuperada em `android/signing-certificate.sha256`, sem chave privada. O fonte agora usa 0.3.2+5, superior ao APK histórico 0.3.1+4. O pacote e as chaves de dados locais foram preservados. Isso não comprova instalação/atualização em aparelho.
 
 ## Compilar
 Ferramentas desta entrega: Flutter 3.50.0 / Dart 3.14.0, Java 21, Android SDK 36, NDK 28.2.13676358. Android mínimo: API 24 (Android 7).
@@ -48,10 +48,12 @@ flutter build apk --release
 ```
 
 O projeto nativo Android já está incluído. Não é necessário recriá-lo.
-O workflow `.github/workflows/radar-ofertas-android-ci.yml` executa `flutter analyze`, `flutter test` e `flutter build apk --debug`, anexando o APK, SHA-256 e commit de origem como artefato. A execução precisa ser confirmada no GitHub Actions; a presença do arquivo não comprova build aprovado.
+O workflow `.github/workflows/build-radar-ofertas-apk.yml` executa análise, testes, compilação de recursos e configuração Gradle sem APK. APK e AAB release ficam condicionados às duas opções manuais `generate_apk` e `audits_validated`, ambas false por padrão. Não acionar durante as auditorias.
 
 ## Assinatura e instalação
-A configuração de release usa a chave de teste local gerada pelo Android. O APK serve para instalação direta e avaliação. Uma publicação na Play Store requer chave de produção e configuração própria de assinatura.
+O release usa exclusivamente a chave existente via `android/key.properties` privado (storeFile/storePassword/keyAlias/keyPassword) ou variáveis RADAR_RELEASE_STORE_FILE, RADAR_RELEASE_STORE_PASSWORD, RADAR_RELEASE_KEY_ALIAS e RADAR_RELEASE_KEY_PASSWORD. O caminho relativo é resolvido a partir de android/. O certificado deve corresponder exatamente a android/signing-certificate.sha256; chave ausente, inacessível ou divergente bloqueia todas as tarefas release. Nenhuma chave nova é criada.
+
+No workflow manual final, os secrets esperados são RADAR_ANDROID_KEYSTORE_BASE64, RADAR_RELEASE_STORE_PASSWORD, RADAR_RELEASE_KEY_ALIAS e RADAR_RELEASE_KEY_PASSWORD. Não coloque valores em arquivos versionados ou logs. Esses secrets não foram criados/alterados nesta tarefa. O comando `cd android && bash ./gradlew :app:validateRadarReleaseSigning` verifica a configuração sem gerar APK/AAB.
 
 No Android, abra o APK e autorize a instalação por esse aplicativo quando solicitado pelo sistema. Os links de afiliados abrem no navegador ou aplicativo da loja. Em versões futuras, atualizar sem reinstalação exige preservar a mesma chave de assinatura.
 

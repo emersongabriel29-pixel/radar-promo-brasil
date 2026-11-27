@@ -1,7 +1,7 @@
 name: radar_promo_ofertas
 description: Aplicativo Android de ofertas abastecido pelas APIs do Radar Promo Brasil.
 publish_to: "none"
-version: 0.2.0+2
+version: 0.3.2+5
 
 environment:
   sdk: ">=3.10.0 <4.0.0"

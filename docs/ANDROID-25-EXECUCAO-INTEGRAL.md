@@ -125,3 +125,16 @@ Resultado global: as25 áreas têm diagnóstico e evidência/limitação registr
 ## Arquivos e histórico técnico
 
 Inventário por caminho/tamanho/hash em [evidence/android-25-source-inventory.json](./evidence/android-25-source-inventory.json). Diff da retomada:21 arquivos antes desta atualização documental; nenhum removido. Foram adicionados tema, cinco arquivos de teste Flutter, contrato Node e fonte da função existente. Sem dependências Flutter/npm alteradas. Código validado:4e4c957ca568b503c5ffde3e763883721bfdc7da. O commit que contém este relatório é uma atualização documental posterior, sem alterar o código testado.
+
+
+## Continuidade — preparação segura de versão e assinatura
+
+Entrada975272c, PR#221 e main1adc879 reconfirmados; Hatchable v674/v3 inalterados. GET auxiliar continua429:2.1h de banco utilizadas para cota2.0h. Fonte de verdade do app: branch de desenvolvimento; documentação privada Hatchable comparada pelo hash238873da. Sem alteração do backend, dados ou plano.
+
+Impacto avaliado: pubspec passa de0.2.0+2 para0.3.2+5, superior ao APK histórico realmente inspecionado0.3.1/code4; identificador e dados locais inalterados. Gradle deixa de atribuir chave debug ao release. Reutiliza key.properties privado/variáveis de ambiente, verifica disponibilidade da chave privada e SHA256 do certificado contra pin existente. Falhas são genéricas e não imprimem caminhos, aliases, senhas ou exceções de keystore. Todas as tarefas release dependem da verificação. Debug e testes continuam disponíveis sem chave de produção; nenhum certificado é substituído.
+
+Certificado público extraído do bloco v2 do APK histórico: c5f6176299c7cf0775050e36c84c1ac54e605a22b3d1c687f1ef541729fcd5a4, igual ao pin. Isso identifica o certificado embutido; não substitui verificação criptográfica completa do APK. O arquivo validation/apk-signature.txt refere-se a outro artefato de debug e foi preservado como histórico, não adotado como identidade de release.
+
+Workflow passa a preparar exclusivamente release final assinado, APK e AAB, condicionado a generate_apk=true E audits_validated=true, false por padrão. Secrets apenas referenciados por nome, sem cadastro/alteração nesta tarefa. Não acionado. CI adiciona configuração Gradle e teste negativo de ausência de credenciais sem compilar app; resultados aguardando execução. README corrigido para retirar instruções antigas de release debug/workflow inexistente. Rollback por revert desta alteração, sem mudança de dados/credenciais.
+
+Documentação oficial consultada: https://docs.flutter.dev/deployment/android e https://developer.android.com/studio/publish/app-signing . A compilação e a validação instalada continuam restritas à etapa final do prompt mestre.
