@@ -62,7 +62,7 @@ abstract final class RadarTheme {
         bodyMedium: const TextStyle(fontSize: 14, height: 1.45),
         bodySmall: const TextStyle(fontSize: 12, height: 1.4),
         labelLarge: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-      ).apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface),
+      ).apply(fontFamily: 'Roboto', bodyColor: scheme.onSurface, displayColor: scheme.onSurface),
       cardTheme: CardThemeData(color: isDark ? RadarPalette.darkCard : Colors.white, elevation: 0, shape: shape),
       appBarTheme: AppBarTheme(
         backgroundColor: isDark ? RadarPalette.darkBackground : RadarPalette.background,

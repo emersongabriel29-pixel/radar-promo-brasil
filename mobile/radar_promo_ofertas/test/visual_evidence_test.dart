@@ -32,6 +32,9 @@ void main() {
       loader.addFont(file.readAsBytes().then((bytes) => ByteData.sublistView(bytes)));
     }
     await loader.load();
+    final icons = FontLoader('MaterialIcons');
+    icons.addFont(File('$sdk/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf').readAsBytes().then((bytes) => ByteData.sublistView(bytes)));
+    await icons.load();
   });
 
   for (final mode in [ThemeMode.light, ThemeMode.dark]) {
