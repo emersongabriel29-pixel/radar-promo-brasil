@@ -20,6 +20,26 @@ void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
   tearDown(() => AppThemePreference.mode.value = ThemeMode.system);
 
+  testWidgets('category catalog is available even with no eligible feed offers', (tester) async {
+    String? category;
+    final api = OffersApi(client: MockClient((request) async {
+      if (request.url.queryParameters['catalog'] == '1') {
+        return http.Response('{"categories":["Categoria do catálogo"],"stores":["Loja real do teste"],"hasMore":false}', 200);
+      }
+      category = request.url.queryParameters['category'];
+      return http.Response('{"offers":[],"total":0,"hasMore":false}', 200);
+    }));
+    await tester.pumpWidget(RadarPromoApp(api: api));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Categorias'));
+    await tester.pumpAndSettle();
+    expect(find.text('Categoria do catálogo'), findsOneWidget);
+    await tester.tap(find.text('Categoria do catálogo'));
+    await tester.pumpAndSettle();
+    expect(category, 'Categoria do catálogo');
+    expect(find.text('Nenhuma oferta encontrada agora.'), findsOneWidget);
+  });
+
   testWidgets('five destinations preserve searches and system back behavior', (tester) async {
     await tester.pumpWidget(RadarPromoApp(api: emptyApi()));
     await tester.pumpAndSettle();
@@ -71,8 +91,8 @@ void main() {
     var requests = 0;
     SharedPreferences.setMockInitialValues({'saved_offers': [jsonEncode(Offer.fromJson(
       {'id': 'saved', 'title': 'Produto salvo'}).toJson())]});
-    final api = OffersApi(client: MockClient((_) async {
-      requests++;
+    final api = OffersApi(client: MockClient((request) async {
+      if (request.url.queryParameters['catalog'] != '1') requests++;
       return http.Response('{"offers":[],"total":0,"hasMore":false}', 200);
     }));
     await tester.pumpWidget(RadarPromoApp(api: api));

@@ -74,6 +74,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, Offer> savedOffers = {};
   List<String> unreadableSavedOffers = [];
   final Set<String> knownCategories = {};
+  final Set<String> knownStores = {};
+  bool catalogLoading = false;
+  bool catalogAvailable = false;
+  bool catalogHasMore = false;
+  int catalogPage = 0;
+  String? catalogError;
   bool loadingMore = false;
   bool hasMore = false;
   int requestVersion = 0;
@@ -89,6 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadFavorites();
     _load();
+    _loadCatalog();
   }
 
   @override
@@ -96,6 +103,30 @@ class _HomeScreenState extends State<HomeScreen> {
     search.dispose();
     favoritesSearch.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCatalog() async {
+    if (catalogLoading) return;
+    setState(() => catalogLoading = true);
+    try {
+      final result = await api.getCatalog(page: catalogPage + 1);
+      if (!mounted) return;
+      setState(() {
+        knownCategories.addAll(result.categories);
+        knownStores.addAll(result.stores);
+        catalogPage++;
+        catalogHasMore = result.hasMore;
+        catalogAvailable = true;
+        catalogError = null;
+        catalogLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        catalogError = 'Catálogo indisponível. As categorias das ofertas carregadas continuam acessíveis.';
+        catalogLoading = false;
+      });
+    }
   }
 
   Future<void> _loadFavorites() async {
@@ -611,12 +642,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                   if (tab == 0 && offers.isNotEmpty) ...[
                     DropdownButtonFormField<String>(
-                      initialValue: storeFilter.isEmpty || offers.any((offer) => offer.source.trim() == storeFilter) ? storeFilter : '',
+                      initialValue: storeFilter.isEmpty || knownStores.contains(storeFilter) || offers.any((offer) => offer.source.trim() == storeFilter) ? storeFilter : '',
                       isExpanded: true,
                       decoration: const InputDecoration(labelText: 'Loja (ofertas carregadas)', border: OutlineInputBorder()),
                       items: [
                         const DropdownMenuItem(value: '', child: Text('Todas as lojas')),
-                        ...((offers.map((o) => o.source.trim()).where((v) => v.isNotEmpty).toSet().toList())..sort())
+                        ...(({...knownStores, ...offers.map((o) => o.source.trim()).where((v) => v.isNotEmpty)}.toList())..sort())
                             .map((name) => DropdownMenuItem(value: name, child: Text(name, overflow: TextOverflow.ellipsis))),
                       ],
                       onChanged: (value) => setState(() => storeFilter = value ?? ''),
@@ -739,10 +770,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Categorias das ofertas carregadas. Escolha uma para filtrar.',
-          style: TextStyle(),
-        ),
+        Text(catalogAvailable
+          ? 'Categorias do catálogo do Radar. As ofertas disponíveis podem variar.'
+          : 'Categorias das ofertas carregadas. Escolha uma para filtrar.'),
+        if (catalogError != null) Text(catalogError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+        if (catalogHasMore || catalogError != null)
+          TextButton(onPressed: catalogLoading ? null : _loadCatalog,
+            child: Text(catalogLoading ? 'Carregando catálogo...' : 'Carregar catálogo de categorias')),
         const SizedBox(height: 18),
         if (categories.isEmpty)
           const Padding(

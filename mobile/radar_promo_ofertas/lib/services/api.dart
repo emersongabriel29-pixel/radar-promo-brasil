@@ -13,6 +13,13 @@ class OffersResult {
   const OffersResult(this.offers, this.total, this.hasMore);
 }
 
+class CatalogResult {
+  final List<String> categories;
+  final List<String> stores;
+  final bool hasMore;
+  const CatalogResult(this.categories, this.stores, this.hasMore);
+}
+
 class OffersApi {
   // This endpoint is public. Server integration credentials never enter the APK.
   static const baseUrl =
@@ -75,6 +82,43 @@ class OffersApi {
         'sort': sort,
       },
     );
+    final data = await _fetchJson(uri);
+    if (data['offers'] is! List) {
+      throw Exception('O serviço retornou uma resposta incompatível.');
+    }
+    final rows = data['offers'] as List;
+    final offers = rows
+        .whereType<Map<String, dynamic>>()
+        .map(Offer.fromJson)
+        .where((o) => o.id.isNotEmpty)
+        .toList();
+    final total = int.tryParse('${data['total']}') ?? offers.length;
+    return OffersResult(
+      offers,
+      total,
+      data['hasMore'] == true && offers.isNotEmpty,
+    );
+  }
+  Future<CatalogResult> getCatalog({int page = 1}) async {
+    final uri = Uri.parse(baseUrl).replace(queryParameters: {
+      'catalog': '1', 'page': '$page', 'limit': '60',
+    });
+    final data = await _fetchJson(uri);
+    List<String> names(String key) {
+      final values = data[key];
+      if (values is! List || values.any((value) => value is! String)) {
+        throw Exception('O serviço retornou um catálogo incompatível.');
+      }
+      return List.unmodifiable(values.cast<String>().map((value) => value.trim())
+          .where((value) => value.isNotEmpty).toSet());
+    }
+    final categories = names('categories'), stores = names('stores');
+    return CatalogResult(categories, stores,
+      data['hasMore'] == true && (categories.isNotEmpty || stores.isNotEmpty));
+  }
+
+  Future<Map<String, dynamic>> _fetchJson(Uri uri) async {
+    if (_retryAt != null && _now.isBefore(_retryAt!)) throw Exception(_retryMessage);
     late http.Response response;
     try {
       response =
@@ -128,20 +172,8 @@ class OffersApi {
     } catch (_) {
       throw Exception('O serviço retornou uma resposta inválida.');
     }
-    if (data is! Map<String, dynamic> || data['offers'] is! List) {
-      throw Exception('O serviço retornou uma resposta incompatível.');
-    }
-    final rows = data['offers'] as List;
-    final offers = rows
-        .whereType<Map<String, dynamic>>()
-        .map(Offer.fromJson)
-        .where((o) => o.id.isNotEmpty)
-        .toList();
-    final total = int.tryParse('${data['total']}') ?? offers.length;
-    return OffersResult(
-      offers,
-      total,
-      data['hasMore'] == true && offers.isNotEmpty,
-    );
+    if (data is! Map<String, dynamic>) throw Exception('O serviço retornou uma resposta incompatível.');
+    return data;
   }
+
 }

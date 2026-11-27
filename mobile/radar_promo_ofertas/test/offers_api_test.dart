@@ -8,6 +8,27 @@ import 'package:radar_promo_ofertas/services/api.dart';
 import 'package:radar_promo_ofertas/models/offer.dart';
 
 void main() {
+  test('catalog has its own paginated contract without credentials', () async {
+    final api = OffersApi(client: MockClient((request) async {
+      expect(request.url.queryParameters, {'catalog': '1', 'page': '2', 'limit': '60'});
+      expect(request.headers.containsKey('Authorization'), false);
+      return http.Response('{"categories":["Casa","Casa"," Tecnologia "],"stores":["Loja"],"hasMore":true}', 200);
+    }));
+    final result = await api.getCatalog(page: 2);
+    expect(result.categories, ['Casa', 'Tecnologia']);
+    expect(result.stores, ['Loja']);
+    expect(result.hasMore, true);
+  });
+  test('invalid catalog does not become an empty success', () async {
+    final api = OffersApi(client: MockClient((_) async =>
+      http.Response('{"categories":[42],"stores":[]}', 200)));
+    await expectLater(api.getCatalog(), throwsException);
+  });
+  test('empty catalog page stops pagination despite inconsistent flag', () async {
+    final api = OffersApi(client: MockClient((_) async =>
+      http.Response('{"categories":[],"stores":[],"hasMore":true}', 200)));
+    expect((await api.getCatalog()).hasMore, false);
+  });
   for (final value in ['0', 'Wed, 25 Nov 2026 12:00:00 GMT']) {
     test('elapsed Retry-After does not invent another pause: $value', () async {
       var calls = 0;
